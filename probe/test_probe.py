@@ -99,8 +99,7 @@ class Levels(unittest.TestCase):
 
     def test_gentle_ramp_claims_no_levels(self):
         # review's case: 1.5%/step growth under 5% noise came out as 4 levels; later as a lone
-        # "level" with a capacity claim in 11.5% of runs. Measured now (200 seeds): 5% any level,
-        # 3.5% false boundary.
+        # "level" with a capacity claim in 11.5% of runs. Measured now (200 seeds): 0% any level.
         any_level = boundary = 0
         for seed in range(100):
             r = random.Random(seed)
@@ -177,6 +176,27 @@ class Levels(unittest.TestCase):
             out = probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx, rep_min=mn) or []
             extra += len([l for l in out if l["kind"] == "level"]) > 1
         self.assertLessEqual(extra / 100, 0.05)
+
+    def test_curved_precise_ramp_has_no_levels(self):
+        # fifth review: latency = 2 + 3.5 i ns (curved in log-log) at 0.2% noise gave a phantom level
+        # with a capacity claim in 51.5% of draws, because the edge test ignored the jump's direction
+        bad = 0
+        for seed in range(100):
+            r = random.Random(seed)
+            med, se, mx, mn = [], [], [], []
+            for i in range(len(self.sizes)):
+                st = probe.summarise([(2 + 3.5 * i) * math.exp(r.gauss(0, 0.002)) for _ in range(7)])
+                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+            out = probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx, rep_min=mn) or []
+            bad += any(l["kind"] == "level" for l in out)
+        self.assertLessEqual(bad / 100, 0.05)
+
+    def test_extreme_weights_do_not_crash(self):
+        sizes = self.sizes[:20]
+        med = [1.0 + 0.01 * i for i in range(20)]
+        se = [1e-12 if i % 2 else 1e-2 for i in range(20)]
+        probe.describe_levels(sizes, med, se, df=6)  # must not raise
+        self.assertIsNone(probe.describe_levels(sizes, [0.0] + med[1:], se, df=6))
 
     def test_slope_is_not_a_staircase(self):
         med = [10 * 1.03 ** i for i in range(len(self.sizes))]

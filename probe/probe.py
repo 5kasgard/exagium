@@ -54,7 +54,8 @@ def summarise(xs):
 #  - A level changes little compared with the jump at each end: its fitted rise across its span
 #    must be significantly less than LEVEL_RISE_RATIO of each edge jump (owner's 2-SE rule,
 #    Bonferroni-corrected because breakpoints are chosen from the data), and so must the plain
-#    spread of its medians, which the weighting cannot hide. A lone segment must
+#    spread of its medians, which the weighting cannot hide; and per unit of size its slope must
+#    be under the same fraction of the edge's slope (so a long ramp is never an "edge"). A lone segment must
 #    show no detectable rise. Neighbours that would pass as one level are merged first (a precise
 #    plateau split at a small step). No cache sizes are assumed.
 #  - Explicit, local choices (recorded): MIN_LEVEL_SPAN, LEVEL_RISE_RATIO, MAX_EXCLUDED.
@@ -66,9 +67,11 @@ LEVEL_METHOD = ("points significantly slower than the next kept size excluded as
                 "with working set); piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with "
                 "SE = bootstrap SE of the median widened by t(df=reps-1)/z; a level spans >= "
                 f"{MIN_LEVEL_SPAN:g}x size and its fitted rise is significantly less than {LEVEL_RISE_RATIO:g}x the "
-                "jump at each edge (z = 2-sided 5% Bonferroni over n-1 breakpoints), as is the plain spread of its medians; a lone segment must show no "
+                "jump at each edge (z = 2-sided 5% Bonferroni over n-1 breakpoints), as are the plain spread of its interior medians "
+                "and its slope relative to the edge's slope; the edge must step up toward larger sizes; a lone segment must show no "
                 "detectable rise; neighbours that would pass as one merged level are merged; capacity bracket starts at the last size where no rep already reached the next "
-                "level and ends at the first size where no rep was still at this level (null if no next level)")
+                "level and ends at the first size where no rep was still at this level (null if no next level); a bracket "
+                "covers what these reps showed, it is not a confidence interval for the true capacity")
 
 
 def t_cdf(t, df):
@@ -112,17 +115,20 @@ def segment_lines(x, y, w, penalty_n):
     known-variance BIC: chi-square + (3k-1) ln n (a line per segment plus k-1 breakpoints).
     A drifting plateau is one segment, not a staircase. Returns [(start, end_inclusive)]."""
     n = len(y)
-    P = [[0.0] * (n + 1) for _ in range(6)]  # prefix sums of w, wx, wy, wxx, wxy, wyy
-    for k in range(n):
-        for r, v in enumerate((w[k], w[k] * x[k], w[k] * y[k], w[k] * x[k] ** 2, w[k] * x[k] * y[k], w[k] * y[k] ** 2)):
-            P[r][k + 1] = P[r][k] + v
+    memo = {}
 
     def chi2(i, j):
+        """Weighted residual of the best line through points i..j, computed directly (centred,
+        two-pass) so weights that differ by many orders of magnitude cannot cancel to zero."""
         if j - i < 2:
             return 0.0  # one or two points: a line fits exactly
-        S, Sx, Sy, Sxx, Sxy, Syy = (P[r][j + 1] - P[r][i] for r in range(6))
-        vxx, vxy, vyy = Sxx - Sx * Sx / S, Sxy - Sx * Sy / S, Syy - Sy * Sy / S
-        return max(vyy - (vxy * vxy / vxx if vxx > 0 else 0.0), 0.0)
+        if (i, j) not in memo:
+            ws, xs, ys = w[i:j + 1], x[i:j + 1], y[i:j + 1]
+            W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
+            sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
+            sl = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx if sxx > 0 else 0.0
+            memo[(i, j)] = sum(a * (c - ym - sl * (b - xm)) ** 2 for a, b, c in zip(ws, xs, ys))
+        return memo[(i, j)]
 
     kmax = min(n, 16)
     INF = float("inf")
@@ -175,7 +181,7 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
     df: degrees of freedom of the noise estimates (reps-1). rep_max / rep_min: per-point slowest /
     fastest rep, used so a capacity bracket never starts after, or ends before, a mixed point.
     Points excluded as non-monotone are left out of the fit (see nonmonotone_points)."""
-    if not med or any(s is None or s <= 0 for s in se):
+    if not med or any(s is None or s <= 0 for s in se) or any(m <= 0 for m in med):
         return None
     drop = set(nonmonotone_points(med, se, df))
     if len(drop) > MAX_EXCLUDED * len(med):
@@ -226,7 +232,11 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
         sl, sl_se = fit(range(i, j + 1))[:2]
         span = x[j] - x[i]
         rise, rise_se = abs(sl) * span, sl_se * span
-        spread = max(y[i:j + 1]) - min(y[i:j + 1])
+        # plain spread over interior points: a segment's end points are where reps mix at a
+        # boundary (some still in this level, some already in the next) and the fit down-weights
+        # them; the guard is for noisy points *inside* a precise level, which this catches
+        inner = y[i + 1:j]
+        spread = (max(inner) - min(inner)) if inner else 0.0
         if len(segs) == 1:  # nothing to compare with: no detectable rise (uncorrected 5%)
             return rise <= t_quantile(0.975, df) * rise_se
         for step in (-1, 1):
@@ -243,8 +253,19 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
             mine_x, theirs_x = (x[i], x[hi_]) if step < 0 else (x[j], x[lo_])
             v0, s0 = at(range(i, j + 1), mine_x)
             v1, s1 = at(range(lo_, hi_ + 1), theirs_x)
-            jump, jump_se = abs(v1 - v0), math.hypot(s0, s1)
+            # going to larger sizes the neighbour must be slower (and to smaller sizes faster):
+            # a real boundary is a step up. A neighbour's line that lands on the wrong side
+            # (a curved ramp extrapolated) is no edge at all.
+            jump, jump_se = (v1 - v0) * step, math.hypot(s0, s1)
+            if jump <= 0:
+                return False
             if not (LEVEL_RISE_RATIO * jump - rise > zm * math.hypot(LEVEL_RISE_RATIO * jump_se, rise_se)):
+                return False
+            # ...and per unit of size the edge must also be steeper than the level: a "jump" that is
+            # really a long ramp accumulated over many octaves is shallower than a plateau's own
+            # drift and is no edge (fifth review: curved ramps otherwise produced phantom levels)
+            dx = abs(theirs_x - mine_x)
+            if not (LEVEL_RISE_RATIO * jump / dx - abs(sl) > zm * math.hypot(sl_se, LEVEL_RISE_RATIO * jump_se / dx)):
                 return False
             # the weighted fit can be dominated by a few very precise points, so the plain spread of
             # the segment's medians must also stay under the same fraction of the jump
@@ -252,15 +273,26 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
                 return False
         return True
 
-    # A precise plateau can be split at a small step. Two neighbours are one level if, merged,
-    # they would still pass as a level against their outer neighbours (same rule, no new
-    # threshold). A real cache boundary never passes: merged, its rise is the whole jump.
+    # A precise plateau can be split at a small step. Two neighbours are one level if the step
+    # between them is under LEVEL_RISE_RATIO of the merged segment's outer jumps and, merged,
+    # they still pass as a level (same rule, no new threshold).
+    def step_between(a, b):  # each segment's own line at its own edge; positive = b is slower
+        return at(range(b[0], b[1] + 1), x[b[0]])[0] - at(range(a[0], a[1] + 1), x[a[1]])[0]
+
     merged = True
     while merged and len(segs) > 1:
         merged = False
         for t in range(len(segs) - 1):
+            a_, b_ = segs[t], segs[t + 1]
+            inner = abs(step_between(a_, b_))
+            # outer jumps from each piece's own line to its own neighbour (never from the merged
+            # line, which a few very precise points can drag far from the other piece)
+            outer = ([step_between(segs[t - 1], a_)] if t > 0 else []) + \
+                    ([step_between(b_, segs[t + 2])] if t + 2 < len(segs) else [])
+            if not outer or min(outer) <= 0 or inner >= LEVEL_RISE_RATIO * min(outer):
+                continue
             keep_segs, keep_cand = [list(g) for g in segs], list(cand)
-            segs[t:t + 2] = [[segs[t][0], segs[t + 1][1]]]
+            segs[t:t + 2] = [[a_[0], b_[1]]]
             cand[t:t + 2] = [sizes[segs[t][1]] / sizes[segs[t][0]] >= MIN_LEVEL_SPAN * 0.999]
             if cand[t] and plateau(t):
                 merged = True
@@ -639,6 +671,11 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
         "latency_curve": [{"bytes": s, "ns_per_load": x, "label": "measured"} for s, x in zip(sizes, lat)],
         "memory_levels": levels,  # fitted from the curve: label "derived"
         "memory_levels_excluded_bytes": excluded,
+        "memory_levels_choices": {"min_level_span": MIN_LEVEL_SPAN, "level_rise_ratio": LEVEL_RISE_RATIO,
+                                  "max_excluded_fraction": MAX_EXCLUDED, "label": "explicit choice",
+                                  "meaning": "a level spans >= min_level_span x in size; its rise must be under "
+                                             "level_rise_ratio of each edge jump; if more than max_excluded_fraction "
+                                             "of sizes break monotonicity, no levels are fitted"},
         "sweep_reach": {"largest_bytes": sizes[-1] if sizes else None, "reported_llc_bytes": llc or None,
                         "ratio": reach, "label": "derived",
                         "warning": None if reach is None or reach >= 2 else

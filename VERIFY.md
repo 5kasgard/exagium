@@ -11,7 +11,7 @@ You are an independent verifier. Someone else built this tool. Your job is to ch
 ## Setup
 ```
 git clone https://github.com/5kasgard/exagium && cd exagium/probe
-python3 -m unittest -v test_probe          # expect 34 passing, ~45 s
+python3 -m unittest -v test_probe          # expect 36 passing, ~50 s
 python3 probe.py --quick --out quick.json  # ~10 s
 python3 probe.py --out full.json           # ~100 s on 2 cores; longer with more cores or RAM
 python3 probe.py --reanalyse full.json; echo $?
