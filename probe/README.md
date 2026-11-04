@@ -74,15 +74,15 @@ Intel Xeon (KVM guest, 2 vCPUs, AVX-512). CPU steal stayed at or below 0.9% per 
 | Far ÷ near load latency | 65× (derived) | — |
 | Timer | 29 ns smallest step (cost of a read); kernel claims 1 ns | — |
 
-**Three full runs agree.** Refitting the raw reps of all three kept runs with the final fitter (runs in commits `7ea8cb2` and `22ee463` with seed 20261105, and this one with seed 20261106) gives:
+**Three full runs agree.** Refitting the raw reps of all three kept runs with the final fitter (runs in commits `a69c20a` and `f2c1c1c` with seed 20261105, and this one with seed 20261106) gives:
 
 | Run | L1 | L2 | L3 | DRAM |
 |---|---|---|---|---|
-| `7ea8cb2` | 1.8 ns | 5.7 ns | 33.5 ns, capacity 5.7–16 MiB | 121 ns |
-| `22ee463` | 1.8 ns | 5.7 ns | 32.9 ns, capacity 5.7–16 MiB | 118 ns |
+| `a69c20a` | 1.8 ns | 5.7 ns | 33.5 ns, capacity 5.7–16 MiB | 121 ns |
+| `f2c1c1c` | 1.8 ns | 5.7 ns | 32.9 ns, capacity 5.7–16 MiB | 118 ns |
 | this run | 1.8 ns | 5.9 ns | 33.6 ns, capacity 5.7–16 MiB | 119 ns |
 
-In the `7ea8cb2` run, one mixed point at 8–11 MiB is a transition. An earlier version of this card claimed L3 was unstable between runs. That was wrong: the claim rested on a run whose data I had overwritten, and the fitter at the time was what missed L3. The fourth review caught it.
+In the `a69c20a` run, one mixed point at 8–11 MiB is a transition. An earlier version of this card claimed L3 was unstable between runs. That was wrong: the claim rested on a run whose data I had overwritten, and the fitter at the time was what missed L3. The fourth review caught it.
 
 **What this already changes:**
 - **The old probe measured its own loops, not the hardware.**
