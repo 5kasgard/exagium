@@ -49,8 +49,8 @@ def summarise(xs):
 #    (bootstrap SE of the median), widened to Student-t tails because it comes from few reps.
 #    Real plateaus drift a little (associativity, TLB), so a plateau is one sloped segment, not
 #    a staircase of constants. No cache sizes are assumed.
-#  - A level is a plateau much flatter than its edges: each edge (pooled-mean slope to the
-#    neighbour) must be steeper than the plateau by the owner's 2-SE rule, Bonferroni-corrected
+#  - A level is a plateau much flatter than its edges: each edge (both segments' lines at their
+#    own edge points, over the gap) must be steeper than the plateau by the owner's 2-SE rule, Bonferroni-corrected
 #    because breakpoints are chosen from the data, and the plateau must rise less than
 #    LEVEL_SLOPE_RATIO of the edge's slope. A lone segment must show no detectable slope.
 #  - Two neighbouring levels that one sloped line explains as well as a step are a ramp.
@@ -61,7 +61,8 @@ LEVEL_SLOPE_RATIO = 0.5
 LEVEL_METHOD = ("piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with SE = bootstrap "
                 "SE of the median widened by t(df=reps-1)/z; a level spans >= "
                 f"{MIN_LEVEL_SPAN:g}x size and rises (log-log) significantly less than {LEVEL_SLOPE_RATIO:g}x the "
-                "pooled-mean slope to each neighbour (z = 2-sided 5% Bonferroni over n-1 breakpoints); a lone segment "
+                "edge slope to each neighbour (each segment's line at its own edge, over the gap) (z = 2-sided 5% Bonferroni "
+                "over n-1 breakpoints); a lone segment "
                 "must show no detectable slope; adjacent levels that one line fits as well as a step (BIC) are demoted "
                 "to transition; capacity bracket starts at the last size where no rep already reached the next level "
                 "and ends at the first size where no rep was still at this level")
@@ -186,23 +187,29 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
     # point. Breakpoints are data-chosen, so the corrected threshold zm applies.
     cand = [sizes[j] / sizes[i] >= MIN_LEVEL_SPAN * 0.999 for i, j in segs]
 
-    def centre(i, j):
-        W = sum(w[i:j + 1])
-        return sum(w[k] * x[k] for k in range(i, j + 1)) / W
+    def at(idx, x0):
+        """Weighted-LS line through points idx, evaluated at x0: (value, SE). One point: itself."""
+        idx = list(idx)
+        if len(idx) == 1:
+            return y[idx[0]], 1 / math.sqrt(w[idx[0]])
+        ws, xs, ys = [w[k] for k in idx], [x[k] for k in idx], [y[k] for k in idx]
+        W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
+        sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
+        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx
+        return ym + slope * (x0 - xm), math.sqrt(1 / W + (x0 - xm) ** 2 / sxx)
 
     def steeper_edges(t):
-        """Slope between this segment and each neighbour (pooled means over centre distance) must
-        exceed the slope within it by more than zm SE. Neighbour = next candidate level, or the
-        short segments up to the curve end pooled together. Pooled means are precise; single
-        boundary points are the noisiest on the curve and are not used alone."""
+        """At each boundary, the edge slope (this segment's line and the neighbour's line, each
+        evaluated at its own edge point, over the gap between them) must be steeper than the
+        segment by the rule below. On a ramp the two lines meet, so the edge slope equals the
+        ramp's; at a real cache boundary it is a jump. Neighbour = next candidate level, or
+        the short segments up to the curve end pooled together."""
         i, j = segs[t]
         _, sl, sl_se = line(range(i, j + 1))
         if len(segs) == 1:
             # nothing to compare with: a lone segment is a level only if no slope is detectable
             # (uncorrected 5%, so doubt goes to 'transition')
             return abs(sl) <= t_quantile(0.975, df) * sl_se
-        m0, s0 = wmean(i, j)
-        c0 = centre(i, j)
         for step in (-1, 1):
             q = t + step
             if not 0 <= q < len(segs):
@@ -210,15 +217,15 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
             first = q
             while not cand[q] and 0 <= q + step < len(segs):
                 q += step
-            if cand[q] and q != first:
-                lo_, hi_ = (segs[q][0], segs[q][1])  # next candidate level beyond short segments
-            elif cand[q]:
+            if cand[q]:
                 lo_, hi_ = segs[q]
             else:  # only short segments to the curve end: pool them
                 lo_, hi_ = (segs[q][0], segs[first][1]) if step < 0 else (segs[first][0], segs[q][1])
-            m1, s1 = wmean(lo_, hi_)
-            dx = abs(centre(lo_, hi_) - c0)
-            between, between_se = abs(m1 - m0) / dx, math.hypot(s0, s1) / dx
+            mine_x, theirs_x = (x[i], x[hi_]) if step < 0 else (x[j], x[lo_])
+            v0, s0 = at(range(i, j + 1), mine_x)
+            v1, s1 = at(range(lo_, hi_ + 1), theirs_x)
+            dx = abs(theirs_x - mine_x)
+            between, between_se = abs(v1 - v0) / dx, math.hypot(s0, s1) / dx
             # a plateau must rise significantly less than LEVEL_SLOPE_RATIO of its edge's slope
             if not (LEVEL_SLOPE_RATIO * between - abs(sl) > zm * math.hypot(sl_se, LEVEL_SLOPE_RATIO * between_se)):
                 return False
