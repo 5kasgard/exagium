@@ -2,7 +2,7 @@
 // Prints one JSON object on stdout. The driver (probe.py) repeats and interleaves.
 //
 //   kernels timer
-//   kernels chase  <bytes> <line_bytes> <min_ms> <hugepage 0|1>   -> ns per dependent load
+//   kernels chase  <bytes> <line_bytes> <min_ms> <hugepage 0|1> [seed] -> ns per dependent load
 //   kernels stream <bytes> <threads> <min_ms> <hugepage 0|1>       -> GB/s read
 //   kernels flops  <scalar_f64|vec_f64|vec_f32> <threads> <min_ms> -> GFLOP/s (FMA = 2 flops)
 //
@@ -48,13 +48,17 @@ static int cmd_timer(void) {
   int n = 1000000; double s = now();
   for (int i = 0; i < n; i++) (void)now();
   double ovh = (now() - s) / n;
-  printf("{\"kind\":\"timer\",\"resolution_ns\":%.3f,\"read_overhead_ns\":%.3f,\"elapsed_s\":%.3f}\n",
-         best * 1e9, ovh * 1e9, now() - t0);
+  struct timespec res; clock_getres(CLOCK_MONOTONIC, &res);
+  // min_step_ns: smallest observable gap between two reads (bounded below by read cost);
+  // getres_ns: what the kernel reports as the clock's resolution.
+  printf("{\"kind\":\"timer\",\"min_step_ns\":%.3f,\"read_overhead_ns\":%.3f,\"getres_ns\":%.3f,\"seconds\":%.6f}\n",
+         best * 1e9, ovh * 1e9, res.tv_sec * 1e9 + res.tv_nsec, now() - t0);
   return 0;
 }
 
 // ---------- latency: dependent pointer chase over a random single cycle of cache lines ----------
-static int cmd_chase(size_t bytes, size_t line, double min_ms, int huge) {
+static int cmd_chase(size_t bytes, size_t line, double min_ms, int huge, uint64_t seed) {
+  if (seed) rng = seed;
   if (line < sizeof(void *)) line = sizeof(void *);
   size_t n = bytes / line;
   if (n < 2) n = 2;
@@ -75,8 +79,8 @@ static int cmd_chase(size_t bytes, size_t line, double min_ms, int huge) {
     if (dt * 1e3 >= min_ms) break;
     steps *= 2;
   }
-  printf("{\"kind\":\"chase\",\"bytes\":%zu,\"line\":%zu,\"steps\":%zu,\"ns_per_load\":%.4f,\"sink\":%d}\n",
-         n * line, line, steps, dt / steps * 1e9, p == NULL);
+  printf("{\"kind\":\"chase\",\"bytes\":%zu,\"line\":%zu,\"seed\":%llu,\"steps\":%zu,\"seconds\":%.9f,\"ns_per_load\":%.4f,\"sink\":%d}\n",
+         n * line, line, (unsigned long long)seed, steps, dt, dt / steps * 1e9, p == NULL);
   free(buf);
   return 0;
 }
@@ -136,8 +140,8 @@ static int cmd_stream(size_t bytes, int th, double min_ms, int huge) {
     passes *= 2;
   }
   double moved = (double)chunk * th * passes;
-  printf("{\"kind\":\"stream\",\"bytes\":%zu,\"threads\":%d,\"passes\":%zu,\"GBps\":%.4f,\"sink\":%d}\n",
-         chunk * th, th, passes, moved / dt / 1e9, sink == 1.2345);
+  printf("{\"kind\":\"stream\",\"bytes\":%zu,\"threads\":%d,\"passes\":%zu,\"seconds\":%.9f,\"GBps\":%.4f,\"sink\":%d}\n",
+         chunk * th, th, passes, dt, moved / dt / 1e9, sink == 1.2345);
   free(buf);
   return 0;
 }
@@ -205,15 +209,16 @@ static int cmd_flops(const char *k, int th, double min_ms) {
     it *= 2;
   }
   double fl = 2.0 * lanes * NACC * (double)it * th;
-  printf("{\"kind\":\"flops\",\"op\":\"%s\",\"threads\":%d,\"lanes\":%d,\"iters\":%zu,\"GFLOPs\":%.4f,\"sink\":%d}\n",
-         k, th, lanes, it, fl / dt / 1e9, sink == 1.2345);
+  printf("{\"kind\":\"flops\",\"op\":\"%s\",\"threads\":%d,\"lanes\":%d,\"chains\":%d,\"iters\":%zu,\"seconds\":%.9f,\"GFLOPs\":%.4f,\"sink\":%d}\n",
+         k, th, lanes, NACC, it, dt, fl / dt / 1e9, sink == 1.2345);
   return 0;
 }
 
 int main(int argc, char **argv) {
   if (argc >= 2 && !strcmp(argv[1], "timer")) return cmd_timer();
-  if (argc == 6 && !strcmp(argv[1], "chase"))
-    return cmd_chase(strtoull(argv[2], 0, 10), strtoull(argv[3], 0, 10), atof(argv[4]), atoi(argv[5]));
+  if ((argc == 6 || argc == 7) && !strcmp(argv[1], "chase"))
+    return cmd_chase(strtoull(argv[2], 0, 10), strtoull(argv[3], 0, 10), atof(argv[4]), atoi(argv[5]),
+                     argc == 7 ? strtoull(argv[6], 0, 10) : 0);
   if (argc == 6 && !strcmp(argv[1], "stream"))
     return cmd_stream(strtoull(argv[2], 0, 10), atoi(argv[3]), atof(argv[4]), atoi(argv[5]));
   if (argc == 5 && !strcmp(argv[1], "flops")) return cmd_flops(argv[2], atoi(argv[3]), atof(argv[4]));
