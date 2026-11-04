@@ -45,21 +45,26 @@ def summarise(xs):
 
 # ---------------------------------------------------------------- level detection
 # How memory levels are read off the latency curve. All of it is recorded in the profile.
-#  - BIC piecewise-constant fit, each point weighted by its own noise (no sizes assumed).
-#  - Owner's 2-SE rule (~5% two-sided), adapted for two facts verification exposed:
-#    noise comes from few reps (so Student-t, df = reps-1, not normal), and breakpoints are
-#    chosen from the data (so Bonferroni over the n-1 candidates when merging neighbours).
-#  - Every doubt resolves toward "transition", never toward "level": the flatness test uses
-#    the uncorrected 5% t quantile (easier to reject flat), and two neighbouring levels that a
-#    single sloped line explains as well as a step are both demoted to a transition.
-#  - Explicit, local choice (recorded): a "level" must span at least MIN_LEVEL_SPAN in size.
+#  - Piecewise-linear fit of log latency on log size, BIC, each point weighted by its own noise
+#    (bootstrap SE of the median), widened to Student-t tails because it comes from few reps.
+#    Real plateaus drift a little (associativity, TLB), so a plateau is one sloped segment, not
+#    a staircase of constants. No cache sizes are assumed.
+#  - A level is a plateau much flatter than its edges: each edge (pooled-mean slope to the
+#    neighbour) must be steeper than the plateau by the owner's 2-SE rule, Bonferroni-corrected
+#    because breakpoints are chosen from the data, and the plateau must rise less than
+#    LEVEL_SLOPE_RATIO of the edge's slope. A lone segment must show no detectable slope.
+#  - Two neighbouring levels that one sloped line explains as well as a step are a ramp.
+#  - Explicit, local choices (recorded): MIN_LEVEL_SPAN, LEVEL_SLOPE_RATIO.
+#  - Every doubt resolves toward "transition", never toward "level".
 MIN_LEVEL_SPAN = 2.0
-LEVEL_METHOD = ("BIC piecewise-constant fit of log(median latency), weights 1/SE_median^2 (bootstrap); "
-                "neighbours merged unless apart by more than t(df=reps-1, 2-sided 5% Bonferroni over n-1 "
-                "breakpoints) combined SE; a level must span >= "
-                f"{MIN_LEVEL_SPAN:g}x size with fitted rise within t(df, 2-sided 5%) SE; adjacent levels that a "
-                "single line fits as well as a step joined linearly across the points between (BIC) are demoted to transition; capacity bracket starts "
-                "at the last size where no rep already reached the next level")
+LEVEL_SLOPE_RATIO = 0.5
+LEVEL_METHOD = ("piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with SE = bootstrap "
+                "SE of the median widened by t(df=reps-1)/z; a level spans >= "
+                f"{MIN_LEVEL_SPAN:g}x size and rises (log-log) significantly less than {LEVEL_SLOPE_RATIO:g}x the "
+                "pooled-mean slope to each neighbour (z = 2-sided 5% Bonferroni over n-1 breakpoints); a lone segment "
+                "must show no detectable slope; adjacent levels that one line fits as well as a step (BIC) are demoted "
+                "to transition; capacity bracket starts at the last size where no rep already reached the next level "
+                "and ends at the first size where no rep was still at this level")
 
 
 def t_cdf(t, df):
@@ -98,41 +103,38 @@ def merge_z(n, df=None):
     return t_quantile(1 - 0.025 / max(n - 1, 1), df)
 
 
-def flat_z(df=None):
-    """Threshold for 'this segment is flat' (uncorrected, so doubt goes to 'transition')."""
-    return t_quantile(0.975, df)
-
-
-def segment_plateaus(sizes, lat, se):
-    """Piecewise-constant fit of log(latency), segment count by known-variance BIC
-    (chi-square + (2k-1) ln n). se: per-point standard errors, all required.
-    Returns segments as (start_index, end_index_inclusive)."""
-    y = [math.log(v) for v in lat]
+def segment_lines(x, y, w, penalty_n):
+    """Piecewise-linear fit of y on x (log latency on log size), weights w, segment count by
+    known-variance BIC: chi-square + (3k-1) ln n (a line per segment plus k-1 breakpoints).
+    A drifting plateau is one segment, not a staircase. Returns [(start, end_inclusive)]."""
     n = len(y)
-    w = [1.0 / (s / v) ** 2 for s, v in zip(se, lat)]
-    pw, pwy, pwy2 = [0.0], [0.0], [0.0]
-    for wi, v in zip(w, y):
-        pw.append(pw[-1] + wi); pwy.append(pwy[-1] + wi * v); pwy2.append(pwy2[-1] + wi * v * v)
+    P = [[0.0] * (n + 1) for _ in range(6)]  # prefix sums of w, wx, wy, wxx, wxy, wyy
+    for k in range(n):
+        for r, v in enumerate((w[k], w[k] * x[k], w[k] * y[k], w[k] * x[k] ** 2, w[k] * x[k] * y[k], w[k] * y[k] ** 2)):
+            P[r][k + 1] = P[r][k] + v
 
-    def sse(i, j):  # weighted SSE (chi-square) of points i..j around their weighted mean
-        W = pw[j + 1] - pw[i]; s = pwy[j + 1] - pwy[i]
-        return max((pwy2[j + 1] - pwy2[i]) - s * s / W, 0.0)
+    def chi2(i, j):
+        if j - i < 2:
+            return 0.0  # one or two points: a line fits exactly
+        S, Sx, Sy, Sxx, Sxy, Syy = (P[r][j + 1] - P[r][i] for r in range(6))
+        vxx, vxy, vyy = Sxx - Sx * Sx / S, Sxy - Sx * Sy / S, Syy - Sy * Sy / S
+        return max(vyy - (vxy * vxy / vxx if vxx > 0 else 0.0), 0.0)
 
     kmax = min(n, 16)
     INF = float("inf")
     dp = [[INF] * n for _ in range(kmax + 1)]
     back = [[-1] * n for _ in range(kmax + 1)]
     for j in range(n):
-        dp[1][j] = sse(0, j)
+        dp[1][j] = chi2(0, j)
     for k in range(2, kmax + 1):
         for j in range(k - 1, n):
             for i in range(k - 1, j + 1):
-                c = dp[k - 1][i - 1] + sse(i, j)
+                c = dp[k - 1][i - 1] + chi2(i, j)
                 if c < dp[k][j]:
                     dp[k][j], back[k][j] = c, i
     best_k, best_bic = 1, INF
     for k in range(1, kmax + 1):
-        bic = dp[k][n - 1] + (2 * k - 1) * math.log(n)
+        bic = dp[k][n - 1] + (3 * k - 1) * math.log(penalty_n)
         if bic < best_bic:
             best_k, best_bic = k, bic
     segs, j, k = [], n - 1, best_k
@@ -142,18 +144,22 @@ def segment_plateaus(sizes, lat, se):
     return segs[::-1]
 
 
-def describe_levels(sizes, med, se, df=None, rep_max=None):
+def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
     """Levels and transitions from the latency curve, or None if noise is unknown
     (a fit without noise estimates would invent or hide levels).
-    df: degrees of freedom of the noise estimates (reps-1). rep_max: per-point slowest rep."""
+    df: degrees of freedom of the noise estimates (reps-1). rep_max / rep_min: per-point slowest /
+    fastest rep, used so a capacity bracket never starts after, or ends before, a mixed point."""
     if not med or any(s is None or s <= 0 for s in se):
         return None
     n = len(med)
     x = [math.log(v) for v in sizes]
     y = [math.log(v) for v in med]
-    rel = [s / v for s, v in zip(se, med)]
+    # few reps make each SE an optimistic estimate; widen it to the t distribution's 5% tails so
+    # chi-square and BIC are not fooled into extra breakpoints
+    infl = t_quantile(0.975, df) / t_quantile(0.975, None)
+    rel = [infl * s / v for s, v in zip(se, med)]
     w = [1 / r ** 2 for r in rel]
-    zm, zf = merge_z(n, df), flat_z(df)
+    zm = merge_z(n, None)  # noise already widened to t tails above; do not apply t twice
 
     def wmean(i, j):  # weighted mean of log latency and its SE
         W = sum(w[i:j + 1])
@@ -171,23 +177,54 @@ def describe_levels(sizes, med, se, df=None, rep_max=None):
         m, _ = wmean(i, j)
         return sum(w[k] * (y[k] - m) ** 2 for k in range(i, j + 1))
 
-    segs = [list(g) for g in segment_plateaus(sizes, med, se)]
-    merged = True
-    while merged and len(segs) > 1:
-        merged = False
-        for t in range(len(segs) - 1):
-            (m1, s1), (m2, s2) = wmean(*segs[t]), wmean(*segs[t + 1])
-            if abs(m1 - m2) <= zm * math.hypot(s1, s2):
-                segs[t] = [segs[t][0], segs[t + 1][1]]; del segs[t + 1]; merged = True
-                break
+    segs = [list(g) for g in segment_lines(x, y, w, n)]
 
-    def is_level(i, j):
-        if sizes[j] / sizes[i] < MIN_LEVEL_SPAN * 0.999:
-            return False
-        _, slope, slope_se = line(range(i, j + 1))
-        return abs(slope) <= zf * slope_se
+    # A level is a plateau much flatter than its edges. Real plateaus drift a little (associativity,
+    # TLB), so "slope indistinguishable from zero" would punish precise data; instead each edge of
+    # a candidate (>= MIN_LEVEL_SPAN) must be significantly steeper than the candidate itself.
+    # Edge = this segment's edge point, any short segments between, and the next candidate's edge
+    # point. Breakpoints are data-chosen, so the corrected threshold zm applies.
+    cand = [sizes[j] / sizes[i] >= MIN_LEVEL_SPAN * 0.999 for i, j in segs]
 
-    groups = [[i, j, "level" if is_level(i, j) else "transition"] for i, j in segs]
+    def centre(i, j):
+        W = sum(w[i:j + 1])
+        return sum(w[k] * x[k] for k in range(i, j + 1)) / W
+
+    def steeper_edges(t):
+        """Slope between this segment and each neighbour (pooled means over centre distance) must
+        exceed the slope within it by more than zm SE. Neighbour = next candidate level, or the
+        short segments up to the curve end pooled together. Pooled means are precise; single
+        boundary points are the noisiest on the curve and are not used alone."""
+        i, j = segs[t]
+        _, sl, sl_se = line(range(i, j + 1))
+        if len(segs) == 1:
+            # nothing to compare with: a lone segment is a level only if no slope is detectable
+            # (uncorrected 5%, so doubt goes to 'transition')
+            return abs(sl) <= t_quantile(0.975, df) * sl_se
+        m0, s0 = wmean(i, j)
+        c0 = centre(i, j)
+        for step in (-1, 1):
+            q = t + step
+            if not 0 <= q < len(segs):
+                continue
+            first = q
+            while not cand[q] and 0 <= q + step < len(segs):
+                q += step
+            if cand[q] and q != first:
+                lo_, hi_ = (segs[q][0], segs[q][1])  # next candidate level beyond short segments
+            elif cand[q]:
+                lo_, hi_ = segs[q]
+            else:  # only short segments to the curve end: pool them
+                lo_, hi_ = (segs[q][0], segs[first][1]) if step < 0 else (segs[first][0], segs[q][1])
+            m1, s1 = wmean(lo_, hi_)
+            dx = abs(centre(lo_, hi_) - c0)
+            between, between_se = abs(m1 - m0) / dx, math.hypot(s0, s1) / dx
+            # a plateau must rise significantly less than LEVEL_SLOPE_RATIO of its edge's slope
+            if not (LEVEL_SLOPE_RATIO * between - abs(sl) > zm * math.hypot(sl_se, LEVEL_SLOPE_RATIO * between_se)):
+                return False
+        return True
+
+    groups = [[i, j, "level" if cand[t] and steeper_edges(t) else "transition"] for t, (i, j) in enumerate(segs)]
     # ramp vs step: over two neighbouring levels and every point between them, compare one
     # sloped line (2 params) with a step: two flat levels joined linearly across the points in
     # between (2 means + 2 breakpoints). If the line is as good by BIC, it is a ramp, not two levels.
@@ -226,7 +263,13 @@ def describe_levels(sizes, med, se, df=None, rep_max=None):
                 nxt = groups[idx + 1]
                 nxt_level = next((g for g in groups[idx + 1:] if g[2] == "level"), None)
                 end = nxt_level[0] if nxt_level else nxt[1]
-                lo = j
+                lo, hi_i = j, min(end, n - 1)
+                if rep_min and nxt_level:
+                    # mirror: the next level starts at its first point where no rep still ran at this speed
+                    far_m = wmean(*nxt_level[:2])[0]
+                    mid_m = math.sqrt(math.exp(m) * math.exp(far_m))
+                    ok = [q for q in range(nxt_level[0], nxt_level[1] + 1) if rep_min[q] > mid_m]
+                    hi_i = ok[0] if ok else nxt_level[1]
                 if rep_max:
                     # a point where some reps already ran at the next level's speed is past capacity
                     # for those reps: the bracket starts at the last point where none did
@@ -234,7 +277,7 @@ def describe_levels(sizes, med, se, df=None, rep_max=None):
                     mid = math.sqrt(math.exp(m) * far)
                     ok = [q for q in range(i, j + 1) if rep_max[q] < mid]
                     lo = ok[-1] if ok else i
-                lvl["capacity_bytes_between"] = [sizes[lo], sizes[min(end, n - 1)]]
+                lvl["capacity_bytes_between"] = [sizes[lo], sizes[hi_i]]
         out.append(lvl)
     return out
 
@@ -521,7 +564,8 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
     lat = [stat(f"chase:{s}", "ns_per_load") for s in sizes]
     meds = [x["median"] for x in lat]
     levels = describe_levels(sizes, meds, [x["se_median"] for x in lat],
-                             df=min(x["n"] for x in lat) - 1 if lat else None, rep_max=[x["max"] for x in lat])
+                             df=min(x["n"] for x in lat) - 1 if lat else None,
+                             rep_max=[x["max"] for x in lat], rep_min=[x["min"] for x in lat])
 
     ncpu = env["logical_cpus"] or 1
     thr = sorted({1, ncpu})
@@ -588,7 +632,8 @@ def main(argv=None):
     ap.add_argument("--calibration", default=None, help="tier-3 calibration file, if any")
     ap.add_argument("--out", default="profile.json")
     ap.add_argument("--reanalyse", metavar="PROFILE", help="recompute all statistics from a profile's raw reps; "
-                    "exit 1 if stored numbers differ or raw is internally inconsistent (consistency, not authenticity)")
+                    "exit 1 if stored numbers differ or raw is internally inconsistent; exit 2 if consistent but "
+                    "run on another host, so meter claims are unverified (consistency, never authenticity)")
     a = ap.parse_args(argv)
     if a.reanalyse:
         return reanalyse(a.reanalyse, a.out if a.out != "profile.json" else None)
@@ -624,7 +669,7 @@ def main(argv=None):
     profile = analyse(raw, env, caches, tier_list, build_info,
                       {"reps": reps, "min_ms": min_ms, "seed": seed, "quick": a.quick,
                        "order": "shuffled per rep, all measurements interleaved",
-                       "cpu_steal_fraction_per_rep": steal, **plan_info},
+                       "cpu_steal_fraction_per_rep": steal, "calibration": a.calibration, **plan_info},
                       round(time.time() - t_start, 1))
     with open(a.out, "w") as f:
         json.dump(profile, f, indent=1, allow_nan=False)
@@ -649,9 +694,9 @@ def reanalyse(path, out=None):
     # re-checked on the same machine; elsewhere we say they were not re-checked.
     here = environment()["hostname_hash"] == old["environment"]["hostname_hash"]
     if here:
-        now = {t["name"]: t["available"] for t in tiers()}
+        now = {t["name"]: t["available"] for t in tiers(calibration=old["settings"].get("calibration"))}
         for t in old["meter_tiers"]:
-            if t["name"] in now and t["tier"] < 3 and now[t["name"]] != t["available"]:
+            if t["name"] in now and now[t["name"]] != t["available"]:
                 probs.append(f"meter {t['name']}: profile says available={t['available']}, re-detected {now[t['name']]}")
     print(f"meter tiers {'re-checked on this host' if here else 'NOT re-checked (different host)'}", file=sys.stderr)
     for p in probs:
@@ -659,7 +704,12 @@ def reanalyse(path, out=None):
     print(f"\nstored numbers match recompute from raw: {same}; raw internally consistent: {not probs}"
           "\n(consistency only: this cannot show the raw data is genuine; that needs the anchored record)",
           file=sys.stderr)
-    return 0 if same and not probs else 1
+    if not (same and not probs):
+        return 1
+    if not here:
+        print("exit 2: consistent, but meter claims could not be re-checked off-host", file=sys.stderr)
+        return 2
+    return 0
 
 
 def fmt_bytes(b):

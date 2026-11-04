@@ -30,12 +30,12 @@ def synth_reps(ns, reps, r, noise):
 def synth_curve(truth, sizes, reps, noise, seed):
     """Goes through the tool's own path: reps -> summarise -> (median, bootstrap SE, max)."""
     r = random.Random(seed)
-    med, se, mx = [], [], []
+    med, se, mx, mn = [], [], [], []
     for s in sizes:
         ns = next(v for cap, v in truth if s <= cap)
         st = probe.summarise(synth_reps(ns, reps, r, noise))
-        med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
-    return med, se, mx
+        med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+    return med, se, mx, mn
 
 
 def level_rates(truth, sizes, reps, noise, seeds=range(100)):
@@ -43,8 +43,9 @@ def level_rates(truth, sizes, reps, noise, seeds=range(100)):
     false_boundary: more capacity claims than real boundaries; wrong: right count, wrong bracket."""
     ph = ex = fb = wrong = 0
     for seed in seeds:
-        med, se, mx = synth_curve(truth, sizes, reps, noise, seed)
-        lv = [l for l in probe.describe_levels(sizes, med, se, df=reps - 1, rep_max=mx) if l["kind"] == "level"]
+        med, se, mx, mn = synth_curve(truth, sizes, reps, noise, seed)
+        lv = [l for l in probe.describe_levels(sizes, med, se, df=reps - 1, rep_max=mx, rep_min=mn)
+              if l["kind"] == "level"]
         ph += len(lv) > len(truth)
         fb += sum("capacity_bytes_between" in l for l in lv) > len(truth) - 1
         if len(lv) == len(truth):
@@ -96,18 +97,40 @@ class Levels(unittest.TestCase):
             r = level_rates([(float("inf"), 1.8)], self.sizes[:pts], 7, "lognormal")
             self.assertLessEqual(r["phantom"], 0.05, (pts, r)); self.assertLessEqual(r["false_boundary"], 0.05, (pts, r))
 
-    def test_gentle_ramp_is_not_a_staircase(self):
-        # second review's case: 1.5%/step growth under 5% noise came out as 4 levels
+    def test_gentle_ramp_claims_no_levels(self):
+        # review's case: 1.5%/step growth under 5% noise came out as 4 levels; later as a lone
+        # "level" with a capacity claim in 11.5% of runs. Measured now (200 seeds): 5% any level,
+        # 3.5% false boundary.
+        any_level = boundary = 0
+        for seed in range(100):
+            r = random.Random(seed)
+            med, se, mx, mn = [], [], [], []
+            for i in range(len(self.sizes)):
+                st = probe.summarise([10 * 1.015 ** i * math.exp(r.gauss(0, 0.05)) for _ in range(7)])
+                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+            lv = [l for l in probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx, rep_min=mn)
+                  if l["kind"] == "level"]
+            any_level += bool(lv); boundary += any("capacity_bytes_between" in l for l in lv)
+        self.assertLessEqual(any_level / 100, 0.08); self.assertLessEqual(boundary / 100, 0.06)
+
+    def test_drifting_precise_levels_are_found(self):
+        # regression: real plateaus drift (L2 here rose 5.6 -> 6.2 ns across its span) and 7 reps
+        # measure them precisely; an absolute "zero slope" test rejected every level on real data
         hits = 0
         for seed in range(100):
             r = random.Random(seed)
-            med, se, mx = [], [], []
-            for i in range(len(self.sizes)):
-                st = probe.summarise([10 * 1.015 ** i * math.exp(r.gauss(0, 0.05)) for _ in range(7)])
-                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
-            lv = [l for l in probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx) if l["kind"] == "level"]
-            hits += len(lv) > 1
-        self.assertLessEqual(hits / 100, 0.07)  # measured 5.5% over 200 seeds: a known limit
+            med, se, mx, mn = [], [], [], []
+            for s in self.sizes:
+                lx = math.log(s)
+                ns = (1.8 * (1 + 0.01 * (lx - 8)) if s <= 44 << 10 else
+                      5.6 * (1 + 0.04 * (lx - 11)) if s <= 1448 << 10 else
+                      32 * (1 + 0.03 * (lx - 15)) if s <= 11 << 20 else 115 * (1 + 0.005 * (lx - 17)))
+                st = probe.summarise([ns * math.exp(r.gauss(0, 0.01)) for _ in range(7)])
+                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+            lv = [l for l in probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx, rep_min=mn)
+                  if l["kind"] == "level"]
+            hits += len(lv) == 4
+        self.assertGreaterEqual(hits / 100, 0.9)
 
     def test_slope_is_not_a_staircase(self):
         med = [10 * 1.03 ** i for i in range(len(self.sizes))]
@@ -119,7 +142,7 @@ class Levels(unittest.TestCase):
         # the L3 level by median; the capacity bracket must start before it
         sizes = self.sizes
         r = random.Random(3)
-        med, se, mx = [], [], []
+        med, se, mx, mn = [], [], [], []
         k_mixed = next(i for i, s in enumerate(sizes) if s >= 12 << 20)
         for i, s in enumerate(sizes):
             ns = 1.8 if s <= 32 << 10 else 34.0 if s < 16 << 20 else 117.0
@@ -127,9 +150,28 @@ class Levels(unittest.TestCase):
             if i == k_mixed:
                 xs = [34.0] * 4 + [95.0] * 3
             st = probe.summarise(xs)
-            med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
-        l3 = [l for l in probe.describe_levels(sizes, med, se, df=6, rep_max=mx) if l["kind"] == "level"][1]
+            med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+        l3 = [l for l in probe.describe_levels(sizes, med, se, df=6, rep_max=mx, rep_min=mn)
+              if l["kind"] == "level"][1]
         self.assertLess(l3["capacity_bytes_between"][0], sizes[k_mixed])
+
+    def test_mixed_point_absorbed_upward_moves_bracket_up(self):
+        # review's case: a point still at L3 speed in some reps, absorbed into DRAM by its median;
+        # the bracket's upper end must not land before it
+        sizes = self.sizes
+        r = random.Random(4)
+        med, se, mx, mn = [], [], [], []
+        k = max(i for i, s in enumerate(sizes) if s < 24 << 20)  # last size truly within L3
+        for i, s in enumerate(sizes):
+            ns = 1.8 if s <= 32 << 10 else 34.0 if s < 24 << 20 else 117.0
+            xs = [ns * math.exp(r.gauss(0, 0.02)) for _ in range(7)]
+            if i == k:
+                xs = [117.0] * 4 + [34.0] * 3
+            st = probe.summarise(xs)
+            med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+        l3 = [l for l in probe.describe_levels(sizes, med, se, df=6, rep_max=mx, rep_min=mn)
+              if l["kind"] == "level"][1]
+        self.assertGreater(l3["capacity_bytes_between"][1], sizes[k])
 
     def test_short_curve_is_not_averaged(self):
         out = probe.describe_levels([4096, 8192], [1.0, 100.0], [0.01, 1.0], df=6)
@@ -231,6 +273,21 @@ class EndToEnd(unittest.TestCase):
             new = probe.analyse(p["raw"], p["environment"], p["reported_caches"], p["meter_tiers"],
                                 p["build"], p["settings"], p["elapsed_s"])
             new["created_utc"] = p["created_utc"]; p.clear(); p.update(new)
+        self.assertEqual(self.tamper(f), 1)
+
+    def test_off_host_is_not_a_clean_pass(self):
+        # review's bypass: change the host id and the meter claim went unchecked with exit 0
+        def f(p):
+            p["environment"]["hostname_hash"] = "000000000000"
+            for m in p["meter_tiers"]:
+                if m["name"] == "rapl_energy":
+                    m["available"] = True
+            p["best_tier_for_energy"] = "rapl_energy"
+        self.assertEqual(self.tamper(f), 2)
+
+    def test_calibration_claim_flip_caught(self):
+        def f(p):
+            next(m for m in p["meter_tiers"] if m["tier"] == 3)["available"] = True
         self.assertEqual(self.tamper(f), 1)
 
     def test_meter_claim_flip_caught_on_same_host(self):
