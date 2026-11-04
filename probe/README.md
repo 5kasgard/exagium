@@ -117,7 +117,7 @@ Six independent reviews ran: five Claude agents and GLM-5.2 on a different machi
    - no timed-window check, and no ISA record.
 
    Its curve is a regression fixture (`fixtures/shared_vm_curve.json`).
-6. **Review 6:** a curved precise ramp gave a phantom level 51.5% of the time, because the edge test ignored direction and a long ramp could act as an "edge". It also found weighting traps when merging, crash paths, and overstated figures in this card. Fixing those also exposed two false merges on real data (L2 with noisy L3 on machine B, and L3 with DRAM on machine A), both now caught by tests and checks.
+6. **Review 6:** a curved precise ramp gave a phantom level 51.5% of the time, because the edge test ignored direction and a long ramp could act as an "edge". It also found weighting traps when merging, crash paths, and overstated figures in this card. Fixing those also exposed two false merges on real data (L2 with noisy L3 on machine B, and L3 with DRAM on machine A), both fixed and checked against every kept real run (the machine B case is a regression test; the machine A case isn't yet).
 
 The commit history shows each step.
 
