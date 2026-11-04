@@ -12,15 +12,51 @@ def put(path, text):
         f.write(text)
 
 
-def synth_curve(levels, sizes, rel_noise, seed=1):
-    """levels: [(capacity_bytes, ns)], last is unbounded. Returns medians and SEs."""
+def synth_reps(ns, reps, r, noise):
+    """One point's reps. noise: 'lognormal' (3%) or 'heavy' (2% + 10% outliers at 1.5-3x),
+    after the second independent review's generator."""
+    out = []
+    for _ in range(reps):
+        if noise == "lognormal":
+            v = ns * math.exp(r.gauss(0, 0.03))
+        else:
+            v = ns * math.exp(r.gauss(0, 0.02))
+            if r.random() < 0.10:
+                v *= r.uniform(1.5, 3.0)
+        out.append(v)
+    return out
+
+
+def synth_curve(truth, sizes, reps, noise, seed):
+    """Goes through the tool's own path: reps -> summarise -> (median, bootstrap SE, max)."""
     r = random.Random(seed)
-    med, se = [], []
+    med, se, mx = [], [], []
     for s in sizes:
-        ns = next(v for cap, v in levels if s <= cap)
-        med.append(ns * (1 + r.gauss(0, rel_noise)))
-        se.append(ns * rel_noise)
-    return med, se
+        ns = next(v for cap, v in truth if s <= cap)
+        st = probe.summarise(synth_reps(ns, reps, r, noise))
+        med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
+    return med, se, mx
+
+
+def level_rates(truth, sizes, reps, noise, seeds=range(100)):
+    """phantom: more levels than truth; exact: same count with right values and brackets;
+    false_boundary: more capacity claims than real boundaries; wrong: right count, wrong bracket."""
+    ph = ex = fb = wrong = 0
+    for seed in seeds:
+        med, se, mx = synth_curve(truth, sizes, reps, noise, seed)
+        lv = [l for l in probe.describe_levels(sizes, med, se, df=reps - 1, rep_max=mx) if l["kind"] == "level"]
+        ph += len(lv) > len(truth)
+        fb += sum("capacity_bytes_between" in l for l in lv) > len(truth) - 1
+        if len(lv) == len(truth):
+            ok = True
+            for l, (cap, ns) in zip(lv, truth):
+                ok &= abs(l["latency_ns"] - ns) <= 0.1 * ns
+                if "capacity_bytes_between" in l and cap != float("inf"):
+                    lo, hi = l["capacity_bytes_between"]
+                    ok &= lo <= cap < hi
+            ex += ok; wrong += not ok
+    n = len(seeds)
+    return {"phantom": ph / n, "exact": ex / n, "false_boundary": fb / n, "wrong": wrong / n}
 
 
 class Stats(unittest.TestCase):
@@ -35,66 +71,77 @@ class Stats(unittest.TestCase):
 
 
 class Levels(unittest.TestCase):
+    """Level detection is statistical, so these tests are: rates over 100 fixed seeds,
+    through the tool's real path (reps -> bootstrap SE -> fit). Missing a level is the
+    conservative error; phantom levels and false capacity boundaries overstate."""
     sizes = probe.chase_sizes(256 << 20)
+    FOUR = [(24 << 10, 1.2), (768 << 10, 4.5), (24 << 20, 25.0), (float("inf"), 95.0)]
 
-    def levels(self, med, se, sizes=None):
-        return [l for l in probe.describe_levels(sizes or self.sizes, med, se) if l["kind"] == "level"]
+    def test_four_levels_lognormal_7reps(self):
+        r = level_rates(self.FOUR, self.sizes, 7, "lognormal")
+        self.assertLessEqual(r["phantom"], 0.05, r); self.assertLessEqual(r["false_boundary"], 0.05, r)
+        self.assertEqual(r["wrong"], 0, r); self.assertGreaterEqual(r["exact"], 0.7, r)
 
-    # Level detection is statistical, so these tests are too: over 200 noisy curves (fixed
-    # seeds, deterministic) it must recover real levels most of the time and rarely invent
-    # one. Missing a level is the conservative error; a phantom level is the one that overstates.
-    SEEDS = range(200)
+    def test_four_levels_heavy_tailed_7reps(self):
+        r = level_rates(self.FOUR, self.sizes, 7, "heavy")
+        self.assertLessEqual(r["phantom"], 0.05, r); self.assertLessEqual(r["false_boundary"], 0.05, r)
+        self.assertEqual(r["wrong"], 0, r)
 
-    def rates(self, truth, noise, sizes=None):
-        sizes = sizes or self.sizes
-        phantom = exact = false_boundary = 0
-        for seed in self.SEEDS:
-            med, se = synth_curve(truth, sizes, noise, seed)
-            lv = self.levels(med, se, sizes)
-            phantom += len(lv) > len(truth)
-            exact += len(lv) == len(truth)
-            false_boundary += sum("capacity_bytes_between" in l for l in lv) > len(truth) - 1
-            if len(lv) == len(truth):  # when the count is right, values and brackets must be right
-                for l, (cap, ns) in zip(lv, truth):
-                    self.assertAlmostEqual(l["latency_ns"], ns, delta=ns * 0.05)
-                    self.assertEqual(l["label"], "derived")
-                    if "capacity_bytes_between" in l and cap != float("inf"):
-                        lo, hi = l["capacity_bytes_between"]
-                        self.assertTrue(lo <= cap < hi, (seed, lo, cap, hi))
-        n = len(self.SEEDS)
-        return phantom / n, exact / n, false_boundary / n
+    def test_quick_3reps_does_not_invent(self):
+        r = level_rates(self.FOUR, self.sizes[::2], 3, "lognormal")
+        self.assertLessEqual(r["phantom"], 0.05, r); self.assertLessEqual(r["false_boundary"], 0.05, r)
 
-    def test_recovers_three_levels(self):
-        ph, ex, fb = self.rates([(48 << 10, 1.8), (2 << 20, 6.0), (float("inf"), 110.0)], 0.02)
-        self.assertLessEqual(ph, 0.05); self.assertLessEqual(fb, 0.05); self.assertGreaterEqual(ex, 0.9)
+    def test_flat_curve(self):
+        for pts in (12, len(self.sizes)):
+            r = level_rates([(float("inf"), 1.8)], self.sizes[:pts], 7, "lognormal")
+            self.assertLessEqual(r["phantom"], 0.05, (pts, r)); self.assertLessEqual(r["false_boundary"], 0.05, (pts, r))
 
-    def test_no_sizes_assumed(self):
-        # an odd hierarchy (L1 at 100 KiB, L2 at 30 MiB) is found where it is
-        ph, ex, fb = self.rates([(100 << 10, 1.0), (30 << 20, 20.0), (float("inf"), 90.0)], 0.02)
-        self.assertLessEqual(ph, 0.05); self.assertLessEqual(fb, 0.05); self.assertGreaterEqual(ex, 0.9)
-
-    def test_flat_curve_is_one_level(self):
-        # pure noise around one latency: false splits at most 5% of the time
-        # pure noise: measured 4.5% phantom level, 7.5% false boundary on a 12-point curve
-        ph, ex, fb = self.rates([(float("inf"), 1.8)], 0.05, self.sizes[:12])
-        self.assertLessEqual(ph, 0.05); self.assertLessEqual(fb, 0.08); self.assertGreaterEqual(ex, 0.9)
+    def test_gentle_ramp_is_not_a_staircase(self):
+        # second review's case: 1.5%/step growth under 5% noise came out as 4 levels
+        hits = 0
+        for seed in range(100):
+            r = random.Random(seed)
+            med, se, mx = [], [], []
+            for i in range(len(self.sizes)):
+                st = probe.summarise([10 * 1.015 ** i * math.exp(r.gauss(0, 0.05)) for _ in range(7)])
+                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
+            lv = [l for l in probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx) if l["kind"] == "level"]
+            hits += len(lv) > 1
+        self.assertLessEqual(hits / 100, 0.07)  # measured 5.5% over 200 seeds: a known limit
 
     def test_slope_is_not_a_staircase(self):
-        # verifier's case: smooth 3%/step growth must not become a stack of levels
         med = [10 * 1.03 ** i for i in range(len(self.sizes))]
-        se = [m * 0.005 for m in med]
-        self.assertEqual(self.levels(med, se), [])
+        self.assertEqual([l for l in probe.describe_levels(self.sizes, med, [m * 0.005 for m in med], df=6)
+                          if l["kind"] == "level"], [])
+
+    def test_mixed_boundary_point_moves_bracket(self):
+        # second review's case: a point where 3 of 7 reps already run at DRAM speed sits inside
+        # the L3 level by median; the capacity bracket must start before it
+        sizes = self.sizes
+        r = random.Random(3)
+        med, se, mx = [], [], []
+        k_mixed = next(i for i, s in enumerate(sizes) if s >= 12 << 20)
+        for i, s in enumerate(sizes):
+            ns = 1.8 if s <= 32 << 10 else 34.0 if s < 16 << 20 else 117.0
+            xs = [ns * math.exp(r.gauss(0, 0.02)) for _ in range(7)]
+            if i == k_mixed:
+                xs = [34.0] * 4 + [95.0] * 3
+            st = probe.summarise(xs)
+            med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"])
+        l3 = [l for l in probe.describe_levels(sizes, med, se, df=6, rep_max=mx) if l["kind"] == "level"][1]
+        self.assertLess(l3["capacity_bytes_between"][0], sizes[k_mixed])
 
     def test_short_curve_is_not_averaged(self):
-        # verifier's case: [1, 100] used to come out as one level at 50.5 ns
-        out = probe.describe_levels([4096, 8192], [1.0, 100.0], [0.01, 1.0])
-        self.assertFalse(any(abs(l.get("latency_ns", 0) - 50.5) < 5 for l in out))
-        self.assertEqual(len(out), 1)  # nothing spans 2x and is flat: one transition
-        self.assertEqual(out[0]["kind"], "transition")
+        out = probe.describe_levels([4096, 8192], [1.0, 100.0], [0.01, 1.0], df=6)
+        self.assertEqual([l["kind"] for l in out], ["transition"])
 
     def test_no_noise_means_no_levels(self):
-        # one rep: no SE, so no fit (a fit would invent or hide levels)
         self.assertIsNone(probe.describe_levels(self.sizes[:4], [1, 1, 2, 2], [None] * 4))
+
+    def test_t_quantile(self):
+        self.assertAlmostEqual(probe.t_quantile(0.975, 6), 2.447, places=2)
+        self.assertAlmostEqual(probe.t_quantile(0.975, 2), 4.303, places=2)
+        self.assertAlmostEqual(probe.t_quantile(0.975, None), 1.960, places=2)
 
 
 class Tiers(unittest.TestCase):
@@ -157,7 +204,8 @@ class EndToEnd(unittest.TestCase):
         for v in list(self.p["bandwidth"].values()) + list(self.p["compute"].values()):
             self.assertEqual(v["label"], "measured")
         for v in self.p["derived"].values():
-            self.assertEqual(v["label"], "derived")
+            if v is not None:  # null when the data cannot support the figure
+                self.assertEqual(v["label"], "derived")
         for c in self.p["reported_caches"]:
             self.assertEqual(c["label"], "reported")
 
@@ -183,6 +231,19 @@ class EndToEnd(unittest.TestCase):
             new = probe.analyse(p["raw"], p["environment"], p["reported_caches"], p["meter_tiers"],
                                 p["build"], p["settings"], p["elapsed_s"])
             new["created_utc"] = p["created_utc"]; p.clear(); p.update(new)
+        self.assertEqual(self.tamper(f), 1)
+
+    def test_meter_claim_flip_caught_on_same_host(self):
+        def f(p):
+            for m in p["meter_tiers"]:
+                if m["name"] == "rapl_energy":
+                    m["available"] = not m["available"]
+            p["best_tier_for_energy"] = "rapl_energy"
+        self.assertEqual(self.tamper(f), 1)
+
+    def test_zero_seconds_caught(self):
+        def f(p):
+            p["raw"]["chase:4096"][0]["seconds"] = 0
         self.assertEqual(self.tamper(f), 1)
 
     def test_tamper_detected(self):

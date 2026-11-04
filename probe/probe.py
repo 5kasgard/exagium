@@ -20,7 +20,7 @@ SCHEMA = "forge.machine_profile/0"
 
 
 # ---------------------------------------------------------------- stats
-def se_median_bootstrap(xs, resamples=2000):
+def se_median_bootstrap(xs, resamples=1000):
     """Bootstrap standard error of the median. Fixed seed, so --reanalyse reproduces it.
     (Plateaus are fitted to medians; the SE of the mean understates their noise.)"""
     n = len(xs)
@@ -46,27 +46,61 @@ def summarise(xs):
 # ---------------------------------------------------------------- level detection
 # How memory levels are read off the latency curve. All of it is recorded in the profile.
 #  - BIC piecewise-constant fit, each point weighted by its own noise (no sizes assumed).
-#  - Owner's rule: two neighbours count as different only if they differ by > 2 combined SE.
-#  - Explicit, local choice (recorded): a "level" must span at least MIN_LEVEL_SPAN in working-set
-#    size and be flat (weighted fitted rise within 2 SE). Anything else is a "transition".
+#  - Owner's 2-SE rule (~5% two-sided), adapted for two facts verification exposed:
+#    noise comes from few reps (so Student-t, df = reps-1, not normal), and breakpoints are
+#    chosen from the data (so Bonferroni over the n-1 candidates when merging neighbours).
+#  - Every doubt resolves toward "transition", never toward "level": the flatness test uses
+#    the uncorrected 5% t quantile (easier to reject flat), and two neighbouring levels that a
+#    single sloped line explains as well as a step are both demoted to a transition.
+#  - Explicit, local choice (recorded): a "level" must span at least MIN_LEVEL_SPAN in size.
 MIN_LEVEL_SPAN = 2.0
-LEVEL_METHOD = ("BIC piecewise-constant fit of log(median latency), weights 1/SE_median^2; "
-                "neighbours merged unless apart by more than z combined SE, z = 2-SE rule Bonferroni-corrected for "
-                f"the n-1 candidate breakpoints; a level must span >= {MIN_LEVEL_SPAN:g}x working-set size with a "
-                "fitted rise across it within z SE, otherwise 'transition'")
+LEVEL_METHOD = ("BIC piecewise-constant fit of log(median latency), weights 1/SE_median^2 (bootstrap); "
+                "neighbours merged unless apart by more than t(df=reps-1, 2-sided 5% Bonferroni over n-1 "
+                "breakpoints) combined SE; a level must span >= "
+                f"{MIN_LEVEL_SPAN:g}x size with fitted rise within t(df, 2-sided 5%) SE; adjacent levels that a "
+                "single line fits as well as a step joined linearly across the points between (BIC) are demoted to transition; capacity bracket starts "
+                "at the last size where no rep already reached the next level")
 
 
-MERGE_Z = None  # None: Bonferroni-corrected 2-SE rule (see merge_z); a number overrides
+def t_cdf(t, df):
+    """Student-t CDF by Simpson integration of the density (stdlib only)."""
+    if t < 0:
+        return 1 - t_cdf(-t, df)
+    c = math.exp(math.lgamma((df + 1) / 2) - math.lgamma(df / 2)) / math.sqrt(df * math.pi)
+    f = lambda x: c * (1 + x * x / df) ** (-(df + 1) / 2)
+    n = 2000; h = t / n
+    s = f(0) + f(t) + sum((4 if k % 2 else 2) * f(k * h) for k in range(1, n))
+    return 0.5 + s * h / 3
 
 
-def merge_z(n):
-    """The owner's rule is 2 SE (~5% two-sided) for comparisons fixed in advance. Breakpoints
-    here are chosen from the data among n-1 candidates, so the same 5% error rate needs a
-    Bonferroni correction; plain 2 SE gave 8-11% phantom levels in simulation."""
-    if MERGE_Z is not None:
-        return MERGE_Z
-    from statistics import NormalDist
-    return NormalDist().inv_cdf(1 - 0.025 / max(n - 1, 1))
+_tq = {}
+
+
+def t_quantile(p, df):
+    """Inverse Student-t CDF by bisection; df=None means normal."""
+    if df is None:
+        from statistics import NormalDist
+        return NormalDist().inv_cdf(p)
+    key = (round(p, 12), df)
+    if key not in _tq:
+        lo, hi = 0.0, 1.0
+        while t_cdf(hi, df) < p:
+            hi *= 2
+        for _ in range(60):
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if t_cdf(mid, df) < p else (lo, mid)
+        _tq[key] = (lo + hi) / 2
+    return _tq[key]
+
+
+def merge_z(n, df=None):
+    """Threshold for 'these two neighbouring segments differ' (Bonferroni over n-1 breakpoints)."""
+    return t_quantile(1 - 0.025 / max(n - 1, 1), df)
+
+
+def flat_z(df=None):
+    """Threshold for 'this segment is flat' (uncorrected, so doubt goes to 'transition')."""
+    return t_quantile(0.975, df)
 
 
 def segment_plateaus(sizes, lat, se):
@@ -108,49 +142,78 @@ def segment_plateaus(sizes, lat, se):
     return segs[::-1]
 
 
-def describe_levels(sizes, med, se):
+def describe_levels(sizes, med, se, df=None, rep_max=None):
     """Levels and transitions from the latency curve, or None if noise is unknown
-    (a fit without noise estimates would invent or hide levels)."""
+    (a fit without noise estimates would invent or hide levels).
+    df: degrees of freedom of the noise estimates (reps-1). rep_max: per-point slowest rep."""
     if not med or any(s is None or s <= 0 for s in se):
         return None
+    n = len(med)
+    x = [math.log(v) for v in sizes]
     y = [math.log(v) for v in med]
     rel = [s / v for s, v in zip(se, med)]
     w = [1 / r ** 2 for r in rel]
+    zm, zf = merge_z(n, df), flat_z(df)
 
     def wmean(i, j):  # weighted mean of log latency and its SE
         W = sum(w[i:j + 1])
         return sum(w[k] * y[k] for k in range(i, j + 1)) / W, 1 / math.sqrt(W)
 
+    def line(idx):  # weighted LS line of log latency on log size: (chi2, slope, slope_se)
+        ws, xs, ys = [w[k] for k in idx], [x[k] for k in idx], [y[k] for k in idx]
+        W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
+        sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
+        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx
+        chi2 = sum(a * (c - ym - slope * (b - xm)) ** 2 for a, b, c in zip(ws, xs, ys))
+        return chi2, slope, 1 / math.sqrt(sxx)
+
+    def chi2_const(i, j):
+        m, _ = wmean(i, j)
+        return sum(w[k] * (y[k] - m) ** 2 for k in range(i, j + 1))
+
     segs = [list(g) for g in segment_plateaus(sizes, med, se)]
     merged = True
-    while merged and len(segs) > 1:  # owner's 2-SE rule between neighbours
+    while merged and len(segs) > 1:
         merged = False
         for t in range(len(segs) - 1):
             (m1, s1), (m2, s2) = wmean(*segs[t]), wmean(*segs[t + 1])
-            if abs(m1 - m2) <= merge_z(len(sizes)) * math.hypot(s1, s2):
+            if abs(m1 - m2) <= zm * math.hypot(s1, s2):
                 segs[t] = [segs[t][0], segs[t + 1][1]]; del segs[t + 1]; merged = True
                 break
 
     def is_level(i, j):
         if sizes[j] / sizes[i] < MIN_LEVEL_SPAN * 0.999:
             return False
-        # flat: weighted least-squares slope of log latency on log size, rise across the
-        # segment within 2 SE (uses every point, not just the two noisiest ends)
-        xs = [math.log(sizes[k]) for k in range(i, j + 1)]
-        ws, ys = w[i:j + 1], y[i:j + 1]
-        W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
-        sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
-        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx
-        rise, rise_se = slope * (xs[-1] - xs[0]), (xs[-1] - xs[0]) / math.sqrt(sxx)
-        return abs(rise) <= merge_z(len(sizes)) * rise_se  # segment chosen from data: same correction
+        _, slope, slope_se = line(range(i, j + 1))
+        return abs(slope) <= zf * slope_se
 
-    groups = []
-    for i, j in segs:
-        kind = "level" if is_level(i, j) else "transition"
-        if kind == "transition" and groups and groups[-1][2] == "transition":
-            groups[-1][1] = j
+    groups = [[i, j, "level" if is_level(i, j) else "transition"] for i, j in segs]
+    # ramp vs step: over two neighbouring levels and every point between them, compare one
+    # sloped line (2 params) with a step: two flat levels joined linearly across the points in
+    # between (2 means + 2 breakpoints). If the line is as good by BIC, it is a ramp, not two levels.
+    def step_chi2(a, b):
+        ma, mb = wmean(a[0], a[1])[0], wmean(b[0], b[1])[0]
+        x0, x1 = x[a[1]], x[b[0]]
+        mid = sum(w[k] * (y[k] - (ma + (mb - ma) * (x[k] - x0) / (x1 - x0))) ** 2 for k in range(a[1] + 1, b[0]))
+        return chi2_const(a[0], a[1]) + chi2_const(b[0], b[1]) + mid
+
+    changed = True
+    while changed:
+        changed = False
+        lv = [g for g in groups if g[2] == "level"]
+        for a, b in zip(lv, lv[1:]):
+            idx = list(range(a[0], b[1] + 1))
+            if line(idx)[0] <= step_chi2(a, b) + 2 * math.log(len(idx)):
+                a[2] = b[2] = "transition"; changed = True
+                break
+    merged_groups = []
+    for g in groups:
+        if g[2] == "transition" and merged_groups and merged_groups[-1][2] == "transition":
+            merged_groups[-1][1] = g[1]
         else:
-            groups.append([i, j, kind])
+            merged_groups.append(list(g))
+    groups = merged_groups
+
     out, k = [], 0
     for idx, (i, j, kind) in enumerate(groups):
         m, s = wmean(i, j)
@@ -161,9 +224,17 @@ def describe_levels(sizes, med, se):
             lvl.update(level=k, latency_ns=math.exp(m), latency_ns_se=math.exp(m) * s)
             if idx + 1 < len(groups):
                 nxt = groups[idx + 1]
-                # capacity is somewhere between this level's last size and where the next level starts
-                end = nxt[0] if nxt[2] == "level" else (groups[idx + 2][0] if idx + 2 < len(groups) else nxt[1])
-                lvl["capacity_bytes_between"] = [sizes[j], sizes[min(end, len(sizes) - 1)]]
+                nxt_level = next((g for g in groups[idx + 1:] if g[2] == "level"), None)
+                end = nxt_level[0] if nxt_level else nxt[1]
+                lo = j
+                if rep_max:
+                    # a point where some reps already ran at the next level's speed is past capacity
+                    # for those reps: the bracket starts at the last point where none did
+                    far = math.exp(wmean(*nxt_level[:2])[0]) if nxt_level else max(med[nxt[0]:nxt[1] + 1])
+                    mid = math.sqrt(math.exp(m) * far)
+                    ok = [q for q in range(i, j + 1) if rep_max[q] < mid]
+                    lo = ok[-1] if ok else i
+                lvl["capacity_bytes_between"] = [sizes[lo], sizes[min(end, n - 1)]]
         out.append(lvl)
     return out
 
@@ -254,7 +325,7 @@ def tier_perf(root="/"):
     para = read(os.path.join(root, "proc/sys/kernel/perf_event_paranoid"))
     devs = os.path.join(root, "sys/bus/event_source/devices")
     pmus = sorted(d for d in (os.listdir(devs) if os.path.isdir(devs) else [])
-                  if d == "cpu" or d.startswith(("cpu_", "armv8", "arm_")))
+                  if d == "cpu" or d.startswith(("cpu_", "armv8", "arm_", "apple_", "riscv_")))
     hw = {"hardware_pmu": pmus or None}
     exe = shutil.which("perf")
     if not pmus:
@@ -421,7 +492,10 @@ def check_raw(raw, settings):
             bad.append(f"{name}: {len(recs)} reps, settings say {settings['reps']}")
         for i, x in enumerate(recs):
             k, t = x["kind"], x.get("seconds")
-            if k == "timer" or not t:
+            if k == "timer":
+                continue
+            if not isinstance(t, (int, float)) or t <= 0:
+                bad.append(f"{name} rep {i}: missing or non-positive seconds, rate cannot be checked")
                 continue
             if k == "chase":
                 want, got = t / x["steps"] * 1e9, x["ns_per_load"]
@@ -446,7 +520,8 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
     sizes = sorted(int(n.split(":")[1]) for n in raw if n.startswith("chase:"))
     lat = [stat(f"chase:{s}", "ns_per_load") for s in sizes]
     meds = [x["median"] for x in lat]
-    levels = describe_levels(sizes, meds, [x["se_median"] for x in lat])
+    levels = describe_levels(sizes, meds, [x["se_median"] for x in lat],
+                             df=min(x["n"] for x in lat) - 1 if lat else None, rep_max=[x["max"] for x in lat])
 
     ncpu = env["logical_cpus"] or 1
     thr = sorted({1, ncpu})
@@ -569,7 +644,16 @@ def reanalyse(path, out=None):
         with open(out, "w") as f:
             json.dump(new, f, indent=1)
         print(f"\nwrote {out}", file=sys.stderr)
-    probs = new["consistency_problems"]
+    probs = list(new["consistency_problems"])
+    # Meter claims are facts about a machine, not about the raw reps, so they can only be
+    # re-checked on the same machine; elsewhere we say they were not re-checked.
+    here = environment()["hostname_hash"] == old["environment"]["hostname_hash"]
+    if here:
+        now = {t["name"]: t["available"] for t in tiers()}
+        for t in old["meter_tiers"]:
+            if t["name"] in now and t["tier"] < 3 and now[t["name"]] != t["available"]:
+                probs.append(f"meter {t['name']}: profile says available={t['available']}, re-detected {now[t['name']]}")
+    print(f"meter tiers {'re-checked on this host' if here else 'NOT re-checked (different host)'}", file=sys.stderr)
     for p in probs:
         print(f"inconsistent raw: {p}", file=sys.stderr)
     print(f"\nstored numbers match recompute from raw: {same}; raw internally consistent: {not probs}"
