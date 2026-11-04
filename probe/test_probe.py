@@ -132,6 +132,52 @@ class Levels(unittest.TestCase):
             hits += len(lv) == 4
         self.assertGreaterEqual(hits / 100, 0.9)
 
+    def test_shared_vm_curve_keeps_clean_levels(self):
+        # regression from independent verification: on a noisy shared host the old fit lost L1 and L2
+        # (a pairwise check cascaded) and stretched a capacity bracket to the end of the sweep
+        with open(os.path.join(HERE, "fixtures", "shared_vm_curve.json")) as f:
+            fx = json.load(f)
+        out = probe.describe_levels(fx["bytes"], fx["median"], fx["se_median"], df=fx["df"],
+                                    rep_max=fx["max"], rep_min=fx["min"])
+        lv = [l for l in out if l["kind"] == "level"]
+        self.assertEqual(len(lv), 2, out)
+        self.assertAlmostEqual(lv[0]["latency_ns"], 1.40, delta=0.05)
+        self.assertAlmostEqual(lv[1]["latency_ns"], 4.48, delta=0.1)
+        self.assertEqual(lv[0]["capacity_bytes_between"], [44 << 10, 64 << 10])
+        self.assertIsNone(lv[1]["capacity_bytes_between"][1])  # next level never found: open, not "end of sweep"
+
+    def test_interference_spike_is_excluded_not_a_level(self):
+        sizes = self.sizes
+        r = random.Random(5)
+        med, se, mx, mn = [], [], [], []
+        k = next(i for i, s in enumerate(sizes) if s >= 4 << 20)
+        for i, s in enumerate(sizes):
+            ns = 1.8 if s <= 32 << 10 else 6.0 if s <= 1 << 20 else 34.0 if s <= 16 << 20 else 117.0
+            st = probe.summarise([ns * (3.0 if i == k else 1.0) * math.exp(r.gauss(0, 0.02)) for _ in range(7)])
+            med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+        self.assertEqual(probe.nonmonotone_points(med, se, 6), [k])
+        lv = [l for l in probe.describe_levels(sizes, med, se, df=6, rep_max=mx, rep_min=mn) if l["kind"] == "level"]
+        self.assertEqual(len(lv), 4)
+
+    def test_too_disturbed_curve_is_refused(self):
+        sizes = self.sizes[:20]
+        med = [10.0 if i % 2 == 0 else 30.0 for i in range(20)]  # half the points slower than the next size
+        self.assertIsNone(probe.describe_levels(sizes, med, [m * 0.01 for m in med], df=6))
+
+    def test_bump_does_not_make_extra_levels(self):
+        # independent verifier's case D: a raised block inside a ramp (non-monotone)
+        extra = 0
+        for seed in range(100):
+            r = random.Random(seed)
+            med, se, mx, mn = [], [], [], []
+            for i in range(len(self.sizes)):
+                ns = 25.0 if 10 <= i <= 13 else 5.0 * 1.025 ** i
+                st = probe.summarise([ns * math.exp(r.gauss(0, 0.03)) for _ in range(7)])
+                med.append(st["median"]); se.append(st["se_median"]); mx.append(st["max"]); mn.append(st["min"])
+            out = probe.describe_levels(self.sizes, med, se, df=6, rep_max=mx, rep_min=mn) or []
+            extra += len([l for l in out if l["kind"] == "level"]) > 1
+        self.assertLessEqual(extra / 100, 0.05)
+
     def test_slope_is_not_a_staircase(self):
         med = [10 * 1.03 ** i for i in range(len(self.sizes))]
         self.assertEqual([l for l in probe.describe_levels(self.sizes, med, [m * 0.005 for m in med], df=6)
@@ -289,6 +335,16 @@ class EndToEnd(unittest.TestCase):
         def f(p):
             next(m for m in p["meter_tiers"] if m["tier"] == 3)["available"] = True
         self.assertEqual(self.tamper(f), 1)
+
+    def test_short_timed_window_caught(self):
+        def f(p):
+            rec = p["raw"]["flops:vec_f64:1"][0]
+            rec["seconds"] /= 10
+            rec["GFLOPs"] *= 10  # keep rate = work/time consistent; only the window is too short
+        self.assertEqual(self.tamper(f), 1)
+
+    def test_build_records_vector_isa(self):
+        self.assertIn(self.p["build"]["vector_isa"], ("avx512", "avx2", "avx", "sve", "neon", "sse2", "scalar-emulated"))
 
     def test_meter_claim_flip_caught_on_same_host(self):
         def f(p):

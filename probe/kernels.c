@@ -214,7 +214,31 @@ static int cmd_flops(const char *k, int th, double min_ms) {
   return 0;
 }
 
+// Which vector instructions this build can use for the 64-byte vector types, decided by the
+// compiler from -march; recorded so a vector ceiling is never read as another ISA's.
+static int cmd_isa(void) {
+  const char *isa =
+#if defined(__AVX512F__)
+      "avx512";
+#elif defined(__AVX2__)
+      "avx2";
+#elif defined(__AVX__)
+      "avx";
+#elif defined(__ARM_FEATURE_SVE)
+      "sve";
+#elif defined(__ARM_NEON)
+      "neon";
+#elif defined(__SSE2__)
+      "sse2";
+#else
+      "scalar-emulated";
+#endif
+  printf("{\"kind\":\"isa\",\"vector_isa\":\"%s\"}\n", isa);
+  return 0;
+}
+
 int main(int argc, char **argv) {
+  if (argc >= 2 && !strcmp(argv[1], "isa")) return cmd_isa();
   if (argc >= 2 && !strcmp(argv[1], "timer")) return cmd_timer();
   if ((argc == 6 || argc == 7) && !strcmp(argv[1], "chase"))
     return cmd_chase(strtoull(argv[2], 0, 10), strtoull(argv[3], 0, 10), atof(argv[4]), atoi(argv[5]),

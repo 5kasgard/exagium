@@ -45,27 +45,30 @@ def summarise(xs):
 
 # ---------------------------------------------------------------- level detection
 # How memory levels are read off the latency curve. All of it is recorded in the profile.
+#  - Physics first: latency cannot fall as the working set grows, so a point significantly slower
+#    than the next kept size is interference and is excluded (and listed). If more than
+#    MAX_EXCLUDED of the curve breaks this, no levels are fitted at all.
 #  - Piecewise-linear fit of log latency on log size, BIC, each point weighted by its own noise
 #    (bootstrap SE of the median), widened to Student-t tails because it comes from few reps.
-#    Real plateaus drift a little (associativity, TLB), so a plateau is one sloped segment, not
-#    a staircase of constants. No cache sizes are assumed.
-#  - A level is a plateau much flatter than its edges: each edge (both segments' lines at their
-#    own edge points, over the gap) must be steeper than the plateau by the owner's 2-SE rule, Bonferroni-corrected
-#    because breakpoints are chosen from the data, and the plateau must rise less than
-#    LEVEL_SLOPE_RATIO of the edge's slope. A lone segment must show no detectable slope.
-#  - Two neighbouring levels that one sloped line explains as well as a step are a ramp.
-#  - Explicit, local choices (recorded): MIN_LEVEL_SPAN, LEVEL_SLOPE_RATIO.
-#  - Every doubt resolves toward "transition", never toward "level".
+#    Real plateaus drift a little (associativity, TLB), so a plateau is one sloped segment.
+#  - A level changes little compared with the jump at each end: its fitted rise across its span
+#    must be significantly less than LEVEL_RISE_RATIO of each edge jump (owner's 2-SE rule,
+#    Bonferroni-corrected because breakpoints are chosen from the data), and so must the plain
+#    spread of its medians, which the weighting cannot hide. A lone segment must
+#    show no detectable rise. Neighbours that would pass as one level are merged first (a precise
+#    plateau split at a small step). No cache sizes are assumed.
+#  - Explicit, local choices (recorded): MIN_LEVEL_SPAN, LEVEL_RISE_RATIO, MAX_EXCLUDED.
+#  - Every doubt resolves toward "transition", never toward "level"; a capacity whose far end
+#    was not found is reported open (null), never as "end of sweep".
 MIN_LEVEL_SPAN = 2.0
-LEVEL_SLOPE_RATIO = 0.5
-LEVEL_METHOD = ("piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with SE = bootstrap "
-                "SE of the median widened by t(df=reps-1)/z; a level spans >= "
-                f"{MIN_LEVEL_SPAN:g}x size and rises (log-log) significantly less than {LEVEL_SLOPE_RATIO:g}x the "
-                "edge slope to each neighbour (each segment's line at its own edge, over the gap) (z = 2-sided 5% Bonferroni "
-                "over n-1 breakpoints); a lone segment "
-                "must show no detectable slope; adjacent levels that one line fits as well as a step (BIC) are demoted "
-                "to transition; capacity bracket starts at the last size where no rep already reached the next level "
-                "and ends at the first size where no rep was still at this level")
+LEVEL_RISE_RATIO = 0.5
+LEVEL_METHOD = ("points significantly slower than the next kept size excluded as interference (latency cannot fall "
+                "with working set); piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with "
+                "SE = bootstrap SE of the median widened by t(df=reps-1)/z; a level spans >= "
+                f"{MIN_LEVEL_SPAN:g}x size and its fitted rise is significantly less than {LEVEL_RISE_RATIO:g}x the "
+                "jump at each edge (z = 2-sided 5% Bonferroni over n-1 breakpoints), as is the plain spread of its medians; a lone segment must show no "
+                "detectable rise; neighbours that would pass as one merged level are merged; capacity bracket starts at the last size where no rep already reached the next "
+                "level and ends at the first size where no rep was still at this level (null if no next level)")
 
 
 def t_cdf(t, df):
@@ -145,13 +148,42 @@ def segment_lines(x, y, w, penalty_n):
     return segs[::-1]
 
 
+MAX_EXCLUDED = 0.2
+
+
+def nonmonotone_points(med, se, df=None):
+    """Latency cannot fall as the working set grows (more data never makes a dependent load
+    faster). Walking back from the largest size, a point significantly slower than the next kept
+    point is interference (a co-tenant burst, say), not structure. Returns excluded indices.
+    Same corrected threshold as the level tests, so only clear violations are excluded."""
+    n = len(med)
+    infl = t_quantile(0.975, df) / t_quantile(0.975, None)
+    rel = [infl * s / v for s, v in zip(se, med)]
+    zm = merge_z(n, None)
+    out, nxt = [], n - 1
+    for k in range(n - 2, -1, -1):
+        if math.log(med[k]) - math.log(med[nxt]) > zm * math.hypot(rel[k], rel[nxt]):
+            out.append(k)
+        else:
+            nxt = k
+    return sorted(out)
+
+
 def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
-    """Levels and transitions from the latency curve, or None if noise is unknown
-    (a fit without noise estimates would invent or hide levels).
+    """Levels and transitions from the latency curve, or None when they cannot be read honestly:
+    noise unknown, or more than MAX_EXCLUDED of the curve breaks monotonicity.
     df: degrees of freedom of the noise estimates (reps-1). rep_max / rep_min: per-point slowest /
-    fastest rep, used so a capacity bracket never starts after, or ends before, a mixed point."""
+    fastest rep, used so a capacity bracket never starts after, or ends before, a mixed point.
+    Points excluded as non-monotone are left out of the fit (see nonmonotone_points)."""
     if not med or any(s is None or s <= 0 for s in se):
         return None
+    drop = set(nonmonotone_points(med, se, df))
+    if len(drop) > MAX_EXCLUDED * len(med):
+        return None
+    keep = [k for k in range(len(med)) if k not in drop]
+    sizes, med, se = [sizes[k] for k in keep], [med[k] for k in keep], [se[k] for k in keep]
+    rep_max = [rep_max[k] for k in keep] if rep_max else None
+    rep_min = [rep_min[k] for k in keep] if rep_min else None
     n = len(med)
     x = [math.log(v) for v in sizes]
     y = [math.log(v) for v in med]
@@ -166,50 +198,37 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
         W = sum(w[i:j + 1])
         return sum(w[k] * y[k] for k in range(i, j + 1)) / W, 1 / math.sqrt(W)
 
-    def line(idx):  # weighted LS line of log latency on log size: (chi2, slope, slope_se)
+    def fit(idx):  # weighted LS line of log latency on log size: (slope, slope_se, xm, ym, W, sxx)
+        idx = list(idx)
         ws, xs, ys = [w[k] for k in idx], [x[k] for k in idx], [y[k] for k in idx]
         W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
         sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
-        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx
-        chi2 = sum(a * (c - ym - slope * (b - xm)) ** 2 for a, b, c in zip(ws, xs, ys))
-        return chi2, slope, 1 / math.sqrt(sxx)
+        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx if sxx > 0 else 0.0
+        return slope, (1 / math.sqrt(sxx) if sxx > 0 else float("inf")), xm, ym, W, sxx
 
-    def chi2_const(i, j):
-        m, _ = wmean(i, j)
-        return sum(w[k] * (y[k] - m) ** 2 for k in range(i, j + 1))
-
-    segs = [list(g) for g in segment_lines(x, y, w, n)]
-
-    # A level is a plateau much flatter than its edges. Real plateaus drift a little (associativity,
-    # TLB), so "slope indistinguishable from zero" would punish precise data; instead each edge of
-    # a candidate (>= MIN_LEVEL_SPAN) must be significantly steeper than the candidate itself.
-    # Edge = this segment's edge point, any short segments between, and the next candidate's edge
-    # point. Breakpoints are data-chosen, so the corrected threshold zm applies.
-    cand = [sizes[j] / sizes[i] >= MIN_LEVEL_SPAN * 0.999 for i, j in segs]
-
-    def at(idx, x0):
-        """Weighted-LS line through points idx, evaluated at x0: (value, SE). One point: itself."""
+    def at(idx, x0):  # the line through idx evaluated at x0: (value, SE); one point is itself
         idx = list(idx)
         if len(idx) == 1:
             return y[idx[0]], 1 / math.sqrt(w[idx[0]])
-        ws, xs, ys = [w[k] for k in idx], [x[k] for k in idx], [y[k] for k in idx]
-        W = sum(ws); xm = sum(a * b for a, b in zip(ws, xs)) / W; ym = sum(a * b for a, b in zip(ws, ys)) / W
-        sxx = sum(a * (b - xm) ** 2 for a, b in zip(ws, xs))
-        slope = sum(a * (b - xm) * (c - ym) for a, b, c in zip(ws, xs, ys)) / sxx
+        slope, _, xm, ym, W, sxx = fit(idx)
         return ym + slope * (x0 - xm), math.sqrt(1 / W + (x0 - xm) ** 2 / sxx)
 
-    def steeper_edges(t):
-        """At each boundary, the edge slope (this segment's line and the neighbour's line, each
-        evaluated at its own edge point, over the gap between them) must be steeper than the
-        segment by the rule below. On a ramp the two lines meet, so the edge slope equals the
-        ramp's; at a real cache boundary it is a jump. Neighbour = next candidate level, or
-        the short segments up to the curve end pooled together."""
+    segs = [list(g) for g in segment_lines(x, y, w, n)]
+    cand = [sizes[j] / sizes[i] >= MIN_LEVEL_SPAN * 0.999 for i, j in segs]
+
+    def plateau(t):
+        """A level changes little across its span compared with the jump at each end: its fitted
+        rise must be significantly less than LEVEL_RISE_RATIO of each edge jump (each segment's
+        line at its own edge point; neighbour = next candidate, or the short segments to the curve
+        end pooled). On a ramp the jump at a boundary is one step of the ramp while the rise is
+        many, so ramps fail; at a real cache boundary the jump dwarfs the drift."""
         i, j = segs[t]
-        _, sl, sl_se = line(range(i, j + 1))
-        if len(segs) == 1:
-            # nothing to compare with: a lone segment is a level only if no slope is detectable
-            # (uncorrected 5%, so doubt goes to 'transition')
-            return abs(sl) <= t_quantile(0.975, df) * sl_se
+        sl, sl_se = fit(range(i, j + 1))[:2]
+        span = x[j] - x[i]
+        rise, rise_se = abs(sl) * span, sl_se * span
+        spread = max(y[i:j + 1]) - min(y[i:j + 1])
+        if len(segs) == 1:  # nothing to compare with: no detectable rise (uncorrected 5%)
+            return rise <= t_quantile(0.975, df) * rise_se
         for step in (-1, 1):
             q = t + step
             if not 0 <= q < len(segs):
@@ -219,44 +238,42 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
                 q += step
             if cand[q]:
                 lo_, hi_ = segs[q]
-            else:  # only short segments to the curve end: pool them
+            else:
                 lo_, hi_ = (segs[q][0], segs[first][1]) if step < 0 else (segs[first][0], segs[q][1])
             mine_x, theirs_x = (x[i], x[hi_]) if step < 0 else (x[j], x[lo_])
             v0, s0 = at(range(i, j + 1), mine_x)
             v1, s1 = at(range(lo_, hi_ + 1), theirs_x)
-            dx = abs(theirs_x - mine_x)
-            between, between_se = abs(v1 - v0) / dx, math.hypot(s0, s1) / dx
-            # a plateau must rise significantly less than LEVEL_SLOPE_RATIO of its edge's slope
-            if not (LEVEL_SLOPE_RATIO * between - abs(sl) > zm * math.hypot(sl_se, LEVEL_SLOPE_RATIO * between_se)):
+            jump, jump_se = abs(v1 - v0), math.hypot(s0, s1)
+            if not (LEVEL_RISE_RATIO * jump - rise > zm * math.hypot(LEVEL_RISE_RATIO * jump_se, rise_se)):
+                return False
+            # the weighted fit can be dominated by a few very precise points, so the plain spread of
+            # the segment's medians must also stay under the same fraction of the jump
+            if spread > LEVEL_RISE_RATIO * jump:
                 return False
         return True
 
-    groups = [[i, j, "level" if cand[t] and steeper_edges(t) else "transition"] for t, (i, j) in enumerate(segs)]
-    # ramp vs step: over two neighbouring levels and every point between them, compare one
-    # sloped line (2 params) with a step: two flat levels joined linearly across the points in
-    # between (2 means + 2 breakpoints). If the line is as good by BIC, it is a ramp, not two levels.
-    def step_chi2(a, b):
-        ma, mb = wmean(a[0], a[1])[0], wmean(b[0], b[1])[0]
-        x0, x1 = x[a[1]], x[b[0]]
-        mid = sum(w[k] * (y[k] - (ma + (mb - ma) * (x[k] - x0) / (x1 - x0))) ** 2 for k in range(a[1] + 1, b[0]))
-        return chi2_const(a[0], a[1]) + chi2_const(b[0], b[1]) + mid
-
-    changed = True
-    while changed:
-        changed = False
-        lv = [g for g in groups if g[2] == "level"]
-        for a, b in zip(lv, lv[1:]):
-            idx = list(range(a[0], b[1] + 1))
-            if line(idx)[0] <= step_chi2(a, b) + 2 * math.log(len(idx)):
-                a[2] = b[2] = "transition"; changed = True
+    # A precise plateau can be split at a small step. Two neighbours are one level if, merged,
+    # they would still pass as a level against their outer neighbours (same rule, no new
+    # threshold). A real cache boundary never passes: merged, its rise is the whole jump.
+    merged = True
+    while merged and len(segs) > 1:
+        merged = False
+        for t in range(len(segs) - 1):
+            keep_segs, keep_cand = [list(g) for g in segs], list(cand)
+            segs[t:t + 2] = [[segs[t][0], segs[t + 1][1]]]
+            cand[t:t + 2] = [sizes[segs[t][1]] / sizes[segs[t][0]] >= MIN_LEVEL_SPAN * 0.999]
+            if cand[t] and plateau(t):
+                merged = True
                 break
-    merged_groups = []
-    for g in groups:
-        if g[2] == "transition" and merged_groups and merged_groups[-1][2] == "transition":
-            merged_groups[-1][1] = g[1]
+            segs[:], cand[:] = keep_segs, keep_cand
+
+    groups = []
+    for t, (i, j) in enumerate(segs):
+        kind = "level" if cand[t] and plateau(t) else "transition"
+        if kind == "transition" and groups and groups[-1][2] == "transition":
+            groups[-1][1] = j
         else:
-            merged_groups.append(list(g))
-    groups = merged_groups
+            groups.append([i, j, kind])
 
     out, k = [], 0
     for idx, (i, j, kind) in enumerate(groups):
@@ -265,26 +282,26 @@ def describe_levels(sizes, med, se, df=None, rep_max=None, rep_min=None):
                "latency_ns_range": [min(med[i:j + 1]), max(med[i:j + 1])], "label": "derived"}
         if kind == "level":
             k += 1
-            lvl.update(level=k, latency_ns=math.exp(m), latency_ns_se=math.exp(m) * s)
+            sl = fit(range(i, j + 1))[0] if j > i else 0.0
+            lvl.update(level=k, latency_ns=math.exp(m), latency_ns_se=math.exp(m) * s,
+                       rise_across_span=math.exp(sl * (x[j] - x[i])))
             if idx + 1 < len(groups):
-                nxt = groups[idx + 1]
                 nxt_level = next((g for g in groups[idx + 1:] if g[2] == "level"), None)
-                end = nxt_level[0] if nxt_level else nxt[1]
-                lo, hi_i = j, min(end, n - 1)
+                lo, hi_i = j, (nxt_level[0] if nxt_level else None)
                 if rep_min and nxt_level:
-                    # mirror: the next level starts at its first point where no rep still ran at this speed
-                    far_m = wmean(*nxt_level[:2])[0]
-                    mid_m = math.sqrt(math.exp(m) * math.exp(far_m))
+                    # the next level starts at its first point where no rep still ran at this speed
+                    mid_m = math.sqrt(math.exp(m) * math.exp(wmean(*nxt_level[:2])[0]))
                     ok = [q for q in range(nxt_level[0], nxt_level[1] + 1) if rep_min[q] > mid_m]
                     hi_i = ok[0] if ok else nxt_level[1]
                 if rep_max:
                     # a point where some reps already ran at the next level's speed is past capacity
                     # for those reps: the bracket starts at the last point where none did
-                    far = math.exp(wmean(*nxt_level[:2])[0]) if nxt_level else max(med[nxt[0]:nxt[1] + 1])
+                    far = math.exp(wmean(*nxt_level[:2])[0]) if nxt_level else max(med[groups[idx + 1][0]:groups[idx + 1][1] + 1])
                     mid = math.sqrt(math.exp(m) * far)
-                    ok = [q for q in range(i, j + 1) if rep_max[q] < mid]
-                    lo = ok[-1] if ok else i
-                lvl["capacity_bytes_between"] = [sizes[lo], sizes[hi_i]]
+                    okl = [q for q in range(i, j + 1) if rep_max[q] < mid]
+                    lo = okl[-1] if okl else i
+                # no next level found: the upper end is unknown, not "end of sweep"
+                lvl["capacity_bytes_between"] = [sizes[lo], sizes[hi_i] if hi_i is not None else None]
         out.append(lvl)
     return out
 
@@ -486,8 +503,10 @@ def build(td):
     else:
         flags = CFLAGS
     ver = run([cc, "--version"])[1].splitlines()[0]
+    rc, out, _ = run([exe, "isa"])
+    isa = json.loads(out)["vector_isa"] if rc == 0 else "unknown"
     return exe, {"compiler": ver, "flags": flags, "kernels_sha256": sha256_file(src),
-                 "probe_sha256": sha256_file(__file__)}
+                 "probe_sha256": sha256_file(__file__), "vector_isa": isa}
 
 
 def chase_sizes(max_bytes, min_bytes=4 << 10):
@@ -555,6 +574,9 @@ def check_raw(raw, settings):
                 want, got = 2 * x["lanes"] * x["chains"] * x["iters"] * x["threads"] / t / 1e9, x["GFLOPs"]
             if abs(want - got) > 1e-3 * abs(want) + 1e-3:
                 bad.append(f"{name} rep {i}: rate {got} but work/time gives {want:.4f}")
+            floor = settings["min_ms"] * (1 if k == "chase" or name.startswith("stream:l1") else 3) / 1e3
+            if t < floor * 0.999:
+                bad.append(f"{name} rep {i}: timed window {t:.4f}s is shorter than the {floor:.4f}s minimum")
             if k == "chase" and x.get("seed") != chase_seed(settings["seed"], i, x["bytes"]):
                 bad.append(f"{name} rep {i}: chase seed does not match the recorded run seed")
     return bad
@@ -570,9 +592,21 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
     sizes = sorted(int(n.split(":")[1]) for n in raw if n.startswith("chase:"))
     lat = [stat(f"chase:{s}", "ns_per_load") for s in sizes]
     meds = [x["median"] for x in lat]
-    levels = describe_levels(sizes, meds, [x["se_median"] for x in lat],
-                             df=min(x["n"] for x in lat) - 1 if lat else None,
+    df = min(x["n"] for x in lat) - 1 if lat else None
+    ses = [x["se_median"] for x in lat]
+    noise_known = bool(lat) and all(s is not None and s > 0 for s in ses)
+    excluded = [sizes[k] for k in nonmonotone_points(meds, ses, df)] if noise_known else []
+    levels = describe_levels(sizes, meds, ses, df=df,
                              rep_max=[x["max"] for x in lat], rep_min=[x["min"] for x in lat])
+    if not noise_known:
+        level_note = "not computed: needs >= 2 reps per size for noise estimates"
+    elif levels is None:
+        level_note = (f"not computed: {len(excluded)} of {len(sizes)} sizes are significantly slower than a larger "
+                      f"size (more than {MAX_EXCLUDED:.0%}), so the curve is too disturbed to read levels from")
+    else:
+        level_note = LEVEL_METHOD
+    llc = settings.get("llc_reported_bytes") or 0
+    reach = sizes[-1] / llc if llc and sizes else None
 
     ncpu = env["logical_cpus"] or 1
     thr = sorted({1, ncpu})
@@ -604,6 +638,12 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
         "reported_caches": caches,
         "latency_curve": [{"bytes": s, "ns_per_load": x, "label": "measured"} for s, x in zip(sizes, lat)],
         "memory_levels": levels,  # fitted from the curve: label "derived"
+        "memory_levels_excluded_bytes": excluded,
+        "sweep_reach": {"largest_bytes": sizes[-1] if sizes else None, "reported_llc_bytes": llc or None,
+                        "ratio": reach, "label": "derived",
+                        "warning": None if reach is None or reach >= 2 else
+                        "sweep ended below 2x the reported last-level cache (RAM-limited), so DRAM may never be "
+                        "reached: a final level here may not be DRAM, and a missing one may just be out of range"},
         "bandwidth": bw,
         "compute": fl,
         "timer": timer,
@@ -613,8 +653,7 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
                                          "meaning": "arithmetic intensity above which all-core f64 work is compute-bound (roofline)"},
             "far_over_near_latency": ratio,
         },
-        "memory_levels_method": LEVEL_METHOD if levels is not None
-        else "not computed: needs >= 2 reps per size for noise estimates",
+        "memory_levels_method": level_note,
         "consistency_problems": check_raw(raw, settings),
         "caveats": [
             "Tier 2 only unless a tier-1 meter is listed as available: these are times, not energy.",
@@ -622,6 +661,9 @@ def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
             "In a VM, reported caches and core counts are the hypervisor's claim; measured levels may differ.",
             "memory_levels are a fit to the measured curve (derived), not direct measurements; capacities are brackets.",
             "Noise is within this run on this machine; it says nothing about other runs or other hosts.",
+            "Vector ceilings are for the instruction set recorded in build.vector_isa; elsewhere they mean that ISA.",
+            "--reanalyse checks consistency, never authenticity: anyone can fabricate a self-consistent raw section "
+            "with any numbers. Only an outside-anchored record (open item 3) can stop that.",
         ],
         "raw": raw,
     }
@@ -743,15 +785,25 @@ def summary_text(p):
             lo, hi = l["latency_ns_range"]
             L.append(f"  transition: {lo:.1f}-{hi:.1f} ns over {rng}")
             continue
-        cap = f", capacity between {fmt_bytes(l['capacity_bytes_between'][0])} and {fmt_bytes(l['capacity_bytes_between'][1])}" \
-            if "capacity_bytes_between" in l else ""
-        L.append(f"  level {l['level']}: {l['latency_ns']:.2f} ± {l['latency_ns_se']:.2f} ns, flat over {rng}{cap}")
+        cap = ""
+        if "capacity_bytes_between" in l:
+            lo, hi = l["capacity_bytes_between"]
+            cap = (f", capacity between {fmt_bytes(lo)} and {fmt_bytes(hi)}" if hi is not None
+                   else f", capacity above {fmt_bytes(lo)} (next level not found: upper end unknown)")
+        L.append(f"  level {l['level']}: {l['latency_ns']:.2f} ± {l['latency_ns_se']:.2f} ns over {rng} "
+                 f"(rises x{l['rise_across_span']:.2f} across it){cap}")
+    if p.get("memory_levels_excluded_bytes"):
+        L.append("  excluded as interference (slower than a larger size): "
+                 + ", ".join(fmt_bytes(b) for b in p["memory_levels_excluded_bytes"]))
+    if p.get("sweep_reach", {}).get("warning"):
+        L.append("  WARNING: " + p["sweep_reach"]["warning"])
     L.append("reported caches: " + ", ".join(f"L{c['level']}{c['type'][0]} {fmt_bytes(c['size_bytes'])}" for c in p["reported_caches"]))
     for k, v in p["bandwidth"].items():
         L.append(f"bandwidth {k}: {v['median']:.2f} GB/s{noise(v)}")
     for k, v in p["compute"].items():
         L.append(f"compute {k}: {v['median']:.1f} GFLOP/s{noise(v)}")
     d = p["derived"]
+    L.append(f"vector ISA of this build: {p['build'].get('vector_isa', 'unknown')}")
     st = [x for x in p["settings"].get("cpu_steal_fraction_per_rep", []) if x is not None]
     if st:
         L.append(f"cpu steal during run (host interference, measured): max {max(st):.1%} of CPU time in a rep")

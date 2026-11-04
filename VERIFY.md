@@ -11,7 +11,7 @@ You are an independent verifier. Someone else built this tool. Your job is to ch
 ## Setup
 ```
 git clone https://github.com/5kasgard/exagium && cd exagium/probe
-python3 -m unittest -v test_probe          # expect 28 passing, ~40 s
+python3 -m unittest -v test_probe          # expect 34 passing, ~45 s
 python3 probe.py --quick --out quick.json  # ~10 s
 python3 probe.py --out full.json           # ~100 s on 2 cores; longer with more cores or RAM
 python3 probe.py --reanalyse full.json; echo $?
@@ -34,9 +34,10 @@ Give each a verdict: CONFIRMED / REFUTED / UNCLEAR, with evidence.
    - The DRAM figure should be a genuine DRAM read rate. Compare with an independent tool if you can (e.g. `mbw`, STREAM, Intel MLC, likwid).
 3. **Latency curve.** The pointer chase is one random cycle over cache lines, can't be optimised away, and reports ns per dependent load. Compare with an independent tool if you can (e.g. lmbench `lat_mem_rd`, Intel MLC).
 4. **Memory levels (derived).**
-   - The tool claims it assumes no cache sizes and reports a level only for a plateau much flatter than its edges.
+   - The tool claims it assumes no cache sizes, excludes points that break monotonicity as interference, and reports a level only where the rise across it is small next to the jump at each edge. When no next level is found, the bracket's upper end must be `null`, never "end of sweep".
    - Compare its levels and capacity brackets with your CPU's documented caches and with an independent latency tool.
-   - Claimed simulation error rates (in `probe/README.md`): about 0–1% phantom levels, 0–1.5% false capacity boundaries, 0 wrong values or brackets when the count is right, 92–99% exact recovery.
+   - Claimed simulation error rates are in the table in `probe/README.md`. Mostly they are 0% phantom levels, 0% false boundaries and 0 wrong brackets, apart from a stated limit with interference spikes on a level's last point.
+   - A previous verifier's adversarial cases and noisy real curve are now regression tests, so try something new.
    - Reproduce those rates with **your own** synthetic generator, not the one in `test_probe.py`. Then try to make the fit lie with a new adversarial curve, calling `probe.describe_levels(sizes, medians, ses, df=reps-1, rep_max=..., rep_min=...)` directly. Report any curve that yields a phantom level, a false boundary, or a wrong bracket in more than 5% of noisy draws.
 5. **Meter tiers.**
    - Each tier is meant to be detected by trying it, not by checking whether a binary exists.
