@@ -1,7 +1,11 @@
-# The ledger's only writer. A push that adds proposals to ledger/inbox/ makes this job append them
-# to the hash chain, anchor the new head (Sigstore attestation in public Rekor + OpenTimestamps),
-# check everything, and commit. A daily job completes pending OpenTimestamps proofs.
-# Verifiers pin this file's identity: https://github.com/5kasgard/exagium/.github/workflows/record.yml@refs/heads/main
+# The ledger's only writer. A push that adds proposals to ledger/inbox/ makes this job:
+#   1. refuse to go on unless every existing entry is already covered by this workflow's attestations
+#      (so an entry written by hand is never vouched for later);
+#   2. ingest the proposals; stamp the new head with OpenTimestamps;
+#   3. refuse to attest if main has moved since checkout;
+#   4. attest the exact range of entries it added (Sigstore, public Rekor); check every anchor; commit.
+# A daily job completes pending OpenTimestamps proofs.
+# Verifiers pin this identity: https://github.com/5kasgard/exagium/.github/workflows/record.yml@refs/heads/main
 name: record
 on:
   push:
@@ -10,34 +14,45 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+env:
+  LEDGER_REF: main
+  WRITER: .github/workflows/record.yml
 concurrency:
-  group: record-${{ github.ref }}
+  group: record-writer   # one writer at a time, across every ref
   cancel-in-progress: false
 permissions:
   contents: write
   id-token: write
   attestations: write
+defaults:
+  run:
+    shell: bash   # bash -eo pipefail: a failing command in a pipe fails the step
 jobs:
   append:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LEDGER_REF }}   # the latest commit, not the one that triggered the run
       - name: tools
         run: |
           # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography
           python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1 opentimestamps-client==0.8.0
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+      - name: the existing chain must be fully attested by this writer before anything is added
+        run: python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER"
       - name: ingest inbox into the chain
         id: ingest
         run: |
-          python3 record/record.py verify > /dev/null
-          python3 record/record.py ingest | tee written.txt
+          read before _ < <(python3 record/record.py head)
+          python3 record/record.py ingest | tee "$RUNNER_TEMP/written.txt"
           read seq sha < <(python3 record/record.py head)
-          echo "seq=$seq" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "from=$((before + 1))" >> "$GITHUB_OUTPUT"; echo "seq=$seq" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "file=ledger/entries/$(printf %06d $seq).json" >> "$GITHUB_OUTPUT"
-          echo "n=$(wc -l < written.txt)" >> "$GITHUB_OUTPUT"
-      - name: stamp the head (OpenTimestamps) before attesting, so a failure here leaves no attestation behind
+          echo "n=$(wc -l < "$RUNNER_TEMP/written.txt")" >> "$GITHUB_OUTPUT"
+          echo "predicate=$(python3 record/record.py range $((before + 1)) $seq 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
+      - name: stamp the head (OpenTimestamps); refuse to attest if the branch moved
         if: steps.ingest.outputs.n != '0'
         run: |
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
@@ -45,32 +60,36 @@ jobs:
           cp ledger/entries/$s.json "$RUNNER_TEMP/$s.json" && ots stamp "$RUNNER_TEMP/$s.json"
           mv "$RUNNER_TEMP/$s.json.ots" ledger/anchors/$s.ots
           python3 record/record.py verify
-      - name: attest the head (Sigstore, public Rekor)
+          git fetch -q origin "$LEDGER_REF"
+          [ "$(git rev-parse FETCH_HEAD)" = "$(git rev-parse HEAD)" ] || { echo "the branch moved since checkout; not attesting"; exit 1; }
+      - name: attest the range of entries added (Sigstore, public Rekor)
         if: steps.ingest.outputs.n != '0'
         id: att
         uses: actions/attest@v2
         with:
           subject-path: ${{ steps.ingest.outputs.file }}
           predicate-type: https://github.com/5kasgard/exagium/blob/main/record/README.md
-          predicate: '{"ledger_head_seq": ${{ steps.ingest.outputs.seq }}}'
-      - name: check anchors and commit
+          predicate: ${{ steps.ingest.outputs.predicate }}
+      - name: check every anchor and commit
         if: steps.ingest.outputs.n != '0'
         run: |
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
           cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
           # exit 2 (an explorer unreachable) mustn't orphan the attestation just made; exit 1 or 3 stops here
-          python3 record/record.py check-anchors || [ $? -eq 2 ]
+          rc=0; python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER" || rc=$?
+          [ $rc -eq 0 ] || [ $rc -eq 2 ]
           git config user.name github-actions
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add ledger
-          git commit -q -m "ledger: head seq ${{ steps.ingest.outputs.seq }} sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
-          git pull -q --rebase origin main
-          git push -q origin HEAD:main
+          git commit -q -m "ledger: entries ${{ steps.ingest.outputs.from }}-${{ steps.ingest.outputs.seq }}, head sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
+          git push -q origin "HEAD:$LEDGER_REF"   # if this fails, the attestation is orphaned and the monitor will say so
   upgrade:
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LEDGER_REF }}
       - name: complete pending OpenTimestamps proofs
         run: |
           python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q opentimestamps-client==0.8.0
@@ -81,4 +100,4 @@ jobs:
           git config user.name github-actions
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add ledger/anchors
-          git diff --cached --quiet || { git commit -q -m "ledger: upgrade OpenTimestamps proofs (run ${{ github.run_id }})"; git push -q origin "HEAD:${{ github.ref }}"; }
+          git diff --cached --quiet || { git commit -q -m "ledger: upgrade OpenTimestamps proofs (run ${{ github.run_id }})"; git push -q origin "HEAD:$LEDGER_REF"; }

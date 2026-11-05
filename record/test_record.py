@@ -118,10 +118,17 @@ class Ledger(unittest.TestCase):
     def test_verdict_must_come_from_someone_else(self):
         self.propose("a.json", "plan", PLAN)
         self.run_cmd("ingest")
-        self.propose("b.json", "verdict", self.verdict(1, by="Proposer-Agent "))
+        self.propose("b.json", "verdict", self.verdict(1, by="proposer-agent"))
         rc, _, err = self.run_cmd("ingest")
         self.assertEqual(rc, 1)
         self.assertIn("someone else", err)
+        # look-alike names can't dodge the rule: names are plain lowercase ASCII handles
+        for alias in ("Proposer-Agent", "proposer-agent\u200b", "proposer-agent "):
+            os.remove(os.path.join(self.d, "inbox", "b.json"))
+            self.propose("b.json", "verdict", self.verdict(1, by=alias))
+            rc, _, err = self.run_cmd("ingest")
+            self.assertEqual(rc, 1, alias)
+            self.assertIn("handle", err)
 
     def test_verdict_must_name_the_plan_by_hash(self):
         self.propose("a.json", "plan", PLAN)
@@ -158,6 +165,43 @@ class Ledger(unittest.TestCase):
         for _ in range(3000):
             o = {"x": v(), "y": v()}
             self.assertEqual(R.canonical(o), rfc8785.dumps(o))
+
+    def test_wrong_data_exits_1_not_3(self):
+        # review 1: these used to crash (exit 3) instead of being reported as wrong data
+        self.propose("a.json", "plan", PLAN)
+        self.run_cmd("ingest")
+        raw = open(self.entry(1), "rb").read().replace(b'"claim":"mlp beats linear"', b'"claim":"\\ud800"')
+        open(self.entry(1), "wb").write(raw)
+        self.assertEqual(self.run_cmd("verify")[0], 1)
+        os.remove(self.entry(1))
+        os.makedirs(self.entry(1))
+        self.assertEqual(self.run_cmd("verify")[0], 1)
+
+    def test_bogus_due_date_and_stray_inbox_files_are_refused(self):
+        self.propose("a.json", "plan", dict(PLAN, verdict_due="2026-99-99"))
+        self.assertEqual(self.run_cmd("ingest")[0], 1)
+        os.remove(os.path.join(self.d, "inbox", "a.json"))
+        open(os.path.join(self.d, "inbox", "a.txt"), "w").write("{}")
+        self.assertEqual(self.run_cmd("ingest")[0], 1)
+
+    def test_orphan_entries_explain_attestations(self):
+        self.propose("a.json", "orphan", {"by": "owner", "log_index": 12345, "reason": "run failed after attesting"})
+        self.assertEqual(self.run_cmd("ingest")[0], 0)
+        self.assertEqual(json.loads(self.run_cmd("verify")[1])["orphans_explained"], 1)
+
+    def test_range_predicate_ties_both_ends(self):
+        self._two_entries()
+        rc, out, _ = self.run_cmd("range", "2", "2")
+        p = json.loads(out)
+        self.assertEqual((p["from_seq"], p["to_seq"], p["prev_sha256"]), (2, 2, self.plan_ref(1)["sha256"]))
+        self.assertEqual(self.run_cmd("range", "1", "3")[0], 1)
+
+    def test_check_anchors_requires_the_writer_to_cover_every_entry(self):
+        # review 1: a hand-written entry passed every check. Now an entry no writer attestation covers is wrong.
+        self._two_entries()
+        rc, out, err = self.run_cmd("check-anchors")
+        self.assertEqual(rc, 1)
+        self.assertIn("never attested by the writer", err)
 
     def test_unknown_files_and_fields_are_refused(self):
         self._two_entries()

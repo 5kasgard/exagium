@@ -1,0 +1,112 @@
+# The ledger's only writer. A push that adds proposals to ledger/inbox/ makes this job:
+#   1. refuse to go on unless every existing entry is already covered by this workflow's attestations
+#      (so an entry written by hand is never vouched for later);
+#   2. ingest the proposals; stamp the new head with OpenTimestamps;
+#   3. refuse to attest if main has moved since checkout;
+#   4. attest the exact range of entries it added (Sigstore, public Rekor); check every anchor; commit.
+# A daily job completes pending OpenTimestamps proofs.
+# Verifiers pin this identity: https://github.com/5kasgard/exagium/.github/workflows/record.yml@refs/heads/main
+name: "record-e2e (test copy of record.yml - same steps, its own branch and identity)"
+on:
+  push:
+    branches: [e2e-main]
+    paths: ["ledger/inbox/**"]
+  workflow_dispatch:
+env:
+  LEDGER_REF: e2e-main
+  WRITER: .github/workflows/record-e2e.yml
+concurrency:
+  group: record-e2e-writer   # one writer at a time, across every ref
+  cancel-in-progress: false
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+defaults:
+  run:
+    shell: bash   # bash -eo pipefail: a failing command in a pipe fails the step
+jobs:
+  append:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LEDGER_REF }}   # the latest commit, not the one that triggered the run
+      - name: tools
+        run: |
+          # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
+      - name: the existing chain must be fully attested by this writer before anything is added
+        run: python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER"
+      - name: ingest inbox into the chain
+        id: ingest
+        run: |
+          read before _ < <(python3 record/record.py head)
+          python3 record/record.py ingest | tee "$RUNNER_TEMP/written.txt"
+          read seq sha < <(python3 record/record.py head)
+          echo "from=$((before + 1))" >> "$GITHUB_OUTPUT"; echo "seq=$seq" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "file=ledger/entries/$(printf %06d $seq).json" >> "$GITHUB_OUTPUT"
+          echo "n=$(wc -l < "$RUNNER_TEMP/written.txt")" >> "$GITHUB_OUTPUT"
+          echo "predicate=$(python3 record/record.py range $((before + 1)) $seq 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
+      - name: stamp the head (OpenTimestamps); refuse to attest if the branch moved
+        if: steps.ingest.outputs.n != '0'
+        run: |
+          s=$(printf %06d ${{ steps.ingest.outputs.seq }})
+          mkdir -p ledger/anchors
+          cp ledger/entries/$s.json "$RUNNER_TEMP/$s.json" && ots stamp "$RUNNER_TEMP/$s.json"
+          mv "$RUNNER_TEMP/$s.json.ots" ledger/anchors/$s.ots
+          python3 record/record.py verify
+          git fetch -q origin "$LEDGER_REF"
+          [ "$(git rev-parse FETCH_HEAD)" = "$(git rev-parse HEAD)" ] || { echo "the branch moved since checkout; not attesting"; exit 1; }
+      - name: attest the range of entries added (Sigstore, public Rekor)
+        if: steps.ingest.outputs.n != '0'
+        id: att
+        uses: actions/attest@v2
+        with:
+          subject-path: ${{ steps.ingest.outputs.file }}
+          predicate-type: https://github.com/5kasgard/exagium/blob/main/record/README.md
+          predicate: ${{ steps.ingest.outputs.predicate }}
+      - name: check every anchor and commit
+        if: steps.ingest.outputs.n != '0'
+        run: |
+          s=$(printf %06d ${{ steps.ingest.outputs.seq }})
+          cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
+          # exit 2 (an explorer unreachable) mustn't orphan the attestation just made; exit 1 or 3 stops here
+          rc=0; python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER" || rc=$?
+          [ $rc -eq 0 ] || [ $rc -eq 2 ]
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ledger
+          git commit -q -m "ledger: entries ${{ steps.ingest.outputs.from }}-${{ steps.ingest.outputs.seq }}, head sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
+          git push -q origin "HEAD:$LEDGER_REF"   # if this fails, the attestation is orphaned and the monitor will say so
+  gh-verify:
+    # Can `gh attestation verify` accept a genuine anchor when pinned to this writer and ref? (review 1, finding 10)
+    needs: append
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      attestations: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.LEDGER_REF }}
+      - name: verify the head with gh, pinned and unpinned
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R=5kasgard/exagium; P=https://github.com/5kasgard/exagium/blob/main/record/README.md
+          NEW=$(ls ledger/entries/*.json | tail -1)
+          t() { f=$1; shift; if out=$(gh attestation verify "$f" -R $R "$@" 2>&1); then r=PASS; else r="FAIL ($(echo "$out" | grep -v '^$' | tail -1 | cut -c1-120))"; fi; echo "$r | $f | $*"; }
+          { echo "ref $LEDGER_REF run ${{ github.run_id }}"
+            t $NEW --predicate-type $P
+            t $NEW --predicate-type $P --signer-workflow $R/$WRITER --source-ref refs/heads/$LEDGER_REF
+            t $NEW --predicate-type $P --signer-workflow $R/.github/workflows/record.yml --source-ref refs/heads/main
+          } | tee "$RUNNER_TEMP/gh.txt"
+          git init -q "$RUNNER_TEMP/ci" && cd "$RUNNER_TEMP/ci"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs
+          mkdir -p e2e && cp "$RUNNER_TEMP/gh.txt" e2e/gh-${{ github.run_id }}.txt && git add e2e
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "e2e gh verify ${{ github.run_id }}"
+          git push -q origin ci-runs
