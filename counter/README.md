@@ -8,7 +8,7 @@ python3 count.py -- /abs/or/PATH/program args              # 3 reps, reference c
 python3 count.py --input net.py --input w.bin -- python3 net.py
 python3 count.py --input cand -- ./cand 1000               # ./name must be an --input
 python3 count.py --check ../runs/<record>.json [--input-dir DIR]
-python3 -m unittest -v test_count                          # 23 tests, ~32 s
+python3 -m unittest -v test_count                          # 23 tests, ~34 s
 ```
 **Exit codes:**
 - **0:** counted, every rep identical in counts and output, and no code found that can switch counting off. With `--check`: same counts, processes and output, still clean.
@@ -34,8 +34,10 @@ The path is fixed because path strings themselves change counts (below). A lock 
 **Valgrind:**
 - `--command-line-only=yes`, so `.valgrindrc` files and `VALGRIND_OPTS` are ignored (tested).
 - `--trace-children=yes`, with counts summed over every process.
-- **One log on a pipe.** Every process logs to one pipe, on a file descriptor valgrind reserves. Unlike a file, a pipe can't be edited afterwards. Each process image writes a `Command:` header when it starts, and every process, forked children included, writes its `I refs` total when it ends. The counter requires exactly one count file per reported total, with the same `Ir`. A deleted or edited count file is therefore a failure, and so is a process that outlives the command.
-- **`exec` is refused.** Valgrind drops the counts of a process image when it calls `exec`, so work before an `exec` would vanish (review 2 measured a ~1,500× undercount). Two headers for one process mean it exec'd. This also refuses a shell that `exec`s its last command, and `#!/usr/bin/env` scripts, because `env` execs the interpreter. Run programs directly, e.g. `python3 script.py`.
+- **One log on a pipe.** Every process logs to one pipe, on a file descriptor valgrind reserves. Unlike a file, a pipe can't be edited afterwards. Each process image writes a `Command:` header when it starts, and every process, forked children included, writes its `I refs` total when it ends. The counter requires exactly one count file per reported total, with the same `Ir`. A deleted count file, or one whose `Ir` was edited, is therefore a failure, and so is a process that outlives the command.
+- **`exec` is refused, by the command or by any child.** Valgrind drops the counts of a process image when it calls `exec`, so work before an `exec` would vanish. Review 2 measured a ~1,500× undercount, and ~860× from a fork child that did the work and then exec'd. Only the command itself may start a process image, so any second `Command:` header is a failure.
+  - **Allowed:** children made by `fork` alone, such as Python `os.fork` or multiprocessing with fork.
+  - **Refused:** shells, `subprocess` spawns, `posix_spawn` and `#!/usr/bin/env` scripts. Run programs directly, e.g. `python3 script.py`.
 - All three caches are always passed. Given only `--LL`, valgrind would take I1 and D1 from the host's CPUID.
 
 **What's executed is fingerprinted.** sha256 is recorded for:
@@ -155,12 +157,15 @@ It also corrected the CPU-model count above.
 - a program that execs itself and deletes its first header (Ir 152,783, `--check` exit 0);
 - a child that deletes its count file and its lines in the log (Ir 155,778 vs ~250 M).
 
-Both are now caught: the log is a pipe, and fork children's totals are cross-checked (tests `test_a_child_deleting_its_counts_is_caught` and `test_work_before_exec_is_refused`). `#!/usr/bin/env` scripts are now refused with a clear message instead of an `exec` failure.
+Both are now caught, because the log is a pipe (tests `test_a_child_deleting_its_counts_is_caught` and `test_work_before_exec_is_refused`). `#!/usr/bin/env` scripts are now refused with a clear message instead of an `exec` failure.
+
+**Second re-test** (same agent): both caught. It found that a fork child could do the work and then exec, without detection: ~860× under, exit 0. That's fixed: any exec anywhere is now refused (`test_children_that_exec_are_refused`). It also showed a candidate can *append* lines to the log pipe through `/proc/self/fd`. That didn't produce an undercount, since true lines can't be removed and a duplicate total is a failure, but it's listed below.
 
 ## Trust model
 Cachegrind runs inside the candidate's own process, as the same user. **Hostile native code can therefore always falsify its counts.** Known ways that still work:
 - edit the cache-miss fields of a count file (only `Ir` is cross-checked against the pipe);
-- have a forked child do the work and then kill itself with `SIGKILL`, so it never reports;
+- have a forked child do the work and then have its parent kill it with `SIGKILL`, so it never reports (review 2: Ir 132,941, exit 0);
+- append forged lines to the log pipe through `/proc/self/fd` (no undercount found this way yet);
 - write into valgrind's memory;
 - build code at run time that the client-request scan never sees. Review 2 decoded a stop-counting binary from a base64 input and ran it: Ir 1.07–1.31 M instead of ~250 M.
 

@@ -238,10 +238,12 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
                 if pid in irefs:
                     raise Failure(f"process {pid} reported its total twice")
                 irefs[pid] = int(text.split(":", 1)[1].replace(",", ""))
-        execd = sorted(pid for pid, n in starts.items() if n > 1)
-        if execd:
-            raise Failure(f"process {', '.join(execd)} called exec: valgrind drops the counts of the image "
-                          f"before an exec, so this would undercount. Run the program directly, without exec.")
+        # Only the command itself may start a process image. A second header means an exec (by the command, or
+        # by a fork child: valgrind drops the counts of any image before its exec, so work there would vanish).
+        if sum(starts.values()) != 1:
+            raise Failure(f"{sum(starts.values()) - 1} exec call(s) (processes {', '.join(sorted(starts))}): valgrind "
+                          f"drops the counts of an image before it execs, so this could undercount. Only fork "
+                          f"children are allowed; run programs directly, without exec, shells or subprocess spawns.")
         if set(starts) - set(irefs):
             raise Failure(f"process {', '.join(sorted(set(starts) - set(irefs)))} ended without reporting counts")
         outs = sorted(f for f in os.listdir(td) if f.startswith("cg."))

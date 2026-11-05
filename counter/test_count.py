@@ -100,11 +100,11 @@ class Counter(unittest.TestCase):
         self.assertEqual(rec["env"]["PYTHONHASHSEED"], "0")
         self.assertTrue(rec["verdict"]["exact"], rec["summary"]["Ir"])
 
-    def test_children_are_counted(self):
-        direct = count.count([self.mlp, "50"], reps=1)
-        via_sh = count.count(["/bin/sh", "-c", f"{self.mlp} 50 > /dev/null; true"], reps=1)
-        self.assertGreaterEqual(via_sh["reps"][0]["processes"], 2)
-        self.assertGreater(via_sh["summary"]["Ir"]["median"], direct["summary"]["Ir"]["median"])
+    def test_children_that_exec_are_refused(self):
+        # a shell forks and execs its commands; a fork child's work before an exec would vanish (review 2)
+        with self.assertRaises(count.Failure) as cm:
+            count.count(["/bin/sh", "-c", f"{self.mlp} 50 > /dev/null; true"], reps=1)
+        self.assertIn("exec", str(cm.exception))
 
     def test_reference_model_is_what_was_simulated(self):
         rec = count.count([self.mlp, "5"], reps=1)
