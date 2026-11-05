@@ -102,7 +102,7 @@ On another host it exits 2.
 - **Shared hosts are noisy beyond L2.** Comparisons must be interleaved and gated on SE, as decided, and level fits there will often, honestly, stop at L2.
 
 ## How it was checked
-Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a different machine. Each found real problems that are now fixed. None could break the kernels.
+Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a different machine. Each of the first six found real problems, which are now fixed; the seventh confirmed the fixes. None could break the kernels.
 
 1. **Review 1:** phantom levels, staircases on slopes, fabricated averages on short or one-rep curves.
 2. **Review 2:** the noise estimate from few reps was too optimistic, because my simulation had fed in the true noise. It also found a `seconds=0` bypass and unchecked meter claims.
