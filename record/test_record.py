@@ -186,9 +186,27 @@ class Ledger(unittest.TestCase):
 
     def test_orphan_entries_explain_attestations(self):
         self.propose("a.json", "orphan", {"by": "owner", "log_index": 12345, "reason": "run failed after attesting",
-                                            "statement_b64": "e30="})
+                                            "statement_b64": "e30=", "entries_b64": ["e30="]})
         self.assertEqual(self.run_cmd("ingest")[0], 0)
         self.assertEqual(json.loads(self.run_cmd("verify")[1])["orphans_explained"], 1)
+
+    def test_orphans_must_publish_the_hidden_entries(self):
+        # review 3: an orphan explained only by its statement could hide an attested verdict. Now the orphan must carry
+        # the hidden entries, chained from the attested prev and hashing to the attested head.
+        import base64
+        self.propose("a.json", "plan", PLAN)
+        self.run_cmd("ingest")
+        chain, _ = R.load_chain(self.d)
+        hidden = R.make_entry(chain, "verdict", {"by": "verifier-agent", "plan": {"seq": 1, "sha256": chain[0][1]},
+                                                 "outcome": "fail", "evidence": []})
+        raw = R.canonical(hidden)
+        pred = {"from_seq": 2, "to_seq": 2, "prev_sha256": chain[0][1], "head_sha256": hashlib.sha256(raw).hexdigest()}
+        b64 = base64.b64encode(raw).decode()
+        self.assertIsNone(R._orphan_entries_problem({"body": {"entries_b64": [b64]}}, pred))
+        other = base64.b64encode(raw.replace(b'"fail"', b'"pass"')).decode()
+        self.assertIn("head", R._orphan_entries_problem({"body": {"entries_b64": [other]}}, pred))
+        self.assertIn("range", R._orphan_entries_problem({"body": {"entries_b64": [b64, b64]}}, pred))
+        self.assertIn("chain", R._orphan_entries_problem({"body": {"entries_b64": [b64]}}, dict(pred, prev_sha256="0" * 64)))
 
     def test_range_predicate_ties_both_ends(self):
         self._two_entries()
