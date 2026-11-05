@@ -1,0 +1,218 @@
+{
+ "cache": {
+  "label": "chosen",
+  "matches_request": true,
+  "requested": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  },
+  "simulated": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  }
+ },
+ "caveats": [
+  "Counts are for the CPU valgrind presents, not the host's: on x86 it offers at most AVX2, so code that dispatches on CPU features runs its AVX2-or-lower path here even where the host has AVX-512.",
+  "The cache model is two levels (L1 and LL), LRU, no prefetching; miss counts are relative to that model, not predictions of this machine's latency.",
+  "Exact repeatability holds on one host; across hosts it is a hypothesis being tested (README)."
+ ],
+ "command": [
+  "python3",
+  "-I",
+  "-S",
+  "mlp.py",
+  "20"
+ ],
+ "created_utc": "2026-11-05T07:30:49Z",
+ "cwd": "/home/runner/work/exagium/exagium/counter/workloads",
+ "digest_sha256": "50c6d4e88f3d85da67c8176504a77a24d9b2345d4887c2f8415d6ae3a71a8686",
+ "env": {
+  "HOME": "/home/runner",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "PYTHONHASHSEED": "0",
+  "TZ": "UTC"
+ },
+ "host": {
+  "cpu_model": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+  "cpus": 4,
+  "kernel": "7.0.0-1017-azure",
+  "label": "reported",
+  "ld_so_cache_sha256": "80076f65e5b5059ce85daed3146840c9d75af0635da6d6eaee8c3b4230b35ae8",
+  "libc": "glibc 2.39",
+  "machine": "x86_64",
+  "system": "Linux"
+ },
+ "inputs": {
+  "mlp.py": {
+   "sha256": "7a6b1be1815daedcbf7ddbec52fe77c8651ba7e5bc4f5c1cfbf8b76f0ac112f6"
+  },
+  "program": {
+   "path": "/usr/bin/python3",
+   "sha256": "e50d468e8b0adfb05733f5b87b3cff34829c4a8c1aea50c865aa8bdfe4bb150f",
+   "shared_libs": {
+    "/lib/x86_64-linux-gnu/libc.so.6": "3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf",
+    "/lib/x86_64-linux-gnu/libexpat.so.1": "286682ecbc5e59a638963b1a4e6351e65eb32fcf4bdcb9cb7569b6a61fe06a8d",
+    "/lib/x86_64-linux-gnu/libm.so.6": "fce00b6f25f459cf4ae0b7fae4257909a1a8a86f9149e7c029a5d617baf1ccd0",
+    "/lib/x86_64-linux-gnu/libz.so.1": "f61677c7bdb7c2aa2a243ea781bfd16afcb361cede7b4ef76127a9d8eb9a5242",
+    "/lib64/ld-linux-x86-64.so.2": "c20a2dc8917c755f02b94049356320fe1f62ac7d9f8994731f807d9df39302da"
+   }
+  }
+ },
+ "labels": {
+  "counts": "simulated",
+  "wall_s": "measured (under valgrind; not the program's native time)"
+ },
+ "reps": [
+  {
+   "counts": {
+    "D1mr": 570124,
+    "D1mw": 55214,
+    "DLmr": 18676,
+    "DLmw": 31096,
+    "Dr": 23986710,
+    "Dw": 13321869,
+    "I1mr": 301933,
+    "ILmr": 12155,
+    "Ir": 83838408
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 2.201
+  },
+  {
+   "counts": {
+    "D1mr": 568452,
+    "D1mw": 55215,
+    "DLmr": 18676,
+    "DLmw": 31096,
+    "Dr": 23965731,
+    "Dw": 13321989,
+    "I1mr": 301252,
+    "ILmr": 12157,
+    "Ir": 83726638
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 2.205
+  },
+  {
+   "counts": {
+    "D1mr": 568210,
+    "D1mw": 55194,
+    "DLmr": 18676,
+    "DLmw": 31096,
+    "Dr": 23979556,
+    "Dw": 13321914,
+    "I1mr": 301374,
+    "ILmr": 12156,
+    "Ir": 83802823
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 2.22
+  }
+ ],
+ "schema": "exagium-count/1",
+ "summary": {
+  "D1mr": {
+   "max": 570124,
+   "median": 568452,
+   "min": 568210,
+   "rel_spread": 0.0033684729237429822
+  },
+  "D1mw": {
+   "max": 55215,
+   "median": 55214,
+   "min": 55194,
+   "rel_spread": 0.0003804761387107294
+  },
+  "DLmr": {
+   "max": 18676,
+   "median": 18676,
+   "min": 18676,
+   "rel_spread": 0.0
+  },
+  "DLmw": {
+   "max": 31096,
+   "median": 31096,
+   "min": 31096,
+   "rel_spread": 0.0
+  },
+  "Dr": {
+   "max": 23986710,
+   "median": 23979556,
+   "min": 23965731,
+   "rel_spread": 0.0008753749259724229
+  },
+  "Dw": {
+   "max": 13321989,
+   "median": 13321914,
+   "min": 13321869,
+   "rel_spread": 9.00774508441721e-06
+  },
+  "I1mr": {
+   "max": 301933,
+   "median": 301374,
+   "min": 301252,
+   "rel_spread": 0.0022605659049566478
+  },
+  "ILmr": {
+   "max": 12157,
+   "median": 12156,
+   "min": 12155,
+   "rel_spread": 0.00016454134101192923
+  },
+  "Ir": {
+   "max": 83838408,
+   "median": 83802823,
+   "min": 83726638,
+   "rel_spread": 0.0013349395445688384
+  }
+ },
+ "tool": {
+  "options": [
+   "--tool=cachegrind",
+   "--cache-sim=yes",
+   "--trace-children=yes",
+   "--command-line-only=yes"
+  ],
+  "valgrind": "valgrind-3.22.0"
+ },
+ "verdict": {
+  "exact": false,
+  "reps": 3,
+  "stdout_identical": true
+ }
+}
