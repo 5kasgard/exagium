@@ -86,8 +86,10 @@ def host():
             f"{k} {info[k]}" for k in ("CPU implementer", "CPU part", "CPU variant", "CPU revision") if k in info)
     except OSError:
         pass
+    ldcache = "/etc/ld.so.cache"
     return {"machine": platform.machine(), "system": platform.system(), "kernel": platform.release(),
-            "cpu_model": model, "cpus": os.cpu_count(), "label": "reported"}
+            "libc": " ".join(platform.libc_ver()), "cpu_model": model, "cpus": os.cpu_count(),
+            "ld_so_cache_sha256": sha256_file(ldcache) if os.path.isfile(ldcache) else None, "label": "reported"}
 
 
 def cache_args(cache):

@@ -31,6 +31,7 @@ jobs:
         working-directory: counter/workloads
         run: |
           mkdir -p ../../runs/ci
+          echo "${ImageOS:-} ${ImageVersion:-}" > ../../runs/ci/runner_image.txt
           for n in 1000 0; do python3 ../count.py --reps 3 --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- ./mlp $n || true; done
           for n in 20 0; do python3 ../count.py --reps 3 --hash mlp.py --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- python3 mlp.py $n || true; done
           ls ../../runs/ci
