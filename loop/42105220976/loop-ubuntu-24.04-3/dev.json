@@ -1,0 +1,270 @@
+{
+ "schema": "exagium-loop/2",
+ "split": "dev-in-sample",
+ "n": 956,
+ "rounds": 30,
+ "seed": 1,
+ "cpu_pinned": 0,
+ "labels": {
+  "accuracy": "measured on the split",
+  "simulated_*": "cachegrind, reference cache: one process classifying all N images (startup included), / N",
+  "native_*": "wall time inside the jail, one process classifying all N images (startup included), / N; mean and SE over interleaved rounds",
+  "marginal_*": "minus the N = 0 run, per image: INFORMATIONAL and gameable, since a candidate can move work into its N = 0 run; never use it to decide",
+  "SE": "assumes independent images; the test set has 13 writers, so true SEs are larger"
+ },
+ "host": {
+  "python": "3.12.3",
+  "numpy": "2.5.3",
+  "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "valgrind": "valgrind-3.22.0",
+  "machine": "x86_64",
+  "cpu": "AMD EPYC 7763 64-Core Processor",
+  "kernel": "7.0.0-1017-azure"
+ },
+ "cflags": [
+  "-O2",
+  "-std=c11",
+  "-ffp-contract=off"
+ ],
+ "inputs": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "466189657eb2eb51d0458a5269580290c2d91fe1151d4bd1390d26b524dbd0b3"
+  },
+  {
+   "name": "loop/timer.c",
+   "sha256": "3351f133e889f18b328c90482437daf7c378b87d713b3b37faed7ec29363a1a3"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "cf36243f039d9ea9848b129aec1983b68b806caa88388b10dcf058c40252ec69"
+  },
+  {
+   "name": "record/record.py",
+   "sha256": "cc61b2ce89845dca65399555aff5394afdcaf907f23d64624ca4d00ca47bf479"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/baselines/thermo/train.py",
+   "sha256": "7c46dd52b8d1e52a85701c0cb040be047f45268815648364fa1480b066c719c5"
+  },
+  {
+   "name": "loop/baselines/thermo/infer.c",
+   "sha256": "fcaabeb397d62417d8decdeb3056d3b28555539546b196f3d8470018310de09a"
+  },
+  {
+   "name": "loop/baselines/thermo/weights.bin",
+   "sha256": "471d3cf18ab0286d5806b558d7a9cf7da5bc3d3650c5062305a787b3b154cd97"
+  }
+ ],
+ "candidates": [
+  {
+   "name": "linear",
+   "dir": "loop/baselines/linear",
+   "correct": 942,
+   "n": 956,
+   "accuracy": 0.9853556485355649,
+   "accuracy_se": 0.003885103838429267,
+   "simulated_Ir_per_image": 3954.6506276150626,
+   "simulated_Ir_per_correct": 4013.424628450106,
+   "simulated_counts": {
+    "D1mr": 1249,
+    "D1mw": 484,
+    "DLmr": 1091,
+    "DLmw": 465,
+    "Dr": 767490,
+    "Dw": 351672,
+    "I1mr": 1410,
+    "ILmr": 1386,
+    "Ir": 3780646
+   },
+   "simulated_startup_counts": {
+    "D1mr": 1212,
+    "D1mw": 467,
+    "DLmr": 1054,
+    "DLmw": 448,
+    "Dr": 32430,
+    "Dw": 13758,
+    "I1mr": 1408,
+    "ILmr": 1384,
+    "Ir": 135417
+   },
+   "native_ns_per_image": 1031.8727336122734,
+   "native_ns_per_image_se": 8.72666252384004,
+   "native_ns_per_image_rounds": [
+    960.973849372385,
+    987.2259414225941,
+    1011.7594142259414,
+    984.7112970711297,
+    996.9089958158996,
+    1009.4529288702929,
+    1121.6820083682007,
+    1064.074267782427,
+    1087.192468619247,
+    1015.4592050209205,
+    1000.5878661087866,
+    998.0512552301255,
+    1097.3891213389122,
+    1110.3744769874477,
+    996.657949790795,
+    1034.689330543933,
+    1065.0387029288702,
+    1075.6328451882846,
+    1015.1234309623431,
+    1006.0376569037657,
+    1056.508368200837,
+    1012.1150627615062,
+    1085.1171548117154,
+    1146.0366108786611,
+    1018.9487447698745,
+    956.7301255230126,
+    1018.0575313807532,
+    1012.9539748953974,
+    1008.8566945606694,
+    1001.8347280334729
+   ],
+   "marginal_simulated_Ir_per_image": 3813.0010460251046,
+   "marginal_native_ns_per_image": [
+    315.8254881450488,
+    11.762224106770086
+   ],
+   "weights_bytes": 2600,
+   "counter_records": [
+    {
+     "name": "out/records/linear-n956-8245e7294662344e.json",
+     "sha256": "e2e2661fa323ae9e6319da37b6bf63f3f1dc50e558823ca66521356ae66ac471"
+    },
+    {
+     "name": "out/records/linear-n0-596bc3c0c6808252.json",
+     "sha256": "0dca5f44acd224a2a14a67f92a71cb8f1c784cbaac45568614a0d67736822b45"
+    }
+   ],
+   "predictions_sha256": "6d4d8c0eff48a7d2b9d79fc99433b7f53835515737d07f0a7fab1a1dcd69fd9d"
+  },
+  {
+   "name": "thermo",
+   "dir": "loop/baselines/thermo",
+   "correct": 956,
+   "n": 956,
+   "accuracy": 1.0,
+   "accuracy_se": 0.0,
+   "simulated_Ir_per_image": 3695.1035564853555,
+   "simulated_Ir_per_correct": 3695.1035564853555,
+   "simulated_counts": {
+    "D1mr": 1875,
+    "D1mw": 450,
+    "DLmr": 1619,
+    "DLmw": 425,
+    "Dr": 771166,
+    "Dw": 353908,
+    "I1mr": 1408,
+    "ILmr": 1384,
+    "Ir": 3532519
+   },
+   "simulated_startup_counts": {
+    "D1mr": 1211,
+    "D1mw": 427,
+    "DLmr": 1054,
+    "DLmw": 408,
+    "Dr": 32282,
+    "Dw": 13126,
+    "I1mr": 1408,
+    "ILmr": 1384,
+    "Ir": 132993
+   },
+   "native_ns_per_image": 1070.7032078103207,
+   "native_ns_per_image_se": 9.255220724850192,
+   "native_ns_per_image_rounds": [
+    1054.5690376569037,
+    1054.7165271966528,
+    1035.873430962343,
+    1018.8650627615062,
+    1027.0073221757323,
+    1097.6202928870293,
+    1194.4110878661088,
+    1125.9884937238494,
+    1050.7228033472804,
+    1125.5282426778242,
+    1035.7991631799164,
+    1027.897489539749,
+    1161.2740585774059,
+    1036.2719665271966,
+    1036.5753138075313,
+    1094.7269874476988,
+    1064.5983263598325,
+    1101.7384937238494,
+    1020.3629707112971,
+    1023.1924686192468,
+    1193.3451882845188,
+    1084.6464435146443,
+    1066.1495815899582,
+    1051.7824267782428,
+    1011.4560669456067,
+    1053.5836820083682,
+    1025.8964435146443,
+    1127.6966527196653,
+    1039.3200836820083,
+    1079.4801255230125
+   ],
+   "marginal_simulated_Ir_per_image": 3555.989539748954,
+   "marginal_native_ns_per_image": [
+    318.55833333333334,
+    16.119890146427924
+   ],
+   "weights_bytes": 43560,
+   "counter_records": [
+    {
+     "name": "out/records/thermo-n956-83d84783262c9e58.json",
+     "sha256": "989b9dde0c5a304db338b52f5d5b31185945ae79cef4d135946cb7cd54786dbf"
+    },
+    {
+     "name": "out/records/thermo-n0-bef9e2703cdfc327.json",
+     "sha256": "2fe88dc62772e6b8a810ccf931785d458b03ea6faf7f08861ef1a02da555a52d"
+    }
+   ],
+   "predictions_sha256": "400057bf21daaf044faa6ba593a8dd656ce56fecd2bf8c2d91bc3503934db361"
+  }
+ ],
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "thermo",
+   "accuracy_diff": -0.014644351464435146,
+   "accuracy_diff_se": 0.0038871373920039715,
+   "Ir_ratio": 1.0702408111605344,
+   "ns_per_image_diff": -38.830474198047405,
+   "ns_per_image_diff_se": 9.698349536777894
+  },
+  {
+   "a": "thermo",
+   "b": "linear",
+   "accuracy_diff": 0.014644351464435146,
+   "accuracy_diff_se": 0.0038871373920039715,
+   "Ir_ratio": 0.9343691527850002,
+   "ns_per_image_diff": 38.830474198047405,
+   "ns_per_image_diff_se": 9.698349536777894
+  }
+ ],
+ "problems": [],
+ "plan": null,
+ "reproduced": null
+}
