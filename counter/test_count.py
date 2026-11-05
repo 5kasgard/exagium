@@ -29,6 +29,16 @@ int main(void){ FILE *f = fopen("answer.txt", "r"); long a = 0;
          f = fopen("answer.txt", "w"); fprintf(f, "%ld\n", a); fclose(f); }
   printf("%ld\n", a); return 0; }
 """
+EXEC_C = r"""
+#include <unistd.h>
+int main(void){ volatile long s = 0; for (long i = 0; i < 3000000; i++) s += i;
+  execl("/bin/echo", "echo", "done", (char *)0); return 1; }
+"""
+RAND_OUT_C = r"""
+#include <stdio.h>
+#include <sys/random.h>
+int main(void){ unsigned v = 0; if (getrandom(&v, sizeof v, 0) != sizeof v) return 1; printf("%u\n", v); return 0; }
+"""
 CHASE_C = r"""
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +55,7 @@ class Counter(unittest.TestCase):
         cls.td = tempfile.mkdtemp()
         cls.mlp = os.path.join(cls.td, "mlp")
         subprocess.run(["gcc", "-O2", "-o", cls.mlp, os.path.join(HERE, "workloads", "mlp.c")], check=True)
-        progs = [("noisy", NOISY_C), ("chase", CHASE_C), ("cache", CACHE_C)]
+        progs = [("noisy", NOISY_C), ("chase", CHASE_C), ("cache", CACHE_C), ("execs", EXEC_C), ("randout", RAND_OUT_C)]
         if os.path.exists("/usr/include/valgrind/cachegrind.h"):
             progs.append(("stop", STOP_C))
         for name, src in progs:
@@ -80,7 +90,7 @@ class Counter(unittest.TestCase):
 
     def test_children_are_counted(self):
         direct = count.count([self.mlp, "50"], reps=1)
-        via_sh = count.count(["/bin/sh", "-c", f"{self.mlp} 50 > /dev/null"], reps=1)
+        via_sh = count.count(["/bin/sh", "-c", f"{self.mlp} 50 > /dev/null; true"], reps=1)
         self.assertGreaterEqual(via_sh["reps"][0]["processes"], 2)
         self.assertGreater(via_sh["summary"]["Ir"]["median"], direct["summary"]["Ir"]["median"])
 
@@ -172,6 +182,34 @@ class Counter(unittest.TestCase):
     def test_failing_command_raises(self):
         with self.assertRaises(count.Failure):
             count.count(["/bin/false"], reps=1)
+
+    def test_work_before_exec_is_refused(self):
+        # valgrind drops the counts of a process image that calls exec: that would be a ~1000x undercount
+        with self.assertRaises(count.Failure) as cm:
+            count.count([os.path.join(self.td, "execs")], reps=1)
+        self.assertIn("exec", str(cm.exception))
+
+    def test_env_cannot_reach_valgrind_or_the_loader(self):
+        for kv in ("VALGRIND_LIB=/tmp/x", "LD_PRELOAD=/tmp/x.so", "GLIBC_TUNABLES=a=b", "PATH=/x", "BAD-KEY=1"):
+            with self.assertRaises(count.Failure, msg=kv):
+                count.count([self.mlp, "5"], reps=1, extra_env=[kv])
+
+    def test_output_that_differs_between_reps_is_not_a_pass(self):
+        code = count.main(["--reps", "2", "--out-dir", self.out_dir(), "--", os.path.join(self.td, "randout")])
+        self.assertEqual(code, 1)
+
+    def test_check_will_not_vouch_for_a_flagged_or_inexact_record(self):
+        if not os.path.exists(os.path.join(self.td, "stop")):
+            self.skipTest("needs valgrind headers")
+        rec = count.count([os.path.join(self.td, "stop")], reps=1)
+        p = count.write_record(rec, self.out_dir())
+        self.assertEqual(count.check(p)[0], 2)
+        # forging the flag away (digest recomputed) doesn't help: the re-count finds the code again
+        rec["verdict"]["client_request_code"] = []
+        rec.pop("digest_sha256")
+        rec["digest_sha256"] = count.hashlib.sha256(count.canonical(rec)).hexdigest()
+        p2 = count.write_record(rec, self.out_dir())
+        self.assertEqual(count.check(p2)[0], 1)
 
     def test_relative_program_must_be_an_input(self):
         with self.assertRaises(count.Failure):

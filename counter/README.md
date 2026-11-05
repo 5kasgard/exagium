@@ -8,13 +8,13 @@ python3 count.py -- /abs/or/PATH/program args              # 3 reps, reference c
 python3 count.py --input net.py --input w.bin -- python3 net.py
 python3 count.py --input cand -- ./cand 1000               # ./name must be an --input
 python3 count.py --check ../runs/<record>.json [--input-dir DIR]
-python3 -m unittest -v test_count                          # 16 tests, ~16 s
+python3 -m unittest -v test_count                          # 20 tests, ~26 s
 ```
 **Exit codes:**
-- **0:** counted, every rep identical, and no code found that can switch counting off. With `--check`: same counts, processes and output.
-- **1:** reps differ, or such code was found. With `--check`: counts or output differ, or the record was edited or is malformed.
-- **2:** `--check` can't compare like for like: another program, input, interpreter, shared library, loader cache, valgrind version, architecture or cache model.
-- **3:** the command or valgrind failed, or anything unexpected happened. A failure is never reported as a verdict.
+- **0:** counted, every rep identical in counts and output, and no code found that can switch counting off. With `--check`: same counts, processes and output, still clean.
+- **1:** reps differ in counts or output, or such code was found. With `--check`: counts or output differ, or the record was edited or is malformed.
+- **2:** `--check` can't compare like for like: another program, input, interpreter, shared library, loader cache, valgrind build, architecture or cache model; or the recorded run itself wasn't a clean exact count.
+- **3:** the command or valgrind failed, a process called `exec` (below), or anything unexpected happened. A failure is never reported as a verdict.
 
 Needs Linux, Python 3 (stdlib only) and valgrind 3.22 or later. CI installs it with `apt install valgrind`.
 
@@ -29,18 +29,20 @@ The path is fixed because path strings themselves change counts (below). A lock 
 - `PATH=/usr/local/bin:/usr/bin:/bin`, plus `HOME` and `TMPDIR` in the sandbox;
 - `LC_ALL=C`, `TZ=UTC`, `PYTHONHASHSEED=0`;
 - one thread for OpenMP, OpenBLAS and MKL;
-- anything added with `--env`. `PATH`, `HOME` and `TMPDIR` can't be overridden.
+- anything added with `--env`. `PATH`, `HOME`, `TMPDIR` and anything starting `VALGRIND_`, `LD_`, `GCONV_PATH` or `GLIBC_TUNABLES` are refused, because they could swap the cachegrind tool or load unfingerprinted code (review 2).
 
 **Valgrind:**
 - `--command-line-only=yes`, so `.valgrindrc` files and `VALGRIND_OPTS` are ignored (tested).
-- `--trace-children=yes`, with counts summed over every process. Each process's log is matched against its count file, so a lost file is a failure rather than an undercount.
+- `--trace-children=yes`, with counts summed over every process. All processes log to one stream on a file descriptor valgrind reserves. Each process image writes one header, so the counter can match processes to count files (a lost file is a failure) and see an `exec`.
+- **`exec` is refused.** Valgrind drops the counts of a process image when it calls `exec`, so work before an `exec` would vanish (review 2 measured a ~1,500× undercount). A shell running its last command with `exec` is refused too; run programs directly.
 - All three caches are always passed. Given only `--LL`, valgrind would take I1 and D1 from the host's CPUID.
 
 **What's executed is fingerprinted.** sha256 is recorded for:
 - the program, and its `#!` interpreter if it's a script;
 - every shared library `ldd` resolves for them;
 - every input;
-- the host's `/etc/ld.so.cache`.
+- the host's `/etc/ld.so.cache`;
+- the valgrind launcher, the cachegrind tool binary and `count.py` itself.
 
 These files are also scanned for the **valgrind client-request preamble** (x86-64 and arm64). That code can switch counting off (`CACHEGRIND_STOP_INSTRUMENTATION`) or detect valgrind. If it's found, the run exits 1. A test shows the stop request really does hide about 3 million instructions, and that the scan flags it.
 
@@ -71,17 +73,18 @@ This is a convention for comparing candidates across hosts. It doesn't model any
 ## Hypothesis 1: are the counts reproducible?
 **Within one host: yes, for deterministic programs.**
 - **C** (a small MLP, `workloads/mlp.c`): every rep identical, in all 88 CI records and every run here.
-- **Pure Python:** without a fixed hash seed, `Ir` varied by 0.35% between reps. With `PYTHONHASHSEED=0` (the default), every rep was identical.
-- **NumPy (OpenBLAS):** reps still varied by 2–6 × 10⁻⁶ with one thread and a fixed hash seed. `cg_diff` places the difference in interpreter code (dict resizing, memcpy). The cause isn't traced.
-- **ASLR** changed nothing (`setarch -R` gave identical counts).
+- **Pure Python:** without a fixed hash seed, `Ir` varied by 0.3% between reps. With `PYTHONHASHSEED=0` (the default), every rep was identical.
+- **NumPy (OpenBLAS):** reps still varied by 2–8 × 10⁻⁶ with one thread and a fixed hash seed, with or without ASLR. `cg_diff` places the difference in interpreter code (dict resizing, memcpy). The cause isn't traced.
+- **ASLR** changed nothing for C or pure Python (`setarch -R` gave identical counts).
+- These single-host numbers are reproducible with `experiments/h1_local/run.sh`; its output is `h1_local.txt` (made before the sandbox, so it toggles each factor by hand).
 
 **Across hosts: the CPU never mattered.** Valgrind presents its own synthetic CPU to the program. Here it was an Intel signature `0x306c3` with AVX2 and no AVX-512, while the host has AVX-512. So code that dispatches on CPU features takes the same path on every AVX2 host.
-- **Totals, same binary and image:** identical across seven x86-64 CPU models. AMD: EPYC 7763, 9V74 and 9V45. Intel: Xeon 8573C, 8370C, 6973P-C and 6975P-C.
+- **Totals, same binary and image:** identical across six x86-64 CPU models. AMD: EPYC 7763, 9V74 and 9V45. Intel: Xeon 8573C, 8370C and 6973P-C. A seventh, Xeon 6975P-C, ran only once, on its own image (review 2).
 - **arm64:** Neoverse N2, CPU part `0xd49`. Every arm64 job gave the same total.
 
 **What moves the totals is software and setting, all at startup:**
 - **The runner image:** for example, 36,018,926 vs 36,018,955 `Ir` for `./mlp 1000` on two images.
-- **Path and environment strings:** the working directory changed Python's `Ir` by up to 1.3 × 10⁻⁴, and `HOME` changed C's `D1mr` by 3. That's why the sandbox path and environment are now fixed.
+- **Path and environment strings:** the working directory changed Python's `Ir` by 7 × 10⁻⁵ to 1.3 × 10⁻⁴, and `HOME` changed C's `D1mr` by 2–3. That's why the sandbox path and environment are now fixed.
 - **This workspace** (machine C, another kernel) gives 36,018,927: one instruction off the CI value.
 
 **The program's own work is what reproduces.** Subtract a startup-only run (`n` = 0) from the full count. With the sandbox (CI run 41988500105 plus this workspace):
@@ -138,9 +141,32 @@ It then re-counts in the fixed sandbox and compares counts, process count and st
 
 It also corrected the arm64 CPU named in this card: part `0xd49` is Neoverse N2, not V2.
 
+**Review 2** (a fresh independent agent, against the fixed code) confirmed fixes 1, 2 and 4, and found five new ways to get exit 0 with a wrong number. Fixed and tested:
+1. **Work before `exec` is lost** (~1,500×, and `--check` agreed). Now detected and refused.
+2. **`--env VALGRIND_LIB` swapped in a fake cachegrind** (Ir 1,000). `--env LD_PRELOAD` loaded unscanned code that switched counting off. Both are now refused, and the tool binaries are fingerprinted.
+3. **`--check` ignored the client-request flag,** so a forged clean record passed. Now `--check` vouches only for clean, exact records and requires the re-count to be clean too.
+4. **Output that differs between reps still exited 0.** Now it exits 1.
+5. **Malformed fields with a recomputed digest crashed (exit 3).** Fields are now type-checked, and the re-check is guarded, so they exit 1. Shebangs must name an absolute interpreter, and `env -S` is handled.
+
+It also found two breaks that can't be fixed inside this design (next section), and corrected the CPU-model count above.
+
+## Trust model
+Cachegrind runs inside the candidate's own process, as the same user. **Hostile native code can therefore always falsify its counts:**
+- delete or edit the count files of its own children (review 2 did this; the counter can't tell when both a process's log and its count file are gone);
+- write into valgrind's memory;
+- build code at run time that the client-request scan never sees (review 2 decoded a stop-counting binary from a base64 input and ran it: Ir 1.07 M instead of ~250 M).
+
+So the counts are trustworthy for code that isn't trying to cheat. Against code that might be, they are a claim, not proof. The cross-checks are:
+- the timing half of tier 2;
+- output checked against expected answers;
+- independent re-measurement by someone else (item 4);
+- running untrusted candidates in a fresh container, as another user, with the counter outside it. That is the next isolation step, and an inbox item.
+
+A clean scan (`client_request_code: []`) means only that no such code was found in the files scanned. It is not evidence that counting stayed on.
+
 ## Known limits
 - **Not a container.** A program can still use absolute paths outside the sandbox (a cache left in `/var/tmp`, say), other processes, or the network. Run untrusted candidates in a fresh container; CI does, since each job is a fresh VM. The verifier must also check the output against the expected answers.
-- **Code loaded later isn't scanned.** `dlopen` and JIT code escape the client-request scan, so a determined candidate could still switch counting off. The timing half of tier 2 and output checks are the cross-checks.
+- **Code loaded later isn't scanned:** `dlopen`, JIT, and code decoded at run time (see the trust model).
 - **The synthetic CPU.** Counts are for the AVX2-or-lower path. On AVX-512 hosts that isn't the path that runs natively.
 - **Threads.** Valgrind runs one thread at a time, and thread counts are pinned to 1.
 - **Speed.** About 20–100× slower than native.
