@@ -189,6 +189,6 @@ A clean scan (`client_request_code: []`) means only that no such code was found 
 - `count.py`: the counter.
 - `test_count.py`: the tests.
 - `workloads/`: `mlp.c` and `mlp.py`.
-- `experiments/`: `chase_count.c`, `sweep.py` and the sweep results.
+- `experiments/`: `chase_count.c`, `sweep.py` and the sweep results (H2); `h1_local/` (single-host H1 checks).
 - `../runs/`: records from machine C.
 - `../.github/workflows/counter.yml`: cross-host CI, 8 jobs per push, with records on the `ci-runs` branch.
