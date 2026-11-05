@@ -1,4 +1,4 @@
-# Independent verification brief: exagium `probe/` and `counter/`
+# Independent verification brief: exagium `probe/`, `counter/` and `record/`
 
 You are an independent verifier. Someone else built this tool. Your job is to check its claims and try to make it report something false. Don't trust the README; report only what you can show with commands, numbers and line references. A result of "I couldn't break X" is useful, and so is "X is wrong, here is how".
 
@@ -65,6 +65,16 @@ python3 ../count.py --check ../../runs/<record>.json
 12. **Isolation.** The command runs in a fresh fixed-path sandbox with a fixed environment, unaffected by `.valgrindrc`, `VALGRIND_OPTS` or the caller; children are counted; code holding valgrind client requests is flagged. Find a way for a candidate to do work that isn't counted, or to make its counts look smaller than its real work, while the counter exits 0. (Known and stated: absolute paths outside the sandbox, other processes, dlopen/JIT code.)
 13. **`--check`.** It should exit 0 for a genuine record on the same software, 1 for edited or forged counts, and 2 when it can't compare like for like. Find a tamper that passes.
 14. **Simulated vs measured.** Run `experiments/sweep.py` against your own probe profile and compare the simulated levels with your measured curve.
+
+## Record claims (`record/`)
+The ledger's whole point is that nobody, including its owner, can lie in it without a stranger noticing. Read `record/README.md`, then try to make it lie. Setup: a full clone (not `--depth 1`), and `pip install sigstore==4.5.1 opentimestamps-client==0.8.0` in a virtualenv.
+```
+cd exagium && python3 record/record.py verify && python3 record/record.py check-anchors && python3 record/record.py monitor
+```
+1. **Run the monitor yourself, now and later.** Every Rekor attestation by `record.yml` on any ref must be in the ledger, or be published by an orphan entry. This is most useful done repeatedly, from outside the owner's control. Report each run's output and date.
+2. **Write an entry nobody can tell from a genuine one.** The owner controls the repo, the inbox and the code. Try hand-written entries, rewritten history, deleted anchors, orphan laundering, and code changes that `writer_code_changed` misses. Earlier rounds' attacks are listed in the card; find new ones.
+3. **Verify an anchor without `record.py`:** use the card's `sigstore` and `gh` commands, and OpenTimestamps through a node or opentimestamps.org. Recompute an entry's sha256 in another language, since entries are RFC 8785 (JCS) bytes.
+4. **Exit codes.** Wrong data must exit 1, never 3. "Can't check" (exit 2) must never hide a wrong anchor.
 
 ## Report
 Keep it under about 800 words, in this order:

@@ -1,0 +1,48 @@
+Machine and tool versions used for this verification (all command outputs verbatim):
+
+== OS / kernel ==
+Linux c-6aec3e6e-14127d0f-defdbd0b778d 5.10.134-013.15.kangaroo.al8.x86_64 #1 SMP Thu Jul 30 12:54:59 UTC 2026 x86_64 GNU/Linux
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+NAME="Debian GNU/Linux"
+VERSION_ID="13"
+VERSION="13 (trixie)"
+
+== openssl ==
+OpenSSL 3.5.7 (9 Jun 2026)  (Library: OpenSSL 3.5.7 9 Jun 2026)
+
+== python3 ==
+Python 3.12.16
+
+== sigstore-python ==
+sigstore 4.5.1  (installed via `pip install sigstore`)
+Verified output: `python3 -m sigstore verify github --bundle b.sigstore.json --cert-identity ... --repository ... --ref ... --trigger ... --offline sha256:<digest>`
+
+== opentimestamps-client ==
+opentimestamps-client: installed via `pip install opentimestamps-client`
+Python library `opentimestamps`: 0.5.0
+CLI: `/home/z/.venv/bin/ots`
+Verified output: `ots info`, `ots upgrade`, `ots stamp` (the latter not invoked live to conserve the 20-request budget)
+
+== gh CLI ==
+NOT installed in this sandbox. The author's anchor-test.yml uses `actions/attest@v2` directly (no gh), so this is fine for reproduction.
+
+== cryptography (Python lib) ==
+cryptography 50.0.2  (installed as a sigstore dependency; the sandbox's prior 44.0.3 was upgraded)
+
+== Live services queried (count) ==
+- rekor.sigstore.dev:
+    POST /api/v1/index/retrieve  with {"subject": "<SAN>"}   (1 request)
+    POST /api/v1/index/retrieve  with {"queries":[{"hash":"sha256:..."}]}   (1 request)
+    POST /api/v1/index/retrieve  with {"email": "..."}   (1 request)
+    POST /api/v1/index/retrieve  with {"identities":[{"issuer":...,"subject":...}]}   (1 request)
+    GET /api/v1/log/entries/<UUID>   (6 requests, one per returned UUID)
+- log2025-1.rekor.sigstore.dev (Rekor v2): 4 GET probes to /api/v2/log/... endpoints
+- blockstream.info: 3 GET (tx lookup, tip height, block-height)
+- 4 OTS calendars (alice/bob/finney/catallaxy): 2 ots-upgrade calls (= 8 calendar HTTP requests), 4 GET /timestamp/<hash> probes (all 404 — pending proofs)
+- TSAs: 0 stamp requests made by me (subagent made 8 live stamps during its survey)
+Total per service: well under the 20-request budget.
+
+== Tools NOT installed and why ==
+- gh CLI: not present; no GitHub credentials in this sandbox.
+- bitcoind: not present; cannot run `ots verify -l` against a local node. Used blockstream.info as a trusted explorer instead.
+- cosign: not used; sigstore-python 4.5.1 is the trust-minimising verifier and is what we used.

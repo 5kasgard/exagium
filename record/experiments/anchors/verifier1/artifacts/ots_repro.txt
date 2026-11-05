@@ -1,0 +1,46 @@
+# OTS verification report
+
+## Bitcoin side (blockstream.info explorer)
+- tx:        70c61e164241c2e4461f5889ed8213daaf2ec30152095d901afd8b132f9097e6
+- confirmed: True
+- block_height: 974650
+- block_hash:   00000000000000000001a59c9aed1de5c564b30ae0ba37965be9cb203f59f7f3
+- block_time:   2026-11-05T09:02:44+00:00
+- tip_height:   974650
+- confirmations: 1
+- OP_RETURN raw bytes: 6a20ff3918d7311fd259cec074c8ce19a08d44cf2d30bd336b14881e5c4947f3e18e
+- OP_RETURN data (32B): ff3918d7311fd259cec074c8ce19a08d44cf2d30bd336b14881e5c4947f3e18e
+
+## Proof: /home/z/my-project/upload/exagium-anchors/local/sample_record.json.ots
+- file_sha256: fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8
+- expected:   fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8
+- matches:    True
+- file_hash_op: sha256
+- distinct attestations across the tree: 4
+- leaves (4):
+    leaf commitment (len=44): 6aec3eab2fdd804f26889f53c32f29820c1006d797e5c6c4093630ddd6b0863b32bfd8b9b8ff6bee6b575bc2  ->  PendingAttestation calendar=https://bob.btc.calendar.opentimestamps.org
+    leaf commitment (len=44): 6aec3eab438f016f1fed9b6b9c257bbeaba37ba1f69eeda34896e2e72275b09697ff593e759817b0da15f11e  ->  PendingAttestation calendar=https://finney.calendar.eternitywall.com
+    leaf commitment (len=44): 6aec3eab67e714b44a2f9e97fe5fc8e32dac342f0e0263d7f7efc238aa2019550301210b56718f53d05233f0  ->  PendingAttestation calendar=https://alice.btc.calendar.opentimestamps.org
+    leaf commitment (len=44): 6aec3eab46427697054737f5ada0e7ce7d2453506b6c343cfa0b77649c897437c26a3448cffa8236365c49e7  ->  PendingAttestation calendar=https://btc.calendar.catallaxy.com
+- calendar-reported upgrade status:
+    'ots upgrade' on this proof: 'Timestamped by transaction 70c61e164241c2e4461f5889ed8213daaf2ec30152095d901afd8b132f9097e6; waiting for 6 confirmations'
+    calendar policy: sub-proof is released only after 6 Bitcoin confirmations;
+    full Merkle path from leaf to OP_RETURN is therefore not yet available.
+    Estimated wait: 5 more blocks (~50 min at 10 min/block).
+
+## Proof: /home/z/my-project/upload/exagium-anchors/anchors/41995230106/anchors-ubuntu-24.04/digest.bin.ots
+- file_sha256: 92d6fb516e9ffe6ba157802a186de164a72061353fe073fea065b4b13faf563d
+- expected:   fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8
+- matches:    False
+- file_hash_op: sha256
+- distinct attestations across the tree: 3
+- leaves (3):
+    leaf commitment (len=44): 6aec3f1d4d3271bc612c079756df7c79d3e633f8c5d76519db1d03b754982bd2c7c2dfa2db6d57fb50ab24d1  ->  PendingAttestation calendar=https://bob.btc.calendar.opentimestamps.org
+    leaf commitment (len=44): 6aec3f1d48e61faa006befb5f7eeadaeec13ec0c0f67fbdb29bc1639baa48b254f3c2a53aa54498032c5ebc3  ->  PendingAttestation calendar=https://alice.btc.calendar.opentimestamps.org
+    leaf commitment (len=44): 6aec3f1d4cd094e4499412b55fdf514e4cd72072ce3e210ca48ff8dbdecd90fc66754b624e2aec5bcafcae9c  ->  PendingAttestation calendar=https://finney.calendar.eternitywall.com
+- calendar-reported upgrade status:
+    'ots upgrade' on this proof: 'Timestamped by transaction 70c61e164241c2e4461f5889ed8213daaf2ec30152095d901afd8b132f9097e6; waiting for 6 confirmations'
+    calendar policy: sub-proof is released only after 6 Bitcoin confirmations;
+    full Merkle path from leaf to OP_RETURN is therefore not yet available.
+    Estimated wait: 5 more blocks (~50 min at 10 min/block).
+

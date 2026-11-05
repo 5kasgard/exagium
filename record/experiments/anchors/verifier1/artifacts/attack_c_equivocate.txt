@@ -1,0 +1,39 @@
+=== Attack C: equivocate ===
+Goal: keep two histories (chain A and chain B), anchor both. Can a stranger find out?
+
+Setup: the workflow's CI ran on 2026-11-05 08:32 UTC producing bundles under the identity
+  https://github.com/5kasgard/exagium/.github/workflows/anchor-test.yml@refs/heads/anchor-test
+We have 6 Sigstore bundles across 3 runs * 2 arches.
+
+Stranger's check: query Rekor's /api/v1/index/retrieve endpoint with subject=<full SAN>:
+
+  curl -s -X POST -H 'Content-Type: application/json' \
+       -d '{"subject":"https://github.com/5kasgard/exagium/.github/workflows/anchor-test.yml@refs/heads/anchor-test"}' \
+       https://rekor.sigstore.dev/api/v1/index/retrieve
+
+Result (live, captured 2026-11-05 09:11 UTC):
+  [6 entry UUIDs returned — see artifacts/rekor_search_by_subject.json]
+
+Each UUID is a distinct attestation. A stranger enumerating them sees EVERY
+attestation this workflow produced. Equivocation is therefore DETECTABLE via
+Rekor's search-by-subject API — but ONLY if the stranger queries by subject
+(workflow identity). Search by digest alone returns [], missing all of them.
+
+This DIRECTLY CONTRADICTS the author's claim in RESULTS.md:
+  > 'Rekor can be searched by digest but not by identity, so a verifier can't
+  >  list everything this workflow anchored without monitoring the log.'
+
+Reality is the OPPOSITE: search-by-identity works, search-by-digest does not.
+
+=== Caveats ===
+1. The search-by-subject endpoint is on rekor.sigstore.dev which is the
+   Rekor v1 instance. Rekor v2 (rekor.sigstore.dev/v2) has a different API.
+2. Rekor v1 is still alive and the search-by-subject endpoint returns the
+   current state. But Rekor v1 is in maintenance; v2 is the future.
+3. Equivocation is detectable IF AND ONLY IF the stranger queries by subject
+   AND trusts that Rekor v1 is still publishing the search index. The author
+   correctly identifies that 'only if someone checks' is the gap.
+
+=== Conclusion ===
+Equivocation (Attack C) is DETECTABLE via Rekor search-by-subject.
+Withholding (Attack D) is NOT detectable: a run that was never anchored leaves no Rekor entry.

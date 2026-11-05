@@ -1,0 +1,20 @@
+sample record: /home/z/my-project/upload/exagium-anchors/local/sample_record.json
+  Python json.dumps(sort_keys=True) digest: 222f9c7ac8f72539bfb8d64ee960e9481836c791f14fc2ba4d95ab69f694fde0
+  RFC 8785 JCS digest:                      222f9c7ac8f72539bfb8d64ee960e9481836c791f14fc2ba4d95ab69f694fde0
+  digests match: True
+
+  python canonical bytes: 3667
+  jcs canonical bytes:    3667
+
+--- synthetic example showing where they diverge ---
+  python: {"emoji_key":"value","name":"caf\u00e9","result":0.30000000000000004}
+  jcs:    {"emoji_key":"value","name":"café","result":0.30000000000000004}
+  python sha256: 444322b5d84f70fa3c76e12a94516234dca486e593ea071d1ef8d90e1546be7d
+  jcs sha256:    e3ec528d6047b8bcbf348d003be73980ae6470779213d5caf7bf5035ce9d250b
+
+=> A Go or Rust verifier that uses its standard JSON encoder + sort_keys
+   will NOT produce the same digest as Python's json.dumps(sort_keys=True).
+   RFC 8785 JCS is the only widely-agreed cross-language canonical form.
+   Recommendation: exagium should hash the *stored bytes* of the record (the
+   UTF-8 bytes committed to git), OR adopt RFC 8785 JCS via a vetted library
+   in every language that consumes the digest.
