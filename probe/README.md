@@ -72,7 +72,7 @@ Every doubt resolves toward "transition", never toward "level", and each level r
 
 On another host it exits 2.
 
-> **It can't detect forgery.** Anyone can fabricate a raw section that is self-consistent and holds any numbers at all. An independent verifier forged 1.5× compute, 2× bandwidth and 0.5× latency, and all of them passed. Only an outside-anchored record (open item 3) can stop that. CPU steal and timer readings can't be checked against anything either.
+> **It can't detect forgery.** Anyone can fabricate a raw section that is self-consistent and holds any numbers at all. An independent verifier forged 1.5× compute, 2× bandwidth and 0.5× latency, and all of them passed. Only an outside-anchored record (open item 3) can stop that. CPU steal, timer readings and the recorded seed (rewriting it and every chase seed together stays consistent) can't be checked against anything either.
 
 ## Results on two machines
 **Machine A** (where it was built): Intel Xeon, KVM guest, 2 vCPUs, AVX-512. Full run 2026-11-05, seed 20261109, `profile.json`. CPU steal stayed at or below 1.0% per rep. Meter tiers: timing and cachegrind only.
@@ -102,7 +102,7 @@ On another host it exits 2.
 - **Shared hosts are noisy beyond L2.** Comparisons must be interleaved and gated on SE, as decided, and level fits there will often, honestly, stop at L2.
 
 ## How it was checked
-Six independent reviews ran: five Claude agents and GLM-5.2 on a different machine. Each found real problems that are now fixed. None could break the kernels.
+Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a different machine. Each found real problems that are now fixed. None could break the kernels.
 
 1. **Review 1:** phantom levels, staircases on slopes, fabricated averages on short or one-rep curves.
 2. **Review 2:** the noise estimate from few reps was too optimistic, because my simulation had fed in the true noise. It also found a `seconds=0` bypass and unchecked meter claims.
@@ -118,6 +118,12 @@ Six independent reviews ran: five Claude agents and GLM-5.2 on a different machi
 
    Its curve is a regression fixture (`fixtures/shared_vm_curve.json`).
 6. **Review 6:** a curved precise ramp gave a phantom level 51.5% of the time, because the edge test ignored direction and a long ramp could act as an "edge". It also found weighting traps when merging, crash paths, and overstated figures in this card. Fixing those also exposed two false merges on real data (L2 with noisy L3 on machine B, and L3 with DRAM on machine A), both fixed and checked against every kept real run (the machine B case is a regression test; the machine A case isn't yet).
+
+7. **GLM-5.2 re-run on machine B (commit `c6a5999`):**
+   - every claim confirmed, and its earlier break cases are now fixed or documented;
+   - all three seeds find L1 and L2;
+   - five new adversarial cases gave no phantom levels or false boundaries;
+   - what still passes is careful self-consistent forgery and rewritten seed or steal values, which only an outside anchor can catch.
 
 The commit history shows each step.
 
