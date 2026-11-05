@@ -1,0 +1,207 @@
+{
+ "cache": {
+  "label": "chosen",
+  "matches_request": true,
+  "requested": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  },
+  "simulated": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  }
+ },
+ "caveats": [
+  "Counts are for the CPU valgrind presents, not the host's: on x86 it offers at most AVX2, so code that dispatches on CPU features runs its AVX2-or-lower path here even where the host has AVX-512.",
+  "The cache model is two levels (L1 and LL), LRU, no prefetching; miss counts are relative to that model, not predictions of this machine's latency.",
+  "Exact repeatability holds on one host; across hosts it is a hypothesis being tested (README)."
+ ],
+ "command": [
+  "python3",
+  "mlp.py",
+  "20"
+ ],
+ "created_utc": "2026-11-05T07:21:01Z",
+ "cwd": "/home/runner/work/exagium/exagium/counter/workloads",
+ "digest_sha256": "23aa871f9d1484724f0e0af81752e11f79712b7c0a8a6a07a8e6b19f4d41ec19",
+ "env": {
+  "HOME": "/home/runner",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "PYTHONHASHSEED": "0",
+  "TZ": "UTC"
+ },
+ "host": {
+  "cpu_model": "",
+  "cpus": 4,
+  "kernel": "7.0.0-1017-azure",
+  "label": "reported",
+  "machine": "aarch64",
+  "system": "Linux"
+ },
+ "inputs": {
+  "mlp.py": {
+   "sha256": "7a6b1be1815daedcbf7ddbec52fe77c8651ba7e5bc4f5c1cfbf8b76f0ac112f6"
+  },
+  "program": {
+   "path": "/usr/bin/python3",
+   "sha256": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960"
+  }
+ },
+ "labels": {
+  "counts": "simulated",
+  "wall_s": "measured (under valgrind; not the program's native time)"
+ },
+ "reps": [
+  {
+   "counts": {
+    "D1mr": 799080,
+    "D1mw": 80554,
+    "DLmr": 21114,
+    "DLmw": 41806,
+    "Dr": 30435121,
+    "Dw": 17404813,
+    "I1mr": 495052,
+    "ILmr": 12833,
+    "Ir": 104619507
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.815
+  },
+  {
+   "counts": {
+    "D1mr": 799080,
+    "D1mw": 80554,
+    "DLmr": 21114,
+    "DLmw": 41806,
+    "Dr": 30435121,
+    "Dw": 17404813,
+    "I1mr": 495052,
+    "ILmr": 12833,
+    "Ir": 104619507
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.823
+  },
+  {
+   "counts": {
+    "D1mr": 799080,
+    "D1mw": 80554,
+    "DLmr": 21114,
+    "DLmw": 41806,
+    "Dr": 30435121,
+    "Dw": 17404813,
+    "I1mr": 495052,
+    "ILmr": 12833,
+    "Ir": 104619507
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.831
+  }
+ ],
+ "schema": "exagium-count/1",
+ "summary": {
+  "D1mr": {
+   "max": 799080,
+   "median": 799080,
+   "min": 799080,
+   "rel_spread": 0.0
+  },
+  "D1mw": {
+   "max": 80554,
+   "median": 80554,
+   "min": 80554,
+   "rel_spread": 0.0
+  },
+  "DLmr": {
+   "max": 21114,
+   "median": 21114,
+   "min": 21114,
+   "rel_spread": 0.0
+  },
+  "DLmw": {
+   "max": 41806,
+   "median": 41806,
+   "min": 41806,
+   "rel_spread": 0.0
+  },
+  "Dr": {
+   "max": 30435121,
+   "median": 30435121,
+   "min": 30435121,
+   "rel_spread": 0.0
+  },
+  "Dw": {
+   "max": 17404813,
+   "median": 17404813,
+   "min": 17404813,
+   "rel_spread": 0.0
+  },
+  "I1mr": {
+   "max": 495052,
+   "median": 495052,
+   "min": 495052,
+   "rel_spread": 0.0
+  },
+  "ILmr": {
+   "max": 12833,
+   "median": 12833,
+   "min": 12833,
+   "rel_spread": 0.0
+  },
+  "Ir": {
+   "max": 104619507,
+   "median": 104619507,
+   "min": 104619507,
+   "rel_spread": 0.0
+  }
+ },
+ "tool": {
+  "options": [
+   "--tool=cachegrind",
+   "--cache-sim=yes",
+   "--trace-children=yes",
+   "--command-line-only=yes"
+  ],
+  "valgrind": "valgrind-3.22.0"
+ },
+ "verdict": {
+  "exact": true,
+  "reps": 3,
+  "stdout_identical": true
+ }
+}
