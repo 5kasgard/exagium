@@ -5,25 +5,43 @@ Runs a command under `valgrind --tool=cachegrind` several times and records what
 These are the deterministic half of meter tier 2 (timing is the other half). Every count is
 labelled "simulated": cachegrind replays the program on a model CPU, it does not read hardware.
 
-    python3 count.py -- ./candidate args            # 3 reps, reference cache, record in ../runs/
-    python3 count.py --reps 5 --cache host -- python3 net.py
-    python3 count.py --check ../runs/<record>.json   # re-count on this machine and compare
+Each rep runs in a fresh sandbox at a fixed path: an empty working directory holding only the
+declared --input files, an empty HOME and an empty TMPDIR, with a fixed environment.
 
-Exit codes: 0 counted, every rep identical (or --check: same counts); 1 reps differ (or --check:
-counts differ, or the record was edited); 2 --check could not compare like for like (another
-valgrind, cache model or architecture); 3 the command or valgrind failed.
-Stdlib only. Needs valgrind >= 3.22 (cachegrind with --cache-sim).
+    python3 count.py -- ./candidate args                        # program from PATH or absolute
+    python3 count.py --input net.py --input w.bin -- python3 net.py
+    python3 count.py --input cand -- ./cand 1000                # ./name must be an --input
+    python3 count.py --check ../runs/<record>.json [--input-dir DIR]
+
+Exit codes: 0 counted, every rep identical and no code that can switch counting off (--check:
+same counts and output); 1 reps differ or such code was found (--check: counts or output differ,
+or the record is edited or malformed); 2 --check could not compare like for like (another
+program, input, library, loader cache, valgrind, architecture or cache model); 3 failure.
+Stdlib only. Needs Linux and valgrind >= 3.22.
 """
-import argparse, datetime, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
+import argparse, datetime, fcntl, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
 
-SCHEMA = "exagium-count/1"
+SCHEMA = "exagium-count/2"
 # Reference cache model. An explicit choice (see README "Reference cache"): comparable across
 # hosts, not a model of any one host. Sizes in bytes, then ways, then line size.
 REFERENCE = {"I1": [32768, 8, 64], "D1": [49152, 12, 64], "LL": [8388608, 16, 64]}
-# The command sees this environment and nothing else, so counts don't drift with the caller's.
-BASE_ENV = {"LC_ALL": "C", "LANG": "C", "TZ": "UTC", "PYTHONHASHSEED": "0", "PYTHONDONTWRITEBYTECODE": "1",
+# Fixed strings, so the command's environment is byte-identical on every host and every run.
+SANDBOX = "/tmp/exagium-count"
+PATH = "/usr/local/bin:/usr/bin:/bin"
+BASE_ENV = {"PATH": PATH, "HOME": SANDBOX + "/home", "TMPDIR": SANDBOX + "/tmp", "LC_ALL": "C", "LANG": "C",
+            "TZ": "UTC", "PYTHONHASHSEED": "0", "PYTHONDONTWRITEBYTECODE": "1",
             "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1"}
 EVENTS = ["Ir", "I1mr", "ILmr", "Dr", "D1mr", "DLmr", "Dw", "D1mw", "DLmw"]
+# The preamble of every valgrind client request (valgrind.h). Code holding it can switch counting
+# off (CACHEGRIND_STOP_INSTRUMENTATION) or detect valgrind (RUNNING_ON_VALGRIND).
+CLIENT_REQUEST_MAGIC = {
+    "x86_64": bytes.fromhex("48c1c70348c1c70d48c1c73d48c1c733"),  # rol rdi 3,13,61,51
+    "aarch64": bytes.fromhex("8c0dcc938c35cc938ccdcc938cf5cc93"),  # ror x12 3,13,51,61
+}
+
+
+class Failure(Exception):
+    pass
 
 
 def canonical(obj):
@@ -40,7 +58,7 @@ def sha256_file(path):
 
 
 def parse_out(path):
-    """Read one cachegrind.out file: the simulated cache model and the summary counts."""
+    """One cachegrind.out file -> (cache model, counts). Fails unless every event and cache is there."""
     desc, events, summary = {}, None, None
     with open(path) as f:
         for line in f:
@@ -52,22 +70,11 @@ def parse_out(path):
                 events = line.split()[1:]
             elif line.startswith("summary:"):
                 summary = [int(x) for x in line.split()[1:]]
-    if events is None or summary is None or len(events) != len(summary):
-        raise ValueError(f"{path}: no events/summary line")
+    if events is None or summary is None or len(events) != len(summary) or set(events) != set(EVENTS):
+        raise Failure(f"{os.path.basename(path)}: missing or unexpected events/summary")
+    if set(desc) != {"I1", "D1", "LL"}:
+        raise Failure(f"{os.path.basename(path)}: cache model not described")
     return desc, dict(zip(events, summary))
-
-
-def shared_libs(prog):
-    """sha256 of every shared library the dynamic loader would map for prog (empty if not dynamic ELF)."""
-    if not os.path.isfile(prog) or not shutil.which("ldd"):
-        return {}
-    p = subprocess.run(["ldd", prog], capture_output=True, text=True)
-    libs = {}
-    for line in p.stdout.splitlines():
-        parts = line.split("=>")[-1].split("(")[0].strip()
-        if parts.startswith("/") and os.path.isfile(parts):
-            libs[parts] = sha256_file(parts)
-    return libs
 
 
 def valgrind_version(exe):
@@ -75,21 +82,88 @@ def valgrind_version(exe):
 
 
 def host():
-    model = ""
+    info = {}
     try:
         with open("/proc/cpuinfo") as f:
-            info = {}
-            for l in f:
-                k, _, v = l.partition(":")
+            for line in f:
+                k, _, v = line.partition(":")
                 info.setdefault(k.strip(), v.strip())
-        model = info.get("model name") or " ".join(
-            f"{k} {info[k]}" for k in ("CPU implementer", "CPU part", "CPU variant", "CPU revision") if k in info)
     except OSError:
         pass
+    model = info.get("model name") or " ".join(
+        f"{k} {info[k]}" for k in ("CPU implementer", "CPU part", "CPU variant", "CPU revision") if k in info)
     ldcache = "/etc/ld.so.cache"
     return {"machine": platform.machine(), "system": platform.system(), "kernel": platform.release(),
             "libc": " ".join(platform.libc_ver()), "cpu_model": model, "cpus": os.cpu_count(),
             "ld_so_cache_sha256": sha256_file(ldcache) if os.path.isfile(ldcache) else None, "label": "reported"}
+
+
+def shared_libs(path):
+    """sha256 of every shared library the dynamic loader would map for path (empty if not dynamic ELF)."""
+    if not shutil.which("ldd"):
+        return {}
+    p = subprocess.run(["ldd", path], capture_output=True, text=True)
+    libs = {}
+    for line in p.stdout.splitlines():
+        lib = line.split("=>")[-1].split("(")[0].strip()
+        if lib.startswith("/") and os.path.isfile(lib):
+            libs[lib] = sha256_file(lib)
+    return libs
+
+
+def interpreter(path):
+    """The '#!' interpreter of a script, resolved on the fixed PATH, or None."""
+    with open(path, "rb") as f:
+        head = f.read(256)
+    if not head.startswith(b"#!"):
+        return None
+    words = head[2:].split(b"\n")[0].decode(errors="replace").split()
+    if not words:
+        return None
+    if os.path.basename(words[0]) == "env" and len(words) > 1:
+        return shutil.which(words[1], path=PATH)
+    return words[0]
+
+
+def fingerprint(cmd, inputs):
+    """Hash what the command will execute: program, script interpreter, their shared libraries."""
+    name = cmd[0]
+    if "/" not in name:
+        prog = shutil.which(name, path=PATH)
+        if not prog:
+            raise Failure(f"{name} not found on the fixed PATH {PATH}; give an absolute path")
+    elif os.path.isabs(name):
+        prog = name
+    else:
+        base = os.path.basename(name)
+        if os.path.normpath(name) != base or base not in inputs:
+            raise Failure(f"{name}: a relative program must be ./<name> of an --input file")
+        prog = inputs[base]["path"]
+    if not os.path.isfile(prog):
+        raise Failure(f"{prog}: not a file")
+    fp = {"program": {"path": name if "/" in name and not os.path.isabs(name) else prog,
+                      "sha256": sha256_file(prog), "shared_libs": shared_libs(prog)}}
+    interp = interpreter(prog)
+    if interp:
+        if not os.path.isfile(interp):
+            raise Failure(f"interpreter {interp} not found")
+        fp["interpreter"] = {"path": interp, "sha256": sha256_file(interp), "shared_libs": shared_libs(interp)}
+    return fp, prog
+
+
+def client_request_code(paths):
+    magic = CLIENT_REQUEST_MAGIC.get(platform.machine())
+    if magic is None:
+        return None  # unknown architecture: can't tell
+    found = []
+    for p in sorted(set(paths)):
+        try:
+            with open(p, "rb") as f:
+                if magic in f.read():
+                    found.append(p)
+        except OSError:
+            found.append(p + " (unreadable)")
+    return found
 
 
 def cache_args(cache):
@@ -98,31 +172,51 @@ def cache_args(cache):
     return [f"--{k}={','.join(map(str, cache[k]))}" for k in ("I1", "D1", "LL")]
 
 
-def one_rep(cmd, cache, env, exe, timeout, keep_raw=None):
-    """Run cmd once under cachegrind, children included. Returns counts summed over every process."""
+def fresh_sandbox(inputs):
+    shutil.rmtree(SANDBOX, ignore_errors=True)
+    if os.path.exists(SANDBOX):
+        raise Failure(f"cannot clear {SANDBOX}")
+    for d in ("work", "home", "tmp"):
+        os.makedirs(os.path.join(SANDBOX, d))
+    for base, v in inputs.items():
+        shutil.copy2(v["path"], os.path.join(SANDBOX, "work", base))
+
+
+def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
+    """Run cmd once under cachegrind in a fresh sandbox, children included. Counts summed over processes."""
+    fresh_sandbox(inputs)
     with tempfile.TemporaryDirectory() as td:
-        vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes",
-              "--trace-children=yes", f"--cachegrind-out-file={td}/cg.%p", *cache_args(cache), "--", *cmd]
+        vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes", "--trace-children=yes",
+              f"--cachegrind-out-file={td}/cg.%p", f"--log-file={td}/vg.%p", *cache_args(cache), "--", *cmd]
         t0 = datetime.datetime.now(datetime.timezone.utc)
-        p = subprocess.run(vg, env=env, capture_output=True, timeout=timeout)
+        p = subprocess.run(vg, env=env, cwd=os.path.join(SANDBOX, "work"), capture_output=True, timeout=timeout)
         wall = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
         outs = sorted(f for f in os.listdir(td) if f.startswith("cg."))
-        if p.returncode != 0 or not outs:
-            tail = p.stderr.decode(errors="replace").strip()[-400:]
-            raise RuntimeError(f"exit {p.returncode}, {len(outs)} count files: {tail}")
+        logs = sorted(f for f in os.listdir(td) if f.startswith("vg."))
+        if p.returncode != 0:
+            tail = ""
+            for f in logs:
+                with open(os.path.join(td, f), errors="replace") as lf:
+                    tail += lf.read()
+            tail = tail[-400:]
+            raise Failure(f"exit {p.returncode}: {tail.strip()}")
+        # every process valgrind started must have left counts: a lost file would undercount
+        if not outs or {f[3:] for f in outs} != {f[3:] for f in logs}:
+            raise Failure(f"{len(logs)} processes ran but {len(outs)} left counts")
         if keep_raw:
             os.makedirs(keep_raw, exist_ok=True)
             for f in outs:
-                with open(os.path.join(td, f), "rb") as src, gzip.open(os.path.join(keep_raw, f"{f}.{os.getpid()}.{len(os.listdir(keep_raw))}.gz"), "xb") as dst:
-                    shutil.copyfileobj(src, dst)
+                dst = os.path.join(keep_raw, f"{f}.{os.getpid()}.{len(os.listdir(keep_raw))}.gz")
+                with open(os.path.join(td, f), "rb") as s, gzip.open(dst, "xb") as d:
+                    shutil.copyfileobj(s, d)
         total, models = dict.fromkeys(EVENTS, 0), []
         for f in outs:
             desc, counts = parse_out(os.path.join(td, f))
             models.append(desc)
             for k in EVENTS:
-                total[k] += counts.get(k, 0)
+                total[k] += counts[k]
         if any(m != models[0] for m in models):
-            raise RuntimeError("processes simulated different cache models")
+            raise Failure("processes simulated different cache models")
         return {"counts": total, "processes": len(outs), "wall_s": round(wall, 3),
                 "stdout_sha256": hashlib.sha256(p.stdout).hexdigest(), "model": models[0]}
 
@@ -137,48 +231,72 @@ def summarise(reps):
     return out
 
 
-def count(cmd, reps=3, cache=REFERENCE, extra_env=(), hash_files=(), timeout=3600, keep_raw=None):
+def resolve_inputs(paths):
+    inputs = {}
+    for p in paths:
+        base = os.path.basename(p)
+        if base in inputs:
+            raise Failure(f"two inputs named {base}")
+        if not os.path.isfile(p):
+            raise Failure(f"input {p} is not a file")
+        inputs[base] = {"path": os.path.abspath(p), "sha256": sha256_file(p)}
+    return inputs
+
+
+def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=3600, keep_raw=None):
     exe = shutil.which("valgrind")
     if not exe:
-        raise RuntimeError("valgrind not found")
+        raise Failure("valgrind not found")
     if not cmd:
-        raise ValueError("no command")
-    env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), "HOME": os.environ.get("HOME", "/"), **BASE_ENV}
+        raise Failure("no command")
+    env = dict(BASE_ENV)
     for kv in extra_env:
-        k, _, v = kv.partition("=")
+        k, sep, v = kv.partition("=")
+        if not sep or k in ("PATH", "HOME", "TMPDIR"):
+            raise Failure(f"--env {kv}: must be KEY=VALUE and not PATH, HOME or TMPDIR")
         env[k] = v
-    prog = shutil.which(cmd[0]) or cmd[0]
-    rows = [one_rep(cmd, cache, env, exe, timeout, keep_raw) for _ in range(reps)]
+    inputs = resolve_inputs(input_paths)
+    fp, prog = fingerprint(cmd, inputs)
+    scanned = [prog, *[v["path"] for v in inputs.values()], *fp["program"]["shared_libs"]]
+    if "interpreter" in fp:
+        scanned += [fp["interpreter"]["path"], *fp["interpreter"]["shared_libs"]]
+    with open(SANDBOX + ".lock", "a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)  # one counter at a time owns the fixed sandbox path
+        try:
+            rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw) for _ in range(reps)]
+        finally:
+            shutil.rmtree(SANDBOX, ignore_errors=True)
     model = rows[0]["model"]
-    if any(r["model"] != model for r in rows):
-        raise RuntimeError("cache model changed between reps")
     requested = None if cache == "host" else {k: list(cache[k]) for k in ("I1", "D1", "LL")}
-    exact = all(r["counts"] == rows[0]["counts"] for r in rows)
-    stdout_same = len({r["stdout_sha256"] for r in rows}) == 1
+    if any(r["model"] != model for r in rows) or (requested and model != requested):
+        raise Failure(f"valgrind simulated {model}, not the requested {requested}")
+    crc = client_request_code(scanned)
     rec = {
         "schema": SCHEMA,
         "created_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "command": list(cmd),
-        "cwd": os.getcwd(),
         "env": env,
-        "inputs": {"program": {"path": prog, "sha256": sha256_file(prog) if os.path.isfile(prog) else None,
-                               "shared_libs": shared_libs(prog)},
-                   **{f: {"sha256": sha256_file(f)} for f in hash_files}},
+        "inputs": {b: {"path": v["path"], "sha256": v["sha256"]} for b, v in inputs.items()},
+        "executes": fp,
         "tool": {"valgrind": valgrind_version(exe), "options": ["--tool=cachegrind", "--cache-sim=yes",
-                 "--trace-children=yes", "--command-line-only=yes"]},
+                 "--trace-children=yes", "--command-line-only=yes"], "sandbox": SANDBOX},
         "host": host(),
-        "cache": {"requested": requested if requested else "host", "simulated": model,
-                  "matches_request": requested is None or model == requested, "label": "chosen" if requested else "reported"},
+        "cache": {"requested": requested or "host", "simulated": model, "label": "chosen" if requested else "reported"},
         "reps": [{k: r[k] for k in ("counts", "processes", "wall_s", "stdout_sha256")} for r in rows],
         "summary": summarise(rows),
-        "verdict": {"exact": exact, "stdout_identical": stdout_same, "reps": reps},
+        "verdict": {"exact": all(r["counts"] == rows[0]["counts"] for r in rows),
+                    "stdout_identical": len({r["stdout_sha256"] for r in rows}) == 1,
+                    "client_request_code": crc, "reps": reps},
         "labels": {"counts": "simulated", "wall_s": "measured (under valgrind; not the program's native time)"},
         "caveats": [
             "Counts are for the CPU valgrind presents, not the host's: on x86 it offers at most AVX2, so code "
             "that dispatches on CPU features runs its AVX2-or-lower path here even where the host has AVX-512.",
             "The cache model is two levels (L1 and LL), LRU, no prefetching; miss counts are relative to that model, "
             "not predictions of this machine's latency.",
-            "Exact repeatability holds on one host; across hosts it is a hypothesis being tested (README).",
+            "The sandbox is a fresh directory, HOME and TMPDIR, not a container: a program can still reach absolute "
+            "paths elsewhere, other processes and the network. Run untrusted candidates inside a fresh container.",
+            "client_request_code scans the program, interpreter, their linked libraries and inputs; code loaded "
+            "later (dlopen, JIT) is not scanned.",
         ],
     }
     rec["digest_sha256"] = hashlib.sha256(canonical(rec)).hexdigest()
@@ -196,48 +314,73 @@ def write_record(rec, out_dir):
     return path
 
 
-def check(path, reps=None):
-    """Re-count a recorded command here and compare. Returns (exit code, message)."""
-    with open(path) as f:
-        rec = json.load(f)
+def _validate(rec):
     body = {k: v for k, v in rec.items() if k != "digest_sha256"}
     if hashlib.sha256(canonical(body)).hexdigest() != rec.get("digest_sha256"):
-        return 1, "record digest does not match its contents (edited after it was written)"
-    for i, r in enumerate(rec["reps"]):
-        if set(r["counts"]) != set(EVENTS):
-            return 1, f"rep {i}: wrong event set"
-    if rec["verdict"]["exact"] != all(r["counts"] == rec["reps"][0]["counts"] for r in rec["reps"]):
-        return 1, "verdict.exact disagrees with the recorded reps"
-    if summarise(rec["reps"]) != rec["summary"]:
-        return 1, "summary disagrees with the recorded reps"
-    cwd = os.getcwd()
+        return "record digest does not match its contents (edited after it was written)"
+    if rec.get("schema") != SCHEMA:
+        return f"schema {rec.get('schema')!r}, expected {SCHEMA}"
+    reps = rec["reps"]
+    if not isinstance(reps, list) or not reps or len(reps) != rec["verdict"]["reps"]:
+        return "rep list missing or wrong length"
+    for i, r in enumerate(reps):
+        if set(r["counts"]) != set(EVENTS) or not all(isinstance(x, int) and x >= 0 for x in r["counts"].values()):
+            return f"rep {i}: wrong events or non-integer counts"
+    if rec["verdict"]["exact"] != all(r["counts"] == reps[0]["counts"] for r in reps):
+        return "verdict.exact disagrees with the recorded reps"
+    if rec["verdict"]["stdout_identical"] != (len({r["stdout_sha256"] for r in reps}) == 1):
+        return "verdict.stdout_identical disagrees with the recorded reps"
+    if summarise(reps) != rec["summary"]:
+        return "summary disagrees with the recorded reps"
+    return None
+
+
+def check(path, input_dir=None, reps=None):
+    """Re-count a recorded command here and compare. Returns (exit code, message)."""
     try:
-        os.chdir(rec["cwd"])
-        prog = rec["inputs"]["program"]
-        if prog["sha256"] and (not os.path.isfile(prog["path"]) or sha256_file(prog["path"]) != prog["sha256"]):
-            return 2, f"program {prog['path']} is missing or differs from the recorded one"
-        for f, v in rec["inputs"].items():
-            if f != "program" and (not os.path.isfile(f) or sha256_file(f) != v["sha256"]):
-                return 2, f"input {f} is missing or differs"
-        exe = shutil.which("valgrind")
-        if not exe or valgrind_version(exe) != rec["tool"]["valgrind"]:
-            return 2, "valgrind missing or a different version"
-        if platform.machine() != rec["host"]["machine"]:
-            return 2, "different architecture"
-        cache = rec["cache"]["requested"]
-        extra = [f"{k}={v}" for k, v in rec["env"].items() if k not in ("PATH", "HOME")]
-        new = count(rec["command"], reps or len(rec["reps"]), cache, extra)
-    except (OSError, KeyError):
-        return 2, f"cannot reproduce the recorded setting here (cwd {rec.get('cwd')})"
-    finally:
-        os.chdir(cwd)
+        with open(path) as f:
+            rec = json.load(f)
+        problem = _validate(rec)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
+        return 1, f"malformed record: {type(e).__name__}: {e}"
+    if problem:
+        return 1, problem
+    paths = []
+    for base, v in rec["inputs"].items():
+        p = os.path.join(input_dir, base) if input_dir else v["path"]
+        if not os.path.isfile(p) or sha256_file(p) != v["sha256"]:
+            return 2, f"input {base} is missing or differs at {p}"
+        paths.append(p)
+    exe = shutil.which("valgrind")
+    if not exe or valgrind_version(exe) != rec["tool"]["valgrind"]:
+        return 2, "valgrind missing or a different version"
+    h = host()
+    if h["machine"] != rec["host"]["machine"]:
+        return 2, "different architecture"
+    if h["ld_so_cache_sha256"] != rec["host"]["ld_so_cache_sha256"]:
+        return 2, "a different loader cache (another system image): counts may legitimately differ"
+    try:
+        fp, _ = fingerprint(rec["command"], resolve_inputs(paths))
+    except Failure as e:
+        return 2, str(e)
+    if fp != rec["executes"]:
+        return 2, "the program, interpreter or a shared library differs from the recorded one"
+    extra = [f"{k}={v}" for k, v in rec["env"].items() if k not in ("PATH", "HOME", "TMPDIR")]
+    new = count(rec["command"], reps or len(rec["reps"]), rec["cache"]["requested"], extra, paths)
     if new["cache"]["simulated"] != rec["cache"]["simulated"]:
         return 2, "a different cache model was simulated (host cache differs)"
-    old_c, new_c = rec["reps"][0]["counts"], new["reps"][0]["counts"]
-    if rec["verdict"]["exact"] and new["verdict"]["exact"] and old_c == new_c:
-        return 0, "identical counts"
-    diff = {k: [old_c[k], new_c[k]] for k in EVENTS if old_c[k] != new_c[k]}
-    return 1, f"counts differ: {json.dumps(diff)} (recorded exact={rec['verdict']['exact']}, now exact={new['verdict']['exact']})"
+    diffs = []
+    old_r, new_r = rec["reps"][0], new["reps"][0]
+    for k in EVENTS:
+        if old_r["counts"][k] != new_r["counts"][k]:
+            diffs.append(f"{k} {old_r['counts'][k]}->{new_r['counts'][k]}")
+    for k in ("processes", "stdout_sha256"):
+        if old_r[k] != new_r[k]:
+            diffs.append(f"{k} differs")
+    if not diffs and rec["verdict"]["exact"] and new["verdict"]["exact"]:
+        return 0, "identical counts and output"
+    return 1, (f"differs: {', '.join(diffs) or 'reps not exact'} "
+               f"(recorded exact={rec['verdict']['exact']}, now exact={new['verdict']['exact']})")
 
 
 def parse_cache(s):
@@ -257,36 +400,40 @@ def main(argv=None):
     ap.add_argument("--reps", type=int, default=3)
     ap.add_argument("--cache", type=parse_cache, default=REFERENCE,
                     help="'reference' (default), 'host' (valgrind reads CPUID), or 'I1=s,w,l;D1=s,w,l;LL=s,w,l'")
+    ap.add_argument("--input", action="append", default=[], help="file copied into the sandbox and fingerprinted")
     ap.add_argument("--env", action="append", default=[], help="extra KEY=VALUE for the command")
-    ap.add_argument("--hash", action="append", default=[], help="input file to fingerprint in the record")
     ap.add_argument("--out-dir", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs"))
     ap.add_argument("--keep-raw", metavar="DIR", help="also keep each process's cachegrind.out (gzipped), for cg_diff")
     ap.add_argument("--check", metavar="RECORD")
+    ap.add_argument("--input-dir", help="with --check: find inputs here by name instead of their recorded paths")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
     cmd = a.cmd[1:] if a.cmd[:1] == ["--"] else a.cmd
+    if a.reps < 1:
+        ap.error("--reps must be at least 1")
     try:
         if a.check:
-            code, msg = check(a.check)
+            code, msg = check(a.check, a.input_dir)
             print(msg)
             return code
-        if a.reps < 1:
-            ap.error("--reps must be at least 1")
-        rec = count(cmd, a.reps, a.cache, a.env, a.hash, keep_raw=a.keep_raw)
-    except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as e:
-        print(f"count failed: {e}", file=sys.stderr)
+        rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw)
+        path = write_record(rec, a.out_dir)
+    except Exception as e:  # anything unexpected is a failure, never a verdict
+        print(f"count failed: {type(e).__name__}: {e}", file=sys.stderr)
         return 3
-    path = write_record(rec, a.out_dir)
     s, v = rec["summary"], rec["verdict"]
     print(f"{' '.join(cmd)}: {v['reps']} reps, {'every rep identical' if v['exact'] else 'reps DIFFER'}"
           f"{'' if v['stdout_identical'] else ', stdout differs'}")
     for k in EVENTS:
         sp = s[k]["rel_spread"]
         print(f"  {k:5s} {s[k]['median']:>16,.0f}" + ("" if not sp else f"  spread {sp:.2e}"))
-    if not rec["cache"]["matches_request"]:
-        print("  WARNING: valgrind simulated a different cache model than requested")
+    crc = v["client_request_code"]
+    if crc:
+        print(f"  WARNING: code that can switch counting off or detect valgrind: {', '.join(crc)}")
+    elif crc is None:
+        print("  WARNING: could not scan for valgrind client requests on this architecture")
     print(f"wrote {path}\ndigest {rec['digest_sha256']}")
-    return 0 if v["exact"] else 1
+    return 0 if v["exact"] and crc == [] else 1
 
 
 if __name__ == "__main__":

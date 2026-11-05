@@ -14,6 +14,21 @@ NOISY_C = r"""
 int main(void){ unsigned char b; if (getrandom(&b, 1, 0) != 1) return 1; volatile long s = 0;
   for (long i = 0; i < 1000 + b * 50; i++) s += i; printf("%ld\n", (long)s); return 0; }
 """
+STOP_C = r"""
+#include <stdio.h>
+#include <valgrind/cachegrind.h>
+int main(void){ CACHEGRIND_STOP_INSTRUMENTATION; volatile long s = 0;
+  for (long i = 0; i < 3000000; i++) s += i; printf("%ld\n", (long)s); return 0; }
+"""
+CACHE_C = r"""
+#include <stdio.h>
+#include <stdlib.h>
+int main(void){ FILE *f = fopen("answer.txt", "r"); long a = 0;
+  if (f) { if (fscanf(f, "%ld", &a) != 1) a = 0; fclose(f); }
+  else { volatile long s = 0; for (long i = 0; i < 3000000; i++) s += i; a = s;
+         f = fopen("answer.txt", "w"); fprintf(f, "%ld\n", a); fclose(f); }
+  printf("%ld\n", a); return 0; }
+"""
 CHASE_C = r"""
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +45,10 @@ class Counter(unittest.TestCase):
         cls.td = tempfile.mkdtemp()
         cls.mlp = os.path.join(cls.td, "mlp")
         subprocess.run(["gcc", "-O2", "-o", cls.mlp, os.path.join(HERE, "workloads", "mlp.c")], check=True)
-        for name, src in (("noisy", NOISY_C), ("chase", CHASE_C)):
+        progs = [("noisy", NOISY_C), ("chase", CHASE_C), ("cache", CACHE_C)]
+        if os.path.exists("/usr/include/valgrind/cachegrind.h"):
+            progs.append(("stop", STOP_C))
+        for name, src in progs:
             with open(os.path.join(cls.td, name + ".c"), "w") as f:
                 f.write(src)
             subprocess.run(["gcc", "-O2", "-o", os.path.join(cls.td, name), os.path.join(cls.td, name + ".c")], check=True)
@@ -56,7 +74,7 @@ class Counter(unittest.TestCase):
         self.assertGreater(rec["summary"]["Ir"]["rel_spread"], 0)
 
     def test_python_hash_seed_is_fixed(self):
-        rec = count.count([sys.executable, os.path.join(HERE, "workloads", "mlp.py"), "3"], reps=2)
+        rec = count.count(["python3", "mlp.py", "3"], reps=2, input_paths=[os.path.join(HERE, "workloads", "mlp.py")])
         self.assertEqual(rec["env"]["PYTHONHASHSEED"], "0")
         self.assertTrue(rec["verdict"]["exact"], rec["summary"]["Ir"])
 
@@ -69,7 +87,7 @@ class Counter(unittest.TestCase):
     def test_reference_model_is_what_was_simulated(self):
         rec = count.count([self.mlp, "5"], reps=1)
         self.assertEqual(rec["cache"]["simulated"], count.REFERENCE)
-        self.assertTrue(rec["cache"]["matches_request"])
+
 
     def test_caller_valgrind_settings_are_ignored(self):
         cwd = os.getcwd()
@@ -89,6 +107,7 @@ class Counter(unittest.TestCase):
                 os.environ["VALGRIND_OPTS"] = old
         self.assertEqual(rec["cache"]["simulated"], count.REFERENCE)
         self.assertNotIn("VALGRIND_OPTS", rec["env"])
+        self.assertEqual(rec["env"]["HOME"], count.SANDBOX + "/home")
 
     def test_cache_model_changes_misses_not_instructions(self):
         # a 40 KiB cyclic walk: fits the 48 KiB reference D1, thrashes a 32 KiB LRU D1
@@ -108,12 +127,7 @@ class Counter(unittest.TestCase):
             self.assertEqual(json.load(f)["digest_sha256"], rec["digest_sha256"])
 
     def test_check_reproduces_and_catches_edits(self):
-        cwd = os.getcwd()
-        os.chdir(self.td)
-        try:
-            rec = count.count(["./mlp", "20"], reps=2)
-        finally:
-            os.chdir(cwd)
+        rec = count.count(["./mlp", "20"], reps=2, input_paths=[self.mlp])
         d = self.out_dir()
         p = count.write_record(rec, d)
         self.assertEqual(count.check(p)[0], 0)
@@ -136,6 +150,15 @@ class Counter(unittest.TestCase):
         code, msg = count.check(p3)
         self.assertEqual(code, 1, msg)
         self.assertIn("differ", msg)
+        # a malformed record with a valid digest is a failed check, never a crash
+        bad = {"schema": count.SCHEMA, "reps": [{"counts": None}], "verdict": {"reps": 1}}
+        bad["digest_sha256"] = count.hashlib.sha256(count.canonical(bad)).hexdigest()
+        p4 = os.path.join(d, "malformed.json")
+        with open(p4, "w") as f:
+            json.dump(bad, f)
+        code, msg = count.check(p4)
+        self.assertEqual(code, 1, msg)
+        self.assertIn("malformed", msg)
 
     def test_check_refuses_a_changed_program(self):
         prog = os.path.join(self.td, "mlp_copy")
@@ -147,8 +170,47 @@ class Counter(unittest.TestCase):
         self.assertEqual(count.check(p)[0], 2)
 
     def test_failing_command_raises(self):
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(count.Failure):
             count.count(["/bin/false"], reps=1)
+
+    def test_relative_program_must_be_an_input(self):
+        with self.assertRaises(count.Failure):
+            count.count(["./mlp", "5"], reps=1)
+
+    def test_no_cache_survives_between_reps_or_from_the_caller(self):
+        prog = os.path.join(self.td, "cache")
+        cwd = os.getcwd()
+        os.chdir(self.td)
+        try:
+            with open("answer.txt", "w") as f:
+                f.write("42\n")  # a precomputed answer next to the caller
+            rec = count.count([prog], reps=3)
+        finally:
+            os.remove(os.path.join(self.td, "answer.txt"))
+            os.chdir(cwd)
+        self.assertTrue(rec["verdict"]["exact"])  # every rep did the full work
+        self.assertGreater(rec["summary"]["Ir"]["min"], 3000000)
+
+    def test_caller_home_and_cwd_do_not_change_counts(self):
+        old_home, cwd = os.environ.get("HOME"), os.getcwd()
+        try:
+            a = count.count([self.mlp, "30"], reps=1)
+            os.environ["HOME"] = "/a/much/longer/home/directory/than/before"
+            os.chdir(self.out_dir())
+            b = count.count([self.mlp, "30"], reps=1)
+        finally:
+            os.chdir(cwd)
+            os.environ["HOME"] = old_home
+        self.assertEqual(a["reps"][0]["counts"], b["reps"][0]["counts"])
+
+    @unittest.skipUnless(os.path.exists("/usr/include/valgrind/cachegrind.h"), "needs valgrind headers")
+    def test_code_that_switches_counting_off_is_flagged(self):
+        rec = count.count([os.path.join(self.td, "stop")], reps=1)
+        self.assertLess(rec["summary"]["Ir"]["median"], 3000000)  # the work really went uncounted
+        self.assertTrue(rec["verdict"]["client_request_code"])
+        self.assertEqual(count.main(["--reps", "1", "--out-dir", self.out_dir(), "--", os.path.join(self.td, "stop")]), 1)
+        clean = count.count([self.mlp, "5"], reps=1)
+        self.assertEqual(clean["verdict"]["client_request_code"], [])
 
     def test_parse_cache(self):
         self.assertEqual(count.parse_cache("reference"), count.REFERENCE)
