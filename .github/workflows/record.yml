@@ -1,0 +1,75 @@
+# The ledger's only writer. A push that adds proposals to ledger/inbox/ makes this job append them
+# to the hash chain, anchor the new head (Sigstore attestation in public Rekor + OpenTimestamps),
+# check everything, and commit. A daily job completes pending OpenTimestamps proofs.
+# Verifiers pin this file's identity: https://github.com/5kasgard/exagium/.github/workflows/record.yml@refs/heads/main
+name: record
+on:
+  push:
+    branches: [main]
+    paths: ["ledger/inbox/**"]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+concurrency:
+  group: record-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+jobs:
+  append:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: tools
+        run: pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+      - name: ingest inbox into the chain
+        id: ingest
+        run: |
+          python3 record/record.py verify > /dev/null
+          python3 record/record.py ingest | tee written.txt
+          read seq sha < <(python3 record/record.py head)
+          echo "seq=$seq" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "file=ledger/entries/$(printf %06d $seq).json" >> "$GITHUB_OUTPUT"
+          echo "n=$(wc -l < written.txt)" >> "$GITHUB_OUTPUT"
+      - name: attest the head (Sigstore, public Rekor)
+        if: steps.ingest.outputs.n != '0'
+        id: att
+        uses: actions/attest@v2
+        with:
+          subject-path: ${{ steps.ingest.outputs.file }}
+          predicate-type: https://github.com/5kasgard/exagium/blob/main/record/README.md#head-v1
+          predicate: '{"ledger_head_seq": ${{ steps.ingest.outputs.seq }}}'
+      - name: stamp the head (OpenTimestamps), check, commit
+        if: steps.ingest.outputs.n != '0'
+        run: |
+          s=$(printf %06d ${{ steps.ingest.outputs.seq }})
+          mkdir -p ledger/anchors
+          cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
+          cp ledger/entries/$s.json "$RUNNER_TEMP/$s.json" && ots stamp "$RUNNER_TEMP/$s.json"
+          mv "$RUNNER_TEMP/$s.json.ots" ledger/anchors/$s.ots
+          python3 record/record.py verify
+          python3 record/record.py check-anchors --ref "${{ github.ref }}"
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ledger
+          git commit -q -m "ledger: head seq ${{ steps.ingest.outputs.seq }} sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
+          git pull -q --rebase origin "${{ github.ref }}"
+          git push -q origin "HEAD:${{ github.ref }}"
+  upgrade:
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: complete pending OpenTimestamps proofs
+        run: |
+          pip install -q opentimestamps-client==0.8.0
+          shopt -s nullglob
+          for f in ledger/anchors/*.ots; do ots upgrade "$f" || true; done
+          rm -f ledger/anchors/*.bak
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ledger/anchors
+          git diff --cached --quiet || { git commit -q -m "ledger: upgrade OpenTimestamps proofs (run ${{ github.run_id }})"; git push -q origin "HEAD:${{ github.ref }}"; }
