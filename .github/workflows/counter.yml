@@ -31,13 +31,13 @@ jobs:
         working-directory: counter/workloads
         run: |
           mkdir -p ../../runs/ci
-          python3 ../count.py --reps 3 --out-dir ../../runs/ci -- ./mlp 1000 || true
-          python3 ../count.py --reps 3 --hash mlp.py --out-dir ../../runs/ci -- python3 mlp.py 20 || true
+          for n in 1000 0; do python3 ../count.py --reps 3 --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- ./mlp $n || true; done
+          for n in 20 0; do python3 ../count.py --reps 3 --hash mlp.py --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- python3 mlp.py $n || true; done
           ls ../../runs/ci
       - uses: actions/upload-artifact@v4
         with:
           name: runs-${{ matrix.runner }}-${{ matrix.slot }}
-          path: runs/ci/*.json
+          path: runs/ci
   collect:
     needs: count
     if: always()
@@ -54,7 +54,7 @@ jobs:
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git fetch -q origin ci-runs && git checkout -q ci-runs || git checkout -q --orphan ci-runs
           mkdir -p runs/${{ github.run_id }}
-          cp ../art/*/*.json runs/${{ github.run_id }}/
+          for d in ../art/*/; do mkdir -p "runs/${{ github.run_id }}/$(basename $d)" && cp -r "$d"* "runs/${{ github.run_id }}/$(basename $d)/"; done
           git add runs
           git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
             commit -q -m "counter cross-host run ${{ github.run_id }} at ${{ github.sha }}"

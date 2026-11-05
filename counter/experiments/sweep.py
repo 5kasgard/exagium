@@ -1,7 +1,7 @@
 import json, subprocess, os, sys, tempfile
 from concurrent.futures import ThreadPoolExecutor
 p=json.load(open(sys.argv[1])); cfgname=sys.argv[2]; seed=int(sys.argv[3]) if len(sys.argv)>3 else 7
-cfgs={"host":[], "llL2":["--D1=32768,8,64","--I1=32768,8,64","--LL=1048576,16,64"], "probeL1":["--D1=49152,12,64","--I1=32768,8,64","--LL=1048576,16,64"]}
+cfgs={"host":[], "llL2":["--D1=32768,8,64","--I1=32768,8,64","--LL=1048576,16,64"], "reference":["--I1=32768,8,64","--D1=49152,12,64","--LL=8388608,16,64"], "probeL1":["--D1=49152,12,64","--I1=32768,8,64","--LL=1048576,16,64"]}
 sizes=[e['bytes'] for e in p['latency_curve']]
 def one(b):
     n=b//64; laps=max(2, (1<<19)//n)

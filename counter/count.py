@@ -14,7 +14,7 @@ counts differ, or the record was edited); 2 --check could not compare like for l
 valgrind, cache model or architecture); 3 the command or valgrind failed.
 Stdlib only. Needs valgrind >= 3.22 (cachegrind with --cache-sim).
 """
-import argparse, datetime, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
+import argparse, datetime, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
 
 SCHEMA = "exagium-count/1"
 # Reference cache model. An explicit choice (see README "Reference cache"): comparable across
@@ -57,6 +57,19 @@ def parse_out(path):
     return desc, dict(zip(events, summary))
 
 
+def shared_libs(prog):
+    """sha256 of every shared library the dynamic loader would map for prog (empty if not dynamic ELF)."""
+    if not os.path.isfile(prog) or not shutil.which("ldd"):
+        return {}
+    p = subprocess.run(["ldd", prog], capture_output=True, text=True)
+    libs = {}
+    for line in p.stdout.splitlines():
+        parts = line.split("=>")[-1].split("(")[0].strip()
+        if parts.startswith("/") and os.path.isfile(parts):
+            libs[parts] = sha256_file(parts)
+    return libs
+
+
 def valgrind_version(exe):
     return subprocess.run([exe, "--version"], capture_output=True, text=True).stdout.strip()
 
@@ -65,7 +78,12 @@ def host():
     model = ""
     try:
         with open("/proc/cpuinfo") as f:
-            model = next((l.split(":", 1)[1].strip() for l in f if l.startswith(("model name", "Model name"))), "")
+            info = {}
+            for l in f:
+                k, _, v = l.partition(":")
+                info.setdefault(k.strip(), v.strip())
+        model = info.get("model name") or " ".join(
+            f"{k} {info[k]}" for k in ("CPU implementer", "CPU part", "CPU variant", "CPU revision") if k in info)
     except OSError:
         pass
     return {"machine": platform.machine(), "system": platform.system(), "kernel": platform.release(),
@@ -78,7 +96,7 @@ def cache_args(cache):
     return [f"--{k}={','.join(map(str, cache[k]))}" for k in ("I1", "D1", "LL")]
 
 
-def one_rep(cmd, cache, env, exe, timeout):
+def one_rep(cmd, cache, env, exe, timeout, keep_raw=None):
     """Run cmd once under cachegrind, children included. Returns counts summed over every process."""
     with tempfile.TemporaryDirectory() as td:
         vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes",
@@ -90,6 +108,11 @@ def one_rep(cmd, cache, env, exe, timeout):
         if p.returncode != 0 or not outs:
             tail = p.stderr.decode(errors="replace").strip()[-400:]
             raise RuntimeError(f"exit {p.returncode}, {len(outs)} count files: {tail}")
+        if keep_raw:
+            os.makedirs(keep_raw, exist_ok=True)
+            for f in outs:
+                with open(os.path.join(td, f), "rb") as src, gzip.open(os.path.join(keep_raw, f"{f}.{os.getpid()}.{len(os.listdir(keep_raw))}.gz"), "xb") as dst:
+                    shutil.copyfileobj(src, dst)
         total, models = dict.fromkeys(EVENTS, 0), []
         for f in outs:
             desc, counts = parse_out(os.path.join(td, f))
@@ -112,7 +135,7 @@ def summarise(reps):
     return out
 
 
-def count(cmd, reps=3, cache=REFERENCE, extra_env=(), hash_files=(), timeout=3600):
+def count(cmd, reps=3, cache=REFERENCE, extra_env=(), hash_files=(), timeout=3600, keep_raw=None):
     exe = shutil.which("valgrind")
     if not exe:
         raise RuntimeError("valgrind not found")
@@ -123,7 +146,7 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), hash_files=(), timeout=360
         k, _, v = kv.partition("=")
         env[k] = v
     prog = shutil.which(cmd[0]) or cmd[0]
-    rows = [one_rep(cmd, cache, env, exe, timeout) for _ in range(reps)]
+    rows = [one_rep(cmd, cache, env, exe, timeout, keep_raw) for _ in range(reps)]
     model = rows[0]["model"]
     if any(r["model"] != model for r in rows):
         raise RuntimeError("cache model changed between reps")
@@ -136,7 +159,8 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), hash_files=(), timeout=360
         "command": list(cmd),
         "cwd": os.getcwd(),
         "env": env,
-        "inputs": {"program": {"path": prog, "sha256": sha256_file(prog) if os.path.isfile(prog) else None},
+        "inputs": {"program": {"path": prog, "sha256": sha256_file(prog) if os.path.isfile(prog) else None,
+                               "shared_libs": shared_libs(prog)},
                    **{f: {"sha256": sha256_file(f)} for f in hash_files}},
         "tool": {"valgrind": valgrind_version(exe), "options": ["--tool=cachegrind", "--cache-sim=yes",
                  "--trace-children=yes", "--command-line-only=yes"]},
@@ -234,6 +258,7 @@ def main(argv=None):
     ap.add_argument("--env", action="append", default=[], help="extra KEY=VALUE for the command")
     ap.add_argument("--hash", action="append", default=[], help="input file to fingerprint in the record")
     ap.add_argument("--out-dir", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs"))
+    ap.add_argument("--keep-raw", metavar="DIR", help="also keep each process's cachegrind.out (gzipped), for cg_diff")
     ap.add_argument("--check", metavar="RECORD")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -245,7 +270,7 @@ def main(argv=None):
             return code
         if a.reps < 1:
             ap.error("--reps must be at least 1")
-        rec = count(cmd, a.reps, a.cache, a.env, a.hash)
+        rec = count(cmd, a.reps, a.cache, a.env, a.hash, keep_raw=a.keep_raw)
     except (RuntimeError, ValueError, OSError, subprocess.TimeoutExpired) as e:
         print(f"count failed: {e}", file=sys.stderr)
         return 3
