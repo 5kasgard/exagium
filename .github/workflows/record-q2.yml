@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: tools
-        run: pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+        run: python3 -m pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
       - name: ingest inbox into the chain
         id: ingest
         run: |
@@ -42,6 +42,7 @@ jobs:
       - name: stamp the head (OpenTimestamps), check, commit
         if: steps.ingest.outputs.n != '0'
         run: |
+          exec > >(tee -a "$RUNNER_TEMP/step.log") 2>&1
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
           mkdir -p ledger/anchors
           cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
@@ -55,6 +56,16 @@ jobs:
           git commit -q -m "ledger: head seq ${{ steps.ingest.outputs.seq }} sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
           git pull -q --rebase origin "${{ github.ref }}"
           git push -q origin "HEAD:${{ github.ref }}"
+      - name: on failure, push the log to ci-runs
+        if: failure()
+        run: |
+          git init -q "$RUNNER_TEMP/ci" && cd "$RUNNER_TEMP/ci"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs
+          mkdir -p q2-fail && cp "$RUNNER_TEMP/step.log" q2-fail/${{ github.run_id }}.log
+          python3 -m pip --version >> q2-fail/${{ github.run_id }}.log 2>&1; which python3 pip ots >> q2-fail/${{ github.run_id }}.log 2>&1
+          git add q2-fail && git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "q2 failure log ${{ github.run_id }}"
+          git push -q origin ci-runs
   q1:
     # Does `gh attestation verify -R repo` accept attestations from any workflow and branch in the repo?
     needs: append

@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: tools
-        run: pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+        run: python3 -m pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
       - name: ingest inbox into the chain
         id: ingest
         run: |
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: complete pending OpenTimestamps proofs
         run: |
-          pip install -q opentimestamps-client==0.8.0
+          python3 -m pip install -q opentimestamps-client==0.8.0
           shopt -s nullglob
           for f in ledger/anchors/*.ots; do ots upgrade "$f" || true; done
           rm -f ledger/anchors/*.bak
