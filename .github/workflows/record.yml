@@ -1,9 +1,12 @@
 # The ledger's only writer. A push that adds proposals to ledger/inbox/ makes this job:
-#   1. refuse to go on unless every existing entry is already covered by this workflow's attestations
+#   1. run exactly the commit that triggered it (the commit its certificate names), or step aside if the
+#      branch has moved on (the newer run will take the proposals);
+#   2. refuse to go on unless every existing entry is already covered by this workflow's attestations
 #      (so an entry written by hand is never vouched for later);
-#   2. ingest the proposals; stamp the new head with OpenTimestamps;
-#   3. refuse to attest if main has moved since checkout;
+#   3. ingest the proposals; stamp the new head with OpenTimestamps; refuse to attest if the branch moved;
 #   4. attest the exact range of entries it added (Sigstore, public Rekor); check every anchor; commit.
+#   If anything fails after attesting, the bundle and entries go to the ci-runs branch, so the orphaned
+#   attestation can be explained with its real statement.
 # A daily job completes pending OpenTimestamps proofs.
 # Verifiers pin this identity: https://github.com/5kasgard/exagium/.github/workflows/record.yml@refs/heads/main
 name: record
@@ -32,17 +35,26 @@ jobs:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.LEDGER_REF }}   # the latest commit, not the one that triggered the run
+      - uses: actions/checkout@v4   # github.sha: the commit the certificate will name
+      - name: step aside if the branch has moved on
+        id: current
+        run: |
+          git fetch -q origin "$LEDGER_REF"
+          if [ "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA" ]; then echo "go=yes" >> "$GITHUB_OUTPUT"; else echo "superseded by $(git rev-parse FETCH_HEAD)"; echo "go=no" >> "$GITHUB_OUTPUT"; fi
       - name: tools
+        if: steps.current.outputs.go == 'yes'
         run: |
           # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography
           python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1 opentimestamps-client==0.8.0
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: the existing chain must be fully attested by this writer before anything is added
-        run: python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER"
+        if: steps.current.outputs.go == 'yes'
+        run: |
+          # exit 2 (an explorer unreachable) still means every entry is covered: coverage comes from Sigstore, checked offline
+          rc=0; python3 record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER" || rc=$?
+          [ $rc -eq 0 ] || [ $rc -eq 2 ]
       - name: ingest inbox into the chain
+        if: steps.current.outputs.go == 'yes'
         id: ingest
         run: |
           read before _ < <(python3 record/record.py head)
@@ -53,7 +65,7 @@ jobs:
           echo "n=$(wc -l < "$RUNNER_TEMP/written.txt")" >> "$GITHUB_OUTPUT"
           echo "predicate=$(python3 record/record.py range $((before + 1)) $seq 2>/dev/null || echo none)" >> "$GITHUB_OUTPUT"
       - name: stamp the head (OpenTimestamps); refuse to attest if the branch moved
-        if: steps.ingest.outputs.n != '0'
+        if: steps.current.outputs.go == 'yes' && steps.ingest.outputs.n != '0'
         run: |
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
           mkdir -p ledger/anchors
@@ -63,7 +75,7 @@ jobs:
           git fetch -q origin "$LEDGER_REF"
           [ "$(git rev-parse FETCH_HEAD)" = "$(git rev-parse HEAD)" ] || { echo "the branch moved since checkout; not attesting"; exit 1; }
       - name: attest the range of entries added (Sigstore, public Rekor)
-        if: steps.ingest.outputs.n != '0'
+        if: steps.current.outputs.go == 'yes' && steps.ingest.outputs.n != '0'
         id: att
         uses: actions/attest@v2
         with:
@@ -71,7 +83,7 @@ jobs:
           predicate-type: https://github.com/5kasgard/exagium/blob/main/record/README.md
           predicate: ${{ steps.ingest.outputs.predicate }}
       - name: check every anchor and commit
-        if: steps.ingest.outputs.n != '0'
+        if: steps.current.outputs.go == 'yes' && steps.ingest.outputs.n != '0'
         run: |
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
           cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
@@ -82,7 +94,17 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add ledger
           git commit -q -m "ledger: entries ${{ steps.ingest.outputs.from }}-${{ steps.ingest.outputs.seq }}, head sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
-          git push -q origin "HEAD:$LEDGER_REF"   # if this fails, the attestation is orphaned and the monitor will say so
+          git push -q origin "HEAD:$LEDGER_REF"
+      - name: after a failure past attesting, keep the orphaned attestation's bundle and entries on ci-runs
+        if: failure() && steps.att.outcome == 'success'
+        run: |
+          d="$RUNNER_TEMP/ci"; git init -q "$d"
+          cp -r ledger "$RUNNER_TEMP/ledger-orphan"; cp "${{ steps.att.outputs.bundle-path }}" "$RUNNER_TEMP/ledger-orphan/bundle.sigstore.json"
+          cd "$d" && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs
+          mkdir -p orphans && cp -r "$RUNNER_TEMP/ledger-orphan" "orphans/${{ github.run_id }}" && git add orphans
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "orphaned writer attestation, run ${{ github.run_id }}"
+          git push -q origin ci-runs
   upgrade:
     if: github.event_name != 'push'
     runs-on: ubuntu-24.04
