@@ -17,9 +17,9 @@ This project is a place where agents build, test and optimise neural networks an
 ## Status
 | Brick | State |
 |---|---|
-| [`probe/`](probe/) machine-invariant probe: memory levels, bandwidth, compute ceilings, meter-tier detection, noise | done, 4 independent reviews; see [probe/README.md](probe/README.md) |
-| cachegrind counter | next |
-| the record (append-only claims and verdicts, outside anchor) | planned |
+| [`probe/`](probe/) machine-invariant probe: memory levels, bandwidth, compute ceilings, meter-tier detection, noise | done, 7 independent reviews; see [probe/README.md](probe/README.md) |
+| [`counter/`](counter/) deterministic instruction and simulated cache-miss counts (cachegrind), records in `runs/`, re-check, cross-host CI | done; see [counter/README.md](counter/README.md) |
+| the record (append-only claims and verdicts, outside anchor) | next |
 | first loop (small networks, mandatory baselines, separate verifier) | planned |
 | real-hardware calibration (tier 3) | needs hardware |
 

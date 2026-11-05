@@ -1,4 +1,4 @@
-# Independent verification brief: exagium `probe/`
+# Independent verification brief: exagium `probe/` and `counter/`
 
 You are an independent verifier. Someone else built this tool. Your job is to check its claims and try to make it report something false. Don't trust the README; report only what you can show with commands, numbers and line references. A result of "I couldn't break X" is useful, and so is "X is wrong, here is how".
 
@@ -51,6 +51,19 @@ Give each a verdict: CONFIRMED / REFUTED / UNCLEAR, with evidence.
 7. **Labels.** Every number in the profile should be marked measured / reported / derived, or be plainly raw or settings. List anything that could be mistaken for a measurement.
 8. **Reproducibility.** Run the full probe 3 times with different `--seed` values. Do the levels, brackets and ceilings agree within the reported noise? Is the run-to-run spread larger than the within-run SE suggests?
 9. **Portability.** What breaks on your platform (ARM, AMD, other compilers, containers, macOS)? Does anything fail silently or quietly report a wrong number instead of failing loudly?
+
+## Counter claims (`counter/`)
+```
+cd exagium/counter
+python3 -m unittest -v test_count     # expect 12 passing, ~13 s; needs valgrind >= 3.22
+gcc -O2 -o workloads/mlp workloads/mlp.c && sha256sum workloads/mlp
+cd workloads && python3 ../count.py -- ./mlp 1000; python3 ../count.py --check ../../runs/<record>.json
+```
+10. **Repeatability.** Reps of a deterministic program are identical; with the default environment, pure Python is too. Find a deterministic program whose reps differ, or a nondeterministic one reported as `exact`.
+11. **Cross-host.** The README claims the same binary gives the same counts on any host of the same architecture, whatever the CPU (`Ir` 36,018,338 for `./mlp 1000` with sha256 `a330b376…` on x86-64; 31,067,197 on arm64). Report your sha256 and counts. If they differ with the same binary, say what differs (`cg_diff`, `--keep-raw`).
+12. **Isolation.** The command should be unaffected by `.valgrindrc`, `VALGRIND_OPTS` and the caller's environment, and children should be counted. Find a way for a candidate to do work that isn't counted, or to make its counts look smaller than its real work.
+13. **`--check`.** It should exit 0 for a genuine record on the same software, 1 for edited or forged counts, and 2 when it can't compare like for like. Find a tamper that passes.
+14. **Simulated vs measured.** Run `experiments/sweep.py` against your own probe profile and compare the simulated levels with your measured curve.
 
 ## Report
 Keep it under about 800 words, in this order:
