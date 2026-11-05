@@ -38,11 +38,11 @@ jobs:
           grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true
       - name: reproduce training (no network, training file only)
         run: |
-          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null)
+          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
           "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --no-net --out out/reproduce.json 2>&1 | tee out/reproduce.txt || true
       - name: score on the dev split
         run: |
-          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null)
+          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
           "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test dev --records out/records --out out/dev.json 2>&1 | tee out/dev.txt || true
       - name: score requested plans on the test set
         run: |
@@ -73,7 +73,7 @@ jobs:
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git fetch -q origin ci-runs && git checkout -q ci-runs
           d=loop/${{ github.run_id }}; mkdir -p $d
-          cp -r ../art/* $d/ && echo "${{ github.sha }}" > $d/commit.txt
+          cp -r ../art/* $d/ 2>/dev/null || echo "no job produced output" > $d/none.txt; echo "${{ github.sha }}" > $d/commit.txt
           git add loop
           git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
             commit -q -m "loop run ${{ github.run_id }} at ${{ github.sha }}"
