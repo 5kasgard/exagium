@@ -614,6 +614,31 @@ def check_raw(raw, settings):
     return bad
 
 
+# ---------------------------------------------------------------- digests
+DIGEST_SCHEME = ("sha256 of canonical JSON: keys sorted, no whitespace, UTF-8, NaN/Infinity forbidden, "
+                 "floats as Python repr (shortest round-trip). Not yet RFC 8785 (JCS): another language must "
+                 "format floats the same way to reproduce it")
+
+
+def canonical(obj):
+    """One byte string per value, so a digest names exactly one profile. Fields are never joined
+    by a separator (the hash-chain review found a '|'-join collision in an older log)."""
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def add_digests(profile):
+    """measurement_sha256 covers what was measured and how (raw reps, settings, build, environment,
+    meter tiers, time); profile_sha256 covers everything else as well. Either is what an outside
+    record anchors: once anchored, any later edit to the profile shows as a different digest.
+    A digest proves the profile was not changed after it was anchored, never that it is genuine."""
+    body = {k: v for k, v in profile.items() if k != "digests"}
+    meas = {k: profile[k] for k in ("raw", "settings", "build", "environment", "meter_tiers", "created_utc", "elapsed_s")}
+    profile["digests"] = {"measurement_sha256": hashlib.sha256(canonical(meas)).hexdigest(),
+                          "profile_sha256": hashlib.sha256(canonical(body)).hexdigest(),
+                          "scheme": DIGEST_SCHEME, "label": "derived"}
+    return profile
+
+
 # ---------------------------------------------------------------- analysis
 def analyse(raw, env, caches, tier_list, build_info, settings, elapsed):
     """Everything in the profile except raw/env/tiers is computed here from raw reps,
@@ -757,9 +782,11 @@ def main(argv=None):
                        "order": "shuffled per rep, all measurements interleaved",
                        "cpu_steal_fraction_per_rep": steal, "calibration": a.calibration, **plan_info},
                       round(time.time() - t_start, 1))
+    add_digests(profile)
     with open(a.out, "w") as f:
         json.dump(profile, f, indent=1, allow_nan=False)
     print(summary_text(profile))
+    print(f"\nprofile digest (anchor this): {profile['digests']['profile_sha256']}")
     print(f"\nwrote {a.out}", file=sys.stderr)
 
 
@@ -769,7 +796,10 @@ def reanalyse(path, out=None):
     new = analyse(old["raw"], old["environment"], old["reported_caches"], old["meter_tiers"],
                   old["build"], old["settings"], old["elapsed_s"])
     new["created_utc"] = old["created_utc"]
+    add_digests(new)
     same = json.dumps(new, sort_keys=True) == json.dumps(old, sort_keys=True)
+    print(f"profile digest recomputed: {new['digests']['profile_sha256']} "
+          f"({'matches' if new['digests'] == old.get('digests') else 'DOES NOT match'} the stored one)", file=sys.stderr)
     print(summary_text(new))
     if out:
         with open(out, "w") as f:

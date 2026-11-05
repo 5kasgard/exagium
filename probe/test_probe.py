@@ -349,7 +349,13 @@ class EndToEnd(unittest.TestCase):
                 if m["name"] == "rapl_energy":
                     m["available"] = True
             p["best_tier_for_energy"] = "rapl_energy"
+            probe.add_digests(p)  # a careful forger recomputes the digest too
         self.assertEqual(self.tamper(f), 2)
+
+    def test_edit_without_new_digest_caught(self):
+        def f(p):
+            p["environment"]["hostname_hash"] = "000000000000"
+        self.assertEqual(self.tamper(f), 1)
 
     def test_calibration_claim_flip_caught(self):
         def f(p):
@@ -365,6 +371,22 @@ class EndToEnd(unittest.TestCase):
 
     def test_build_records_vector_isa(self):
         self.assertIn(self.p["build"]["vector_isa"], ("avx512", "avx2", "avx", "sve", "neon", "sse2", "scalar-emulated"))
+
+    def test_digest_present_and_reproducible(self):
+        d = self.p["digests"]
+        self.assertEqual(len(d["profile_sha256"]), 64)
+        body = {k: v for k, v in self.p.items() if k != "digests"}
+        import hashlib
+        self.assertEqual(hashlib.sha256(probe.canonical(body)).hexdigest(), d["profile_sha256"])
+
+    def test_digest_changes_with_any_edit(self):
+        p = json.loads(json.dumps(self.p))
+        p["settings"]["note"] = "x"
+        self.assertNotEqual(probe.add_digests(p)["digests"]["profile_sha256"], self.p["digests"]["profile_sha256"])
+
+    def test_canonical_has_no_join_collision(self):
+        # the '|'-join bug class: moving a separator between fields must change the bytes
+        self.assertNotEqual(probe.canonical({"a": "x|y", "b": "z"}), probe.canonical({"a": "x", "b": "y|z"}))
 
     def test_meter_claim_flip_caught_on_same_host(self):
         def f(p):

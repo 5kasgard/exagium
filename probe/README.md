@@ -8,7 +8,7 @@ python3 probe.py                      # full: ~100 s on 2 vCPUs, 7 reps, sweep t
 python3 probe.py --quick              # ~10 s smoke run, 3 reps, coarser sweep
 python3 probe.py --reanalyse p.json   # recompute from raw reps; exit 0 consistent, 1 inconsistent,
                                       #   2 consistent but meter claims unverifiable (different host)
-python3 -m unittest -v test_probe     # 36 tests, ~50 s
+python3 -m unittest -v test_probe     # 40 tests, ~65 s
 ```
 Needs a C compiler and Python 3 (stdlib only). Linux. Valgrind is optional and detected as a tier.
 
@@ -72,10 +72,12 @@ Every doubt resolves toward "transition", never toward "level", and each level r
 
 On another host it exits 2.
 
+**Digests, for the record to anchor.** Each profile carries `digests.profile_sha256` (the whole profile) and `digests.measurement_sha256` (raw reps, settings, build, environment, meter tiers, time). Both are sha256 over canonical JSON: sorted keys, no whitespace, UTF-8, and no field joining. A run prints the profile digest at the end, and `--reanalyse` recomputes it. Once a digest is anchored somewhere outside (open item 3), any later edit shows up as a different digest. A digest proves only that the profile hasn't changed since anchoring, never that it's genuine; independent re-measurement (open item 4) is what tests genuineness. The scheme uses Python's float formatting, which isn't yet RFC 8785 (JCS), so another language must match it to reproduce a digest.
+
 > **It can't detect forgery.** Anyone can fabricate a raw section that is self-consistent and holds any numbers at all. An independent verifier forged 1.5× compute, 2× bandwidth and 0.5× latency, and all of them passed. Only an outside-anchored record (open item 3) can stop that. CPU steal, timer readings and the recorded seed (rewriting it and every chase seed together stays consistent) can't be checked against anything either.
 
-## Results on two machines
-**Machine A** (where it was built): Intel Xeon, KVM guest, 2 vCPUs, AVX-512. Full run 2026-11-05, seed 20261109, `profile.json`. CPU steal stayed at or below 1.0% per rep. Meter tiers: timing and cachegrind only.
+## Results on three machines
+**Machine A** (where it was built): Intel Xeon @ 2.10 GHz, KVM guest, 2 vCPUs, AVX-512. Full run 2026-11-05, seed 20261109; its profile is `probe/profile.json` at commit `a014e15`. CPU steal stayed at or below 1.0% per rep. Meter tiers: timing and cachegrind only.
 
 | | Measured / derived | Reported by the VM |
 |---|---|---|
@@ -96,10 +98,16 @@ On another host it exits 2.
 - **Beyond L2:** a transition, from about 9 ns at 1.4 MiB through 35 ns at 2 MiB to about 200 ns at 724 MiB, the largest size measured, with no plateau and 10–30% noise per point. The RAM-limited sweep ended below 2× the reported L3, and `sweep_reach` warns about it.
 - The verifier's own pointer chase and bandwidth tests matched L1 and L2 within 1%, and L1 bandwidth (306 GB/s) exactly.
 
+**Machine C** (this workspace after it restarted on a different host): Intel Xeon @ 2.80 GHz (AVX-512 with VNNI), KVM guest, 2 vCPUs, reporting L1d 32 KiB, L2 1 MiB and L3 33 MiB per core. Full run 2026-11-05, seed 20261110, `profile.json`, with digest `cda1c740…3df7`. CPU steal stayed at or below 1.1%. Meter tiers: timing and cachegrind only.
+- **Levels:** L1 1.57 ns over 4–44 KiB (capacity 32–64 KiB) and L2 4.41 ns over 64–724 KiB (capacity above 724 KiB, upper end unknown). Beyond that, a transition.
+- **Beyond 1 MiB:** latency is about 20–29 ns at 1.4–2.9 MiB. Above 4 MiB every size is **two-speed**: the fastest rep is always about 95 ns, while medians swing between about 97 and 165 ns, with slow reps up to 210 ns. That looks like two memory paths (remote NUMA memory or host contention, for example). There's no plateau to fit, and the fit says so. The sweep reached 7.8× the reported L3, so this isn't a range problem.
+- **Bandwidth and compute:** DRAM read 10.0 / 17.8 GB/s (1 / 2 threads), L1 read 174 GB/s. Compute: scalar f64 12.6, vec f64 79.4 and vec f32 143 GFLOP/s (1 thread). Those figures are consistent with two FMA units and the usual AVX-512 clock drop. No peak claim is made, because the clock under load wasn't measured.
+
 **What this already changes:**
 - **The old probe measured its own loops, not the hardware.** Its "3.3 GFLOP/s scalar" and "6.5 GB/s" were loop limits. The real figures here are 11 GFLOP/s and about 16 GB/s.
-- **A VM's reported L3 isn't what one core gets.** Machine A reports 260 MiB, and one core sees about 8–16 MiB. Machine B shows no L3 plateau at all.
-- **Shared hosts are noisy beyond L2.** Comparisons must be interleaved and gated on SE, as decided, and level fits there will often, honestly, stop at L2.
+- **A VM's reported L3 isn't what one core gets.** Machine A reports 260 MiB, and one core sees about 8–16 MiB. Machines B and C show no L3 plateau at all.
+- **Shared hosts are noisy beyond L2.** Comparisons must be interleaved and gated on SE, as decided, and level fits there will often, honestly, stop at L2: on two of the three machines they did. Machine C's two-speed memory also means the same workload can see about 1.7× different DRAM latency from rep to rep. The meter has to compare candidates interleaved, never one run against another.
+- **The cloud workspace can move hosts between sessions** (A → C here). A profile belongs to the host it was measured on, and comparisons are only valid within one host.
 
 ## How it was checked
 Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a different machine. Each of the first six found real problems, which are now fixed; the seventh confirmed the fixes. None could break the kernels.
@@ -131,8 +139,8 @@ The commit history shows each step.
 - **Tier 2 only on both machines.** These are times, not joules. The energy score needs real-hardware calibration or a machine where RAPL or NVML shows as available.
 - **Only x86 Linux has been tested.** The NVML and ARM paths are untested; the vector ISA is recorded so an ARM ceiling isn't misread.
 - **Large sizes include TLB effects.** The THP mode is recorded.
-- **Complexity debt.** About 1,500 lines in total, mostly the level-fit statistics and their tests. Six reviews say the fit has earned its place, but it's the part to watch. The known limits above are where the next round should start.
+- **Complexity debt.** About 1,600 lines in total, mostly the level-fit statistics and their tests. Seven reviews say the fit has earned its place, but it's the part to watch. The known limits above are where the next round should start.
 - **Not measured yet:** write bandwidth, L2/L3 bandwidth, integer and low-precision throughput, synchronisation cost.
 
 ## Files
-`kernels.c` (measurements) · `probe.py` (driver, tiers, stats, levels, profile) · `test_probe.py` · `fixtures/shared_vm_curve.json` (machine B regression curve) · `profile.json` (machine A run above, with raw reps) · `probe_v0_reference.c` (the old probe, kept for comparison)
+`kernels.c` (measurements) · `probe.py` (driver, tiers, stats, levels, profile) · `test_probe.py` · `fixtures/shared_vm_curve.json` (machine B regression curve) · `profile.json` (machine C run above, with raw reps and digests; machine A's run is at commit `a014e15`) · `probe_v0_reference.c` (the old probe, kept for comparison)
