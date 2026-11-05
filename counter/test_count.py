@@ -34,6 +34,18 @@ EXEC_C = r"""
 int main(void){ volatile long s = 0; for (long i = 0; i < 3000000; i++) s += i;
   execl("/bin/echo", "echo", "done", (char *)0); return 1; }
 """
+HIDE_C = r"""
+#include <glob.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+int main(void){ pid_t c = fork();
+  if (c == 0) { volatile long s = 0; for (long i = 0; i < 3000000; i++) s += i; return 0; }
+  waitpid(c, 0, 0); char pat[64]; snprintf(pat, sizeof pat, "/tmp/*/cg.%d", (int)c);
+  glob_t g; if (glob(pat, 0, 0, &g) == 0) for (size_t i = 0; i < g.gl_pathc; i++) unlink(g.gl_pathv[i]);
+  printf("done\n"); return 0; }
+"""
 RAND_OUT_C = r"""
 #include <stdio.h>
 #include <sys/random.h>
@@ -55,7 +67,7 @@ class Counter(unittest.TestCase):
         cls.td = tempfile.mkdtemp()
         cls.mlp = os.path.join(cls.td, "mlp")
         subprocess.run(["gcc", "-O2", "-o", cls.mlp, os.path.join(HERE, "workloads", "mlp.c")], check=True)
-        progs = [("noisy", NOISY_C), ("chase", CHASE_C), ("cache", CACHE_C), ("execs", EXEC_C), ("randout", RAND_OUT_C)]
+        progs = [("noisy", NOISY_C), ("chase", CHASE_C), ("cache", CACHE_C), ("execs", EXEC_C), ("randout", RAND_OUT_C), ("hide", HIDE_C)]
         if os.path.exists("/usr/include/valgrind/cachegrind.h"):
             progs.append(("stop", STOP_C))
         for name, src in progs:
@@ -188,6 +200,26 @@ class Counter(unittest.TestCase):
         with self.assertRaises(count.Failure) as cm:
             count.count([os.path.join(self.td, "execs")], reps=1)
         self.assertIn("exec", str(cm.exception))
+
+    def test_a_child_deleting_its_counts_is_caught(self):
+        # review 2 hid a child's work by deleting its count file and editing the log; the log is now a pipe
+        with self.assertRaises(count.Failure) as cm:
+            count.count([os.path.join(self.td, "hide")], reps=1)
+        self.assertIn("count files", str(cm.exception))
+
+    def test_fork_children_without_exec_are_counted(self):
+        rec = count.count([sys.executable, "-c", "import os\nif os.fork() == 0:\n    sum(range(200000)); os._exit(0)\nos.wait()"], reps=2)
+        self.assertEqual(rec["reps"][0]["processes"], 2)
+        self.assertTrue(rec["verdict"]["exact"])
+
+    def test_env_shebang_is_refused_clearly(self):
+        script = os.path.join(self.td, "envscript")
+        with open(script, "w") as f:
+            f.write("#!/usr/bin/env python3\nprint(1)\n")
+        os.chmod(script, 0o755)
+        with self.assertRaises(count.Failure) as cm:
+            count.count([script], reps=1)
+        self.assertIn("env", str(cm.exception))
 
     def test_env_cannot_reach_valgrind_or_the_loader(self):
         for kv in ("VALGRIND_LIB=/tmp/x", "LD_PRELOAD=/tmp/x.so", "GLIBC_TUNABLES=a=b", "PATH=/x", "BAD-KEY=1"):

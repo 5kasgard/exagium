@@ -19,7 +19,7 @@ or the record is edited or malformed); 2 --check could not compare like for like
 program, input, library, loader cache, valgrind, architecture or cache model); 3 failure.
 Stdlib only. Needs Linux and valgrind >= 3.22.
 """
-import argparse, datetime, fcntl, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
+import argparse, datetime, fcntl, threading, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
 
 SCHEMA = "exagium-count/3"
 # Reference cache model. An explicit choice (see README "Reference cache"): comparable across
@@ -135,11 +135,8 @@ def interpreter(path):
     if not words or not os.path.isabs(words[0]):
         raise Failure(f"{path}: '#!' must name an absolute interpreter")
     if os.path.basename(words[0]) == "env":
-        names = [w for w in words[1:] if not w.startswith("-")]
-        found = shutil.which(names[0], path=PATH) if names else None
-        if not found:
-            raise Failure(f"{path}: cannot resolve the '#!' interpreter on {PATH}")
-        return found
+        raise Failure(f"{path}: '#!/usr/bin/env' starts the interpreter with exec, which can't be counted; "
+                      f"run the interpreter directly, e.g. 'python3 {os.path.basename(path)}'")
     return words[0]
 
 
@@ -204,35 +201,52 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
     """Run cmd once under cachegrind in a fresh sandbox, children included. Counts summed over processes."""
     fresh_sandbox(inputs)
     with tempfile.TemporaryDirectory() as td:
-        # one shared log stream (valgrind keeps it on a reserved fd the program can't close): each process
-        # image valgrind starts writes one "Command:" header, so a pid with two headers exec'd
-        logfd = os.open(os.path.join(td, "vg.log"), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        # One shared log stream on a pipe (valgrind keeps it on a reserved fd the program can't close). Each
+        # process image valgrind starts writes one "Command:" header, so a pid with two headers exec'd. A pipe,
+        # unlike a file, can't be edited afterwards: a header once written can't be removed (review 2).
+        rfd, wfd = os.pipe()
+        chunks = []
+        reader = threading.Thread(target=lambda: chunks.extend(iter(lambda: os.read(rfd, 65536), b"")), daemon=True)
+        reader.start()
         vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes", "--trace-children=yes",
-              f"--cachegrind-out-file={td}/cg.%p", f"--log-fd={logfd}", *cache_args(cache), "--", *cmd]
+              f"--cachegrind-out-file={td}/cg.%p", f"--log-fd={wfd}", *cache_args(cache), "--", *cmd]
         t0 = datetime.datetime.now(datetime.timezone.utc)
         try:
             p = subprocess.run(vg, env=env, cwd=os.path.join(SANDBOX, "work"), capture_output=True,
-                               timeout=timeout, pass_fds=(logfd,))
+                               timeout=timeout, pass_fds=(wfd,))
         finally:
-            os.close(logfd)
+            os.close(wfd)
         wall = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
-        with open(os.path.join(td, "vg.log"), errors="replace") as f:
-            log = f.read()
+        reader.join(10)
+        if reader.is_alive():  # someone still holds the log open: a process outlived the command
+            raise Failure("a process outlived the command (its work would be counted late or not at all)")
+        os.close(rfd)
+        log = b"".join(chunks).decode(errors="replace")
         if p.returncode != 0:
             raise Failure(f"exit {p.returncode}: {log.strip()[-400:]}")
-        starts = {}
+        # Cross-check the pipe (append-only) against the count files (which a program could edit or delete):
+        # each process image writes one "Command:" header when valgrind starts it (a fork child doesn't), and
+        # every process, fork children included, writes "I refs: N" when it ends.
+        starts, irefs = {}, {}
         for line in log.splitlines():
-            if line.startswith("==") and "== Command: " in line:
-                pid = line[2:line.index("==", 2)]
+            if not line.startswith("==") or line.find("==", 2) < 0:
+                continue
+            pid, text = line[2:line.index("==", 2)], line[line.index("==", 2) + 2:].strip()
+            if text.startswith("Command: "):
                 starts[pid] = starts.get(pid, 0) + 1
+            elif text.startswith("I refs:"):
+                if pid in irefs:
+                    raise Failure(f"process {pid} reported its total twice")
+                irefs[pid] = int(text.split(":", 1)[1].replace(",", ""))
         execd = sorted(pid for pid, n in starts.items() if n > 1)
         if execd:
             raise Failure(f"process {', '.join(execd)} called exec: valgrind drops the counts of the image "
                           f"before an exec, so this would undercount. Run the program directly, without exec.")
+        if set(starts) - set(irefs):
+            raise Failure(f"process {', '.join(sorted(set(starts) - set(irefs)))} ended without reporting counts")
         outs = sorted(f for f in os.listdir(td) if f.startswith("cg."))
-        # every process valgrind started must have left counts: a lost file would undercount
-        if not outs or {f[3:] for f in outs} != set(starts):
-            raise Failure(f"{len(starts)} processes ran but {len(outs)} left counts")
+        if not outs or {f[3:] for f in outs} != set(irefs):
+            raise Failure(f"{len(irefs)} processes reported totals but {len(outs)} left count files")
         if keep_raw:
             os.makedirs(keep_raw, exist_ok=True)
             for f in outs:
@@ -242,6 +256,8 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
         total, models = dict.fromkeys(EVENTS, 0), []
         for f in outs:
             desc, counts = parse_out(os.path.join(td, f))
+            if counts["Ir"] != irefs[f[3:]]:
+                raise Failure(f"count file of process {f[3:]} disagrees with the total it reported")
             models.append(desc)
             for k in EVENTS:
                 total[k] += counts[k]
