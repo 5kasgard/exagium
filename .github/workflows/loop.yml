@@ -1,0 +1,80 @@
+# The first loop, on hosts the owner doesn't control. Each job lands on whatever runner is free and:
+#   1. retrains every baseline and candidate in a sandbox with no network, from the training file alone,
+#      and checks the weights are byte-identical to the frozen ones (loop.py reproduce);
+#   2. scores them on the dev split (the last 25% of the training file);
+#   3. for each request in loop/verify/, scores the named candidates on the test set, which loop.py only
+#      does when the ledger holds a plan that froze exactly those files.
+# A final job commits every job's output to the ci-runs branch (loop/<run id>/), so results stay in git.
+name: loop
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["loop/**", ".github/workflows/loop.yml"]
+permissions:
+  contents: read
+jobs:
+  run:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+        slot: [1, 2, 3]
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0   # loop.py verifies the ledger before scoring the test set
+      - name: tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+          # Ubuntu 24.04 blocks unprivileged user namespaces; training runs in one with no network
+          sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
+          mkdir -p out && { echo "${ImageOS:-} ${ImageVersion:-}"; gcc --version | head -1; valgrind --version; nproc; } > out/host.txt
+          grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true
+      - name: reproduce training (no network, training file only)
+        run: |
+          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null)
+          "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --no-net --out out/reproduce.json 2>&1 | tee out/reproduce.txt || true
+      - name: score on the dev split
+        run: |
+          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null)
+          "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test dev --records out/records --out out/dev.json 2>&1 | tee out/dev.txt || true
+      - name: score requested plans on the test set
+        run: |
+          for req in loop/verify/*.json; do
+            [ -e "$req" ] || continue
+            plan=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['plan'])" "$req")
+            dirs=$(python3 -c "import json,sys; print(' '.join(json.load(open(sys.argv[1]))['candidates']))" "$req")
+            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test test --plan "$plan" --records out/records \
+              --out "out/test-plan$plan.json" 2>&1 | tee "out/test-plan$plan.txt" || true
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loop-${{ matrix.runner }}-${{ matrix.slot }}
+          path: out
+  collect:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: commit results to ci-runs
+        run: |
+          git init -q ci && cd ci
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs
+          d=loop/${{ github.run_id }}; mkdir -p $d
+          cp -r ../art/* $d/ && echo "${{ github.sha }}" > $d/commit.txt
+          git add loop
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+            commit -q -m "loop run ${{ github.run_id }} at ${{ github.sha }}"
+          for i in 1 2 3; do git push -q origin ci-runs && break; git pull -q --rebase origin ci-runs; done
