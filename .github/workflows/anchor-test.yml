@@ -7,6 +7,8 @@ on:
     branches: [anchor-test]
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 jobs:
   try:
     strategy:
@@ -24,6 +26,23 @@ jobs:
           echo "digest $D"
           bash record/experiments/anchors/try_anchors.sh "$D" "$PWD/out"
           echo "$D" > out/digest.txt
+          echo "digest=$D" >> "$GITHUB_OUTPUT"
+        id: d
+      # Sigstore route: sign the digest with this workflow's identity; public repos log it in Rekor.
+      - name: attest digest (Sigstore / Rekor)
+        id: att
+        continue-on-error: true
+        uses: actions/attest@v2
+        with:
+          subject-name: exagium-record-digest
+          subject-digest: sha256:${{ steps.d.outputs.digest }}
+          predicate-type: https://exagium.dev/anchor-test/v0
+          predicate: '{"purpose":"item 3 anchor experiment"}'
+      - name: save attestation result
+        if: always()
+        run: |
+          echo '{"route":"sigstore_attest","outcome":"${{ steps.att.outcome }}","bundle":"${{ steps.att.outputs.bundle-path }}","attestation_id":"${{ steps.att.outputs.attestation-id }}","url":"${{ steps.att.outputs.attestation-url }}"}' >> out/attempts.jsonl
+          cp "${{ steps.att.outputs.bundle-path }}" out/attestation.jsonl 2>/dev/null || true
       - uses: actions/upload-artifact@v4
         with:
           name: anchors-${{ matrix.runner }}
