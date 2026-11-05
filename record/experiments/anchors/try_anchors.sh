@@ -26,14 +26,14 @@ for url in https://freetsa.org/tsr http://timestamp.digicert.com http://timestam
   # Verify: token covers our digest and chains to a root we hold (system store + FreeTSA's own CA).
   vout=$(openssl ts -verify -digest "$D" -in r$i.tsr -CAfile roots.pem 2>&1 | tail -1 | tr -d '"\\')
   size=$(stat -c %s r$i.tsr 2>/dev/null || echo 0)
-  emit "{\"route\":\"rfc3161\",\"url\":\"$url\",\"http\":\"$code\",\"seconds\":$(echo "$t1-$t0"|bc),\"status\":\"${status:-}\",\"gen_time\":\"${gen:-}\",\"runner_utc\":\"$(date -u -d @${t1%.*} +%FT%TZ)\",\"verify\":\"$vout\",\"token_bytes\":$size,\"tsa\":\"${tsa:-}\"}"
+  emit "{\"route\":\"rfc3161\",\"url\":\"$url\",\"http\":\"$code\",\"seconds\":$(printf "%.3f" "$(echo "$t1-$t0"|bc)"),\"status\":\"${status:-}\",\"gen_time\":\"${gen:-}\",\"runner_utc\":\"$(date -u -d @${t1%.*} +%FT%TZ)\",\"verify\":\"$vout\",\"token_bytes\":$size,\"tsa\":\"${tsa:-}\"}"
 done
 
 # --- OpenTimestamps (Bitcoin-anchored; pending until a block confirms). ---
 pip install -q opentimestamps-client >/dev/null 2>&1
 python3 -c "import sys;open('digest.bin','wb').write(bytes.fromhex(sys.argv[1]))" "$D"
 t0=$(now); ots stamp digest.bin >ots.log 2>&1; rc=$?; t1=$(now)
-emit "{\"route\":\"opentimestamps\",\"exit\":$rc,\"seconds\":$(echo "$t1-$t0"|bc),\"proof_bytes\":$(stat -c %s digest.bin.ots 2>/dev/null || echo 0)}"
+emit "{\"route\":\"opentimestamps\",\"exit\":$rc,\"seconds\":$(printf "%.3f" "$(echo "$t1-$t0"|bc)"),\"proof_bytes\":$(stat -c %s digest.bin.ots 2>/dev/null || echo 0)}"
 
 # --- Gist written by CI's own token (expected: refused, since GITHUB_TOKEN has no gist scope). ---
 code=$(curl -s -o gist.json -w '%{http_code}' -X POST -H "Authorization: Bearer ${GH_TOKEN:-}" \
