@@ -1,0 +1,48 @@
+# Experiment for open item 3: which outside anchors can a runner reach, and what do they prove?
+# Runs only on the anchor-test branch or by hand. Results go to the ci-runs branch under anchors/.
+name: anchor experiment
+on:
+  workflow_dispatch:
+  push:
+    branches: [anchor-test]
+permissions:
+  contents: write
+jobs:
+  try:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: try each anchor route
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          D=$(sha256sum runs/$(ls runs | grep '^count-' | head -1) | cut -c1-64)
+          echo "digest $D"
+          bash record/experiments/anchors/try_anchors.sh "$D" "$PWD/out"
+          echo "$D" > out/digest.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anchors-${{ matrix.runner }}
+          path: out
+  collect:
+    needs: try
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: commit results to ci-runs
+        run: |
+          git init -q ci && cd ci
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs
+          mkdir -p anchors/${{ github.run_id }} && cp -r ../art/* anchors/${{ github.run_id }}/
+          git add anchors
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+            commit -q -m "anchor experiment run ${{ github.run_id }} at ${{ github.sha }}"
+          git push -q origin ci-runs
