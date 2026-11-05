@@ -1,6 +1,6 @@
 # The first loop, on hosts the owner doesn't control. Each job lands on whatever runner is free and:
-#   1. retrains every baseline and candidate in a sandbox with no network, from the training file alone,
-#      and checks the weights are byte-identical to the frozen ones (loop.py reproduce);
+#   1. retrains every baseline and candidate in loop.py's jail (bubblewrap: no network, no repo, only the
+#      training file) and checks the weights are byte-identical to the frozen ones (loop.py reproduce);
 #   2. scores them on the dev split (the last 25% of the training file);
 #   3. for each request in loop/verify/, scores the named candidates on the test set, which loop.py only
 #      does when the ledger holds a plan that froze exactly those files.
@@ -28,18 +28,20 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0   # loop.py verifies the ledger before scoring the test set
+          persist-credentials: false   # no token left in .git/config
       - name: tools
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
-          # Ubuntu 24.04 blocks unprivileged user namespaces; training runs in one with no network
-          sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0 || true
-          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
+          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind bubblewrap
+          # Ubuntu 24.04 blocks unprivileged user namespaces, which the jail needs
+          sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0
+          python3 -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3 sigstore==4.5.1 opentimestamps-client==0.8.0
           mkdir -p out && { echo "${ImageOS:-} ${ImageVersion:-}"; gcc --version | head -1; valgrind --version; nproc; } > out/host.txt
           grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true
-      - name: reproduce training (no network, training file only)
+      - name: reproduce training (in the jail)
         run: |
           dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
-          "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --no-net --out out/reproduce.json 2>&1 | tee out/reproduce.txt || true
+          "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1 | tee out/reproduce.txt || true
       - name: score on the dev split
         run: |
           dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
@@ -48,9 +50,9 @@ jobs:
         run: |
           for req in loop/verify/*.json; do
             [ -e "$req" ] || continue
-            plan=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['plan'])" "$req")
-            dirs=$(python3 -c "import json,sys; print(' '.join(json.load(open(sys.argv[1]))['candidates']))" "$req")
-            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test test --plan "$plan" --records out/records \
+            plan=$(python3 -c "import json,sys; print(int(json.load(open(sys.argv[1]))['plan']))" "$req")
+            mapfile -t dirs < <(python3 -c "import json,sys; [print(d) for d in json.load(open(sys.argv[1]))['candidates']]" "$req")
+            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" --records out/records \
               --out "out/test-plan$plan.json" 2>&1 | tee "out/test-plan$plan.txt" || true
           done
       - uses: actions/upload-artifact@v4

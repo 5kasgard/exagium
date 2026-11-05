@@ -85,7 +85,7 @@ def valgrind_version(exe):
 
 def tool_fingerprint(exe):
     """sha256 of the valgrind launcher, the cachegrind tool binary it loads, and this script."""
-    p = subprocess.run([exe, "--command-line-only=yes", "-v", "--tool=cachegrind", "/bin/true"],
+    p = subprocess.run([exe, "--command-line-only=yes", "-v", "--tool=cachegrind", "--cachegrind-out-file=/dev/null", "/bin/true"],
                        capture_output=True, text=True, env={"PATH": PATH})
     tool = next((l.split("Reading syms from ", 1)[1].strip() for l in p.stderr.splitlines()
                  if "Reading syms from " in l and "/cachegrind-" in l), None)

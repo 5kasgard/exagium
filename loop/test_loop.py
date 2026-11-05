@@ -70,19 +70,21 @@ class Loop(unittest.TestCase):
         self.assertIn("DIFFERENT", msg)
 
     def test_training_sees_only_the_training_file(self):
-        probe = ("import os, sys\nok = sorted(os.listdir('.')) == ['train.csv', 'train.py']"
-                 " and open('train.csv').read() == open(%r).read()\nopen(sys.argv[2], 'wb').write(b'1' if ok else b'0')\n"
-                 % loop.TASK["train"])
+        probe = ("import hashlib, os, sys\nok = sorted(os.listdir('.')) == ['train.csv', 'train.py']"
+                 " and hashlib.sha256(open('train.csv', 'rb').read()).hexdigest() == %r\n"
+                 "open(sys.argv[2], 'wb').write(b'1' if ok else b'0')\n" % loop.sha256_file(loop.TASK["train"]))
         d = make(self.tmp, "p", b"1", train=probe)
         self.assertEqual(run("reproduce", d)[0], 0)
 
-    @unittest.skipUnless(shutil.which("unshare") and subprocess.run(["unshare", "-rn", "true"]).returncode == 0,
-                         "no user namespaces here")
-    def test_no_net_training_has_no_network(self):
-        probe = ("import socket, sys\ntry:\n socket.create_connection(('1.1.1.1', 443), timeout=3); r = b'net'\n"
-                 "except OSError:\n r = b'none'\nopen(sys.argv[2], 'wb').write(r)\n")
-        d = make(self.tmp, "n", b"none", train=probe)
-        self.assertEqual(run("reproduce", d, "--no-net")[0], 0)
+    def test_training_jail_has_no_network_repo_or_frozen_weights(self):
+        probe = ("import os, socket, sys\nseen = []\n"
+                 "try:\n socket.create_connection(('1.1.1.1', 443), timeout=3); seen.append('net')\nexcept OSError:\n pass\n"
+                 "for p in (%r, %r, %r, '/home'):\n if os.path.exists(p): seen.append(p)\n"
+                 "for pid in os.listdir('/proc'):\n if pid.isdigit():\n  try:\n   if os.listdir('/proc/%%s/cwd' %% pid) not in ([], ['train.csv', 'train.py'], ['train.py', 'train.csv']): seen.append(pid)\n  except OSError:\n   pass\n"
+                 "open(sys.argv[2], 'wb').write(repr(seen).encode())\n") % (loop.REPO, loop.TASK["test"], os.path.dirname(os.path.abspath(__file__)))
+        d = make(self.tmp, "n", b"[]", train=probe)
+        code, msg = run("reproduce", d)
+        self.assertEqual(code, 0, msg)
 
     def test_test_split_needs_a_plan(self):
         d = make(self.tmp, "a")
@@ -99,33 +101,73 @@ class Loop(unittest.TestCase):
     def test_malformed_output_fails(self):
         bad = CONST.replace("putchar('\\n');", "")
         d = make(self.tmp, "bad", infer=bad)
-        code, msg = run("evaluate", d, "--rounds", "2", "--passes", "1", "--records", os.path.join(self.tmp, "r"))
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
         self.assertEqual(code, 1)
         self.assertIn("exactly", msg)
 
     def test_evaluate_constant_classifier_on_dev(self):
         d = make(self.tmp, "seven", b"7")
         out = os.path.join(self.tmp, "s.json")
-        code, msg = run("evaluate", d, "--rounds", "2", "--passes", "2", "--records", os.path.join(self.tmp, "r"),
-                        "--out", out)
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"), "--out", out)
         self.assertEqual(code, 0, msg)
-        s = json.load(open(out))
+        with open(out) as fh:
+            s = json.load(fh)
         c = s["candidates"][0]
         dev = loop.split("dev")
         self.assertEqual(c["correct"], sum(r[64] == 7 for r in dev))
         self.assertGreater(c["simulated_Ir_per_image"], 0)
         self.assertEqual(len(c["counter_records"]), 2)
         self.assertEqual(code, 0)
-        self.assertEqual(run("evaluate", d, "--rounds", "2", "--passes", "1", "--records",
+        self.assertEqual(run("evaluate", d, "--rounds", "2", "--records",
                              os.path.join(self.tmp, "r"), "--out", out)[0], 3)  # never overwrite a scoreboard
 
     def test_timing_run_must_agree_with_counted_predictions(self):
-        # answers depend on how many images it is asked for: the timing run (N*P) disagrees with the counted run
-        flaky = CONST.replace("int k = fgetc(f);", "int k = fgetc(f); if (n > 2000) k = '3';")
+        # answers depend on row order (first row's first pixel): shuffled timing runs disagree with the counted run
+        flaky = CONST.replace("for(long i=0;i<n;i++) putchar(k);",
+                              "FILE *x = fopen(v[2], \"rb\"); if (x) fseek(x, 20, SEEK_SET); int p = x ? fgetc(x) : 0; if (n > 0 && p > 3) k = '3';"
+                              " for(long i=0;i<n;i++) putchar(k);")
         d = make(self.tmp, "flaky", infer=flaky)
-        code, msg = run("evaluate", d, "--rounds", "2", "--passes", "3", "--records", os.path.join(self.tmp, "r"))
+        code, msg = run("evaluate", d, "--rounds", "3", "--records", os.path.join(self.tmp, "r"))
         self.assertEqual(code, 1)
         self.assertIn("timing run's predictions differ", msg)
+
+    def test_inference_jail_hides_repo_task_readme_and_earlier_runs(self):
+        hostile = r"""#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+int main(int c, char **v){ long n = atol(v[3]); int k = '0';
+  if (fopen(%s, "r") || fopen("README.md", "r") || access("/tmp/exagium-marker", F_OK) == 0) k = '9';
+  FILE *w = fopen(%s, "w"); if (w) { k = '9'; fclose(w); }
+  FILE *m = fopen("/tmp/exagium-marker", "w"); if (m) fclose(m);
+  for(long i=0;i<n;i++) putchar(k); putchar(10); return 0; }
+""" % (json.dumps(loop.TASK["test"]), json.dumps(os.path.join(loop.REPO, "pwned")))
+        d = make(self.tmp, "hostile", infer=hostile)
+        with open(os.path.join(d, "README.md"), "w") as f:
+            f.write("x")
+        out = os.path.join(self.tmp, "h.json")
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"), "--out", out)
+        self.assertFalse(os.path.exists(os.path.join(loop.REPO, "pwned")))
+        with open(out) as fh:
+            s = json.load(fh)
+        # every native run printed '0': repo, task, README and earlier runs were out of reach
+        self.assertEqual(s["candidates"][0]["correct"], sum(r[64] == 0 for r in loop.split("dev")))
+        # the counter's two reps share one jail, so the marker reaches rep 2: that shows up as reps that differ
+        self.assertEqual(code, 1)
+        self.assertTrue(s["problems"] and all("counter exit 1 (exact=False" in p for p in s["problems"]), s["problems"])
+
+    def test_n0_must_print_only_a_newline_and_startup_is_counted(self):
+        pad = CONST.replace("for(long i=0;i<n;i++) putchar(k);", "if (n == 0) putchar('7'); for(long i=0;i<n;i++) putchar(k);")
+        d = make(self.tmp, "pad", infer=pad)
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
+        self.assertEqual(code, 1)
+        self.assertRegex(msg, "N = 0 it must print only a newline|exactly 0 digits")
+
+    def test_duplicate_names_refused(self):
+        a = make(os.path.join(self.tmp, "x"), "same")
+        b = make(os.path.join(self.tmp, "y"), "same")
+        code, msg = run("evaluate", a, b, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
+        self.assertEqual(code, 1)
+        self.assertIn("unique", msg)
 
 
 if __name__ == "__main__":
