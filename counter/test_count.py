@@ -1,0 +1,162 @@
+"""Tests for count.py. Each test that runs valgrind takes about a second.
+
+    python3 -m unittest -v test_count
+"""
+import json, os, shutil, subprocess, sys, tempfile, unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import count
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+NOISY_C = r"""
+#include <stdio.h>
+#include <sys/random.h>
+int main(void){ unsigned char b; if (getrandom(&b, 1, 0) != 1) return 1; volatile long s = 0;
+  for (long i = 0; i < 1000 + b * 50; i++) s += i; printf("%ld\n", (long)s); return 0; }
+"""
+CHASE_C = r"""
+#include <stdio.h>
+#include <stdlib.h>
+int main(int c, char **v){ size_t n = strtoull(v[1],0,10)/64; char *b = aligned_alloc(4096, n*64);
+  for (size_t i = 0; i < n; i++) *(void**)(b + i*64) = b + ((i+1)%n)*64;
+  void **p = (void**)b; for (size_t k = 0; k < 20*n; k++) p = (void**)*p; printf("%d\n", p==0); return 0; }
+"""
+
+
+@unittest.skipUnless(shutil.which("valgrind") and shutil.which("gcc"), "needs valgrind and gcc")
+class Counter(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.td = tempfile.mkdtemp()
+        cls.mlp = os.path.join(cls.td, "mlp")
+        subprocess.run(["gcc", "-O2", "-o", cls.mlp, os.path.join(HERE, "workloads", "mlp.c")], check=True)
+        for name, src in (("noisy", NOISY_C), ("chase", CHASE_C)):
+            with open(os.path.join(cls.td, name + ".c"), "w") as f:
+                f.write(src)
+            subprocess.run(["gcc", "-O2", "-o", os.path.join(cls.td, name), os.path.join(cls.td, name + ".c")], check=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.td)
+
+    def out_dir(self):
+        d = tempfile.mkdtemp(dir=self.td)
+        return d
+
+    def test_deterministic_program_is_exact(self):
+        rec = count.count([self.mlp, "50"], reps=3)
+        self.assertTrue(rec["verdict"]["exact"])
+        self.assertTrue(rec["verdict"]["stdout_identical"])
+        self.assertGreater(rec["summary"]["Ir"]["median"], 100000)
+        self.assertEqual(rec["summary"]["Ir"]["rel_spread"], 0)
+
+    def test_nondeterministic_program_is_flagged(self):
+        rec = count.count([os.path.join(self.td, "noisy")], reps=4)
+        self.assertFalse(rec["verdict"]["exact"])  # 4 reps of a random loop length: equal by chance ~1e-7
+        self.assertGreater(rec["summary"]["Ir"]["rel_spread"], 0)
+
+    def test_python_hash_seed_is_fixed(self):
+        rec = count.count([sys.executable, os.path.join(HERE, "workloads", "mlp.py"), "3"], reps=2)
+        self.assertEqual(rec["env"]["PYTHONHASHSEED"], "0")
+        self.assertTrue(rec["verdict"]["exact"], rec["summary"]["Ir"])
+
+    def test_children_are_counted(self):
+        direct = count.count([self.mlp, "50"], reps=1)
+        via_sh = count.count(["/bin/sh", "-c", f"{self.mlp} 50 > /dev/null"], reps=1)
+        self.assertGreaterEqual(via_sh["reps"][0]["processes"], 2)
+        self.assertGreater(via_sh["summary"]["Ir"]["median"], direct["summary"]["Ir"]["median"])
+
+    def test_reference_model_is_what_was_simulated(self):
+        rec = count.count([self.mlp, "5"], reps=1)
+        self.assertEqual(rec["cache"]["simulated"], count.REFERENCE)
+        self.assertTrue(rec["cache"]["matches_request"])
+
+    def test_caller_valgrind_settings_are_ignored(self):
+        cwd = os.getcwd()
+        d = self.out_dir()
+        old = os.environ.get("VALGRIND_OPTS")
+        try:
+            os.chdir(d)
+            with open(".valgrindrc", "w") as f:
+                f.write("--LL=1048576,16,64\n")
+            os.environ["VALGRIND_OPTS"] = "--D1=32768,8,64"
+            rec = count.count([self.mlp, "5"], reps=1)
+        finally:
+            os.chdir(cwd)
+            if old is None:
+                os.environ.pop("VALGRIND_OPTS", None)
+            else:
+                os.environ["VALGRIND_OPTS"] = old
+        self.assertEqual(rec["cache"]["simulated"], count.REFERENCE)
+        self.assertNotIn("VALGRIND_OPTS", rec["env"])
+
+    def test_cache_model_changes_misses_not_instructions(self):
+        # a 40 KiB cyclic walk: fits the 48 KiB reference D1, thrashes a 32 KiB LRU D1
+        small = {"I1": [32768, 8, 64], "D1": [32768, 8, 64], "LL": [8388608, 16, 64]}
+        a = count.count([os.path.join(self.td, "chase"), "40960"], reps=1)
+        b = count.count([os.path.join(self.td, "chase"), "40960"], reps=1, cache=small)
+        self.assertEqual(a["summary"]["Ir"]["median"], b["summary"]["Ir"]["median"])
+        self.assertGreater(b["summary"]["D1mr"]["median"], 10 * a["summary"]["D1mr"]["median"])
+
+    def test_records_are_never_overwritten(self):
+        rec = count.count([self.mlp, "5"], reps=1)
+        d = self.out_dir()
+        p = count.write_record(rec, d)
+        with self.assertRaises(FileExistsError):
+            count.write_record(rec, d)
+        with open(p) as f:
+            self.assertEqual(json.load(f)["digest_sha256"], rec["digest_sha256"])
+
+    def test_check_reproduces_and_catches_edits(self):
+        cwd = os.getcwd()
+        os.chdir(self.td)
+        try:
+            rec = count.count(["./mlp", "20"], reps=2)
+        finally:
+            os.chdir(cwd)
+        d = self.out_dir()
+        p = count.write_record(rec, d)
+        self.assertEqual(count.check(p)[0], 0)
+        # an edited count with a stale digest
+        bad = json.loads(json.dumps(rec))
+        bad["reps"][0]["counts"]["Ir"] -= 1000
+        p2 = os.path.join(d, "edited.json")
+        with open(p2, "w") as f:
+            json.dump(bad, f)
+        self.assertEqual(count.check(p2)[0], 1)
+        # an edited count with a recomputed digest: self-consistent, so only re-counting catches it
+        for r in bad["reps"]:
+            r["counts"]["Ir"] = rec["reps"][0]["counts"]["Ir"] - 1000
+        bad["summary"] = count.summarise(bad["reps"])
+        bad.pop("digest_sha256")
+        bad["digest_sha256"] = count.hashlib.sha256(count.canonical(bad)).hexdigest()
+        p3 = os.path.join(d, "forged.json")
+        with open(p3, "w") as f:
+            json.dump(bad, f)
+        code, msg = count.check(p3)
+        self.assertEqual(code, 1, msg)
+        self.assertIn("differ", msg)
+
+    def test_check_refuses_a_changed_program(self):
+        prog = os.path.join(self.td, "mlp_copy")
+        shutil.copy(self.mlp, prog)
+        rec = count.count([prog, "5"], reps=1)
+        p = count.write_record(rec, self.out_dir())
+        with open(prog, "ab") as f:
+            f.write(b"\0")
+        self.assertEqual(count.check(p)[0], 2)
+
+    def test_failing_command_raises(self):
+        with self.assertRaises(RuntimeError):
+            count.count(["/bin/false"], reps=1)
+
+    def test_parse_cache(self):
+        self.assertEqual(count.parse_cache("reference"), count.REFERENCE)
+        self.assertEqual(count.parse_cache("host"), "host")
+        self.assertEqual(count.parse_cache("I1=1,2,3;D1=4,5,6;LL=7,8,9")["LL"], [7, 8, 9])
+        with self.assertRaises(Exception):
+            count.parse_cache("LL=7,8,9")
+
+
+if __name__ == "__main__":
+    unittest.main()

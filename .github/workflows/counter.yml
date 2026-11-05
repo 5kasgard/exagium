@@ -1,0 +1,61 @@
+# Cross-host test of the counter: are cachegrind counts identical on hosts we don't control?
+# Each job lands on whatever runner host is free and records its CPU model. A final job commits
+# every record to the `ci-runs` branch, one file per run, so results stay in git history.
+name: counter cross-host
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["counter/**", ".github/workflows/counter.yml"]
+permissions:
+  contents: read
+jobs:
+  count:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+        slot: [1, 2, 3, 4]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: install valgrind
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+      - name: build workloads
+        working-directory: counter/workloads
+        run: gcc -O2 -o mlp mlp.c && sha256sum mlp && gcc --version | head -1
+      - name: unit tests
+        working-directory: counter
+        run: python3 -m unittest -v test_count
+      - name: count C and Python workloads
+        working-directory: counter/workloads
+        run: |
+          mkdir -p ../../runs/ci
+          python3 ../count.py --reps 3 --out-dir ../../runs/ci -- ./mlp 1000 || true
+          python3 ../count.py --reps 3 --hash mlp.py --out-dir ../../runs/ci -- python3 mlp.py 20 || true
+          ls ../../runs/ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runs-${{ matrix.runner }}-${{ matrix.slot }}
+          path: runs/ci/*.json
+  collect:
+    needs: count
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - name: commit records to ci-runs
+        run: |
+          git init -q ci && cd ci
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
+          git fetch -q origin ci-runs && git checkout -q ci-runs || git checkout -q --orphan ci-runs
+          mkdir -p runs/${{ github.run_id }}
+          cp ../art/*/*.json runs/${{ github.run_id }}/
+          git add runs
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+            commit -q -m "counter cross-host run ${{ github.run_id }} at ${{ github.sha }}"
+          git push -q origin ci-runs
