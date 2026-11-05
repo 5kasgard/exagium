@@ -26,11 +26,13 @@ jobs:
         run: gcc -O2 -o mlp mlp.c && sha256sum mlp && gcc --version | head -1
       - name: unit tests
         working-directory: counter
-        run: python3 -m unittest -v test_count
+        run: |
+          mkdir -p ../runs/ci
+          set -o pipefail
+          python3 -m unittest -v test_count 2>&1 | tee ../runs/ci/tests.txt
       - name: count C and Python workloads
         working-directory: counter/workloads
         run: |
-          mkdir -p ../../runs/ci
           echo "${ImageOS:-} ${ImageVersion:-}" > ../../runs/ci/runner_image.txt
           for n in 1000 0; do python3 ../count.py --reps 3 --input mlp --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- ./mlp $n || true; done
           for n in 20 0; do python3 ../count.py --reps 3 --input mlp.py --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- python3 mlp.py $n || true; done

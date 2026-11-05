@@ -55,13 +55,14 @@ Give each a verdict: CONFIRMED / REFUTED / UNCLEAR, with evidence.
 ## Counter claims (`counter/`)
 ```
 cd exagium/counter
-python3 -m unittest -v test_count     # expect 12 passing, ~13 s; needs valgrind >= 3.22
+python3 -m unittest -v test_count     # expect 16 passing, ~16 s; needs valgrind >= 3.22
 gcc -O2 -o workloads/mlp workloads/mlp.c && sha256sum workloads/mlp
-cd workloads && python3 ../count.py -- ./mlp 1000; python3 ../count.py --check ../../runs/<record>.json
+cd workloads && for n in 1000 0; do python3 ../count.py --input mlp -- ./mlp $n; done
+python3 ../count.py --check ../../runs/<record>.json
 ```
 10. **Repeatability.** Reps of a deterministic program are identical; with the default environment, pure Python is too. Find a deterministic program whose reps differ, or a nondeterministic one reported as `exact`.
-11. **Cross-host.** The README claims the same binary gives the same counts on any host of the same architecture, whatever the CPU (`Ir` 36,018,338 for `./mlp 1000` with sha256 `a330b376…` on x86-64; 31,067,197 on arm64). Report your sha256 and counts. If they differ with the same binary, say what differs (`cg_diff`, `--keep-raw`).
-12. **Isolation.** The command should be unaffected by `.valgrindrc`, `VALGRIND_OPTS` and the caller's environment, and children should be counted. Find a way for a candidate to do work that isn't counted, or to make its counts look smaller than its real work.
+11. **Cross-host.** The README claims the CPU never changes the counts, and that the program's own work (`Ir` for `./mlp 1000` minus `./mlp 0`) is identical on every host of an architecture for the same binary: 35,765,911 on x86-64 (sha256 `a330b376…`) and 30,898,727 on arm64. Report your sha256, both totals, your OS image and CPU. If they differ with the same binary, say what differs (`cg_diff`, `--keep-raw`).
+12. **Isolation.** The command runs in a fresh fixed-path sandbox with a fixed environment, unaffected by `.valgrindrc`, `VALGRIND_OPTS` or the caller; children are counted; code holding valgrind client requests is flagged. Find a way for a candidate to do work that isn't counted, or to make its counts look smaller than its real work, while the counter exits 0. (Known and stated: absolute paths outside the sandbox, other processes, dlopen/JIT code.)
 13. **`--check`.** It should exit 0 for a genuine record on the same software, 1 for edited or forged counts, and 2 when it can't compare like for like. Find a tamper that passes.
 14. **Simulated vs measured.** Run `experiments/sweep.py` against your own probe profile and compare the simulated levels with your measured curve.
 

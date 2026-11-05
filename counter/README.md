@@ -4,29 +4,55 @@
 
 **Run.**
 ```
-python3 count.py -- ./candidate args           # 3 reps, reference cache, record in ../runs/
-python3 count.py --reps 5 --cache host -- python3 net.py
-python3 count.py --check ../runs/<record>.json  # re-count here and compare
-python3 -m unittest -v test_count               # 12 tests, ~13 s
+python3 count.py -- /abs/or/PATH/program args              # 3 reps, reference cache, record in ../runs/
+python3 count.py --input net.py --input w.bin -- python3 net.py
+python3 count.py --input cand -- ./cand 1000               # ./name must be an --input
+python3 count.py --check ../runs/<record>.json [--input-dir DIR]
+python3 -m unittest -v test_count                          # 16 tests, ~16 s
 ```
-Exit codes: 0 counted and every rep identical (`--check`: same counts); 1 reps differ (`--check`: counts differ, or the record was edited); 2 `--check` can't compare like for like (another program or input, valgrind version, architecture or cache model); 3 the command or valgrind failed.
+**Exit codes:**
+- **0:** counted, every rep identical, and no code found that can switch counting off. With `--check`: same counts, processes and output.
+- **1:** reps differ, or such code was found. With `--check`: counts or output differ, or the record was edited or is malformed.
+- **2:** `--check` can't compare like for like: another program, input, interpreter, shared library, loader cache, valgrind version, architecture or cache model.
+- **3:** the command or valgrind failed, or anything unexpected happened. A failure is never reported as a verdict.
 
 Needs Linux, Python 3 (stdlib only) and valgrind 3.22 or later. CI installs it with `apt install valgrind`.
 
+## How a run is isolated
+Each rep starts from a **fresh sandbox at a fixed path**, `/tmp/exagium-count`:
+- an empty working directory holding only the declared `--input` files;
+- an empty `HOME` and an empty `TMPDIR`.
+
+The path is fixed because path strings themselves change counts (below). A lock file lets one counter at a time use it.
+
+**The environment is fixed byte for byte.** The command sees only:
+- `PATH=/usr/local/bin:/usr/bin:/bin`, plus `HOME` and `TMPDIR` in the sandbox;
+- `LC_ALL=C`, `TZ=UTC`, `PYTHONHASHSEED=0`;
+- one thread for OpenMP, OpenBLAS and MKL;
+- anything added with `--env`. `PATH`, `HOME` and `TMPDIR` can't be overridden.
+
+**Valgrind:**
+- `--command-line-only=yes`, so `.valgrindrc` files and `VALGRIND_OPTS` are ignored (tested).
+- `--trace-children=yes`, with counts summed over every process. Each process's log is matched against its count file, so a lost file is a failure rather than an undercount.
+- All three caches are always passed. Given only `--LL`, valgrind would take I1 and D1 from the host's CPUID.
+
+**What's executed is fingerprinted.** sha256 is recorded for:
+- the program, and its `#!` interpreter if it's a script;
+- every shared library `ldd` resolves for them;
+- every input;
+- the host's `/etc/ld.so.cache`.
+
+These files are also scanned for the **valgrind client-request preamble** (x86-64 and arm64). That code can switch counting off (`CACHEGRIND_STOP_INSTRUMENTATION`) or detect valgrind. If it's found, the run exits 1. A test shows the stop request really does hide about 3 million instructions, and that the scan flags it.
+
 ## What it records
 One JSON file per run in `runs/`, opened with exclusive create, so a record is never overwritten. Each record holds:
-- the command, working directory and the exact environment the command saw;
-- sha256 of the program, of every shared library `ldd` resolves for it, and of any `--hash` input file;
-- the valgrind version, the host (CPU model, kernel, libc, `/etc/ld.so.cache` digest), and the cache model requested and the one valgrind actually simulated;
-- every rep's counts (`Ir`, `Dr`, `Dw`, L1 and LL misses for instructions, reads and writes), the process count, wall time under valgrind and the sha256 of stdout;
-- the median, min, max and relative spread per event, and a verdict: `exact` (every rep identical) and `stdout_identical`;
-- caveats, and a sha256 digest of the canonical record.
-
-**How it keeps runs comparable:**
-- **Clean environment.** The command sees only `PATH`, `HOME` and a fixed set: `LC_ALL=C`, `TZ=UTC`, `PYTHONHASHSEED=0`, and one thread for OpenMP, OpenBLAS and MKL. Use `--env` to add more.
-- **No caller settings.** `--command-line-only=yes`, so `~/.valgrindrc`, `./.valgrindrc` and `VALGRIND_OPTS` can't change the cache model (tested).
-- **Children are counted.** `--trace-children=yes`, so a candidate can't hide work in a subprocess; counts are summed over every process.
-- **Explicit cache.** All three caches are always passed. Passing only `--LL` makes valgrind take I1 and D1 from the host's CPUID.
+- the command, environment, inputs and fingerprints;
+- the valgrind version and options, and the host (CPU model, kernel, libc, loader-cache digest);
+- the cache model requested and the one actually simulated (a mismatch is a failure);
+- every rep's counts (`Ir`, `Dr`, `Dw`, and L1 and LL misses for instructions, reads and writes), its process count, wall time under valgrind, and the sha256 of its stdout;
+- the median, min, max and relative spread of each count;
+- the verdict: `exact`, `stdout_identical` and `client_request_code`;
+- caveats, and a sha256 digest of the canonical record. The digest is an integrity checksum, not a seal, since anyone can recompute it.
 
 ## Reference cache (an explicit choice)
 | Cache | Size | Ways | Line |
@@ -36,66 +62,94 @@ One JSON file per run in `runs/`, opened with exclusive create, so a record is n
 | LL | 8 MiB | 16 | 64 B |
 
 This is a convention for comparing candidates across hosts. It doesn't model any one host. Why these sizes:
-- **D1 48 KiB.** Both measured machines hold 44 KiB at L1 latency. Machine C's VM *reports* 32 KiB, and the probe measures 1.55 ns at 44 KiB.
-- **LL 8 MiB.** It sits between the effective one-core last level the probe measured on machine C (about 6–8 MiB) and on machine A (8–16 MiB).
+- **D1 48 KiB.** Machine C's VM reports 32 KiB, but the probe measures 1.55 ns at 44 KiB (`runs/probe_C_20261110.json`). Machine A's level 1 also covered 4–44 KiB (probe spec card).
+- **LL 8 MiB.** On machine C, the curve sits at 25 ns up to 5.9 MiB and is DRAM-like at 8 MiB. Machine A's spec card gives its one-core last level as 8–16 MiB.
 - **Shape.** Valgrind needs a power-of-two number of sets: 64 for D1, 8192 for LL.
 
 `--cache host` uses CPUID instead. That gives a different model on every host, so its counts are only comparable on the same host.
 
 ## Hypothesis 1: are the counts reproducible?
 **Within one host: yes, for deterministic programs.**
-- **C** (a small MLP, `workloads/mlp.c`): every rep identical, in every run here and in CI.
-- **Pure Python:** without a fixed hash seed, `Ir` varied by 0.35% between reps. With `PYTHONHASHSEED=0` (the counter's default), every rep was identical.
-- **NumPy (OpenBLAS):** reps still varied by 2–6 × 10⁻⁶ with one thread and a fixed hash seed. `cg_diff` places the difference in interpreter code (dict resizing, memcpy). Its source isn't proven; the process reads `getrandom` four times.
-- **ASLR** changed nothing here (`setarch -R` gave identical counts).
+- **C** (a small MLP, `workloads/mlp.c`): every rep identical, in all 88 CI records and every run here.
+- **Pure Python:** without a fixed hash seed, `Ir` varied by 0.35% between reps. With `PYTHONHASHSEED=0` (the default), every rep was identical.
+- **NumPy (OpenBLAS):** reps still varied by 2–6 × 10⁻⁶ with one thread and a fixed hash seed. `cg_diff` places the difference in interpreter code (dict resizing, memcpy). The cause isn't traced.
+- **ASLR** changed nothing (`setarch -R` gave identical counts).
 
-**Across hosts: yes for the same software, whatever the CPU.**
-- The same C binary (sha256 `a330b376…`, built by gcc 13.3 here and on the runners) gave `Ir` = 36,018,338 on all 16 x86-64 CI jobs. Those jobs ran on six CPU models: AMD EPYC 7763, 9V74 and 9V45, and three Intel Xeons.
-- On 16 arm64 jobs (Neoverse V2) its arm64 build gave 31,067,197 every time.
-- This workspace (machine C, another kernel and image) gave 36,018,339: one instruction off (3 × 10⁻⁸), and one D1 miss off.
-- **Why the CPU doesn't matter:** valgrind presents its own synthetic CPU to the program. Here it was an Intel signature `0x306c3` with AVX2 and no AVX-512, while the host has AVX-512. So code that dispatches on CPU features takes the same path on every AVX2 host.
+**Across hosts: the CPU never mattered.** Valgrind presents its own synthetic CPU to the program. Here it was an Intel signature `0x306c3` with AVX2 and no AVX-512, while the host has AVX-512. So code that dispatches on CPU features takes the same path on every AVX2 host.
+- **Totals, same binary and image:** identical across seven x86-64 CPU models. AMD: EPYC 7763, 9V74 and 9V45. Intel: Xeon 8573C, 8370C, 6973P-C and 6975P-C.
+- **arm64:** Neoverse N2, CPU part `0xd49`. Every arm64 job gave the same total.
 
-**What does move the counts is software and setting:**
-- **Runner image.** Python counts split exactly by GitHub runner image, never by CPU. On x86, image 20261026.354 gave 104,492,328 and 20261101.360 gave 104,492,251 (7 × 10⁻⁷), on whatever CPU the job landed. Arm shows the same split. The `python3` binary and `ld.so.cache` were identical, so some other file in the image is read at startup (inferred, not traced).
-- **Working directory.** It changed Python's `Ir` by up to 1.3 × 10⁻⁴ (`sys.path` holds it).
-- **Environment strings** changed `D1mr` by 3 in 1,204, because the stack layout moved.
-- **Startup-only differencing** (count `n` minus count `0`) shrank the image difference from 77 to 9 instructions, but didn't remove it.
+**What moves the totals is software and setting, all at startup:**
+- **The runner image:** for example, 36,018,926 vs 36,018,955 `Ir` for `./mlp 1000` on two images.
+- **Path and environment strings:** the working directory changed Python's `Ir` by up to 1.3 × 10⁻⁴, and `HOME` changed C's `D1mr` by 3. That's why the sandbox path and environment are now fixed.
+- **This workspace** (machine C, another kernel) gives 36,018,927: one instruction off the CI value.
 
-**Where the clean environment can be defeated:**
-- **`python3 -I`** ignores every `PYTHON*` variable, including `PYTHONHASHSEED`. Every CI job then reported reps that differ, and the verdict flagged it each time. This was my hypothesis for removing image dependence, and it was refuted.
+**The program's own work is what reproduces.** Subtract a startup-only run (`n` = 0) from the full count. With the sandbox (CI run 41988500105 plus this workspace):
+
+| Workload | Hosts | Count minus startup |
+|---|---|---|
+| C, x86-64 | 4 CI jobs, 3 images and 3 CPU models, plus machine C | 35,765,911 on every one |
+| C, arm64 | 4 jobs, 2 images | 30,898,727 on every one |
+| Python, x86-64 | 2 Azure images | 40,676,904 on both |
+| Python, x86-64 | AWS image (another loader cache) | 40,701,411 (6 × 10⁻⁴ off) |
+| Python, arm64 | 2 images with the same fingerprint | 41,774,558 vs 41,774,514 (1 × 10⁻⁶) |
+
+**So:**
+- **C:** counts are reproducible across hosts once startup is subtracted.
+- **Python:** the interpreter reads image files that the fingerprint doesn't cover (inferred, not traced). Its counts are comparable only within one image.
+- **`--check`** returns 2 (can't compare) when the loader cache differs, as with the AWS image. It can't detect a difference that leaves the loader cache unchanged, as with the arm64 pair.
+
+**Where the clean environment is defeated:**
+- **`python3 -I`** ignores every `PYTHON*` variable, including the hash seed. Every CI job then reported reps that differ (16 of 16), and the verdict flagged each one. My hypothesis that isolated mode would remove image dependence was refuted.
 - **Any program that reads randomness, the time or the host** varies, and the verdict says so; the test `noisy.c` confirms it.
 
 ## Hypothesis 2: how far are simulated misses from the measured latency curve?
-Machine C, probe run seed 20261110 (`runs/probe_C_20261110.json`). It ran the same Sattolo chase at the probe's 32 sizes, under cachegrind, with steady-state misses per load. Script: `experiments/sweep.py`.
+Machine C, probe run seed 20261110. The same Sattolo chase ran at the probe's 32 sizes, under cachegrind, with steady-state misses per load. Script: `experiments/sweep.py`.
 - **Two levels, sharp edges.** The model has L1 and LL only, with LRU, so for a cyclic chase every size gives exactly 0 or 1 miss per load. Real latency rises in steps with mixed points.
 - **Host model** (CPUID: D1 32 KiB, LL 34 MiB): the simulated level matches the measured one at 26 of 32 sizes.
   - At 44 KiB the model misses D1, but the hardware is still at L1 latency (1.55 ns).
   - At 8–33.5 MiB the model hits LL, but the hardware is at DRAM-like latency (94–161 ns).
 - **Reference model:** 31 of 32 match. The only miss is exactly 8 MiB, which fits the model's LL but measures 161 ns.
 - **L2 is invisible.** The measured L2 (64 KiB–1 MiB, 4.3 ns) and the 25 ns region at 1.4–5.9 MiB are both just "D1 miss, LL hit".
-- **Machine A**, by arithmetic only: its VM reports a 260 MiB L3, so a host model would call everything up to 260 MiB an LL hit. The probe measured DRAM from 16 MiB.
+- **Machine A**, by arithmetic only, from its spec card: its VM reports a 260 MiB L3, so a host model would call everything up to 260 MiB an LL hit. The probe measured DRAM there from 16 MiB.
 
 **So the counts are a deterministic work measure, relative to a stated model, not a latency predictor.** Turning counts into time or joules is calibration: tier 3, open item 5.
 
-**Found along the way:** counting only a region (cachegrind client requests with `--instr-at-start=no`) starts with a cold model cache, so every line misses once. The sweep removed this by differencing two lap counts. The counter counts whole processes, so the issue doesn't arise there.
+**Found along the way:** counting only a region (client requests with `--instr-at-start=no`) starts with a cold model cache, so every line misses once. The sweep removed this by differencing two lap counts.
 
 ## What `--check` can and can't show
-It refuses to compare (exit 2) unless the program and every hashed input match, and valgrind, the architecture and the simulated cache model are the same. It then re-runs the command in the recorded directory and environment and compares the counts.
-- **Catches:** a record edited after it was written (digest mismatch), a summary or verdict that disagrees with its reps, and a self-consistent forged record with a new digest, because re-counting gives different numbers (tested).
-- **Can't show:** that a record was made on the host it names, or when. It also can't distinguish a genuine difference in software (for example, another runner image) from a forgery: both exit 1. That needs the record and its outside anchor (open item 3).
-- **On another image,** a Python record can fail by about 10⁻⁶ while a C record passes. Compare records only within one software fingerprint.
+**Before re-counting,** it requires that:
+- the record's digest and internal consistency hold (malformed → 1, never a crash);
+- every input, the program, interpreter and shared libraries, the loader cache, the valgrind version and the architecture match (otherwise 2).
+
+It then re-counts in the fixed sandbox and compares counts, process count and stdout.
+- **Catches** (tested): an edited record, and a self-consistent forged record with a recomputed digest, because re-counting gives different numbers.
+- **Can't show** that a record was made on the host it names, or when. That needs the record and its outside anchor (open item 3).
+- **Can't tell an image difference from a forgery** when the loader cache is the same (the arm64 Python case). Both exit 1.
+
+## Review
+**Review 1** (an independent Claude agent) found real breaks, all now fixed and tested:
+1. **A cached answer.** A precomputed answer in the working directory let a candidate skip its work: about 87× undercount, `exact`, and `--check` exit 0. Fixed by the fresh sandbox.
+2. **A false check failure.** `--check` used the checker's `HOME` and `PATH`, so a genuine record failed. Fixed by the fixed environment.
+3. **Crashes read as verdicts.** A malformed record crashed with exit 1. Fixed: crashes now exit 3, and a malformed record is exit 1 with a message.
+4. **Unchecked fingerprints.** Library hashes, loader cache, process count and output weren't compared. Fixed.
+5. **Quiet undercounts.** Lost child count files could undercount silently. Fixed by matching each process's log against its count file.
+6. **Loose parsing.** Missing events read as 0, and a cache-model mismatch only warned. Fixed.
+
+It also corrected the arm64 CPU named in this card: part `0xd49` is Neoverse N2, not V2.
 
 ## Known limits
-- **The synthetic CPU.** Counts are for the AVX2-or-lower path valgrind exposes. On AVX-512 hosts that isn't the path that runs natively.
-- **Threads.** Valgrind runs one thread at a time, so threaded programs can depend on scheduling. Thread counts are pinned to 1 by default.
+- **Not a container.** A program can still use absolute paths outside the sandbox (a cache left in `/var/tmp`, say), other processes, or the network. Run untrusted candidates in a fresh container; CI does, since each job is a fresh VM. The verifier must also check the output against the expected answers.
+- **Code loaded later isn't scanned.** `dlopen` and JIT code escape the client-request scan, so a determined candidate could still switch counting off. The timing half of tier 2 and output checks are the cross-checks.
+- **The synthetic CPU.** Counts are for the AVX2-or-lower path. On AVX-512 hosts that isn't the path that runs natively.
+- **Threads.** Valgrind runs one thread at a time, and thread counts are pinned to 1.
 - **Speed.** About 20–100× slower than native.
-- **Platforms.** Tested on Linux x86-64 and arm64 with valgrind 3.22 only. No macOS.
-- **No branch simulation.** `--branch-sim` is off. It's an inbox item.
+- **Platforms.** Tested on Linux x86-64 and arm64 with valgrind 3.22 only. No branch simulation.
 
 ## Files
 - `count.py`: the counter.
 - `test_count.py`: the tests.
-- `workloads/`: `mlp.c` and `mlp.py`, the test candidates.
-- `experiments/`: `chase_count.c`, `sweep.py` and the three sweep results.
-- `../runs/`: one record per run.
-- `../.github/workflows/counter.yml`: cross-host CI. Its records go to the `ci-runs` branch.
+- `workloads/`: `mlp.c` and `mlp.py`.
+- `experiments/`: `chase_count.c`, `sweep.py` and the sweep results.
+- `../runs/`: records from machine C.
+- `../.github/workflows/counter.yml`: cross-host CI, 8 jobs per push, with records on the `ci-runs` branch.
