@@ -1,0 +1,232 @@
+{
+ "cache": {
+  "label": "chosen",
+  "requested": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  },
+  "simulated": {
+   "D1": [
+    49152,
+    12,
+    64
+   ],
+   "I1": [
+    32768,
+    8,
+    64
+   ],
+   "LL": [
+    8388608,
+    16,
+    64
+   ]
+  }
+ },
+ "caveats": [
+  "Counts are for the CPU valgrind presents, not the host's: on x86 it offers at most AVX2, so code that dispatches on CPU features runs its AVX2-or-lower path here even where the host has AVX-512.",
+  "The cache model is two levels (L1 and LL), LRU, no prefetching; miss counts are relative to that model, not predictions of this machine's latency.",
+  "The sandbox is a fresh directory, HOME and TMPDIR, not a container: a program can still reach absolute paths elsewhere, other processes and the network. Run untrusted candidates inside a fresh container.",
+  "client_request_code scans the program, interpreter, their linked libraries and inputs; code loaded later (dlopen, JIT) is not scanned."
+ ],
+ "command": [
+  "python3",
+  "mlp.py",
+  "20"
+ ],
+ "created_utc": "2026-11-05T08:07:10Z",
+ "digest_sha256": "a797b7dcabf581aab0a22fb175aceba84841bf78945d573023c488413ee0a546",
+ "env": {
+  "HOME": "/tmp/exagium-count/home",
+  "LANG": "C",
+  "LC_ALL": "C",
+  "MKL_NUM_THREADS": "1",
+  "OMP_NUM_THREADS": "1",
+  "OPENBLAS_NUM_THREADS": "1",
+  "PATH": "/usr/local/bin:/usr/bin:/bin",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "PYTHONHASHSEED": "0",
+  "TMPDIR": "/tmp/exagium-count/tmp",
+  "TZ": "UTC"
+ },
+ "executes": {
+  "program": {
+   "path": "/usr/bin/python3",
+   "sha256": "c86f21d0da9290ece2d7d49a3f7ed52aed59cb029abdf0ea25c79634f6cbe960",
+   "shared_libs": {
+    "/lib/aarch64-linux-gnu/libc.so.6": "0f1905dc27dbc6715875c70527bc8da846a10084c9c483e9d8ff76dce8d69d0e",
+    "/lib/aarch64-linux-gnu/libexpat.so.1": "b4b445a092ad711e535cfa7241974f709b716194c58227abc75b05e3a3bec7f7",
+    "/lib/aarch64-linux-gnu/libm.so.6": "5e0391562de36de323fb9cb0f2c1b6bd6d034c840b1dac018499f5fe4ded1b4a",
+    "/lib/aarch64-linux-gnu/libz.so.1": "52a1d5c0cbffb3596c7f0636cb1af8e131e00eb77ff92d1353057d5161d420d3",
+    "/lib/ld-linux-aarch64.so.1": "390027e5f45f236bd1838bc54bf464c5ff01d260ab9f8b415ea8276641bce505"
+   }
+  }
+ },
+ "host": {
+  "cpu_model": "CPU implementer 0x41 CPU part 0xd49 CPU variant 0x0 CPU revision 0",
+  "cpus": 4,
+  "kernel": "7.0.0-1017-azure",
+  "label": "reported",
+  "ld_so_cache_sha256": "2e738f2841a54eaa62a0b03549e1cb7c34ed143eb6d5f689ab8ff02f82529906",
+  "libc": "glibc 2.39",
+  "machine": "aarch64",
+  "system": "Linux"
+ },
+ "inputs": {
+  "mlp.py": {
+   "path": "/home/runner/work/exagium/exagium/counter/workloads/mlp.py",
+   "sha256": "7a6b1be1815daedcbf7ddbec52fe77c8651ba7e5bc4f5c1cfbf8b76f0ac112f6"
+  }
+ },
+ "labels": {
+  "counts": "simulated",
+  "wall_s": "measured (under valgrind; not the program's native time)"
+ },
+ "reps": [
+  {
+   "counts": {
+    "D1mr": 800997,
+    "D1mw": 79368,
+    "DLmr": 21115,
+    "DLmw": 41774,
+    "Dr": 30422158,
+    "Dw": 17397410,
+    "I1mr": 495029,
+    "ILmr": 12829,
+    "Ir": 104569835
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.889
+  },
+  {
+   "counts": {
+    "D1mr": 800997,
+    "D1mw": 79368,
+    "DLmr": 21115,
+    "DLmw": 41774,
+    "Dr": 30422158,
+    "Dw": 17397410,
+    "I1mr": 495029,
+    "ILmr": 12829,
+    "Ir": 104569835
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.876
+  },
+  {
+   "counts": {
+    "D1mr": 800997,
+    "D1mw": 79368,
+    "DLmr": 21115,
+    "DLmw": 41774,
+    "Dr": 30422158,
+    "Dw": 17397410,
+    "I1mr": 495029,
+    "ILmr": 12829,
+    "Ir": 104569835
+   },
+   "processes": 1,
+   "stdout_sha256": "53c234e5e8472b6ac51c1ae1cab3fe06fad053beb8ebfd8977b010655bfdd3c3",
+   "wall_s": 1.854
+  }
+ ],
+ "schema": "exagium-count/3",
+ "summary": {
+  "D1mr": {
+   "max": 800997,
+   "median": 800997,
+   "min": 800997,
+   "rel_spread": 0.0
+  },
+  "D1mw": {
+   "max": 79368,
+   "median": 79368,
+   "min": 79368,
+   "rel_spread": 0.0
+  },
+  "DLmr": {
+   "max": 21115,
+   "median": 21115,
+   "min": 21115,
+   "rel_spread": 0.0
+  },
+  "DLmw": {
+   "max": 41774,
+   "median": 41774,
+   "min": 41774,
+   "rel_spread": 0.0
+  },
+  "Dr": {
+   "max": 30422158,
+   "median": 30422158,
+   "min": 30422158,
+   "rel_spread": 0.0
+  },
+  "Dw": {
+   "max": 17397410,
+   "median": 17397410,
+   "min": 17397410,
+   "rel_spread": 0.0
+  },
+  "I1mr": {
+   "max": 495029,
+   "median": 495029,
+   "min": 495029,
+   "rel_spread": 0.0
+  },
+  "ILmr": {
+   "max": 12829,
+   "median": 12829,
+   "min": 12829,
+   "rel_spread": 0.0
+  },
+  "Ir": {
+   "max": 104569835,
+   "median": 104569835,
+   "min": 104569835,
+   "rel_spread": 0.0
+  }
+ },
+ "tool": {
+  "files": {
+   "cachegrind": {
+    "path": "/usr/libexec/valgrind/cachegrind-arm64-linux",
+    "sha256": "efa034f1823869781521572ddd681832661c8cc634c85db14cb90496858b2b4c"
+   },
+   "count.py": "590ba37d4c977fe6778d96cdfdcb09a2104ec9caae70fe835177c8f6d83efc69",
+   "launcher": {
+    "path": "/usr/bin/valgrind",
+    "sha256": "4652774bd116cb49951ef74115ad4237cad5021b2bd4d80002f09d986ec438b9"
+   }
+  },
+  "options": [
+   "--tool=cachegrind",
+   "--cache-sim=yes",
+   "--trace-children=yes",
+   "--command-line-only=yes"
+  ],
+  "sandbox": "/tmp/exagium-count",
+  "valgrind": "valgrind-3.22.0"
+ },
+ "verdict": {
+  "client_request_code": [],
+  "exact": true,
+  "reps": 3,
+  "stdout_identical": true
+ }
+}
