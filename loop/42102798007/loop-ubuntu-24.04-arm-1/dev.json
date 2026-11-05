@@ -1,0 +1,197 @@
+{
+ "schema": "exagium-loop/1",
+ "split": "dev",
+ "n": 956,
+ "rounds": 15,
+ "passes": 30,
+ "seed": 1,
+ "labels": {
+  "accuracy": "measured on the split",
+  "simulated_*": "cachegrind, reference cache, count(N) - count(0)",
+  "native_*": "wall time on this host, (N*P images) - (0 images), interleaved rounds"
+ },
+ "host": {
+  "cpu": "0xd49",
+  "machine": "aarch64",
+  "kernel": "7.0.0-1017-azure",
+  "nproc": 4
+ },
+ "cflags": [
+  "-O2",
+  "-std=c11",
+  "-ffp-contract=off"
+ ],
+ "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+ "inputs": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "af6323d520ef2b2dbe4b503d7a6f064f7fcf07a9f52941ed9d9753d2a945ce58"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "d29471a8fc102c642a96d9a41f1db604db4fc96d42858c89b0cde0542ad892fa"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/baselines/thermo/train.py",
+   "sha256": "7c46dd52b8d1e52a85701c0cb040be047f45268815648364fa1480b066c719c5"
+  },
+  {
+   "name": "loop/baselines/thermo/infer.c",
+   "sha256": "fcaabeb397d62417d8decdeb3056d3b28555539546b196f3d8470018310de09a"
+  },
+  {
+   "name": "loop/baselines/thermo/weights.bin",
+   "sha256": "471d3cf18ab0286d5806b558d7a9cf7da5bc3d3650c5062305a787b3b154cd97"
+  }
+ ],
+ "candidates": [
+  {
+   "name": "linear",
+   "dir": "loop/baselines/linear",
+   "correct": 942,
+   "n": 956,
+   "accuracy": 0.9853556485355649,
+   "accuracy_se": 0.003885103838429267,
+   "simulated_Ir_per_image": 3080.845188284519,
+   "simulated_Ir_per_correct": 3126.632696390658,
+   "simulated_counts_minus_startup": {
+    "D1mr": 40,
+    "D1mw": 17,
+    "DLmr": 37,
+    "DLmw": 17,
+    "Dr": 731396,
+    "Dw": 338118,
+    "I1mr": -2,
+    "ILmr": -2,
+    "Ir": 2945288
+   },
+   "simulated_startup_Ir": 109679,
+   "native_ns_per_image": 233.80006043700604,
+   "native_ns_per_image_se": 0.7329313110992687,
+   "native_ns_per_image_rounds": [
+    234.45882147838213,
+    233.14466527196652,
+    240.92541841004183,
+    233.30226638772663,
+    234.0900278940028,
+    236.20753138075312,
+    237.70324267782428,
+    233.20491631799163,
+    231.43441422594142,
+    235.01698047419805,
+    231.8067991631799,
+    230.80062761506275,
+    231.2531032078103,
+    233.42778940027895,
+    230.22430264993025
+   ],
+   "weights_bytes": 2600,
+   "counter_records": [
+    {
+     "name": "out/records/count-2026-11-05T202514Z-f3a0482950cb.json",
+     "sha256": "1192ffe72a4cc1931922d238cce9dc29a006f0223585a0ada8d24b8c726eee41"
+    },
+    {
+     "name": "out/records/count-2026-11-05T202515Z-90adf5214da3.json",
+     "sha256": "29e11695ee2d2d81cd5251bcba464210d3206329d11499de2ceeb426f8b1997d"
+    }
+   ],
+   "predictions_sha256": "6d4d8c0eff48a7d2b9d79fc99433b7f53835515737d07f0a7fab1a1dcd69fd9d"
+  },
+  {
+   "name": "thermo",
+   "dir": "loop/baselines/thermo",
+   "correct": 956,
+   "n": 956,
+   "accuracy": 1.0,
+   "accuracy_se": 0.0,
+   "simulated_Ir_per_image": 2826.836820083682,
+   "simulated_Ir_per_correct": 2826.836820083682,
+   "simulated_counts_minus_startup": {
+    "D1mr": 705,
+    "D1mw": 34,
+    "DLmr": 571,
+    "DLmw": 17,
+    "Dr": 731394,
+    "Dw": 338116,
+    "I1mr": -2,
+    "ILmr": -2,
+    "Ir": 2702456
+   },
+   "simulated_startup_Ir": 106468,
+   "native_ns_per_image": 200.54887261738725,
+   "native_ns_per_image_se": 0.9014350308503861,
+   "native_ns_per_image_rounds": [
+    207.7936889818689,
+    202.16534170153417,
+    205.42262900976291,
+    199.30355648535564,
+    201.03891213389122,
+    199.1066248256625,
+    204.2323221757322,
+    197.08898186889817,
+    203.71147140864713,
+    197.24853556485357,
+    198.37018828451883,
+    200.99456066945606,
+    198.40676429567642,
+    195.69149232914924,
+    197.65801952580196
+   ],
+   "weights_bytes": 43560,
+   "counter_records": [
+    {
+     "name": "out/records/count-2026-11-05T202515Z-2db21f5a3ea9.json",
+     "sha256": "11ea2757969778991420fb7094719cff19a5f661b644d068df56a1d20863269c"
+    },
+    {
+     "name": "out/records/count-2026-11-05T202516Z-b0bfa8c7f5ee.json",
+     "sha256": "864298ff49080aa1f12eb38a94651e5d0da1ede14f9f8871a84ccc359d864fdc"
+    }
+   ],
+   "predictions_sha256": "400057bf21daaf044faa6ba593a8dd656ce56fecd2bf8c2d91bc3503934db361"
+  }
+ ],
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "thermo",
+   "accuracy_diff": -0.014644351464435146,
+   "accuracy_diff_se": 0.0038871373920039715,
+   "Ir_ratio": 1.0898560420595191,
+   "ns_per_image_diff": 33.25118781961877,
+   "ns_per_image_diff_se": 0.8753256693194676
+  },
+  {
+   "a": "thermo",
+   "b": "linear",
+   "accuracy_diff": 0.014644351464435146,
+   "accuracy_diff_se": 0.0038871373920039715,
+   "Ir_ratio": 0.9175523751836833,
+   "ns_per_image_diff": -33.25118781961877,
+   "ns_per_image_diff_se": 0.8753256693194676
+  }
+ ],
+ "problems": [],
+ "plan": null
+}
