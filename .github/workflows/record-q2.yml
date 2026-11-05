@@ -21,7 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: tools
-        run: python3 -m pip install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+        run: |
+          # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: ingest inbox into the chain
         id: ingest
         run: |

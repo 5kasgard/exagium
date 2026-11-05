@@ -15,7 +15,7 @@ Commands: ingest | verify | head | check-anchors | monitor.
 Exit codes: 0 ok; 1 the ledger or an anchor is wrong; 2 can't check (missing library or network);
 3 unexpected failure.
 """
-import argparse, datetime, hashlib, json, os, re, subprocess, sys, urllib.request
+import argparse, datetime, hashlib, json, os, re, sys, urllib.request
 
 MAX_INT = 2**53 - 1
 KINDS = ("plan", "verdict")
@@ -252,18 +252,29 @@ def identity(repo, workflow, ref):
 
 
 def check_sigstore(bundle, digest, repo, workflow, ref):
+    """Verify offline that a bundle is an attestation, signed by exactly this workflow on this ref, of this digest.
+    Only a verification error is a verdict (Bad); anything else that goes wrong is a failure."""
     try:
-        import sigstore  # noqa: F401
-    except ImportError:
-        raise CantCheck("sigstore-python isn't installed (pip install sigstore)")
-    cmd = [sys.executable, "-m", "sigstore", "verify", "github", "--offline", "--bundle", bundle,
-           "--cert-identity", identity(repo, workflow, ref), "--repository", repo, "--ref", ref, f"sha256:{digest}"]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0:
-        raise Bad(f"{os.path.basename(bundle)}: Sigstore verification failed: {(r.stderr or r.stdout).strip()[-300:]}")
-    b = json.load(open(bundle))
-    t = b["verificationMaterial"]["tlogEntries"][0]
-    return int(t["integratedTime"])
+        from sigstore.models import Bundle
+        from sigstore.verify import Verifier, policy
+        from sigstore.errors import VerificationError
+    except ImportError as ex:
+        raise CantCheck(f"sigstore-python isn't usable ({ex}); pip install sigstore==4.5.1 in a virtualenv")
+    raw = open(bundle, "rb").read()
+    pol = policy.AllOf([
+        policy.Identity(identity=identity(repo, workflow, ref), issuer="https://token.actions.githubusercontent.com"),
+        policy.GitHubWorkflowRepository(repo),
+        policy.GitHubWorkflowRef(ref),
+    ])
+    try:
+        b = Bundle.from_json(raw)
+        ptype, payload = Verifier.production(offline=True).verify_dsse(b, pol)
+    except VerificationError as ex:
+        raise Bad(f"{os.path.basename(bundle)}: Sigstore verification failed: {ex}")
+    st = json.loads(payload)
+    if ptype != "application/vnd.in-toto+json" or [s.get("digest", {}).get("sha256") for s in st.get("subject", [])] != [digest]:
+        raise Bad(f"{os.path.basename(bundle)}: the attestation's subject isn't this entry")
+    return int(json.loads(raw)["verificationMaterial"]["tlogEntries"][0]["integratedTime"])
 
 
 def check_ots(proof, entry_raw, explorers):
