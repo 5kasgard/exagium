@@ -149,13 +149,18 @@ def check_body(kind, body, where):
             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
-        allowed = {"by", "log_index", "reason", "statement_b64"}
+        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
-        except ValueError:
-            raise Bad(f"{where}: statement_b64 must be base64")
+            ents = _need(body, "entries_b64", list, where)
+            if not ents:
+                raise ValueError
+            for x in ents:  # the orphaned run's entries, so what it attested is published, not just explained
+                base64.b64decode(x if isinstance(x, str) else None, validate=True)
+        except (ValueError, TypeError):
+            raise Bad(f"{where}: statement_b64 must be base64, and entries_b64 a non-empty list of base64 entries")
     extra = set(body) - allowed
     if extra:
         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
@@ -430,16 +435,41 @@ def _git(a, *args):
 
 
 def _code_changed(a, c1, c2):
-    """True/False if record.py or the writer workflow differ between two commits; "unknown" without that history."""
+    """True/False if anything under record/ or .github/ differs between two commits; "unknown" without that history."""
     if _git(a, "cat-file", "-e", f"{c1}^{{commit}}") is None or _git(a, "cat-file", "-e", f"{c2}^{{commit}}") is None:
         return "unknown (commit not in this clone)"
     root = os.path.dirname(os.path.abspath(a.ledger))
-    r = subprocess.run(["git", "-C", root, "diff", "--quiet", c1, c2, "--", "record/record.py", a.workflow])
+    r = subprocess.run(["git", "-C", root, "diff", "--quiet", c1, c2, "--", "record", ".github"])
     return {0: False, 1: True}.get(r.returncode, "unknown")
+
+
+def _orphan_entries_problem(o, pred):
+    """The orphan must publish the hidden entries: canonical, consecutive from from_seq, chained from prev_sha256,
+    ending at head_sha256. Returns a description of the first problem, or None."""
+    try:
+        raws = [base64.b64decode(x) for x in o["body"]["entries_b64"]]
+        if not isinstance(pred.get("from_seq"), int) or len(raws) != pred.get("to_seq", -1) - pred["from_seq"] + 1:
+            return "its entries don't match the attested range"
+        prev = pred.get("prev_sha256")
+        for i, raw in enumerate(raws):
+            e = parse_canonical(raw, f"hidden entry {i + 1}")
+            if not isinstance(e, dict) or e.get("seq") != pred["from_seq"] + i or e.get("prev") != prev:
+                return "its entries don't chain from the attested prev_sha256"
+            if e.get("kind") not in KINDS:
+                return f"hidden entry {e.get('seq')} has an unknown kind"
+            check_body(e["kind"], e.get("body"), f"hidden entry {e['seq']}")
+            prev = hashlib.sha256(raw).hexdigest()
+        if prev != pred.get("head_sha256"):
+            return "its entries don't hash to the attested head"
+    except Bad as ex:
+        return f"its entries are malformed ({ex})"
+    return None
 
 
 def _published_entry_hashes(a, rev):
     """sha256 of every version of every entry file ever committed in rev's history."""
+    if (_git(a, "rev-parse", "--is-shallow-repository") or b"").strip() != b"false":
+        raise CantCheck("this clone is shallow or not a git repository; orphan checks need the ledger branch's full history")
     raw = _git(a, "log", rev, "--format=", "--raw", "--no-abbrev", "--", "ledger/entries")
     if raw is None:
         raise CantCheck(f"no git history for {rev} next to the ledger (run monitor in a full clone)")
@@ -501,8 +531,8 @@ def cmd_monitor(a):
     else:
         refs, activity = _refs(a.repo)
         for x in activity:
-            if x.get("activity_type") == "force_push" and x.get("ref") == a.ledger_ref:
-                bad.append(f"force push to {a.ledger_ref} at {x.get('timestamp')} (rewrites the ledger's history)")
+            if x.get("activity_type") in ("force_push", "branch_deletion") and x.get("ref") == a.ledger_ref:
+                bad.append(f"{x['activity_type']} on {a.ledger_ref} at {x.get('timestamp')} (rewrites the ledger's history)")
     published = _published_entry_hashes(a, a.git_rev) if explained else set()
     seen, unknown, orphans = set(), [], []
     for ref in refs:
@@ -530,6 +560,10 @@ def cmd_monitor(a):
                 continue
             pred = (parse_json(stmt, f"orphan entry {o['seq']} statement") or {}).get("predicate") or {}
             head = pred.get("head_sha256")
+            problem = _orphan_entries_problem(o, pred)
+            if problem:
+                bad.append(f"orphan entry {o['seq']}: {problem}")
+                continue
             if head in published and head not in current:
                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
                 continue
