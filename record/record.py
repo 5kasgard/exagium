@@ -339,7 +339,8 @@ def cmd_check_anchors(a):
 
 
 def _refs(repo):
-    """Every ref GitHub will name for this repo: current branches and tags, plus every ref in the activity log."""
+    """Every ref GitHub will name for this repo: current branches and tags, every ref in the activity log
+    (which keeps deleted branches), and every pull request's merge and head refs (pull_request runs sign as those)."""
     refs = {"refs/heads/main"}
     for kind in ("branches", "tags"):
         page = 1
@@ -349,6 +350,13 @@ def _refs(repo):
             if len(items) < 100:
                 break
             page += 1
+    page = 1
+    while True:
+        items = json.loads(_get(f"https://api.github.com/repos/{repo}/pulls?state=all&per_page=100&page={page}"))
+        refs.update(f"refs/pull/{x['number']}/{k}" for x in items for k in ("merge", "head"))
+        if len(items) < 100:
+            break
+        page += 1
     page = 1
     while True:
         items = json.loads(_get(f"https://api.github.com/repos/{repo}/activity?per_page=100&page={page}"))

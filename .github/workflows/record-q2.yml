@@ -86,17 +86,23 @@ jobs:
         run: |
           git pull -q origin "${{ github.ref }}" || true
           R=5kasgard/exagium
+          OLDP=https://exagium.dev/anchor-test/v0
+          NEWP=https://github.com/5kasgard/exagium/blob/main/record/README.md#head-v1
           OLD=runs/count-2026-11-05T073638Z-0feb5e325c25.json   # attested only by anchor-test.yml on refs/heads/anchor-test
-          NEW=$(ls ledger/entries/*.json | tail -1)              # attested by record-q2.yml on this ref
-          t() { if gh attestation verify "$1" -R $R "${@:2}" > /dev/null 2>&1; then r=PASS; else r=FAIL; fi; echo "$r | $1 | ${*:2}"; }
+          MAIN1=ledger/entries/000001.json                       # attested by record-q2.yml on refs/heads/q2-main
+          NEW=$(ls ledger/entries/*.json | tail -1)              # attested by record-q2.yml on this run's ref
+          t() { f=$1; shift; if out=$(gh attestation verify "$f" -R $R "$@" 2>&1); then r=PASS; else r="FAIL ($(echo "$out" | grep -v '^$' | tail -1 | cut -c1-120))"; fi; echo "$r | $f | $*"; }
           { echo "gh $(gh --version | head -1)"; echo "ref ${{ github.ref }} run ${{ github.run_id }}"
-            t $OLD
-            t $OLD --signer-workflow $R/.github/workflows/record-q2.yml
-            t $OLD --source-ref refs/heads/q2-main
+            t $OLD --predicate-type $OLDP
+            t $OLD --predicate-type $OLDP --signer-workflow $R/.github/workflows/record-q2.yml
+            t $OLD --predicate-type $OLDP --source-ref refs/heads/q2-main
+            t $MAIN1 --predicate-type $NEWP
+            t $MAIN1 --predicate-type $NEWP --signer-workflow $R/.github/workflows/record-q2.yml --source-ref refs/heads/q2-main
+            t $NEW --predicate-type $NEWP
+            t $NEW --predicate-type $NEWP --signer-workflow $R/.github/workflows/record-q2.yml
+            t $NEW --predicate-type $NEWP --signer-workflow $R/.github/workflows/record-q2.yml --source-ref refs/heads/q2-main
+            t $NEW --predicate-type $NEWP --signer-workflow $R/.github/workflows/anchor-test.yml
             t $NEW
-            t $NEW --signer-workflow $R/.github/workflows/record-q2.yml
-            t $NEW --signer-workflow $R/.github/workflows/record-q2.yml --source-ref ${{ github.ref }}
-            t $NEW --signer-workflow $R/.github/workflows/anchor-test.yml
           } | tee q1.txt
           git init -q ci && cd ci
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
