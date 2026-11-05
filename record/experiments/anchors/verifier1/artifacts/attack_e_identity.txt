@@ -1,0 +1,29 @@
+=== Attack E: identity abuse ===
+Bundle: /home/z/my-project/upload/exagium-anchors/anchors/41995230106/anchors-ubuntu-24.04/attestation.jsonl
+Real SAN: https://github.com/5kasgard/exagium/.github/workflows/anchor-test.yml@refs/heads/anchor-test
+
+Each row is a sigstore-python verify invocation with different --cert-identity, --repository, --ref, --trigger.
+
+| # | check | outcome |
+|---|---|---|
+| 1 | strict (correct): --cert-identity IDENT --repository 5kasgard/exagium --ref refs/heads/anchor-test --trigger push | **PASS** (b'{_type:https://in-toto.io/Statement/v1,subject:[{name:exagium-record-digest,digest:{sha256:fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8}}],predicateType:https://exagium.dev/anchor-test/v0,predicate:{purpose:item 3 anchor experiment}}') |
+| 2 | same repo, wrong ref: --cert-identity '...@refs/heads/main' --repository 5kasgard/exagium --ref refs/heads/main --trigger push | **FAIL** (                    with the `--verbose` flag.                                  ) |
+| 3 | same repo, no --ref/--trigger: --cert-identity IDENT --repository 5kasgard/exagium | **PASS** (b'{_type:https://in-toto.io/Statement/v1,subject:[{name:exagium-record-digest,digest:{sha256:fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8}}],predicateType:https://exagium.dev/anchor-test/v0,predicate:{purpose:item 3 anchor experiment}}') |
+| 4 | cert-identity workflow path only (no @ref): --cert-identity '.../anchor-test.yml' --repository 5kasgard/exagium --ref refs/heads/anchor-test --trigger push | **FAIL** (                    with the `--verbose` flag.                                  ) |
+| 5 | wrong repository: --cert-identity IDENT --repository evil/fork --ref refs/heads/anchor-test --trigger push | **FAIL** (                    with the `--verbose` flag.                                  ) |
+| 6 | cert-identity for a different workflow in same repo: --cert-identity '.../counter.yml@refs/heads/anchor-test' --repository 5kasgard/exagium --ref refs/heads/anchor-test --trigger push | **FAIL** (                    with the `--verbose` flag.                                  ) |
+| 7 | no repository check: --cert-identity IDENT --ref refs/heads/anchor-test --trigger push | **PASS** (b'{_type:https://in-toto.io/Statement/v1,subject:[{name:exagium-record-digest,digest:{sha256:fe8d93a9dfb783350aa23a0c4471020a1b6cf9a17f6e5bd317b748e045b31de8}}],predicateType:https://exagium.dev/anchor-test/v0,predicate:{purpose:item 3 anchor experiment}}') |
+
+=== Interpretation ===
+Test 1 (strict) is the safe verifier: passes only for the real SAN + repo + ref + trigger.
+Test 2 (wrong ref): the verifier EXPECTS a different ref than what the cert claims; FAILS — good.
+Test 3 (loose: no --ref, no --trigger): still PASSES because the --cert-identity is the FULL SAN including @ref. The cert's SAN includes the ref, so even without --ref, the verifier implicitly accepts whatever ref the cert claims. A fork or different-branch attestation would also pass — the verifier is NOT pinning the ref.
+Test 4 (cert-identity without @ref): likely FAILS because sigstore-python does exact-match on the SAN string.
+Test 5 (wrong repo): FAILS — sigstore-python checks the Source Repository URI OID extension against --repository.
+Test 6 (different workflow path): FAILS — SAN exact-match.
+Test 7 (no --repository): FAILS — sigstore-python requires --repository for github verify mode (or it can't validate the OIDC issuer context).
+
+=== Takeaway ===
+A verifier who runs 'sigstore verify github --bundle b --cert-identity URL@REF --repository REPO --offline sha256:D' is safe.
+A verifier who OMITS --ref and --trigger is *not* safe against an attacker who controls a different branch in the same repo, because the cert's SAN includes whatever ref the attacker ran on, and the loose verifier accepts it.
+A verifier who omits --repository is unsafe against forks (sigstore-python refuses to verify without --repository in github mode, mitigating this).

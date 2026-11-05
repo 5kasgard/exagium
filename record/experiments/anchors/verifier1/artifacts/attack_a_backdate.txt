@@ -1,0 +1,26 @@
+=== Attack A: backdate a record (commit dates + TSA token -attime) ===
+Goal: make a record appear older than it really is, against each anchor.
+
+--- A.1 git: forge author/committer dates on a fresh commit ---
+git log shows:
+  93066ea author=2020-01-01 00:00:00 +0000 committer=2020-01-01 00:00:00 +0000 subject=record v1 (backdated to 2020)
+Stranger sees commit date 2020-01-01. The repo's GitHub push activity log, however, would show the real push time. So git dates alone = forgeable; GitHub's /repos/.../activity API is the independent clock.
+
+--- A.2 RFC 3161: try to backdate a TSA token via openssl -attime ---
+Take the DigiCert token (granted 2026-11-05 08:32:21 UTC) and verify at an earlier -attime.
+  verify at token's own time (epoch 1793867541 = 2026-11-05T08:32:21Z):
+Verification: OK
+  verify at an EARLIER time (epoch 1577836800 = 2020-01-01T00:00:00Z), i.e. claim the record existed in 2020:
+Verification: FAILED
+  => RFC 3161 token's gen_time is inside the signed TSTInfo; -attime only changes the cert-validity window, NOT the gen_time. So you cannot make a token *claim* an earlier time. The gen_time is what the token says; -attime just decides whether the TSA cert was valid when you check.
+
+--- A.3 OTS / Sigstore: backdate attack surface ---
+  OTS: the proof references a Bitcoin block hash. Backdating requires re-mining Bitcoin. Not feasible.
+  Sigstore: the bundle's integratedTime is the time Rekor added the entry. Forging an earlier time requires a fake Rekor entry that fails inclusion-proof verification.
+
+=== Attack A summary ===
+  git commit dates:    ATTACK SUCCEEDS (forgeable).
+  GitHub activity log: ATTACK FAILS (server-side, read-only from outside).
+  RFC 3161 token:      ATTACK FAILS (TSA's gen_time is signed; can't backdate).
+  OTS proof:           ATTACK FAILS (Bitcoin block hash).
+  Sigstore bundle:     ATTACK FAILS (Rekor inclusion proof).

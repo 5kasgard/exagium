@@ -27,12 +27,12 @@ An anchor has to show that a record's digest existed by a given time, in a way t
   - FreeTSA's CA was downloaded from freetsa.org at run time, so it's trusted on first use, not an independent root. The other five chain to the system CA store.
   - **Offline re-check:** a DigiCert token re-verified in this workspace, and failed once one bit of the digest was flipped.
   - **After certificate expiry:** with `-attime` set to 2040, DigiCert's token fails ("certificate has expired"; its TSA cert ends 2037-11-04). Verifying at the token's own time passes, but that assumes the key wasn't compromised later. Long-term validity needs re-stamping before expiry, as in RFC 4998 evidence records.
-- **OpenTimestamps.** Stamping took 1.7–5.7 s and gave a 0.7–0.9 KB proof. It's pending until a Bitcoin block confirms it, usually within hours.
+- **OpenTimestamps.** Stamping took 1.7–5.7 s and gave a 0.7–0.9 KB proof. It's pending until a Bitcoin block confirms it. **Update 2026-11-06:** the local proof completed, with all four calendars attested in blocks 974650, 974651, 974654 and 974681. `ots_check.py` replays each path to the block header's merkle root and matched 8 of 8 against headers from two explorers, blockstream.info and mempool.space. The earliest attestation is block time 09:02:44Z, 32 minutes after stamping. A one-byte change to the file fails. The proof is committed here as `sample_record.json.ots`.
   - The official client verifies against a Bitcoin node, though a pruned node is enough; in principle block headers alone are.
   - The opentimestamps.org web verifier works from a phone, at the cost of trusting that page.
   - It works from this workspace too.
 - **Sigstore.** `actions/attest@v2` signed the digest with the workflow's identity.
-  - Rekor's index lookup by this digest returns 4 entries, and the GitHub API lists 4 attestations. Entry 3692913518 has integratedTime 2026-11-05T08:32:34Z.
+  - **Corrected after verifier round 1:** Rekor's v1 index (`POST /api/v1/index/retrieve`) finds the entries both by digest (`{"hash":"sha256:<D>"}`) and by workflow identity (`{"subject":"<SAN>"}`). Both returned 6 on 2026-11-06, one per attesting job across 3 runs. The earlier "4" predates the third run. Entry 3692913518 has integratedTime 2026-11-05T08:32:34Z.
   - The certificate names the repo, `anchor-test.yml@refs/heads/anchor-test`, commit `4ea7f2c…` and run 41995230106, and is valid for 10 minutes.
   - **Verified without GitHub** by the reviewer, with sigstore-python 4.5.1, both online and with `--offline`:
     `python3 -m sigstore verify github --bundle b.sigstore.json --cert-identity "https://github.com/5kasgard/exagium/.github/workflows/anchor-test.yml@refs/heads/anchor-test" --repository 5kasgard/exagium --ref refs/heads/anchor-test --sha <commit> --trigger push sha256:<digest>`.
@@ -66,7 +66,7 @@ An anchor has to show that a record's digest existed by a given time, in a way t
   - run privately and never append;
   - re-run until a good result comes up.
 
-  Rekor can be searched by digest but not by identity, so a verifier can't list everything this workflow anchored without monitoring the log.
+  **Corrected:** Rekor v1 *can* be searched by identity, which was wrong here before. But the identity string includes the ref, so a search per ref misses runs on refs nobody thought to query. Rekor v2 has no search index at all, which leaves log monitoring (rekor-monitor) as the general answer.
 - **Mitigations to test:**
   - CI is the only writer.
   - Every run is anchored automatically, with a sequence number and the previous head.
@@ -81,4 +81,23 @@ An anchor has to show that a record's digest existed by a given time, in a way t
   2. RFC 3161 tokens from two commercial TSAs whose roots are in the system store: offline-verifiable, re-stamped before expiry;
   3. optionally, OpenTimestamps (no company to trust), and a periodic deposit outside GitHub (Software Heritage or Zenodo).
 
-**Still to measure:** whether the OTS proofs complete and verify; whether `gh attestation verify` agrees with sigstore-python; and whether a Rekor identity monitor can see every anchor this workflow makes.
+**Still to measure:** whether `gh attestation verify` agrees with sigstore-python, and whether it accepts any workflow or branch in the repo when given only `-R`; and whether a monitor can see every anchor this workflow makes, across all refs and on Rekor v2.
+
+## Verifier round 1 (GLM-5.2 on Z, 2026-11-05): adjudication
+Full report and scripts: `verifier1/`. Each claim was re-checked here before being accepted.
+
+**Accepted:**
+- **Reproduction:** 64 RFC 3161 tokens and 6/6 Sigstore bundles verify offline under strict flags.
+- **DFN:** its root (DFN-Verein Community Root CA 2022) isn't in the store; the token itself is fine.
+- **RFC 3161 expiry:** every working TSA cert expires 2036–2042.
+- **Long-term validation:** no production RFC 4998 library for Python or OpenSSL. So OTS is the long-term anchor, and RFC 3161 is short-horizon diversity.
+- **Equivocation:** R5 is closable for anchored runs, by monitoring, witness cosigning and archive snapshots.
+- **Completeness:** R4 can't come from any anchor. It needs pre-registration, mandatory deposit from CI, a reconciling monitor, and re-measurement as the backstop.
+- **Hashing:** hash the stored bytes, not a re-serialisation.
+- **Rekor search:** searching by identity works in v1, which corrects the claim above.
+
+**Rejected or corrected:**
+- **"Search by digest returns `[]`".** The request body was malformed (`{"queries":[…]}`). The documented form `{"hash":…}` returns 6.
+- **"A loose verifier (no `--ref`/`--trigger`) accepts another branch's attestation".** Z's own matrix contradicts this. With the full SAN including `@ref`, identity matching is exact (row 4), so another branch's certificate fails. The real risk is a verifier that checks only the repo, or matches the identity by regex or prefix.
+- **"Rekor v2 drops DSSE".** Unresolved, because sources disagree. It doesn't bind today: the public instance stays on v1 as default (Sigstore blog, "Rekor evolution"), with a year's notice before v1 freezes.
+- **"Apple's TSA works".** Unresolved. CI, with an open network, got no connection 4/4.

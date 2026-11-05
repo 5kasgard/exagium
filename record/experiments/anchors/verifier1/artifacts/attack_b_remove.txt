@@ -1,0 +1,42 @@
+=== before attack: git log ===
+64bf7da records a1 a2 a3
+=== before attack: runs/ contents ===
+a1.json
+a2.json
+a3.json
+
+=== Attack B.1: drop the unfavourable a2.json, edit a3 to reference a1 (chain repair) ===
+=== after B.1 (normal commit): git log ===
+ee4cc3e remove a2 (unfavourable); rebase a3
+64bf7da records a1 a2 a3
+=== runs/ ===
+a1.json
+a3.json
+Stranger cloning fresh sees only 2 records. Nothing in the public history screams 'I deleted a2'.
+
+=== Attack B.2: force-push to wipe the deletion commit entirely ===
+=== after B.2 (force-push): git log ===
+62e3bd1 records a1 a3
+=== runs/ ===
+a1.json
+a3.json
+Stranger cloning fresh sees only one commit, no deletion trail. Force-push erases evidence from public view.
+
+=== The independent clock: GitHub /repos/.../activity API ===
+If this were a real GitHub repo, the activity log would still show a PushEvent at the original time the bad commit was pushed. The author's RESULTS.md confirms: 'A force push shows in the activity log, but deleting and recreating the repo wipes that log in one step.' So:
+  - force-push:           detectable via activity log (read-only from outside, no auth)
+  - delete + recreate:    ACTIVITY LOG WIPED — undetectable from outside GitHub
+
+=== Attack B.3: gist revision wiping ===
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   digest_v1.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+7742213 gist v1: real digest
+Stranger fetching the gist URL sees only v2. The author's RESULTS.md confirms: 'Revisions can be force-pushed away, there's no activity log, and CI can't write one.'
+
+=== Attack B.4: deleting GitHub attestation through the API ===
+Per the author's claim: 'The owner can delete GitHub's copy of an attestation through the API; the Rekor copy stays.' The local demo of this requires a GitHub PAT (attestation delete scope). Analytically: deleting the GitHub-side copy removes it from the GH UI/API; the Rekor entry remains and is still discoverable via the search-by-subject API we tested. So deleting GH-side attestations is detectable ONLY if the stranger also queries Rekor. A stranger who trusts only the GH API is fooled.
