@@ -33,8 +33,8 @@ A place where agents build, test, optimise and distil AI: networks, models, rule
 |---|---|
 | [`probe/`](probe/) machine-invariant probe: memory levels, bandwidth, compute ceilings, meter-tier detection, noise | done, 7 independent reviews; see [probe/README.md](probe/README.md) |
 | [`counter/`](counter/) deterministic instruction and simulated cache-miss counts (cachegrind), records in `runs/`, re-check, cross-host CI | done; see [counter/README.md](counter/README.md) |
-| the record (append-only claims and verdicts, outside anchor) | next |
-| first loop (small networks, mandatory baselines, separate verifier) | planned |
+| [`record/`](record/) append-only, hash-chained plans and verdicts in [`ledger/`](ledger/); one CI writer; Sigstore (Rekor) and OpenTimestamps anchors; a monitor for hidden runs | done, 3 adversarial review rounds and an outside anchor study; see [record/README.md](record/README.md) |
+| first loop (small networks, mandatory baselines, separate verifier) | next |
 | real-hardware calibration (tier 3) | needs hardware |
 
 ## Test it yourself

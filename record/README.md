@@ -5,7 +5,7 @@
 - **A stranger's checks:**
   - every entry is covered by the writer's attestations, with no gap;
   - every anchor is genuine;
-  - every attestation the writer ever made, on any ref, is in the ledger or honestly explained.
+  - every attestation the writer ever made, on any ref GitHub names, is in the ledger, or is explained by an orphan entry that publishes what it attested.
 - **Why these anchors:** `experiments/anchors/RESULTS.md`, attacked by an outside verifier (`experiments/anchors/verifier1/`).
 
 **Run.**
@@ -14,11 +14,11 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
 python3 record.py head            # head seq and sha256
 python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
 python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
-python3 -m unittest -v test_record   # 19 tests, <1 s
+python3 -m unittest -v test_record   # 20 tests, <1 s
 ```
 - `verify` and `head` need only Python 3 (stdlib).
 - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
-- `monitor` needs network access to the GitHub API and Rekor, and a full git clone of the ledger branch.
+- `monitor` needs network access to the GitHub API and Rekor. To judge orphan entries it needs a full (not shallow) git clone of the ledger branch; a shallow clone exits 2.
 
 **Exit codes:**
 - **0:** ok.
@@ -27,19 +27,23 @@ python3 -m unittest -v test_record   # 19 tests, <1 s
   - an anchor is wrong;
   - the writer's ranges leave a gap or overlap, or don't reach the head;
   - an attestation is unexplained, or an orphan explanation is refused;
-  - there was a force push to the ledger branch.
+  - the ledger branch was force-pushed, or deleted (and recreated).
 - **2:** can't check (missing library, network). `check-anchors` checks every anchor before deciding, so a problem in one doesn't hide a problem in another.
 - **3:** unexpected failure. Wrong data never exits 3; a failure is never reported as a verdict.
 
 ## How it's written
 Proposals go in `ledger/inbox/NAME.json` as `{"kind": "plan" | "verdict" | "orphan", "body": {...}}`. A push to `main` that touches the inbox runs `record.yml`, which:
-1. **Runs exactly the commit that triggered it,** the one its certificate will name. If `main` has already moved on, it steps aside and the newer run takes the proposals. One writer runs at a time across all refs.
+1. **Runs exactly the commit that triggered it,** the one its certificate will name. If `main` has already moved on, it steps aside. The newer push's run, or failing that the daily run, takes the proposals. One writer runs at a time across all refs.
 2. **Refuses to add anything unless the writer's earlier attestations cover every existing entry,** so an entry written by hand is never vouched for later.
 3. **Ingests the proposals,** stamps the new head with OpenTimestamps, and refuses to attest if `main` has moved.
 4. **Attests the range it added:** predicate `{from_seq, to_seq, prev_sha256, head_sha256}`, with the head entry as subject. Then it checks every anchor and commits.
-5. **On a failure after attesting,** it pushes the bundle and the entries to the `ci-runs` branch (`orphans/<run>/`), so the orphaned attestation can be explained with its real statement.
+5. **If it fails or is cancelled after attesting,** it pushes the bundle and the entries to the `ci-runs` branch (`orphans/<run>/`), so the orphaned attestation can be explained with its real statement and entries. That branch is owner-writable, so it's a convenience, not evidence.
 
-A daily job completes pending OpenTimestamps proofs. Steps run under `bash -eo pipefail`, so a failing command in a pipe fails the run.
+The daily run also completes pending OpenTimestamps proofs.
+- Steps run under `bash -eo pipefail`, so a failing command in a pipe fails the run.
+- `record.py` runs under `python3 -I`, so a file next to it can't shadow the standard library.
+- `checkout` and `attest` are pinned by commit SHA.
+- The pip packages are pinned by version, not by hash.
 
 **Entries.** `ledger/entries/NNNNNN.json`: `{seq, prev, kind, written_at, body}`.
 - **An entry's identity** is the sha256 of its stored bytes, and `prev` is the previous entry's.
@@ -58,11 +62,14 @@ A daily job completes pending OpenTimestamps proofs. Steps run under `bash -eo p
 
 `verify` lists **open** and **overdue** plans. Completeness can't come from cryptography, so this list is how a missing verdict becomes visible.
 
-**Orphan entries.** An attestation the writer made but the ledger doesn't hold (a run that failed after attesting) is flagged by `monitor` until an `orphan` entry `{by, log_index, reason, statement_b64}` explains it. The explanation is refused if either:
-- the statement isn't the one Rekor holds for that log index (its payload hash);
-- the attested head was ever published on the ledger branch and later removed.
+**Orphan entries.** An attestation the writer made but the ledger doesn't hold (a run that failed or was cancelled after attesting) is flagged by `monitor` until an `orphan` entry `{by, log_index, reason, statement_b64, entries_b64}` explains it.
 
-So an orphan can't launder a deleted verdict. The `reason` is a claim; the statement and the entries on `ci-runs` are the evidence.
+The orphan entry must **publish what the run attested**: the exact statement, plus the hidden entries themselves. The entries must be canonical, consecutive from the attested `from_seq`, chained from the attested `prev_sha256`, and hash to the attested head. The explanation is refused if:
+- the statement isn't the one Rekor holds for that log index (its payload hash);
+- the entries don't reproduce the attested range;
+- the attested head was ever published on the ledger branch and later removed (needs a full clone).
+
+So hiding an attested verdict means publishing it inside the orphan entry. The `reason` is a claim; the entries are the evidence.
 
 ## What a stranger can check, and how
 | Question | How |
@@ -70,8 +77,8 @@ So an orphan can't launder a deleted verdict. The `reason` is a claim; the state
 | Entry unchanged since anchored? | `check-anchors`: Sigstore subject and OTS proof match its bytes |
 | Every entry vouched for by the writer? | `check-anchors`: ranges cover 1..head, no gap or overlap |
 | Existed by when? | Rekor `integratedTime`; Bitcoin block time (existence only) |
-| Which code wrote each range? | `check-anchors`: each run's certified commit, and whether the writer code changed since the last run |
-| Runs held back, forked or deleted? | `monitor`: every writer attestation on any ref is in the ledger or properly explained; no force pushes to the ledger branch |
+| Which code wrote each range? | `check-anchors`: each run's certified commit, and whether anything under `record/` or `.github/` changed since the last run |
+| Runs held back, forked or deleted? | `monitor`: every writer attestation on any ref is in the ledger or published by an orphan entry; no force push or deletion of the ledger branch |
 | Plans without a verdict? | `verify`: open and overdue plans |
 
 **Verify an anchor without this code:**
@@ -104,15 +111,16 @@ All ran on GitHub Actions with test copies of the writer, each with its own iden
 - **Result:** `monitor`, reading only the stand-in main's ledger, flagged it (exit 1). It also flagged two earlier failed attempts that had attested before failing. Those weren't planted: even aborted runs leave a public trace.
 - **Branch deletion** isn't tested, because this session can't delete branches. GitHub's activity log, which `monitor` reads by cursor, records creation and deletion.
 
-**End to end with the final writer** (`e2e-main`, 7 entries, ranges 1–1, 2–3, 4–5, 6–7):
+**End to end** (`e2e-main`, 8 entries, ranges 1–1, 2–3, 4–5, 6–7, 8–8):
 - **A, first entry:** written, attested, checked.
 - **B, a hand-written entry pushed with a proposal:** the writer refused at its pre-check. Nothing was attested (run 42095360021), and the monitor later found no stray attestation.
 - **C and D, two racing pushes:** one run took both proposals, and the other found an empty inbox.
 - **E, two racing pushes with the final writer:** the older run saw `main` had moved and stepped aside. The newer one ran its own certified commit (`a431e68`) and took both. `check-anchors` reports the writer code changed before entries 6–7, which is true.
-- **Final state:** `check-anchors` exits 0 (writer attested through 7). `monitor` exits 0: 4 Rekor entries, 4 anchors, 6 refs, no force push.
+- **F, the final writer** (pinned actions, `python3 -I`): entry 8, run 42098215091.
+- **Final state:** `check-anchors` exits 0 (writer attested through 8; code changed before 6–7 and before 8, both true). `monitor` exits 0: 5 Rekor entries, 5 anchors, 6 refs, no force push or deletion.
 
 ## Review
-Two rounds by one independent adversarial agent.
+Three rounds by one independent adversarial agent.
 
 **Round 1 found three demonstrated breaks:**
 1. **Hand-written entries passed every check,** and the next CI run would vouch for them. Fixed by range attestations, full coverage, and the writer's pre-check.
@@ -137,15 +145,22 @@ Each fix has a test or an e2e run.
 
 It also found that an explorer outage blocked the writer (now tolerated), and that a Rekor 404 read as "no entries" (now can't-check).
 
+**Round 3 found:**
+1. **A shallow clone accepted the laundering.** Now exit 2.
+2. **A cancelled run's verdict could be hidden** behind an orphan explained only by its statement. Orphans must now publish the hidden entries; tested.
+3. **A file next to `record.py` could change its behaviour unreported.** Now `python3 -I`, and the code-change report covers `record/` and `.github/`.
+4. **A stepped-aside run could strand proposals.** The daily run now picks them up.
+5. **Deleting and recreating the ledger branch wasn't flagged.** Now wrong; untested, since this session can't delete branches.
+
 ## Trust model and known limits
 - **No anchor proves completeness.** A run that never reaches the writer leaves no trace: a private run, a fork, code outside CI. Covered: every run of `record.yml` in this repo, on any ref the monitor can name, published or not. Pre-registered plans make a missing verdict visible. Re-measurement (item 4) is the backstop for content.
-- **The owner controls the inbox and the code.** A proposal can be deleted before any run; only pre-registered plans and the overdue list catch a missing verdict. The writer runs the repo's own `record.py`, so a code change shows up only as `writer_code_changed: true` between two runs. A stranger has to read that diff; nothing judges it automatically.
+- **The owner controls the inbox and the code.** A proposal can be deleted before any run; only pre-registered plans and the overdue list catch a missing verdict. The writer runs the repo's own `record.py`, so a code change shows up only as `writer_code_changed: true` between two runs. A stranger has to read that diff; nothing judges it automatically. The pip packages are pinned by version, not by hash.
 - **An attestation says** "record.yml at commit X added these entries". It doesn't say they are true.
 - **Ref discovery depends on GitHub** (branches, tags, PRs, the activity log). Deleting the repo erases that list. Rekor keeps the attestations, but a stranger would need to scan the log (rekor-monitor). Rekor v2 has no search index; the public instance stays on v1 for now.
 - **Orphans.** A failed push after attesting leaves an orphan that stays red until explained. That's intended: the failure is part of the record.
 - **The monitor is a command, not a service.** Someone has to run it. A scheduled run from outside the owner's control (Z, or another account) is the next step.
 - **OpenTimestamps** proofs are pending for hours. Verifying through the explorers trusts that two operators serve the real chain.
-- **Size:** `record.py` is 596 lines, the tests 217, `record.yml` 125. Most of it is defences, as with the counter.
+- **Size:** `record.py` is 630 lines, the tests 235, `record.yml` 127. Most of it is defences, as with the counter.
 
 ## Files
 - `record.py`: the ledger, anchor checks and monitor.
