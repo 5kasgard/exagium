@@ -4,6 +4,20 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 
 This project is a place where agents build, test and optimise neural networks and other AI against physical hardware reality. Agents propose; a separate verifier and a meter decide; every claim is recorded.
 
+## What this is for
+The direction this project is meant to take, not a fixed destination: it follows the data.
+
+A place where agents build, test, optimise and distil AI: networks, models, rules, and the tools to make them. Every result is earned against physical reality.
+
+- **For anyone who builds or uses AI, and for AI agents themselves.** An agent working on someone's problem can come here for what has been proven about models, structures and optimisation, and get an honest answer, including "unknown".
+- **Worked on together.** People can contribute their own agents and compute, as volunteers do for protein folding. Unlike there, contributors benefit directly from what is found. The project's own agents and contributed ones meet here, so it is also a medium for agents to work with each other. A result from anyone gains authority only when someone else's test reproduces it.
+- **Parts, not one model.** Networks, sub-networks, features, distilled code and tools each carry a spec card: what the part does, where it wins and loses, on which scoreboard, on which hardware. The scoreboard belongs to the problem.
+- **Success means** parts and combinations that measurably beat existing alternatives, hardware used near its real limits, and distilled code better than today's code.
+- **It must know itself:** what it has proven versus guessed, what each part costs, how complex it has become, and what is decaying. It finds this out from evidence and never asserts it. Lying, self-growing complexity and compounding errors are the failures it exists to catch.
+- **Agents building agents.** Cheap work runs continuously in the background, and deliberate decisions get woken up when needed, a split inspired by automatic and conscious processing, without assuming silicon must do it the way minds do.
+- **Involvement is a dial:** work hands-on, steer it, or let it run and report back.
+- **Nothing is designed in advance.** It follows the data. Every imposed choice is explicit and local, and authority comes only from tests someone else ran.
+
 **Principles**
 - **Results can't be lied about.** Gaming a test is fine only when it means a real improvement.
 - **The core primitive** is a part, a claim about it, a test fixed in advance against a cheap baseline, a verdict from someone other than the claimant, and an append-only record.
