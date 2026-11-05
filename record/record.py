@@ -15,7 +15,7 @@ Commands: ingest | verify | head | range | check-anchors | monitor.
 Exit codes: 0 ok; 1 the ledger, an anchor or the monitor's finding is wrong; 2 can't check (missing
 library or network); 3 unexpected failure. A failure is never reported as a verdict.
 """
-import argparse, datetime, hashlib, json, os, re, sys, urllib.error, urllib.request
+import argparse, base64, datetime, hashlib, json, os, re, subprocess, sys, urllib.error, urllib.request
 
 MAX_INT = 2**53 - 1
 KINDS = ("plan", "verdict", "orphan")
@@ -149,9 +149,13 @@ def check_body(kind, body, where):
             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
-        allowed = {"by", "log_index", "reason"}
+        allowed = {"by", "log_index", "reason", "statement_b64"}
         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+            base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+        except ValueError:
+            raise Bad(f"{where}: statement_b64 must be base64")
     extra = set(body) - allowed
     if extra:
         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
@@ -313,9 +317,12 @@ def check_sigstore(bundle, digest, repo, workflow, ref):
         raise Bad(f"{name}: the attestation's subject isn't this entry")
     try:  # the same bytes the verifier just checked; their signed entry timestamp covers integratedTime
         t = int(json.loads(raw)["verificationMaterial"]["tlogEntries"][0]["integratedTime"])
-    except (ValueError, KeyError, IndexError, TypeError) as ex:
-        raise Bad(f"{name}: malformed bundle ({ex})")
-    return t, st.get("predicate")
+        from cryptography.x509 import ObjectIdentifier
+        commit = b.signing_certificate.extensions.get_extension_for_oid(
+            ObjectIdentifier("1.3.6.1.4.1.57264.1.3")).value.value.decode("ascii")  # the commit the run was given
+    except Exception as ex:
+        raise Bad(f"{name}: malformed bundle or certificate ({type(ex).__name__}: {ex})")
+    return t, st.get("predicate"), commit
 
 
 def check_ots(proof, entry_raw, explorers):
@@ -385,30 +392,64 @@ def cmd_check_anchors(a):
                 t = check_ots(path, raw, a.explorer)
                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
             else:
-                t, pred = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+                t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
                 if not isinstance(pred, dict) or not isinstance(pred.get("from_seq"), int) or pred.get("to_seq") != seq \
                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
-                ranges.append((pred["from_seq"], seq))
-                rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t)})
+                ranges.append((pred["from_seq"], seq, commit))
+                rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                             "writer_commit": commit})
         except Bad as ex:
             bad.append(str(ex))
         except CantCheck as ex:
             cant.append(f"anchors/{n}: {ex}")
-    covered = 0
-    for lo, hi in sorted(ranges):
+    covered, changes, prev_commit = 0, [], None
+    for lo, hi, commit in sorted(ranges):
         if lo != covered + 1:
             bad.append(f"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}")
         covered = max(covered, hi)
+        if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)
+            changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
+                            "writer_code_changed": _code_changed(a, prev_commit, commit)})
+        prev_commit = commit
     if covered < len(chain):
         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
-                      "wrong": bad, "could_not_check": cant}, indent=1))
+                      "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
     for x in bad:
         print(f"BAD: {x}", file=sys.stderr)
     for x in cant:
         print(f"CAN'T CHECK: {x}", file=sys.stderr)
     return 1 if bad else 2 if cant else 0
+
+
+def _git(a, *args):
+    root = os.path.dirname(os.path.abspath(a.ledger))
+    r = subprocess.run(["git", "-C", root, *args], capture_output=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def _code_changed(a, c1, c2):
+    """True/False if record.py or the writer workflow differ between two commits; "unknown" without that history."""
+    if _git(a, "cat-file", "-e", f"{c1}^{{commit}}") is None or _git(a, "cat-file", "-e", f"{c2}^{{commit}}") is None:
+        return "unknown (commit not in this clone)"
+    root = os.path.dirname(os.path.abspath(a.ledger))
+    r = subprocess.run(["git", "-C", root, "diff", "--quiet", c1, c2, "--", "record/record.py", a.workflow])
+    return {0: False, 1: True}.get(r.returncode, "unknown")
+
+
+def _published_entry_hashes(a, rev):
+    """sha256 of every version of every entry file ever committed in rev's history."""
+    raw = _git(a, "log", rev, "--format=", "--raw", "--no-abbrev", "--", "ledger/entries")
+    if raw is None:
+        raise CantCheck(f"no git history for {rev} next to the ledger (run monitor in a full clone)")
+    blobs = {ln.split()[3] for ln in raw.decode().splitlines() if ln.startswith(":") and ln.split()[3].strip("0")}
+    out = set()
+    for b in blobs:
+        data = _git(a, "cat-file", "blob", b)
+        if data is not None:
+            out.add(hashlib.sha256(data).hexdigest())
+    return out
 
 
 def _pages(url):
@@ -435,27 +476,40 @@ def _refs(repo):
     refs.update("refs/heads/" + x["name"] for x in _pages(f"{api}/branches?per_page=100"))
     refs.update("refs/tags/" + x["name"] for x in _pages(f"{api}/tags?per_page=100"))
     refs.update(f"refs/pull/{x['number']}/{k}" for x in _pages(f"{api}/pulls?state=all&per_page=100") for k in ("merge", "head"))
-    refs.update(x["ref"] for x in _pages(f"{api}/activity?per_page=100") if x.get("ref"))
-    return sorted(refs)
+    activity = _pages(f"{api}/activity?per_page=100")
+    refs.update(x["ref"] for x in activity if x.get("ref"))
+    return sorted(refs), activity
 
 
 def cmd_monitor(a):
-    """List every Rekor entry signed by the writer workflow on any ref GitHub names; each must be an anchor in the
-    ledger or explained by an orphan entry. Entries are matched by Rekor log index, unique per attestation."""
+    """List every Rekor entry signed by the writer workflow on any ref GitHub names. Each must be an anchor in the
+    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were
+    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the
+    ledger branch is wrong. Entries are matched by Rekor log index, unique per attestation."""
     chain, _ = load_chain(a.ledger)
-    known = {}
+    current = {h for _, h in chain}
+    known, bad = {}, []
     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
         if path.endswith(".sigstore.json"):
             try:
                 known[int(json.load(open(path))["verificationMaterial"]["tlogEntries"][0]["logIndex"])] = os.path.basename(path)
             except (ValueError, KeyError, IndexError, TypeError) as ex:
                 raise Bad(f"{os.path.basename(path)}: malformed bundle ({ex})")
-    explained = {e["body"]["log_index"]: e["seq"] for e, _ in chain if e["kind"] == "orphan"}
+    explained = {e["body"]["log_index"]: e for e, _ in chain if e["kind"] == "orphan"}
+    if a.only_ref:
+        refs, activity = [a.only_ref], []
+    else:
+        refs, activity = _refs(a.repo)
+        for x in activity:
+            if x.get("activity_type") == "force_push" and x.get("ref") == a.ledger_ref:
+                bad.append(f"force push to {a.ledger_ref} at {x.get('timestamp')} (rewrites the ledger's history)")
+    published = _published_entry_hashes(a, a.git_rev) if explained else set()
     seen, unknown, orphans = set(), [], []
-    refs = [a.only_ref] if a.only_ref else _refs(a.repo)
     for ref in refs:
         uuids = _get("https://rekor.sigstore.dev/api/v1/index/retrieve", json.dumps({"subject": identity(a.repo, a.workflow, ref)}).encode())
-        for u in json.loads(uuids or b"[]"):
+        if uuids is None:
+            raise CantCheck("Rekor's index returned 404")
+        for u in json.loads(uuids):
             got = _get(f"https://rekor.sigstore.dev/api/v1/log/entries/{u}")
             if got is None:
                 raise CantCheck(f"Rekor lists {u} but won't return it")
@@ -463,15 +517,30 @@ def cmd_monitor(a):
             idx = int(v["logIndex"])
             seen.add(idx)
             row = {"ref": ref, "log_index": idx, "integrated": iso(v["integratedTime"]), "rekor_uuid": u}
-            if idx in explained:
-                orphans.append(dict(row, explained_by_entry=explained[idx]))
-            elif idx not in known:
+            if idx in known:
+                continue
+            if idx not in explained:
                 unknown.append(row)
-    missing = sorted(n for idx, n in known.items() if idx not in seen)
+                continue
+            o = explained[idx]
+            body = json.loads(base64.b64decode(v["body"]))
+            stmt = base64.b64decode(o["body"]["statement_b64"])
+            if body.get("kind") != "dsse" or body["spec"]["payloadHash"]["value"] != hashlib.sha256(stmt).hexdigest():
+                bad.append(f"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}")
+                continue
+            pred = (parse_json(stmt, f"orphan entry {o['seq']} statement") or {}).get("predicate") or {}
+            head = pred.get("head_sha256")
+            if head in published and head not in current:
+                bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
+                continue
+            orphans.append(dict(row, explained_by_entry=o["seq"], attested_range=f"{pred.get('from_seq')}-{pred.get('to_seq')}"))
+    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []
     print(json.dumps({"refs_checked": refs, "rekor_entries": len(seen), "ledger_anchors": len(known),
-                      "explained_orphans": orphans, "unexplained": unknown,
-                      "ledger_anchors_not_found_in_rekor": missing}, indent=1))
-    return 1 if unknown or missing else 0
+                      "explained_orphans": orphans, "unexplained": unknown, "wrong": bad,
+                      "ledger_anchors_not_found_in_rekor": missing if not a.only_ref else "not checked with --only-ref"}, indent=1))
+    for x in bad:
+        print(f"BAD: {x}", file=sys.stderr)
+    return 1 if unknown or missing or bad else 0
 
 
 def cmd_range(a):
@@ -503,6 +572,8 @@ def main(argv=None):
                            help="esplora API base; default blockstream.info and mempool.space")
         else:
             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+            p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")
+            p.add_argument("--git-rev", default="HEAD", help="the ledger branch's history in this clone (for orphan checks)")
     a = ap.parse_args(argv)
     if getattr(a, "explorer", "x") is None:
         a.explorer = ["https://blockstream.info/api", "https://mempool.space/api"]

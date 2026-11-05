@@ -185,7 +185,8 @@ class Ledger(unittest.TestCase):
         self.assertEqual(self.run_cmd("ingest")[0], 1)
 
     def test_orphan_entries_explain_attestations(self):
-        self.propose("a.json", "orphan", {"by": "owner", "log_index": 12345, "reason": "run failed after attesting"})
+        self.propose("a.json", "orphan", {"by": "owner", "log_index": 12345, "reason": "run failed after attesting",
+                                            "statement_b64": "e30="})
         self.assertEqual(self.run_cmd("ingest")[0], 0)
         self.assertEqual(json.loads(self.run_cmd("verify")[1])["orphans_explained"], 1)
 
