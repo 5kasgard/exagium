@@ -52,7 +52,8 @@ jobs:
             [ -e "$req" ] || continue
             plan=$(python3 -c "import json,sys; print(int(json.load(open(sys.argv[1]))['plan']))" "$req")
             mapfile -t dirs < <(python3 -c "import json,sys; [print(d) for d in json.load(open(sys.argv[1]))['candidates']]" "$req")
-            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" --records out/records \
+            mapfile -t opts < <(python3 -c "import json,sys; r=json.load(open(sys.argv[1])); [print(x) for k in ('rounds','seed') if k in r for x in ('--'+k, int(r[k]))]" "$req")
+            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" "${opts[@]}" --records out/records \
               --out "out/test-plan$plan.json" 2>&1 | tee "out/test-plan$plan.txt" || true
           done
       - uses: actions/upload-artifact@v4
