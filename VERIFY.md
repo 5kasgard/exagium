@@ -83,6 +83,7 @@ python3 loop/loop.py reproduce loop/baselines/* loop/candidates/*      # weights
 python3 loop/loop.py evaluate loop/baselines/linear loop/baselines/thermo loop/candidates/mlp16 \
   loop/candidates/mlp32 loop/candidates/mlp64 --test test --plan 2 --rounds 30 --seed 20261106
 ```
+0. Check out commit `113a3f6` first: plan 2 froze `record/record.py`, which changed after it. The jail needs unprivileged `/proc` mounts in user namespaces; some containers refuse them (see `loop/README.md`).
 1. **Re-measure plan 2 on your hardware** and judge it by its own decision rule. Accuracy and predictions should match ours exactly; Ir/img should match ours on the same architecture.
 2. **Read every `train.py` and `infer.c`.** The test labels are public, and counts are a claim for cooperative code (the docstring says why). Does any candidate carry test data in, or take a different path under valgrind?
 3. **Make a submission score better than it earns,** or make a failed check read as success. Earlier rounds' findings are listed in the card.

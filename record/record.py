@@ -381,14 +381,17 @@ def iso(t):
 
 
 def cmd_check_anchors(a):
-    """Every anchor must be right, and the writer's Sigstore ranges must cover entries 1..head with no gap or overlap.
+    """Every anchor must be right, the writer's Sigstore ranges must cover entries 1..head with no gap or overlap,
+    and every range head must have its OpenTimestamps proof.
     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
     chain, _ = load_chain(a.ledger)
-    rows, bad, cant, ranges = [], [], [], []
+    rows, bad, cant, ranges, stamped = [], [], [], [], set()
     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
         n = os.path.basename(path)
         m = ANCHOR_NAME.fullmatch(n)
         seq = int(m.group(1))
+        if m.group(2) == "ots":
+            stamped.add(seq)
         try:
             if not 1 <= seq <= len(chain):
                 raise Bad(f"anchors/{n}: no entry {seq}")
@@ -408,6 +411,11 @@ def cmd_check_anchors(a):
             bad.append(str(ex))
         except CantCheck as ex:
             cant.append(f"anchors/{n}: {ex}")
+    for lo, hi, commit in sorted(ranges):
+        # the writer stamps every range head before it attests, and a failed stamp stops the run: a missing proof
+        # was removed (found by Z, 2026-11-06)
+        if hi not in stamped:
+            bad.append(f"anchors/{hi:06d}.ots is missing, though the writer stamps every range head before attesting")
     covered, changes, prev_commit = 0, [], None
     for lo, hi, commit in sorted(ranges):
         if lo != covered + 1:

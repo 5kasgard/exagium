@@ -222,6 +222,27 @@ class Ledger(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("never attested by the writer", err)
 
+    def test_a_missing_ots_proof_for_a_range_head_is_caught(self):
+        # Z, 2026-11-06: deleting a range head's .ots left every check at exit 0. Anchor checks are stubbed here
+        # (CI checks real ones); what's tested is that check-anchors notices the proof is gone.
+        self._two_entries()
+        chain, _ = R.load_chain(self.d)
+        os.makedirs(os.path.join(self.d, "anchors"))
+        open(os.path.join(self.d, "anchors", "000002.sigstore.json"), "w").write("{}")
+        stubs = {"check_sigstore": lambda *a: (1, R.range_predicate(chain, 1, 2), "c0ffee"), "check_ots": lambda *a: None}
+        saved = {k: getattr(R, k) for k in stubs}
+        try:
+            for k, f in stubs.items():
+                setattr(R, k, f)
+            rc, _, err = self.run_cmd("check-anchors")
+            self.assertEqual(rc, 1)
+            self.assertIn("000002.ots is missing", err)
+            open(os.path.join(self.d, "anchors", "000002.ots"), "wb").write(b"stub")
+            self.assertEqual(self.run_cmd("check-anchors")[0], 0)
+        finally:
+            for k, f in saved.items():
+                setattr(R, k, f)
+
     def test_unknown_files_and_fields_are_refused(self):
         self._two_entries()
         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")

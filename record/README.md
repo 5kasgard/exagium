@@ -14,7 +14,7 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
 python3 record.py head            # head seq and sha256
 python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
 python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
-python3 -m unittest -v test_record   # 20 tests, <1 s
+python3 -m unittest -v test_record   # 21 tests, <1 s
 ```
 - `verify` and `head` need only Python 3 (stdlib).
 - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
@@ -151,6 +151,8 @@ It also found that an explorer outage blocked the writer (now tolerated), and th
 3. **A file next to `record.py` could change its behaviour unreported.** Now `python3 -I`, and the code-change report covers `record/` and `.github/`.
 4. **A stepped-aside run could strand proposals.** The daily run now picks them up.
 5. **Deleting and recreating the ledger branch wasn't flagged.** Now wrong; untested, since this session can't delete branches.
+
+**Outside verifier Z** (GLM-5.3, 2026-11-06, `verifications/z-20261106/`) judged plan 1 **pass** (ledger entry 4). Every attack it tried exited 1: a hand-written entry, a fully re-referenced rewrite, orphan laundering with the real statement, and a corrupted signature with the network down. It verified an anchor with the sigstore CLI alone and recomputed the chain in Node.js. It found one weakness: deleting a range head's `.ots` proof left every check at exit 0, so the Bitcoin witness could vanish silently, though no entry could change. Fixed after entry 4: `check-anchors` requires a proof for every range head, which the writer always stamps before it attests (test `test_a_missing_ots_proof_for_a_range_head_is_caught`, and Z's case re-run gives exit 1).
 
 ## Trust model and known limits
 - **No anchor proves completeness.** A run that never reaches the writer leaves no trace: a private run, a fork, code outside CI. Covered: every run of `record.yml` in this repo, on any ref the monitor can name, published or not. Pre-registered plans make a missing verdict visible. Re-measurement (item 4) is the backstop for content.
