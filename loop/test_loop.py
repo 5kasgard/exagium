@@ -132,11 +132,15 @@ class Loop(unittest.TestCase):
         self.assertIn("timing run's predictions differ", msg)
 
     def test_inference_jail_hides_repo_task_readme_and_earlier_runs(self):
-        hostile = r"""#include <stdio.h>
+        hostile = r"""#define _GNU_SOURCE
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/syscall.h>
 int main(int c, char **v){ long n = atol(v[3]); int k = '0';
   if (fopen(%s, "r") || fopen("README.md", "r") || access("/tmp/exagium-marker", F_OK) == 0) k = '9';
+  if (syscall(SYS_keyctl, 10, -3, "user", "exagium", 0) >= 0) k = '9';  /* a key left by an earlier run */
+  else syscall(SYS_add_key, "user", "exagium", "x", 1, -3);
   FILE *w = fopen(%s, "w"); if (w) { k = '9'; fclose(w); }
   FILE *m = fopen("/tmp/exagium-marker", "w"); if (m) fclose(m);
   for(long i=0;i<n;i++) putchar(k); putchar(10); return 0; }
@@ -161,6 +165,33 @@ int main(int c, char **v){ long n = atol(v[3]); int k = '0';
         code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
         self.assertEqual(code, 1)
         self.assertRegex(msg, "N = 0 it must print only a newline|exactly 0 digits")
+
+    @unittest.skipUnless(len(os.sched_getaffinity(0)) > 1, "needs two CPUs")
+    def test_more_than_one_cpu_is_refused(self):
+        threads = r"""#define _GNU_SOURCE
+#include <pthread.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+static void *spin(void *a) { struct timespec t0, t; clock_gettime(CLOCK_MONOTONIC, &t0);
+  do clock_gettime(CLOCK_MONOTONIC, &t); while ((t.tv_sec - t0.tv_sec) * 1000000000L + t.tv_nsec - t0.tv_nsec < 100000000L);
+  return a; }
+int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
+  for (int i = 0; i < 64; i++) CPU_SET(i, &all);
+  sched_setaffinity(0, sizeof all, &all);  /* undo the timer's pin */
+  if (n > 0) { pthread_t t; pthread_create(&t, 0, spin, 0); spin(0); pthread_join(t, 0); }
+  for(long i=0;i<n;i++) putchar('1'); putchar(10); return 0; }
+"""
+        d = make(self.tmp, "threads", infer=threads)
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
+        self.assertEqual(code, 1)
+        self.assertIn("more than one CPU", msg)
+
+    def test_jail_has_no_privilege(self):
+        r = loop.jail(["/bin/sh", "-c", "id -u; grep CapEff /proc/self/status"], [], 60, cwd="/")
+        self.assertEqual(r.stdout.decode().split()[0], "65534")
+        self.assertIn("CapEff:\t0000000000000000", r.stdout.decode())
 
     def test_duplicate_names_refused(self):
         a = make(os.path.join(self.tmp, "x"), "same")

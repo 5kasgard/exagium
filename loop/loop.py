@@ -7,7 +7,8 @@ README.md that is never shown to the candidate's code). The contracts:
   infer:  ./infer weights.bin x.bin N  -- prints N digits ('0'..'9') then a newline; x.bin is N rows
           of 64 uint8 pixels. N = 0 is startup only and must print just the newline.
 All candidate code runs in a jail (bubblewrap): fresh tmpfs /tmp, read-only /usr, no network, its own
-PID namespace, and a working directory holding only the files that step needs. The repo, the test
+PID namespace, uid 65534 with every capability dropped, a fresh session keyring, and a working
+directory holding only the files that step needs. The repo, the test
 labels and the frozen weights are not in it. Known copies of the dataset (files named optdigits* or
 digits.csv*) under /usr and the Python prefix are masked.
 
@@ -31,7 +32,7 @@ reproduces its weights byte for byte, in the jail, here.
 Exit codes: 0 done; 1 a check failed (weights not reproduced, output malformed or inconsistent,
 counter not exact or clean, plan missing); 3 failure. Stdlib only. Linux, gcc, valgrind, bwrap.
 """
-import argparse, hashlib, json, math, os, platform, random, shutil, statistics, subprocess, sys, tempfile
+import argparse, ctypes, hashlib, json, math, os, platform, random, shutil, statistics, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -47,6 +48,9 @@ ENV = {"PATH": "/usr/local/bin:/usr/bin:/bin", "LC_ALL": "C", "LANG": "C", "TZ":
        "HOME": "/tmp", "TMPDIR": "/tmp"}
 TRAIN_TIMEOUT = 1800
 MASK_NAMES = ("optdigits", "digits.csv")
+KEYCTL = {"x86_64": 250, "aarch64": 219}  # keyctl syscall numbers
+CPU_SLACK = (1.25, 2_000_000)  # a run whose CPU time exceeds 1.25 x wall + 2 ms used more than one CPU
+RATIO_BAND = 30  # native ns per simulated Ir more than 30x the lowest candidate's: count and time disagree
 
 
 class Failed(Exception):
@@ -126,11 +130,19 @@ def masks():
     return _masks
 
 
+def _fresh_keyring():
+    """In the child, before exec: join a new anonymous session keyring, so no keys pass between jails."""
+    nr = KEYCTL.get(platform.machine())
+    if nr is None or ctypes.CDLL(None, use_errno=True).syscall(nr, 1, None) < 0:  # KEYCTL_JOIN_SESSION_KEYRING
+        os._exit(126)
+
+
 def jail(cmd, binds, timeout, cwd="/w"):
     """Run cmd in bubblewrap. binds: [(src, dst, writable)]. Returns CompletedProcess (bytes)."""
     a = ["bwrap", "--ro-bind", "/usr", "/usr", "--symlink", "usr/lib", "/lib", "--symlink", "usr/lib64", "/lib64",
          "--symlink", "usr/bin", "/bin", "--symlink", "usr/sbin", "/sbin", "--proc", "/proc", "--dev", "/dev",
-         "--tmpfs", "/tmp", "--unshare-all", "--die-with-parent", "--new-session", "--clearenv"]
+         "--tmpfs", "/tmp", "--unshare-all", "--uid", "65534", "--gid", "65534", "--cap-drop", "ALL",
+         "--die-with-parent", "--new-session", "--clearenv"]
     if os.path.exists("/etc/ld.so.cache"):
         a += ["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"]
     for r in python_roots():
@@ -142,15 +154,18 @@ def jail(cmd, binds, timeout, cwd="/w"):
     for k, v in ENV.items():
         a += ["--setenv", k, v]
     a += ["--chdir", cwd, "--", *cmd]
-    return subprocess.run(a, capture_output=True, timeout=timeout)
+    return subprocess.run(a, capture_output=True, timeout=timeout, preexec_fn=_fresh_keyring)
 
 
 def check_jail():
     if not shutil.which("bwrap"):
         raise Failed("bubblewrap (bwrap) is needed: candidate code only runs in the jail")
-    r = jail(["/bin/true"], [], 60, cwd="/")
+    r = jail(["/bin/sh", "-c", "id -u; grep -E '^Cap(Eff|Prm|Inh|Bnd|Amb)' /proc/self/status"], [], 60, cwd="/")
     if r.returncode:
         raise Failed(f"bwrap cannot make a jail here: {r.stderr.decode(errors='replace')[-500:]}")
+    lines = r.stdout.decode().split()
+    if lines[0] != "65534" or any(v != "0000000000000000" for v in lines[2::2]):
+        raise Failed(f"the jail still has a privileged uid or capabilities: {r.stdout.decode()}")
 
 
 # ---------- reproduce ----------
@@ -216,39 +231,43 @@ def timed(c, rows, timer, cpu):
         r = jail(["./timer", str(cpu), "./infer", "weights.bin", "x.bin", str(len(rows))], [(w, "/w", False)], 600)
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")  # the timer's own line is always last
     f = tail.split()
-    if r.returncode or not sep or len(f) != 2 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f):
+    if r.returncode or not sep or len(f) != 3 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f):
         raise Failed(f"{c['name']}: timer failed (exit {r.returncode}): {r.stderr.decode(errors='replace')[-300:]}")
-    if int(f[1]):
-        raise Failed(f"{c['name']}: infer exited {int(f[1])}")
-    return predictions(out, len(rows), c["name"]), int(f[0])
+    ns, status, cpu_ns = (int(x) for x in f)
+    if status:
+        raise Failed(f"{c['name']}: infer exited {status}")
+    if cpu_ns > CPU_SLACK[0] * ns + CPU_SLACK[1]:
+        raise Failed(f"{c['name']}: used more than one CPU ({cpu_ns} ns CPU in {ns} ns wall); candidates must be single-threaded")
+    return predictions(out, len(rows), c["name"]), ns
 
 
 def count(c, rows, outdir):
-    """Counter record for one jailed process classifying these rows: (record, path, exit code)."""
+    """Counter record for one jailed process classifying these rows: (record, path, exit code).
+    count.py runs inside the jail, non-dumpable, and hands its record back on stdout only."""
     os.makedirs(outdir, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="exagium-cnt-") as td:
-        tool, out = os.path.join(td, "tool"), os.path.join(td, "out")
-        os.makedirs(tool); os.makedirs(out)
+    with tempfile.TemporaryDirectory(prefix="exagium-cnt-") as tool:
         for src, name in ((c["exe"], "infer"), (os.path.join(c["dir"], "weights.bin"), "weights.bin"), (COUNT, "count.py")):
             shutil.copy2(src, os.path.join(tool, name))
         with open(os.path.join(tool, "x.bin"), "wb") as f:
             f.write(bytes(v for r in rows for v in r[:64]))
-        r = jail([sys.executable, "-I", "/tool/count.py", "--reps", "2", "--out-dir", "/out", "--input", "/tool/infer",
+        r = jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--reps", "2", "--input", "/tool/infer",
                   "--input", "/tool/weights.bin", "--input", "/tool/x.bin", "--", "./infer", "weights.bin", "x.bin",
-                  str(len(rows))], [(tool, "/tool", False), (out, "/out", True)], 1800, cwd="/tmp")
-        new = os.listdir(out)
-        if r.returncode == 3 or len(new) != 1 or not new[0].endswith(".json"):
-            raise Failed(f"{c['name']}: counter failed (exit {r.returncode}, files {new}):\n"
-                         f"{r.stdout.decode(errors='replace')}{r.stderr.decode(errors='replace')[-1000:]}")
-        with open(os.path.join(out, new[0]), "rb") as f:
-            raw = f.read()
-        rec = json.loads(raw)
+                  str(len(rows))], [(tool, "/tool", False)], 1800, cwd="/tmp")
+    if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1 or not r.stdout.endswith(b"\n"):
+        raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")
+    try:
+        rec = json.loads(r.stdout)
         body = {k: v for k, v in rec.items() if k != "digest_sha256"}
-        if sha256_bytes(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()) != rec.get("digest_sha256"):
-            raise Failed(f"{c['name']}: counter record digest does not match its contents")
-        path = os.path.join(outdir, f"{c['name']}-n{len(rows)}-{rec['digest_sha256'][:16]}.json")
-        with open(path, "xb") as f:
-            f.write(raw)
+        ok = sha256_bytes(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()) == rec["digest_sha256"]
+        counts = rec["reps"][0]["counts"]
+        ok = ok and all(type(counts[k]) is int and counts[k] >= 0 for k in counts) and counts["Ir"] > 0
+    except (ValueError, KeyError, TypeError, IndexError):
+        ok = False
+    if not ok:
+        raise Failed(f"{c['name']}: counter record is malformed or its digest doesn't match")
+    path = os.path.join(outdir, f"{c['name']}-n{len(rows)}-{rec['digest_sha256'][:16]}.json")
+    with open(path, "xb") as f:
+        f.write(r.stdout)
     return rec, path, r.returncode
 
 
@@ -314,6 +333,12 @@ def evaluate(dirs, test, rounds, seed, outdir):
     finally:
         shutil.rmtree(work)
 
+    ratio = {c["name"]: statistics.fmean(times[c["name"]]) / (c["counts"]["Ir"] / n) for c in cands}
+    low = min(ratio.values())
+    for name, x in ratio.items():
+        if x > RATIO_BAND * low:
+            problems.append(f"{name}: native time per simulated instruction is {x / low:.0f}x the lowest candidate's: "
+                            f"its count may be falsified (or it is memory-bound far beyond the others)")
     board = []
     for c in cands:
         ir = c["counts"]["Ir"]
@@ -327,6 +352,7 @@ def evaluate(dirs, test, rounds, seed, outdir):
             "native_ns_per_image": tm, "native_ns_per_image_se": tse, "native_ns_per_image_rounds": times[c["name"]],
             "marginal_simulated_Ir_per_image": (ir - c["startup"]["Ir"]) / n,
             "marginal_native_ns_per_image": mean_se(marg[c["name"]]),
+            "native_ns_per_simulated_Ir": ratio[c["name"]],
             "weights_bytes": c["weights_bytes"], "counter_records": c["counter_records"],
             "predictions_sha256": sha256_bytes(bytes(48 + p for p in c["pred"])),
         })

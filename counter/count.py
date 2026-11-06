@@ -12,6 +12,8 @@ declared --input files, an empty HOME and an empty TMPDIR, with a fixed environm
     python3 count.py --input net.py --input w.bin -- python3 net.py
     python3 count.py --input cand -- ./cand 1000                # ./name must be an --input
     python3 count.py --check ../runs/<record>.json [--input-dir DIR]
+    python3 count.py --stdout-record -- ./candidate args       # the record on stdout, no file; for a caller
+                                                                # that runs this inside the candidate's jail
 
 Exit codes: 0 counted, every rep identical and no code that can switch counting off (--check:
 same counts and output); 1 reps differ or such code was found (--check: counts or output differ,
@@ -477,6 +479,9 @@ def main(argv=None):
     ap.add_argument("--out-dir", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runs"))
     ap.add_argument("--keep-raw", metavar="DIR", help="also keep each process's cachegrind.out (gzipped), for cg_diff")
     ap.add_argument("--check", metavar="RECORD")
+    ap.add_argument("--stdout-record", action="store_true",
+                    help="print only the record (JSON) on stdout instead of writing a file; this process makes itself "
+                         "non-dumpable first, so the program it counts (same uid) can't ptrace it or write to its stdout")
     ap.add_argument("--input-dir", help="with --check: find inputs here by name instead of their recorded paths")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -488,7 +493,15 @@ def main(argv=None):
             code, msg = check(a.check, a.input_dir)
             print(msg)
             return code
+        if a.stdout_record:
+            import ctypes
+            if ctypes.CDLL(None, use_errno=True).prctl(4, 0, 0, 0, 0) != 0:  # PR_SET_DUMPABLE = 4
+                raise Failure("cannot make the counter non-dumpable")
         rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw)
+        if a.stdout_record:
+            sys.stdout.write(json.dumps(rec, sort_keys=True) + "\n")
+            v = rec["verdict"]
+            return 0 if v["exact"] and v["stdout_identical"] and v["client_request_code"] == [] else 1
         path = write_record(rec, a.out_dir)
     except Exception as e:  # anything unexpected is a failure, never a verdict
         print(f"count failed: {type(e).__name__}: {e}", file=sys.stderr)

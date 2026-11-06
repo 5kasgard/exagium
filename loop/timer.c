@@ -1,7 +1,8 @@
 // Trusted timer, run inside the candidate's jail: ./timer CPU PROG ARGS...
 // Pins itself (and so the child) to one CPU, forks, runs PROG with stdin and stderr on /dev/null and
 // stdout on a pipe, and measures CLOCK_MONOTONIC from just before fork to the child's exit.
-// Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status>".
+// Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status> <cpu ns>", where
+// cpu ns is the user+system time of the child and everything it waited for (more than wall time = more than one CPU).
 // It makes itself non-dumpable first, so the child can't reach its file descriptors through /proc.
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -9,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/prctl.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
@@ -41,10 +43,13 @@ int main(int argc, char **argv) {
     len += (size_t)r;
   }
   int status;
-  if (waitpid(pid, &status, 0) != pid) return 127;
+  struct rusage ru;
+  if (wait4(pid, &status, 0, &ru) != pid) return 127;
   clock_gettime(CLOCK_MONOTONIC, &t1);
   long long ns = (long long)(t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
   fwrite(buf, 1, len, stdout);
-  printf("\nexagium-timer %lld %d\n", ns, WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status));
+  long long cpu = ((long long)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000000000LL
+                + ((long long)ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) * 1000LL;
+  printf("\nexagium-timer %lld %d %lld\n", ns, WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status), cpu);
   return 0;
 }
