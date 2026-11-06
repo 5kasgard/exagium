@@ -10,7 +10,7 @@ python3 loop.py evaluate DIR... --test dev         # smoke test (in-sample for a
 python3 loop.py evaluate DIR... --test test --plan SEQ [--rounds R] [--seed S]
 python3 -m unittest -v test_loop                   # 17 tests, ~15 s
 ```
-Exit codes: 0 done; 1 a check failed; 3 failure. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
+Exit codes: 0 done; 1 a check failed; 2 bad arguments (e.g. `--test test` without `--plan`; the docstring omits this); 3 failure. The frozen files (`loop.py`, `timer.c`, `counter/count.py`, `record/record.py`, the task, the candidates) stay unchanged on `main` while plan 2 can still be re-measured. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
 
 ## The task
 UCI optdigits (`task/SOURCE.md`): 8×8 images of 0..16 pixel counts, 3,823 training rows from 30 writers, 1,797 test rows from 13 other writers. The **dev** split is the last 25% of the training file. It is the holdout the baselines use to choose their L2 strength, so it's in-sample for anything refit on the whole file: a smoke test only.
@@ -60,14 +60,14 @@ Other limits:
 - **Tier 2 only.** Instructions and nanoseconds, not joules; native time is dominated by process startup at this task's size.
 - **One task, one machine family per run.** Ir differs between x86-64 and arm64, so every Ir claim is per architecture.
 - **SEs assume independent images.**
-- **Size:** `loop.py` 486 lines, tests 224, `timer.c` 69, `loop.yml` 83.
+- **Size:** `loop.py` 486 lines, tests 224, `timer.c` 69, `loop.yml` 84.
 
 ## Plan 2: the first claim
 **Outcome: inconclusive** (ledger entry 3, by `claude-loop1-verifier`; evidence in `results/plan2/`).
 
 A proposer agent built three MLPs, 64-H-10 with ReLU, run with layer 1 as int16 lookup tables, and registered two claims (entry 2) before the test set was touched:
 - **A:** mlp16 needs less than half the baselines' instructions per image, beats both on Ir per correct answer past 2 SE, and stays within 0.5 points of the better baseline's accuracy.
-- **B:** mlp32 or mlp64 is more accurate than *both* baselines past 2 SE, and cheaper.
+- **B:** mlp32 or mlp64 is more accurate than *both* baselines past 2 SE, and beats both on Ir per correct answer past 2 SE.
 
 The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 hosts. Every scoreboard is valid, every candidate retrained byte-identically, and predictions are identical on all 7 hosts.
 
@@ -79,14 +79,14 @@ The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 ho
 | mlp32 | 0.9655 | 1,025 | 1,234 |
 | mlp64 | 0.9610 | 1,684 | 2,049 |
 
-- **Part A passes on every host.** mlp16 uses 0.19–0.29× the baselines' instructions, and its accuracy (0.9594) is within 0.05 points of thermo's.
+- **Part A passes on every host.** mlp16 uses 0.19–0.29× the baselines' instructions, and its accuracy (0.9594) is 0.06 points below thermo's, inside the 0.5-point floor.
 - **Part B is inconclusive.** Both MLPs beat linear clearly (z 4.3 and 3.5), and both are cheaper per correct answer. But their lead over thermo is +0.56 points (z 1.62) for mlp32 and +0.11 (z 0.33) for mlp64, short of 2 SE. On the validation holdout it had been about +1.1 points: the edge shrank on the 13 new writers.
 - **Code reading** (rule amendment 2): no test data carried in, and no environment-dependent path, in any of the five.
 
-**So no claim was earned outright.** What the record does show is narrower. At thermo's accuracy, mlp16 does the same job with about a fifth of the simulated instructions, *startup included*. Native time barely differs (startup dominates at this size). And on this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
+**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size. Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
 
 ## Files
 - `loop.py`: freeze, reproduce, evaluate; `timer.c`: the trusted timer; `test_loop.py`: the tests.
 - `task/`: the dataset and its source. `baselines/`, `candidates/`: the five entries of plan 2.
-- `verify/`: CI requests to score a plan on the test set. `results/plan2/`: the verifier's evidence.
+- `verify/`: CI requests to score a plan on the test set, removed once the plan has a verdict (empty now). `results/plan2/`: the verifier's evidence.
 - `../.github/workflows/loop.yml`: reproduce and score on 3 x86-64 and 3 arm64 runners, results to the `ci-runs` branch.
