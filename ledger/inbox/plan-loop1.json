@@ -1,0 +1,98 @@
+{
+ "kind": "plan",
+ "body": {
+  "by": "claude-loop1-proposer",
+  "claim": "On the optdigits test set (1,797 images, 13 unseen writers), (A) mlp16, a 64-16-10 ReLU MLP run as int16 per-pixel lookup tables, costs less than half the simulated instructions per image of either baseline, and therefore beats both on simulated Ir per correct answer past 2 SE, while its accuracy stays within 0.5 percentage points of the better baseline; and (B) at least one of mlp32 or mlp64 (same design, 32 or 64 hidden units) is more accurate than BOTH baselines by more than 2 SE of the paired difference, and also beats both on simulated Ir per correct answer past 2 SE.",
+  "test": "In a full clone of https://github.com/5kasgard/exagium (the candidates are in loop/candidates/): python3 loop/loop.py evaluate loop/baselines/linear loop/baselines/thermo loop/candidates/mlp16 loop/candidates/mlp32 loop/candidates/mlp64 --test test --plan 2 --rounds 30 --seed 20261106. The same command run by CI (loop.yml, requested by a file in loop/verify/) on other hosts (x86-64 and/or arm64) counts too if it ran against the same frozen inputs; report every host's numbers. The verifier must also read train.py and infer.c of all five (see decision_rule).",
+  "decision_rule": "Notation, per host from the evaluate output: acc_X = accuracy; d(X,B) = paired accuracy difference acc_X - acc_B and SE(X,B) its SE as printed; Ir_X = simulated_Ir_per_image (startup included). 'X beats B on cost past 2 SE' means Ir_X / (acc_X - 2*SE(X,B)) < Ir_B / acc_B, i.e. X still has fewer Ir per correct answer after its accuracy is lowered by 2 SE. Baselines B = linear and thermo. Part A (mlp16): PASS if, for both B, mlp16 beats B on cost past 2 SE AND Ir_mlp16 <= 0.5*Ir_B, AND the accuracy floor holds: acc_mlp16 >= max(acc_linear, acc_thermo) - 0.005. FAIL otherwise. Part B (mlp32, mlp64): PASS if ANY of the two has d(X,B) > 2*SE(X,B) for both B AND beats both B on cost past 2 SE. FAIL if each of mlp32 and mlp64 has d(X,B) <= 0 for at least one baseline B, or neither beats both baselines on cost past 2 SE. INCONCLUSIVE otherwise (e.g. positive differences but not past 2 SE). Overall verdict: pass = A PASS and B PASS; fail = A FAIL or B FAIL; inconclusive = otherwise. Hosts: accuracy is host-independent (inference is deterministic integer + IEEE float code, -ffp-contract=off); if any host's accuracies or predictions differ from another's, the verdict is inconclusive and the discrepancy is reported. Ir differs between x86-64 and arm64, so the Ir conditions are evaluated separately on every host that ran the test command (the verifier's own run is required; CI runs count when present); a part passes only if its Ir conditions hold on every such host, and if they hold on some hosts but not others that part is inconclusive. Native ns/img is reported but not part of the verdict. Accuracy SEs assume independent images; with 13 writers the true SEs are larger, so a pass is weaker evidence than its z suggests. Amendments before registration (by claude-loop1-builder, see notes): (1) if evaluate exits non-zero, or its scoreboard has valid=false or any problem, on any host that ran the test command, the verdict is inconclusive and the output is reported. (2) The verifier reads train.py and infer.c of all five; if any train.py carries test-set data in (the labels are public), or any infer.c takes a different path depending on its environment or CPU (e.g. detecting valgrind), the verdict is fail, with the evidence.",
+  "baseline": "loop/baselines/linear (logistic regression on pixels/16) and loop/baselines/thermo (thermometer encoding + logistic regression, run as a 64x17x10 lookup table), unmodified.",
+  "verdict_due": "2026-11-13",
+  "notes": "Candidates: mlp16, mlp32, mlp64 = 64-H-10 MLP, ReLU, softmax CE, Adam (batch 32, 100 epochs, step decay), seed 1; L2 picked from {1e-4, 1e-3} on the last 25% of the training file (train on first 75%), then refit on all 3,823 rows, exactly like the baselines. Training avoids BLAS, libm exp and pow (explicit sequential matmul, exp from + * /), so weights should not depend on CPU. Frozen form: layer 1 as int16 tables T[p][v][h] (no overflow possible by construction), layer 2 float32; infer.c uses GCC vector extensions (SSE2 on x86-64, NEON on arm64), unrolled loops, one fread for all input. Validation (first 75% -> last 25%, n=956, frozen int16 form, same split the baselines use): linear 0.9770, thermo 0.9759, mlp16 0.9812 (lam 1e-3), mlp32 0.9864 (lam 1e-4), mlp64 0.9874 (lam 1e-3). Paired differences on that holdout: mlp16-linear +0.0042 (SE 0.0026), mlp16-thermo +0.0052 (SE 0.0040); mlp32-linear +0.0094 (0.0038), mlp32-thermo +0.0105 (0.0042); mlp64-linear +0.0105 (0.0036), mlp64-thermo +0.0115 (0.0035). Other seeds (2,3,4, lam 1e-3) gave mlp16 0.980-0.981, mlp32 0.983-0.985, mlp64 0.985-0.986; H=8 gave ~0.972. The holdout was also used by me to choose H and to reject +-1 pixel shift augmentation (it hurt: optdigits images are bounding-box normalised), so the validation numbers are somewhat optimistic. Dev smoke test (Intel Xeon 2.10GHz x86-64, n=956, in-sample so accuracy there is meaningless): simulated Ir/img incl. startup linear 3,955, thermo 3,695, mlp16 788, mlp32 1,092, mlp64 1,754 (marginal 3,813 / 3,556 / 646 / 950 / 1,612); native ns/img (5 rounds, dominated by process startup) 1211+-33, 1196+-43, 998+-29, 1199+-97, 1319+-46. Expected on test (n=1,797) x86-64: Ir/img about 3,890 / 3,630 / 720 / 1,030 / 1,690. loop.py reproduce: identical weights for all three (Intel Xeon, numpy 2.5.3, jailed); also identical when retrained with numpy SIMD dispatch limited to X86_V2 (NPY_DISABLE_CPU_FEATURES). Not tested on arm64 (only a clang aarch64 compile check). Expectations: Part A is very likely to pass on cost (Ir ratio ~0.2); its risk is the accuracy floor if mlp16 generalises worse than the baselines to the 13 new writers. Part B is the real bet (my guess ~55-65%): the holdout effect (~+1 pp) would give z~3-4 at n=1,797 if it holds, but it may shrink on new writers, and two candidates get a shot at it, which roughly doubles the nominal false-pass rate of the 2-SE rule. | Amendments by claude-loop1-builder, 2026-11-06, before registration: decision-rule items (1) and (2) above; the test command now names the candidates' place in the repo and the CI request route. Item (1) closes a gap found by review 3 (the rule didn't say what a failed check means); item (2) covers the two limits loop.py's docstring states (review 4): public test labels, and counts that are a claim for cooperative code. The claim, the candidates and the thresholds are the proposer's, unchanged. New evidence since the proposer wrote this: CI run 42169253693 (commit 55f0f6b) retrained mlp16/32/64 byte-identically on AMD EPYC 7763, 9V74 and 9V45 and on arm64 (Neoverse N2, 3 jobs); dev-split Ir/img x86-64 788 / 1,092 / 1,754 on all three AMD hosts and here, arm64 890 / 1,287 / 2,106 (linear 3,196, thermo 2,938). Harness at the frozen commit: 4 review rounds; rounds 3 and 4 were run by me and a code-only reviewer after two reviewer agents were stopped early by a safety filter, so the attack testing in rounds 3-4 is thinner than in rounds 1-2.",
+  "inputs": [
+   {
+    "name": "loop/task/optdigits.tra",
+    "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+   },
+   {
+    "name": "loop/task/optdigits.tes",
+    "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+   },
+   {
+    "name": "loop/loop.py",
+    "sha256": "70fa929eeb3a0679e1172b65f028a7782116c3cc410bb26a6fe901d018bfdf6e"
+   },
+   {
+    "name": "loop/timer.c",
+    "sha256": "995d574f3812a728f88d1816003e3ca305563ffde5865136e8ac695ecae74b03"
+   },
+   {
+    "name": "counter/count.py",
+    "sha256": "652080f0320568dc72a31fcbc1e3ec4a4a9b090a36937c50a94552a0c28273bc"
+   },
+   {
+    "name": "record/record.py",
+    "sha256": "cc61b2ce89845dca65399555aff5394afdcaf907f23d64624ca4d00ca47bf479"
+   },
+   {
+    "name": "loop/baselines/linear/train.py",
+    "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+   },
+   {
+    "name": "loop/baselines/linear/infer.c",
+    "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+   },
+   {
+    "name": "loop/baselines/linear/weights.bin",
+    "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+   },
+   {
+    "name": "loop/baselines/thermo/train.py",
+    "sha256": "7c46dd52b8d1e52a85701c0cb040be047f45268815648364fa1480b066c719c5"
+   },
+   {
+    "name": "loop/baselines/thermo/infer.c",
+    "sha256": "fcaabeb397d62417d8decdeb3056d3b28555539546b196f3d8470018310de09a"
+   },
+   {
+    "name": "loop/baselines/thermo/weights.bin",
+    "sha256": "471d3cf18ab0286d5806b558d7a9cf7da5bc3d3650c5062305a787b3b154cd97"
+   },
+   {
+    "name": "loop/candidates/mlp16/train.py",
+    "sha256": "f403927fe58bd63f9112b59bf573a4f7eb75b39a9dba54fce180536cc4186bc1"
+   },
+   {
+    "name": "loop/candidates/mlp16/infer.c",
+    "sha256": "aa30ab3243983d6eb9b861048bd47a03670bb68b446488d514e3af5fba42e27d"
+   },
+   {
+    "name": "loop/candidates/mlp16/weights.bin",
+    "sha256": "1f3f035ca9cb3bca1e5130faa11bb16fc1d38830ebce22dab7f4355b3de934b0"
+   },
+   {
+    "name": "loop/candidates/mlp32/train.py",
+    "sha256": "6ddccede033f12154b2962fd699a8ea4d6111bfa1717dd023c259b675a88311a"
+   },
+   {
+    "name": "loop/candidates/mlp32/infer.c",
+    "sha256": "6c6807c89101f3a386aa16d2cb68f167e4a2b6659167ee398c124621a667a2d5"
+   },
+   {
+    "name": "loop/candidates/mlp32/weights.bin",
+    "sha256": "0011bba272105867f11cb676127d4233ab327b1031fc001b7e317aa49b58e021"
+   },
+   {
+    "name": "loop/candidates/mlp64/train.py",
+    "sha256": "7527248f28660d2f787378e5a717190c22090b8f64f92222a219deb1d18247ca"
+   },
+   {
+    "name": "loop/candidates/mlp64/infer.c",
+    "sha256": "d5fbd73da17818a083c92bf75f3657b3c704f00061b656d61c0702e0b0971fe5"
+   },
+   {
+    "name": "loop/candidates/mlp64/weights.bin",
+    "sha256": "28b069589cb1a6bc2bf78ade4db71d738592d72d928cde0ea9d9332b9d6b585e"
+   }
+  ]
+ }
+}
