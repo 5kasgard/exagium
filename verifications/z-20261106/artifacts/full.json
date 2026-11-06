@@ -1,0 +1,4239 @@
+{
+ "schema": "forge.machine_profile/0",
+ "created_utc": "2026-11-06T10:15:43Z",
+ "elapsed_s": 97.3,
+ "settings": {
+  "reps": 7,
+  "min_ms": 30.0,
+  "seed": 1793960045,
+  "quick": false,
+  "order": "shuffled per rep, all measurements interleaved",
+  "cpu_steal_fraction_per_rep": [
+   0.0151,
+   0.0144,
+   0.0102,
+   0.0105,
+   0.0119,
+   0.0096,
+   0.0103
+  ],
+  "calibration": null,
+  "sweep_max_bytes": 948188160,
+  "line_bytes": 64,
+  "llc_reported_bytes": 528482304
+ },
+ "build": {
+  "compiler": "cc (Debian 14.2.0-19) 14.2.0",
+  "flags": [
+   "-O2",
+   "-march=native",
+   "-pthread"
+  ],
+  "kernels_sha256": "5347cf71ba39d0aae54005eb1714903f43af796de1771502b3b86d072bc273d8",
+  "probe_sha256": "a09c2bc96c3802e0f0bffbc547d85100aebfbd53878040d205194f3e5e829070",
+  "vector_isa": "avx512"
+ },
+ "environment": {
+  "hostname_hash": "c4f6d1f91ae6",
+  "kernel": "5.10.134-013.15.kangaroo.al8.x86_64",
+  "arch": "x86_64",
+  "cpu_model": "Intel(R) Xeon(R) Processor",
+  "logical_cpus": 2,
+  "hypervisor": true,
+  "simd_flags": [
+   "sse2",
+   "avx",
+   "avx2",
+   "fma",
+   "avx512f",
+   "amx_tile"
+  ],
+  "pmu_flag_arch_perfmon": false,
+  "thp": "[always] madvise never",
+  "mem_available_bytes": 3792752640,
+  "label": "reported"
+ },
+ "meter_tiers": [
+  {
+   "tier": 1,
+   "name": "rapl_energy",
+   "kind": "measured_energy",
+   "available": false,
+   "evidence": "no sys/class/powercap/intel-rapl*/energy_uj"
+  },
+  {
+   "tier": 1,
+   "name": "nvml_gpu_power",
+   "kind": "measured_energy",
+   "available": false,
+   "gpu_device_nodes": false,
+   "evidence": "no libnvidia-ml and no nvidia-smi"
+  },
+  {
+   "tier": 1,
+   "name": "perf_counters",
+   "kind": "measured_counts",
+   "available": false,
+   "hardware_pmu": null,
+   "evidence": "no CPU PMU in sys/bus/event_source/devices; paranoid=2"
+  },
+  {
+   "tier": 2,
+   "name": "timing",
+   "kind": "measured_time",
+   "available": true,
+   "evidence": "CLOCK_MONOTONIC (see timer)"
+  },
+  {
+   "tier": 2,
+   "name": "cachegrind",
+   "kind": "simulated_counts",
+   "available": true,
+   "evidence": "valgrind-3.24.0 ran cachegrind with cache simulation on /bin/true"
+  },
+  {
+   "tier": 3,
+   "name": "calibrated_estimate",
+   "kind": "calibrated",
+   "available": false,
+   "evidence": "no real-hardware calibration yet (open item 5)"
+  }
+ ],
+ "best_tier_for_energy": null,
+ "reported_caches": [
+  {
+   "level": 1,
+   "type": "Data",
+   "size_bytes": 49152,
+   "line_bytes": 64,
+   "shared_cpu_list": "0-1",
+   "label": "reported"
+  },
+  {
+   "level": 1,
+   "type": "Instruction",
+   "size_bytes": 65536,
+   "line_bytes": 64,
+   "shared_cpu_list": "0-1",
+   "label": "reported"
+  },
+  {
+   "level": 2,
+   "type": "Unified",
+   "size_bytes": 2097152,
+   "line_bytes": 64,
+   "shared_cpu_list": "0-1",
+   "label": "reported"
+  },
+  {
+   "level": 3,
+   "type": "Unified",
+   "size_bytes": 528482304,
+   "line_bytes": 64,
+   "shared_cpu_list": "0-1",
+   "label": "reported"
+  }
+ ],
+ "latency_curve": [
+  {
+   "bytes": 4096,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.407,
+    "se_median": 0.06699987942551115,
+    "mean": 1.477142857142857,
+    "sd": 0.18532410220244655,
+    "se": 0.07004592662485587,
+    "cv": 0.1254611910461437,
+    "min": 1.4009,
+    "max": 1.8972
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 8192,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4026,
+    "se_median": 0.0012173461634562412,
+    "mean": 1.4027714285714286,
+    "sd": 0.002210365192839007,
+    "se": 0.0008354395152693341,
+    "cv": 0.0015757130119837311,
+    "min": 1.4003,
+    "max": 1.4067
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 12288,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4038,
+    "se_median": 0.0006538998585601767,
+    "mean": 1.4034142857142857,
+    "sd": 0.0017062908812475837,
+    "se": 0.0006449173337311928,
+    "cv": 0.0012158141032312102,
+    "min": 1.4002,
+    "max": 1.4055
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 16384,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4017,
+    "se_median": 0.0017344503648326103,
+    "mean": 1.4030428571428573,
+    "sd": 0.0036523312841969264,
+    "se": 0.0013804514690866053,
+    "cv": 0.0026031501928846976,
+    "min": 1.3992,
+    "max": 1.4099
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 24576,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4102,
+    "se_median": 0.0047775613164177935,
+    "mean": 1.415457142857143,
+    "sd": 0.01711898138936789,
+    "se": 0.006470366779287203,
+    "cv": 0.01209431276372855,
+    "min": 1.4044,
+    "max": 1.4532
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 32768,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4086,
+    "se_median": 0.00312839742687216,
+    "mean": 1.4081428571428571,
+    "sd": 0.00495676545839361,
+    "se": 0.0018734812443120812,
+    "cv": 0.0035200728628137635,
+    "min": 1.4021,
+    "max": 1.4151
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 45056,
+   "ns_per_load": {
+    "n": 7,
+    "median": 1.4296,
+    "se_median": 0.006266917347711132,
+    "mean": 1.4357857142857142,
+    "sd": 0.018346064843396098,
+    "se": 0.006934160730327317,
+    "cv": 0.01277771791490699,
+    "min": 1.4134,
+    "max": 1.4724
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 65536,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.4727,
+    "se_median": 0.003822218872213765,
+    "mean": 4.472042857142857,
+    "sd": 0.006839799495808083,
+    "se": 0.00258520121192188,
+    "cv": 0.001529457501706046,
+    "min": 4.462,
+    "max": 4.4796
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 94208,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.4899,
+    "se_median": 0.008402703221072474,
+    "mean": 4.5004,
+    "sd": 0.023713568549109783,
+    "se": 0.008962886439832464,
+    "cv": 0.005269213525266595,
+    "min": 4.4846,
+    "max": 4.5508
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 131072,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.49,
+    "se_median": 0.0043512040548251245,
+    "mean": 4.4946142857142855,
+    "sd": 0.01870805785140269,
+    "se": 0.007070981226831554,
+    "cv": 0.004162327768784191,
+    "min": 4.4815,
+    "max": 4.5362
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 184320,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.4877,
+    "se_median": 0.008848551328359345,
+    "mean": 4.502785714285714,
+    "sd": 0.03983722834114784,
+    "se": 0.015057057016110195,
+    "cv": 0.008847240545948853,
+    "min": 4.4813,
+    "max": 4.5924
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 262144,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.492,
+    "se_median": 0.0033281256557379665,
+    "mean": 4.489828571428571,
+    "sd": 0.005692894485149787,
+    "se": 0.0021517118639767753,
+    "cv": 0.0012679536411205172,
+    "min": 4.4814,
+    "max": 4.4966
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 372736,
+   "ns_per_load": {
+    "n": 7,
+    "median": 4.5012,
+    "se_median": 0.02728868504218059,
+    "mean": 4.526471428571428,
+    "sd": 0.07610319122274509,
+    "se": 0.028764302564825293,
+    "cv": 0.01681291761666185,
+    "min": 4.488,
+    "max": 4.6986
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 524288,
+   "ns_per_load": {
+    "n": 7,
+    "median": 5.0126,
+    "se_median": 0.10022027726530766,
+    "mean": 5.118342857142857,
+    "sd": 0.29325350726599947,
+    "se": 0.11083940733190108,
+    "cv": 0.057294619655412916,
+    "min": 4.9886,
+    "max": 5.7827
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 741376,
+   "ns_per_load": {
+    "n": 7,
+    "median": 5.4446,
+    "se_median": 0.1575986889708329,
+    "mean": 5.724214285714285,
+    "sd": 0.6400360131236664,
+    "se": 0.2419108744072134,
+    "cv": 0.11181202889643409,
+    "min": 5.4226,
+    "max": 7.1566
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 1048576,
+   "ns_per_load": {
+    "n": 7,
+    "median": 5.8033,
+    "se_median": 0.07003756032513049,
+    "mean": 5.869842857142857,
+    "sd": 0.17135532145362803,
+    "se": 0.06476622377054725,
+    "cv": 0.02919248872993427,
+    "min": 5.7371,
+    "max": 6.2191
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 1482752,
+   "ns_per_load": {
+    "n": 7,
+    "median": 10.2324,
+    "se_median": 2.368803105448127,
+    "mean": 12.2538,
+    "sd": 6.106835794692152,
+    "se": 2.3081669728947047,
+    "cv": 0.4983626136130957,
+    "min": 7.9604,
+    "max": 24.8281
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 2097152,
+   "ns_per_load": {
+    "n": 7,
+    "median": 32.3815,
+    "se_median": 6.753254718955431,
+    "mean": 37.026599999999995,
+    "sd": 15.315926718071399,
+    "se": 5.788876170643799,
+    "cv": 0.4136465869961433,
+    "min": 17.3028,
+    "max": 63.8971
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 2965504,
+   "ns_per_load": {
+    "n": 7,
+    "median": 60.4882,
+    "se_median": 12.00187965298666,
+    "mean": 57.365,
+    "sd": 17.792211692011012,
+    "se": 6.724823915839553,
+    "cv": 0.3101579655192367,
+    "min": 33.9095,
+    "max": 81.4275
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 4194304,
+   "ns_per_load": {
+    "n": 7,
+    "median": 57.3155,
+    "se_median": 6.057384277512817,
+    "mean": 62.69408571428572,
+    "sd": 10.167700600664924,
+    "se": 3.843029599245921,
+    "cv": 0.1621795817711091,
+    "min": 55.3373,
+    "max": 79.8227
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 5931008,
+   "ns_per_load": {
+    "n": 7,
+    "median": 56.1197,
+    "se_median": 3.9899284539371176,
+    "mean": 56.053999999999995,
+    "sd": 12.850658936282862,
+    "se": 4.857092532673469,
+    "cv": 0.22925498512653625,
+    "min": 38.3387,
+    "max": 81.2207
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 8388608,
+   "ns_per_load": {
+    "n": 7,
+    "median": 57.3199,
+    "se_median": 6.439537199763145,
+    "mean": 59.76631428571428,
+    "sd": 12.412712991449341,
+    "se": 4.691564524427938,
+    "cv": 0.2076874429985773,
+    "min": 49.3737,
+    "max": 82.2595
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 11862016,
+   "ns_per_load": {
+    "n": 7,
+    "median": 63.2941,
+    "se_median": 8.067536765533807,
+    "mean": 68.44458571428571,
+    "sd": 13.751253212153498,
+    "se": 5.19748517354804,
+    "cv": 0.20091075237940034,
+    "min": 48.4109,
+    "max": 86.4152
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 16777216,
+   "ns_per_load": {
+    "n": 7,
+    "median": 82.004,
+    "se_median": 9.168912224789244,
+    "mean": 75.57081428571428,
+    "sd": 16.260960152712236,
+    "se": 6.146065234743923,
+    "cv": 0.21517513482432024,
+    "min": 47.5681,
+    "max": 94.0089
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 23728128,
+   "ns_per_load": {
+    "n": 7,
+    "median": 81.7026,
+    "se_median": 13.241694902561125,
+    "mean": 74.50882857142858,
+    "sd": 20.794005291326496,
+    "se": 7.859395251687301,
+    "cv": 0.27908109267067766,
+    "min": 43.8114,
+    "max": 93.8262
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 33554432,
+   "ns_per_load": {
+    "n": 7,
+    "median": 83.4909,
+    "se_median": 8.684962976722042,
+    "mean": 78.81981428571429,
+    "sd": 16.664700098954533,
+    "se": 6.298664590758166,
+    "cv": 0.21142780213293308,
+    "min": 52.1596,
+    "max": 100.1653
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 47452160,
+   "ns_per_load": {
+    "n": 7,
+    "median": 118.648,
+    "se_median": 12.743423666998726,
+    "mean": 116.11832857142858,
+    "sd": 27.27862325831433,
+    "se": 10.310350464246024,
+    "cv": 0.23492090864479043,
+    "min": 65.9548,
+    "max": 151.1464
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 67108864,
+   "ns_per_load": {
+    "n": 7,
+    "median": 141.3872,
+    "se_median": 23.233535340252825,
+    "mean": 125.57402857142857,
+    "sd": 31.920137946794355,
+    "se": 12.064678117441964,
+    "cv": 0.2541937876002573,
+    "min": 82.2544,
+    "max": 158.8853
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 94904320,
+   "ns_per_load": {
+    "n": 7,
+    "median": 148.1644,
+    "se_median": 19.231459684827772,
+    "mean": 145.19502857142857,
+    "sd": 25.66515052340523,
+    "se": 9.70051509228135,
+    "cv": 0.17676328711750128,
+    "min": 118.7637,
+    "max": 177.4341
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 134217728,
+   "ns_per_load": {
+    "n": 7,
+    "median": 158.5037,
+    "se_median": 11.223738069164886,
+    "mean": 161.64361428571428,
+    "sd": 20.46631449955663,
+    "se": 7.7355397742660275,
+    "cv": 0.12661381391399265,
+    "min": 125.6505,
+    "max": 185.6237
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 189812736,
+   "ns_per_load": {
+    "n": 7,
+    "median": 159.9301,
+    "se_median": 14.918443134592337,
+    "mean": 168.51782857142857,
+    "sd": 21.922567523651225,
+    "se": 8.285951681086035,
+    "cv": 0.1300904937447556,
+    "min": 135.5249,
+    "max": 194.7505
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 268435456,
+   "ns_per_load": {
+    "n": 7,
+    "median": 190.1399,
+    "se_median": 12.653983576378394,
+    "mean": 181.00152857142857,
+    "sd": 25.193777836251176,
+    "se": 9.522352962990224,
+    "cv": 0.13919096725367688,
+    "min": 140.9186,
+    "max": 218.4579
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 379625472,
+   "ns_per_load": {
+    "n": 7,
+    "median": 170.4843,
+    "se_median": 15.241822039003502,
+    "mean": 169.11014285714285,
+    "sd": 23.815757067038422,
+    "se": 9.001510069158956,
+    "cv": 0.140829856001937,
+    "min": 145.6942,
+    "max": 201.4412
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 536870912,
+   "ns_per_load": {
+    "n": 7,
+    "median": 211.8764,
+    "se_median": 27.081087652686858,
+    "mean": 193.49954285714284,
+    "sd": 35.54123780159498,
+    "se": 13.433325215775472,
+    "cv": 0.18367608148735742,
+    "min": 154.7723,
+    "max": 237.1699
+   },
+   "label": "measured"
+  },
+  {
+   "bytes": 759250944,
+   "ns_per_load": {
+    "n": 7,
+    "median": 228.198,
+    "se_median": 18.994109264606664,
+    "mean": 216.18497142857146,
+    "sd": 35.19672473998654,
+    "se": 13.303111517999843,
+    "cv": 0.16280837889610522,
+    "min": 166.7508,
+    "max": 263.3336
+   },
+   "label": "measured"
+  }
+ ],
+ "memory_levels": [
+  {
+   "kind": "level",
+   "points": 7,
+   "from_bytes": 4096,
+   "to_bytes": 45056,
+   "latency_ns_range": [
+    1.4017,
+    1.4296
+   ],
+   "label": "derived",
+   "level": 1,
+   "latency_ns": 1.4037846159511238,
+   "latency_ns_se": 0.000665654230986067,
+   "rise_across_span": 1.0095263388201705,
+   "capacity_bytes_between": [
+    45056,
+    65536
+   ]
+  },
+  {
+   "kind": "level",
+   "points": 10,
+   "from_bytes": 65536,
+   "to_bytes": 1482752,
+   "latency_ns_range": [
+    4.4727,
+    10.2324
+   ],
+   "label": "derived",
+   "level": 2,
+   "latency_ns": 4.487899678687489,
+   "latency_ns_se": 0.0025477275636279907,
+   "rise_across_span": 1.0171158504329907,
+   "capacity_bytes_between": [
+    1482752,
+    null
+   ]
+  },
+  {
+   "kind": "transition",
+   "points": 18,
+   "from_bytes": 2097152,
+   "to_bytes": 759250944,
+   "latency_ns_range": [
+    32.3815,
+    228.198
+   ],
+   "label": "derived"
+  }
+ ],
+ "memory_levels_excluded_bytes": [],
+ "memory_levels_choices": {
+  "min_level_span": 2.0,
+  "level_rise_ratio": 0.5,
+  "max_excluded_fraction": 0.2,
+  "label": "explicit choice",
+  "meaning": "a level spans >= min_level_span x in size; its rise must be under level_rise_ratio of each edge jump; if more than max_excluded_fraction of sizes break monotonicity, no levels are fitted"
+ },
+ "sweep_reach": {
+  "largest_bytes": 759250944,
+  "reported_llc_bytes": 528482304,
+  "ratio": 1.4366629464285714,
+  "label": "derived",
+  "warning": "sweep ended below 2x the reported last-level cache (RAM-limited), so DRAM may never be reached: a final level here may not be DRAM, and a missing one may just be out of range"
+ },
+ "bandwidth": {
+  "dram_1t": {
+   "n": 7,
+   "median": 15.7364,
+   "se_median": 1.6772209921539944,
+   "mean": 16.164985714285713,
+   "sd": 2.5224622570209516,
+   "se": 0.9534011176605898,
+   "cv": 0.1560448182018336,
+   "min": 13.1353,
+   "max": 19.2184,
+   "unit": "GB/s",
+   "label": "measured",
+   "bytes": 948188160
+  },
+  "dram_2t": {
+   "n": 7,
+   "median": 21.0777,
+   "se_median": 2.011319903038268,
+   "mean": 23.049814285714287,
+   "sd": 3.440961251079206,
+   "se": 1.3005611059093232,
+   "cv": 0.14928368655932425,
+   "min": 20.1152,
+   "max": 29.0285,
+   "unit": "GB/s",
+   "label": "measured",
+   "bytes": 948188160
+  },
+  "l1_1t": {
+   "n": 7,
+   "median": 304.935,
+   "se_median": 12.448516690650047,
+   "mean": 291.4948857142857,
+   "sd": 32.083844457994154,
+   "se": 12.126553362675775,
+   "cv": 0.11006657759835192,
+   "min": 220.0493,
+   "max": 307.5331,
+   "unit": "GB/s",
+   "label": "measured",
+   "bytes": 16384
+  },
+  "l1_2t": {
+   "n": 7,
+   "median": 429.055,
+   "se_median": 40.0448859493271,
+   "mean": 427.73908571428575,
+   "sd": 80.07709277992528,
+   "se": 30.266296172675453,
+   "cv": 0.18721013686697288,
+   "min": 326.9458,
+   "max": 559.0235,
+   "unit": "GB/s",
+   "label": "measured",
+   "bytes": 32768
+  }
+ },
+ "compute": {
+  "scalar_f64_1t": {
+   "n": 7,
+   "median": 14.256,
+   "se_median": 0.012813627717991794,
+   "mean": 14.2586,
+   "sd": 0.021550019334871103,
+   "se": 0.008145141701243214,
+   "cv": 0.0015113699335749025,
+   "min": 14.2334,
+   "max": 14.2877,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  },
+  "scalar_f64_2t": {
+   "n": 7,
+   "median": 21.5353,
+   "se_median": 0.3008440616023382,
+   "mean": 21.315157142857142,
+   "sd": 0.6964117504684109,
+   "se": 0.26321890026322636,
+   "cv": 0.03267213775629064,
+   "min": 19.8612,
+   "max": 21.8415,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  },
+  "vec_f64_1t": {
+   "n": 7,
+   "median": 102.6734,
+   "se_median": 0.7123751216404483,
+   "mean": 102.10452857142857,
+   "sd": 1.7454546587391773,
+   "se": 0.6597198502518536,
+   "cv": 0.017094782015649006,
+   "min": 98.4617,
+   "max": 103.6414,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  },
+  "vec_f64_2t": {
+   "n": 7,
+   "median": 157.9155,
+   "se_median": 5.446799160264595,
+   "mean": 151.84458571428573,
+   "sd": 12.552169318810801,
+   "se": 4.744274061706915,
+   "cv": 0.0826645827361224,
+   "min": 125.6588,
+   "max": 159.7405,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  },
+  "vec_f32_1t": {
+   "n": 7,
+   "median": 205.5961,
+   "se_median": 1.0034227384599446,
+   "mean": 204.73638571428572,
+   "sd": 2.2123871869005876,
+   "se": 0.8362037571892472,
+   "cv": 0.010806028343139866,
+   "min": 200.3805,
+   "max": 206.5452,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  },
+  "vec_f32_2t": {
+   "n": 7,
+   "median": 307.2468,
+   "se_median": 22.5817343317152,
+   "mean": 292.72447142857146,
+   "sd": 31.101532297284784,
+   "se": 11.755274264522702,
+   "cv": 0.10624848734204294,
+   "min": 254.6229,
+   "max": 329.148,
+   "unit": "GFLOP/s",
+   "label": "measured"
+  }
+ },
+ "timer": {
+  "min_step_ns": {
+   "n": 7,
+   "median": 23.0,
+   "se_median": 0.0,
+   "mean": 23.0,
+   "sd": 0.0,
+   "se": 0.0,
+   "cv": 0.0,
+   "min": 23.0,
+   "max": 23.0
+  },
+  "read_overhead_ns": {
+   "n": 7,
+   "median": 22.227,
+   "se_median": 0.0995811225030072,
+   "mean": 22.320714285714285,
+   "sd": 0.2628311969596417,
+   "se": 0.09934085484923537,
+   "cv": 0.011775214430653729,
+   "min": 22.145,
+   "max": 22.903
+  },
+  "getres_ns_reported": 1.0,
+  "label": "measured",
+  "meaning": "min_step_ns is the smallest gap two reads can show (bounded by read cost), so timed windows should be >> it; getres_ns_reported is the kernel's claim"
+ },
+ "derived": {
+  "ridge_flops_per_byte_f64": {
+   "value": 7.4920650735137135,
+   "label": "derived",
+   "from": [
+    "compute.vec_f64_2t",
+    "bandwidth.dram_2t"
+   ],
+   "meaning": "arithmetic intensity above which all-core f64 work is compute-bound (roofline)"
+  },
+  "far_over_near_latency": {
+   "value": 3.1970001862762585,
+   "label": "derived",
+   "from": [
+    "memory_levels first level",
+    "memory_levels last level"
+   ],
+   "meaning": "cost of a load from the farthest level found vs the nearest"
+  }
+ },
+ "memory_levels_method": "points significantly slower than the next kept size excluded as interference (latency cannot fall with working set); piecewise-linear BIC fit of log(median latency) on log(size), weights 1/SE^2 with SE = bootstrap SE of the median widened by t(df=reps-1)/z; a level spans >= 2x size and its fitted rise is significantly less than 0.5x the jump at each edge (z = 2-sided 5% Bonferroni over n-1 breakpoints), as are the plain spread of its interior medians and its slope relative to the edge's slope; the edge must step up toward larger sizes; a lone segment must show no detectable rise; neighbours that would pass as one merged level are merged; capacity bracket starts at the last size where no rep already reached the next level and ends at the first size where no rep was still at this level (null if no next level); a bracket covers what these reps showed, it is not a confidence interval for the true capacity",
+ "consistency_problems": [],
+ "caveats": [
+  "Tier 2 only unless a tier-1 meter is listed as available: these are times, not energy.",
+  "Latency includes TLB effects at large sizes; huge pages were requested (madvise) and THP mode is recorded.",
+  "In a VM, reported caches and core counts are the hypervisor's claim; measured levels may differ.",
+  "memory_levels are a fit to the measured curve (derived), not direct measurements; capacities are brackets.",
+  "Noise is within this run on this machine; it says nothing about other runs or other hosts.",
+  "Vector ceilings are for the instruction set recorded in build.vector_isa; elsewhere they mean that ISA.",
+  "--reanalyse checks consistency, never authenticity: anyone can fabricate a self-consistent raw section with any numbers. Only an outside-anchored record (open item 3) can stop that."
+ ],
+ "raw": {
+  "chase:4096": [
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 1065251399637517345,
+    "steps": 33554432,
+    "seconds": 0.047059654,
+    "ns_per_load": 1.4025,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 1010392611426752801,
+    "steps": 33554432,
+    "seconds": 0.047100914,
+    "ns_per_load": 1.4037,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 732844140096251803,
+    "steps": 33554432,
+    "seconds": 0.047603376,
+    "ns_per_load": 1.4187,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 639067165408351795,
+    "steps": 33554432,
+    "seconds": 0.047311134,
+    "ns_per_load": 1.41,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 688900194844446193,
+    "steps": 33554432,
+    "seconds": 0.047212625,
+    "ns_per_load": 1.407,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 1038596334909513019,
+    "steps": 33554432,
+    "seconds": 0.047006663,
+    "ns_per_load": 1.4009,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4096,
+    "line": 64,
+    "seed": 835823171574226013,
+    "steps": 16777216,
+    "seconds": 0.031829042,
+    "ns_per_load": 1.8972,
+    "sink": 0
+   }
+  ],
+  "chase:8192": [
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 208490120612100085,
+    "steps": 33554432,
+    "seconds": 0.047200561,
+    "ns_per_load": 1.4067,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 153633746091873433,
+    "steps": 33554432,
+    "seconds": 0.047105392,
+    "ns_per_load": 1.4039,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 135662960857687643,
+    "steps": 33554432,
+    "seconds": 0.047009748,
+    "ns_per_load": 1.401,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 1055648496779436043,
+    "steps": 33554432,
+    "seconds": 0.047016788,
+    "ns_per_load": 1.4012,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 8684253103689587,
+    "steps": 33554432,
+    "seconds": 0.047100579,
+    "ns_per_load": 1.4037,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 1112788914250814195,
+    "steps": 33554432,
+    "seconds": 0.046984767,
+    "ns_per_load": 1.4003,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8192,
+    "line": 64,
+    "seed": 694538768553346087,
+    "steps": 33554432,
+    "seconds": 0.047064436,
+    "ns_per_load": 1.4026,
+    "sink": 0
+   }
+  ],
+  "chase:12288": [
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 1052030075864226943,
+    "steps": 33554432,
+    "seconds": 0.047159252,
+    "ns_per_load": 1.4055,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 1023920720506652247,
+    "steps": 33554432,
+    "seconds": 0.047134227,
+    "ns_per_load": 1.4047,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 1148850514041201689,
+    "steps": 33554432,
+    "seconds": 0.04710288,
+    "ns_per_load": 1.4038,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 612489655126876129,
+    "steps": 33554432,
+    "seconds": 0.047103181,
+    "ns_per_load": 1.4038,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 1013418037871468161,
+    "steps": 33554432,
+    "seconds": 0.047060702,
+    "ns_per_load": 1.4025,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 1111592169497423207,
+    "steps": 33554432,
+    "seconds": 0.046982319,
+    "ns_per_load": 1.4002,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 12288,
+    "line": 64,
+    "seed": 752708235156146255,
+    "steps": 33554432,
+    "seconds": 0.047089555,
+    "ns_per_load": 1.4034,
+    "sink": 0
+   }
+  ],
+  "chase:16384": [
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 378228082032236611,
+    "steps": 33554432,
+    "seconds": 0.047106392,
+    "ns_per_load": 1.4039,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 152100754897916989,
+    "steps": 33554432,
+    "seconds": 0.047032391,
+    "ns_per_load": 1.4017,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 1071939879914903527,
+    "steps": 33554432,
+    "seconds": 0.047307948,
+    "ns_per_load": 1.4099,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 602567639663565117,
+    "steps": 33554432,
+    "seconds": 0.046993877,
+    "ns_per_load": 1.4005,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 679796736668625071,
+    "steps": 33554432,
+    "seconds": 0.046951019,
+    "ns_per_load": 1.3992,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 564361301673476361,
+    "steps": 33554432,
+    "seconds": 0.047152151,
+    "ns_per_load": 1.4052,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16384,
+    "line": 64,
+    "seed": 940871907140807249,
+    "steps": 33554432,
+    "seconds": 0.047006502,
+    "ns_per_load": 1.4009,
+    "sink": 0
+   }
+  ],
+  "chase:24576": [
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 205666830992938013,
+    "steps": 33554432,
+    "seconds": 0.047188432,
+    "ns_per_load": 1.4063,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 87095110791014315,
+    "steps": 33554432,
+    "seconds": 0.047164938,
+    "ns_per_load": 1.4056,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 764174711181229091,
+    "steps": 33554432,
+    "seconds": 0.048762799,
+    "ns_per_load": 1.4532,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 388438671891040849,
+    "steps": 33554432,
+    "seconds": 0.04712508,
+    "ns_per_load": 1.4044,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 1066127016228952705,
+    "steps": 33554432,
+    "seconds": 0.047318962,
+    "ns_per_load": 1.4102,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 61822932307091277,
+    "steps": 33554432,
+    "seconds": 0.0474557,
+    "ns_per_load": 1.4143,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 24576,
+    "line": 64,
+    "seed": 1002337173054982673,
+    "steps": 33554432,
+    "seconds": 0.047453993,
+    "ns_per_load": 1.4142,
+    "sink": 0
+   }
+  ],
+  "chase:32768": [
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 518669807986020519,
+    "steps": 33554432,
+    "seconds": 0.047481334,
+    "ns_per_load": 1.4151,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 762988881035058213,
+    "steps": 33554432,
+    "seconds": 0.047309937,
+    "ns_per_load": 1.4099,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 760896762267664377,
+    "steps": 33554432,
+    "seconds": 0.047102517,
+    "ns_per_load": 1.4038,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 707296538665932595,
+    "steps": 33554432,
+    "seconds": 0.047047953,
+    "ns_per_load": 1.4021,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 890431483387903523,
+    "steps": 33554432,
+    "seconds": 0.047121596,
+    "ns_per_load": 1.4043,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 372877556071587509,
+    "steps": 33554432,
+    "seconds": 0.047419479,
+    "ns_per_load": 1.4132,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 32768,
+    "line": 64,
+    "seed": 349154782716294831,
+    "steps": 33554432,
+    "seconds": 0.047264052,
+    "ns_per_load": 1.4086,
+    "sink": 0
+   }
+  ],
+  "chase:45056": [
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 434727372105688717,
+    "steps": 33554432,
+    "seconds": 0.048334515,
+    "ns_per_load": 1.4405,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 862652554452202999,
+    "steps": 33554432,
+    "seconds": 0.047970233,
+    "ns_per_load": 1.4296,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 47470772310086609,
+    "steps": 33554432,
+    "seconds": 0.047426725,
+    "ns_per_load": 1.4134,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 101635602503981311,
+    "steps": 33554432,
+    "seconds": 0.047893501,
+    "ns_per_load": 1.4273,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 669154271827401443,
+    "steps": 33554432,
+    "seconds": 0.048246834,
+    "ns_per_load": 1.4379,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 346435232146516697,
+    "steps": 33554432,
+    "seconds": 0.049406122,
+    "ns_per_load": 1.4724,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 45056,
+    "line": 64,
+    "seed": 1000632098168517279,
+    "steps": 33554432,
+    "seconds": 0.047962888,
+    "ns_per_load": 1.4294,
+    "sink": 0
+   }
+  ],
+  "chase:65536": [
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 228256671912062877,
+    "steps": 8388608,
+    "seconds": 0.037519673,
+    "ns_per_load": 4.4727,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 971878357372244893,
+    "steps": 8388608,
+    "seconds": 0.037577436,
+    "ns_per_load": 4.4796,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 416005673901982103,
+    "steps": 8388608,
+    "seconds": 0.037541859,
+    "ns_per_load": 4.4753,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 360392492064141385,
+    "steps": 8388608,
+    "seconds": 0.037572209,
+    "ns_per_load": 4.479,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 482879410112776719,
+    "steps": 8388608,
+    "seconds": 0.037429802,
+    "ns_per_load": 4.462,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 289516343388271199,
+    "steps": 8388608,
+    "seconds": 0.037447521,
+    "ns_per_load": 4.4641,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 65536,
+    "line": 64,
+    "seed": 890689928398914663,
+    "steps": 8388608,
+    "seconds": 0.037510605,
+    "ns_per_load": 4.4716,
+    "sink": 0
+   }
+  ],
+  "chase:94208": [
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 374001661630345123,
+    "steps": 8388608,
+    "seconds": 0.037698559,
+    "ns_per_load": 4.494,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 739409223820336411,
+    "steps": 8388608,
+    "seconds": 0.037619267,
+    "ns_per_load": 4.4846,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 106922292530881079,
+    "steps": 8388608,
+    "seconds": 0.037623377,
+    "ns_per_load": 4.4851,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 656815361614240241,
+    "steps": 8388608,
+    "seconds": 0.03765902,
+    "ns_per_load": 4.4893,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 800809593227513741,
+    "steps": 8388608,
+    "seconds": 0.037825128,
+    "ns_per_load": 4.5091,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 114557488100064569,
+    "steps": 8388608,
+    "seconds": 0.038175193,
+    "ns_per_load": 4.5508,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94208,
+    "line": 64,
+    "seed": 690165008014066933,
+    "steps": 8388608,
+    "seconds": 0.037664395,
+    "ns_per_load": 4.4899,
+    "sink": 0
+   }
+  ],
+  "chase:131072": [
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 833332163326307223,
+    "steps": 8388608,
+    "seconds": 0.037683953,
+    "ns_per_load": 4.4923,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 1124075560635164753,
+    "steps": 8388608,
+    "seconds": 0.037621294,
+    "ns_per_load": 4.4848,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 772715259029428173,
+    "steps": 8388608,
+    "seconds": 0.038052533,
+    "ns_per_load": 4.5362,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 227489841641927591,
+    "steps": 8388608,
+    "seconds": 0.037638445,
+    "ns_per_load": 4.4869,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 189429949865988037,
+    "steps": 8388608,
+    "seconds": 0.037593703,
+    "ns_per_load": 4.4815,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 172663956454552525,
+    "steps": 8388608,
+    "seconds": 0.037664573,
+    "ns_per_load": 4.49,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 131072,
+    "line": 64,
+    "seed": 1086371803279665433,
+    "steps": 8388608,
+    "seconds": 0.037669725,
+    "ns_per_load": 4.4906,
+    "sink": 0
+   }
+  ],
+  "chase:184320": [
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 115049162760405611,
+    "steps": 8388608,
+    "seconds": 0.037645811,
+    "ns_per_load": 4.4877,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 66167411894465527,
+    "steps": 8388608,
+    "seconds": 0.03759167,
+    "ns_per_load": 4.4813,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 655675416362385139,
+    "steps": 8388608,
+    "seconds": 0.038523643,
+    "ns_per_load": 4.5924,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 898221368934368375,
+    "steps": 8388608,
+    "seconds": 0.037723891,
+    "ns_per_load": 4.497,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 800557984170797037,
+    "steps": 8388608,
+    "seconds": 0.037673348,
+    "ns_per_load": 4.491,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 934161516793350323,
+    "steps": 8388608,
+    "seconds": 0.037618665,
+    "ns_per_load": 4.4845,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 184320,
+    "line": 64,
+    "seed": 667148166392481753,
+    "steps": 8388608,
+    "seconds": 0.037628347,
+    "ns_per_load": 4.4856,
+    "sink": 0
+   }
+  ],
+  "chase:262144": [
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 652863373931888799,
+    "steps": 8388608,
+    "seconds": 0.03768342,
+    "ns_per_load": 4.4922,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 1077768072094894767,
+    "steps": 8388608,
+    "seconds": 0.037681612,
+    "ns_per_load": 4.492,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 609692348639681747,
+    "steps": 8388608,
+    "seconds": 0.03760512,
+    "ns_per_load": 4.4829,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 945085805292125969,
+    "steps": 8388608,
+    "seconds": 0.037699925,
+    "ns_per_load": 4.4942,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 637804412010919049,
+    "steps": 8388608,
+    "seconds": 0.037661073,
+    "ns_per_load": 4.4895,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 795510627947415535,
+    "steps": 8388608,
+    "seconds": 0.037592785,
+    "ns_per_load": 4.4814,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 262144,
+    "line": 64,
+    "seed": 777175123193526303,
+    "steps": 8388608,
+    "seconds": 0.037719856,
+    "ns_per_load": 4.4966,
+    "sink": 0
+   }
+  ],
+  "chase:372736": [
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 453802392306837565,
+    "steps": 8388608,
+    "seconds": 0.037746957,
+    "ns_per_load": 4.4998,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 291520364759198521,
+    "steps": 8388608,
+    "seconds": 0.037772603,
+    "ns_per_load": 4.5028,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 465136932422449131,
+    "steps": 8388608,
+    "seconds": 0.037686489,
+    "ns_per_load": 4.4926,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 379222445423528645,
+    "steps": 8388608,
+    "seconds": 0.037758924,
+    "ns_per_load": 4.5012,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 584656343298867269,
+    "steps": 8388608,
+    "seconds": 0.037767706,
+    "ns_per_load": 4.5023,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 711039661271935293,
+    "steps": 8388608,
+    "seconds": 0.037648372,
+    "ns_per_load": 4.488,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 372736,
+    "line": 64,
+    "seed": 714062643542174145,
+    "steps": 8388608,
+    "seconds": 0.039414989,
+    "ns_per_load": 4.6986,
+    "sink": 0
+   }
+  ],
+  "chase:524288": [
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 744411174081072891,
+    "steps": 8388608,
+    "seconds": 0.042104519,
+    "ns_per_load": 5.0192,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 420361084320744399,
+    "steps": 8388608,
+    "seconds": 0.042167135,
+    "ns_per_load": 5.0267,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 551778041739523599,
+    "steps": 8388608,
+    "seconds": 0.042048491,
+    "ns_per_load": 5.0126,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 661128838119840829,
+    "steps": 8388608,
+    "seconds": 0.041904404,
+    "ns_per_load": 4.9954,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 880912358295217697,
+    "steps": 8388608,
+    "seconds": 0.048508783,
+    "ns_per_load": 5.7827,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 15930871726481823,
+    "steps": 8388608,
+    "seconds": 0.041847092,
+    "ns_per_load": 4.9886,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 524288,
+    "line": 64,
+    "seed": 467993163950429827,
+    "steps": 8388608,
+    "seconds": 0.041970294,
+    "ns_per_load": 5.0032,
+    "sink": 0
+   }
+  ],
+  "chase:741376": [
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 861461453280171241,
+    "steps": 8388608,
+    "seconds": 0.045690327,
+    "ns_per_load": 5.4467,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 193758475610668811,
+    "steps": 8388608,
+    "seconds": 0.045488279,
+    "ns_per_load": 5.4226,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 2310234473894303,
+    "steps": 4194304,
+    "seconds": 0.030017016,
+    "ns_per_load": 7.1566,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 618399752024532299,
+    "steps": 8388608,
+    "seconds": 0.047950291,
+    "ns_per_load": 5.7161,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 572096883043745785,
+    "steps": 8388608,
+    "seconds": 0.045652164,
+    "ns_per_load": 5.4422,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 565226535295933493,
+    "steps": 8388608,
+    "seconds": 0.045672783,
+    "ns_per_load": 5.4446,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 741376,
+    "line": 64,
+    "seed": 1065882070510715247,
+    "steps": 8388608,
+    "seconds": 0.045639899,
+    "ns_per_load": 5.4407,
+    "sink": 0
+   }
+  ],
+  "chase:1048576": [
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 503238329339677599,
+    "steps": 8388608,
+    "seconds": 0.048265416,
+    "ns_per_load": 5.7537,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 574032206171312511,
+    "steps": 8388608,
+    "seconds": 0.048681799,
+    "ns_per_load": 5.8033,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 1007419314914058515,
+    "steps": 8388608,
+    "seconds": 0.05006959,
+    "ns_per_load": 5.9688,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 133773208570596107,
+    "steps": 8388608,
+    "seconds": 0.048641203,
+    "ns_per_load": 5.7985,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 226314079500524099,
+    "steps": 8388608,
+    "seconds": 0.048724663,
+    "ns_per_load": 5.8084,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 588630520029141411,
+    "steps": 8388608,
+    "seconds": 0.052169224,
+    "ns_per_load": 6.2191,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1048576,
+    "line": 64,
+    "seed": 412296790960116459,
+    "steps": 8388608,
+    "seconds": 0.048126246,
+    "ns_per_load": 5.7371,
+    "sink": 0
+   }
+  ],
+  "chase:1482752": [
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 382728988668311491,
+    "steps": 4194304,
+    "seconds": 0.033388249,
+    "ns_per_load": 7.9604,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 82179069434802825,
+    "steps": 4194304,
+    "seconds": 0.033695383,
+    "ns_per_load": 8.0336,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 874366099340044419,
+    "steps": 2097152,
+    "seconds": 0.052068346,
+    "ns_per_load": 24.8281,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 1143696335321297155,
+    "steps": 4194304,
+    "seconds": 0.036760728,
+    "ns_per_load": 8.7644,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 233292846991214815,
+    "steps": 2097152,
+    "seconds": 0.032375016,
+    "ns_per_load": 15.4376,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 273186580642329461,
+    "steps": 4194304,
+    "seconds": 0.044124464,
+    "ns_per_load": 10.5201,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 1482752,
+    "line": 64,
+    "seed": 968010182601635275,
+    "steps": 4194304,
+    "seconds": 0.042917622,
+    "ns_per_load": 10.2324,
+    "sink": 0
+   }
+  ],
+  "chase:2097152": [
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 720401546653064521,
+    "steps": 2097152,
+    "seconds": 0.036286507,
+    "ns_per_load": 17.3028,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 815105052407694359,
+    "steps": 1048576,
+    "seconds": 0.051505084,
+    "ns_per_load": 49.1191,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 776331250732134071,
+    "steps": 1048576,
+    "seconds": 0.067001,
+    "ns_per_load": 63.8971,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 561929846987255053,
+    "steps": 1048576,
+    "seconds": 0.030426768,
+    "ns_per_load": 29.0172,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 48125877915785277,
+    "steps": 1048576,
+    "seconds": 0.040222444,
+    "ns_per_load": 38.3591,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 404907687956104637,
+    "steps": 1048576,
+    "seconds": 0.033954493,
+    "ns_per_load": 32.3815,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2097152,
+    "line": 64,
+    "seed": 616136031759138307,
+    "steps": 2097152,
+    "seconds": 0.061046757,
+    "ns_per_load": 29.1094,
+    "sink": 0
+   }
+  ],
+  "chase:2965504": [
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 576423180311008897,
+    "steps": 524288,
+    "seconds": 0.031713243,
+    "ns_per_load": 60.4882,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 645847080037015731,
+    "steps": 1048576,
+    "seconds": 0.045605152,
+    "ns_per_load": 43.4925,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 814256330312194385,
+    "steps": 524288,
+    "seconds": 0.042691484,
+    "ns_per_load": 81.4275,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 394060897048500307,
+    "steps": 1048576,
+    "seconds": 0.043917152,
+    "ns_per_load": 41.8827,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 481859291185326703,
+    "steps": 524288,
+    "seconds": 0.036796522,
+    "ns_per_load": 70.1838,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 99715591774997617,
+    "steps": 524288,
+    "seconds": 0.036789702,
+    "ns_per_load": 70.1708,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 2965504,
+    "line": 64,
+    "seed": 1082671197497289449,
+    "steps": 1048576,
+    "seconds": 0.035556733,
+    "ns_per_load": 33.9095,
+    "sink": 0
+   }
+  ],
+  "chase:4194304": [
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 409979117971357197,
+    "steps": 1048576,
+    "seconds": 0.059414025,
+    "ns_per_load": 56.6616,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 86097975727698521,
+    "steps": 524288,
+    "seconds": 0.031195311,
+    "ns_per_load": 59.5003,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 1094703936367196005,
+    "steps": 1048576,
+    "seconds": 0.058025404,
+    "ns_per_load": 55.3373,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 168022696057092089,
+    "steps": 1048576,
+    "seconds": 0.058172652,
+    "ns_per_load": 55.4778,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 1118623265659595605,
+    "steps": 1048576,
+    "seconds": 0.060099675,
+    "ns_per_load": 57.3155,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 1089665004547615535,
+    "steps": 524288,
+    "seconds": 0.041850064,
+    "ns_per_load": 79.8227,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 4194304,
+    "line": 64,
+    "seed": 444242647784235999,
+    "steps": 524288,
+    "seconds": 0.03918707,
+    "ns_per_load": 74.7434,
+    "sink": 0
+   }
+  ],
+  "chase:5931008": [
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 806662192172565061,
+    "steps": 1048576,
+    "seconds": 0.058845818,
+    "ns_per_load": 56.1197,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 401720279962624569,
+    "steps": 1048576,
+    "seconds": 0.052330771,
+    "ns_per_load": 49.9065,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 844926677490297371,
+    "steps": 1048576,
+    "seconds": 0.056380328,
+    "ns_per_load": 53.7685,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 643755620525740099,
+    "steps": 1048576,
+    "seconds": 0.059591132,
+    "ns_per_load": 56.8305,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 192667846058590475,
+    "steps": 1048576,
+    "seconds": 0.058923075,
+    "ns_per_load": 56.1934,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 261461089941157421,
+    "steps": 524288,
+    "seconds": 0.042583043,
+    "ns_per_load": 81.2207,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 5931008,
+    "line": 64,
+    "seed": 883467625802514677,
+    "steps": 1048576,
+    "seconds": 0.040201011,
+    "ns_per_load": 38.3387,
+    "sink": 0
+   }
+  ],
+  "chase:8388608": [
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 994080193276185891,
+    "steps": 1048576,
+    "seconds": 0.052139215,
+    "ns_per_load": 49.7238,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 997519120877196335,
+    "steps": 1048576,
+    "seconds": 0.051772053,
+    "ns_per_load": 49.3737,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 970043014008805883,
+    "steps": 1048576,
+    "seconds": 0.052846211,
+    "ns_per_load": 50.3981,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 657686709510796371,
+    "steps": 524288,
+    "seconds": 0.036956394,
+    "ns_per_load": 70.4887,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 202496912456657359,
+    "steps": 524288,
+    "seconds": 0.030828418,
+    "ns_per_load": 58.8005,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 264715727676604519,
+    "steps": 524288,
+    "seconds": 0.043127694,
+    "ns_per_load": 82.2595,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 8388608,
+    "line": 64,
+    "seed": 420549121450882351,
+    "steps": 524288,
+    "seconds": 0.03005216,
+    "ns_per_load": 57.3199,
+    "sink": 0
+   }
+  ],
+  "chase:11862016": [
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 260333485418264691,
+    "steps": 1048576,
+    "seconds": 0.050762474,
+    "ns_per_load": 48.4109,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 655007703272290595,
+    "steps": 524288,
+    "seconds": 0.033184347,
+    "ns_per_load": 63.2941,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 51880396978034039,
+    "steps": 524288,
+    "seconds": 0.03310962,
+    "ns_per_load": 63.1516,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 822889473389916379,
+    "steps": 524288,
+    "seconds": 0.031609659,
+    "ns_per_load": 60.2906,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 483535265417720213,
+    "steps": 524288,
+    "seconds": 0.038072363,
+    "ns_per_load": 72.6173,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 163487358255218755,
+    "steps": 524288,
+    "seconds": 0.045306433,
+    "ns_per_load": 86.4152,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 11862016,
+    "line": 64,
+    "seed": 1113314698706531277,
+    "steps": 524288,
+    "seconds": 0.044529025,
+    "ns_per_load": 84.9324,
+    "sink": 0
+   }
+  ],
+  "chase:16777216": [
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 13577185855066209,
+    "steps": 1048576,
+    "seconds": 0.049878749,
+    "ns_per_load": 47.5681,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 310260620521753479,
+    "steps": 524288,
+    "seconds": 0.034320067,
+    "ns_per_load": 65.4603,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 843773782152925237,
+    "steps": 524288,
+    "seconds": 0.049287757,
+    "ns_per_load": 94.0089,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 370154141095964703,
+    "steps": 524288,
+    "seconds": 0.035217697,
+    "ns_per_load": 67.1724,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 78655546542785771,
+    "steps": 524288,
+    "seconds": 0.042993726,
+    "ns_per_load": 82.004,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 784921321670282901,
+    "steps": 524288,
+    "seconds": 0.043901502,
+    "ns_per_load": 83.7355,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 16777216,
+    "line": 64,
+    "seed": 437999642252509431,
+    "steps": 524288,
+    "seconds": 0.046686023,
+    "ns_per_load": 89.0465,
+    "sink": 0
+   }
+  ],
+  "chase:23728128": [
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 371297855994448603,
+    "steps": 1048576,
+    "seconds": 0.051223697,
+    "ns_per_load": 48.8507,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 1145012883146680199,
+    "steps": 1048576,
+    "seconds": 0.045939609,
+    "ns_per_load": 43.8114,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 511524527027573123,
+    "steps": 524288,
+    "seconds": 0.037257329,
+    "ns_per_load": 71.0627,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 536401776664882847,
+    "steps": 524288,
+    "seconds": 0.047175633,
+    "ns_per_load": 89.9804,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 274075824636280599,
+    "steps": 524288,
+    "seconds": 0.048406348,
+    "ns_per_load": 92.3278,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 758626690774228873,
+    "steps": 524288,
+    "seconds": 0.042835702,
+    "ns_per_load": 81.7026,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 23728128,
+    "line": 64,
+    "seed": 42174641674960203,
+    "steps": 524288,
+    "seconds": 0.049191974,
+    "ns_per_load": 93.8262,
+    "sink": 0
+   }
+  ],
+  "chase:33554432": [
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 948911398859976719,
+    "steps": 1048576,
+    "seconds": 0.054693287,
+    "ns_per_load": 52.1596,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 600694060215420199,
+    "steps": 524288,
+    "seconds": 0.0446195,
+    "ns_per_load": 85.1049,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 464730383694888215,
+    "steps": 524288,
+    "seconds": 0.043773264,
+    "ns_per_load": 83.4909,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 491683059807415529,
+    "steps": 524288,
+    "seconds": 0.052515461,
+    "ns_per_load": 100.1653,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 978125510266836915,
+    "steps": 524288,
+    "seconds": 0.043104354,
+    "ns_per_load": 82.215,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 117522157654903175,
+    "steps": 524288,
+    "seconds": 0.046240901,
+    "ns_per_load": 88.1975,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 33554432,
+    "line": 64,
+    "seed": 771428823628890795,
+    "steps": 524288,
+    "seconds": 0.031669879,
+    "ns_per_load": 60.4055,
+    "sink": 0
+   }
+  ],
+  "chase:47452160": [
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 815147731327881433,
+    "steps": 524288,
+    "seconds": 0.034579307,
+    "ns_per_load": 65.9548,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 240082616917609433,
+    "steps": 262144,
+    "seconds": 0.031102853,
+    "ns_per_load": 118.648,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 488119395591380267,
+    "steps": 524288,
+    "seconds": 0.055850625,
+    "ns_per_load": 106.5266,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 546580433914542325,
+    "steps": 524288,
+    "seconds": 0.056148859,
+    "ns_per_load": 107.0954,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 4202345825959795,
+    "steps": 262144,
+    "seconds": 0.035896797,
+    "ns_per_load": 136.9354,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 750578821275959373,
+    "steps": 262144,
+    "seconds": 0.033166898,
+    "ns_per_load": 126.5217,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 47452160,
+    "line": 64,
+    "seed": 894469433170633637,
+    "steps": 262144,
+    "seconds": 0.039622124,
+    "ns_per_load": 151.1464,
+    "sink": 0
+   }
+  ],
+  "chase:67108864": [
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 510359859971580387,
+    "steps": 524288,
+    "seconds": 0.04932668,
+    "ns_per_load": 94.0832,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 999424699363077865,
+    "steps": 524288,
+    "seconds": 0.043125018,
+    "ns_per_load": 82.2544,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 494557223440080697,
+    "steps": 262144,
+    "seconds": 0.0370638,
+    "ns_per_load": 141.3872,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 639330610599661091,
+    "steps": 262144,
+    "seconds": 0.041650829,
+    "ns_per_load": 158.8853,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 265415452259385909,
+    "steps": 262144,
+    "seconds": 0.039435478,
+    "ns_per_load": 150.4344,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 741885499095953941,
+    "steps": 262144,
+    "seconds": 0.039624793,
+    "ns_per_load": 151.1566,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 67108864,
+    "line": 64,
+    "seed": 869839638657982041,
+    "steps": 524288,
+    "seconds": 0.05285717,
+    "ns_per_load": 100.8171,
+    "sink": 0
+   }
+  ],
+  "chase:94904320": [
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 200650450426654589,
+    "steps": 262144,
+    "seconds": 0.031507416,
+    "ns_per_load": 120.1913,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 761777486011954783,
+    "steps": 262144,
+    "seconds": 0.031133201,
+    "ns_per_load": 118.7637,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 523922463451629851,
+    "steps": 262144,
+    "seconds": 0.031404923,
+    "ns_per_load": 119.8003,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 74410075406035643,
+    "steps": 262144,
+    "seconds": 0.046513287,
+    "ns_per_load": 177.4341,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 280186884102414261,
+    "steps": 262144,
+    "seconds": 0.038840408,
+    "ns_per_load": 148.1644,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 698993280635813893,
+    "steps": 262144,
+    "seconds": 0.04197584,
+    "ns_per_load": 160.1251,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 94904320,
+    "line": 64,
+    "seed": 65521349447137033,
+    "steps": 262144,
+    "seconds": 0.045058953,
+    "ns_per_load": 171.8863,
+    "sink": 0
+   }
+  ],
+  "chase:134217728": [
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 800563249692122563,
+    "steps": 262144,
+    "seconds": 0.032938522,
+    "ns_per_load": 125.6505,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 836682216742478547,
+    "steps": 262144,
+    "seconds": 0.039661229,
+    "ns_per_load": 151.2956,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 7442233473556147,
+    "steps": 262144,
+    "seconds": 0.040857753,
+    "ns_per_load": 155.86,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 498436527424143929,
+    "steps": 262144,
+    "seconds": 0.046791097,
+    "ns_per_load": 178.4939,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 933732184005487447,
+    "steps": 262144,
+    "seconds": 0.04866013,
+    "ns_per_load": 185.6237,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 1112178182180643497,
+    "steps": 262144,
+    "seconds": 0.046157761,
+    "ns_per_load": 176.0779,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 134217728,
+    "line": 64,
+    "seed": 681690810059462605,
+    "steps": 262144,
+    "seconds": 0.041550793,
+    "ns_per_load": 158.5037,
+    "sink": 0
+   }
+  ],
+  "chase:189812736": [
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 871294044877098169,
+    "steps": 262144,
+    "seconds": 0.035527051,
+    "ns_per_load": 135.5249,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 329949007348013727,
+    "steps": 262144,
+    "seconds": 0.041098797,
+    "ns_per_load": 156.7795,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 772164544453067393,
+    "steps": 262144,
+    "seconds": 0.041924711,
+    "ns_per_load": 159.9301,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 981577574772703181,
+    "steps": 262144,
+    "seconds": 0.041084894,
+    "ns_per_load": 156.7264,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 50363993075903923,
+    "steps": 262144,
+    "seconds": 0.049129016,
+    "ns_per_load": 187.4123,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 252702979911029393,
+    "steps": 262144,
+    "seconds": 0.049414442,
+    "ns_per_load": 188.5011,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 189812736,
+    "line": 64,
+    "seed": 634174237819069623,
+    "steps": 262144,
+    "seconds": 0.051052667,
+    "ns_per_load": 194.7505,
+    "sink": 0
+   }
+  ],
+  "chase:268435456": [
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 28357688548175441,
+    "steps": 262144,
+    "seconds": 0.036940975,
+    "ns_per_load": 140.9186,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 173370872164591753,
+    "steps": 262144,
+    "seconds": 0.044294476,
+    "ns_per_load": 168.97,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 759889693562733599,
+    "steps": 262144,
+    "seconds": 0.057267433,
+    "ns_per_load": 218.4579,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 683195643736464821,
+    "steps": 262144,
+    "seconds": 0.042876458,
+    "ns_per_load": 163.5607,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 808292618492285487,
+    "steps": 262144,
+    "seconds": 0.049844044,
+    "ns_per_load": 190.1399,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 38563320063916045,
+    "steps": 262144,
+    "seconds": 0.050153672,
+    "ns_per_load": 191.3211,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 268435456,
+    "line": 64,
+    "seed": 179655772171784895,
+    "steps": 262144,
+    "seconds": 0.050762222,
+    "ns_per_load": 193.6425,
+    "sink": 0
+   }
+  ],
+  "chase:379625472": [
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 998613104214312395,
+    "steps": 262144,
+    "seconds": 0.038280545,
+    "ns_per_load": 146.0287,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 272797574520505973,
+    "steps": 262144,
+    "seconds": 0.039369639,
+    "ns_per_load": 150.1833,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 597292935804345949,
+    "steps": 262144,
+    "seconds": 0.038192849,
+    "ns_per_load": 145.6942,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 25494355894480555,
+    "steps": 262144,
+    "seconds": 0.044718793,
+    "ns_per_load": 170.5887,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 807653612922980717,
+    "steps": 262144,
+    "seconds": 0.052258564,
+    "ns_per_load": 199.3506,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 928813092907231229,
+    "steps": 262144,
+    "seconds": 0.052806589,
+    "ns_per_load": 201.4412,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 379625472,
+    "line": 64,
+    "seed": 878985285723608195,
+    "steps": 262144,
+    "seconds": 0.044691438,
+    "ns_per_load": 170.4843,
+    "sink": 0
+   }
+  ],
+  "chase:536870912": [
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 569996664071909803,
+    "steps": 262144,
+    "seconds": 0.041383033,
+    "ns_per_load": 157.8637,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 1119313038944891231,
+    "steps": 262144,
+    "seconds": 0.041141723,
+    "ns_per_load": 156.9432,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 1149880931037590959,
+    "steps": 131072,
+    "seconds": 0.03108633,
+    "ns_per_load": 237.1699,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 553769388565782361,
+    "steps": 262144,
+    "seconds": 0.05554213,
+    "ns_per_load": 211.8764,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 256056541836756157,
+    "steps": 262144,
+    "seconds": 0.058210456,
+    "ns_per_load": 222.0553,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 1046756970862262431,
+    "steps": 262144,
+    "seconds": 0.05605057,
+    "ns_per_load": 213.816,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 536870912,
+    "line": 64,
+    "seed": 910169907557051591,
+    "steps": 262144,
+    "seconds": 0.040572618,
+    "ns_per_load": 154.7723,
+    "sink": 0
+   }
+  ],
+  "chase:759250944": [
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 77878121388822939,
+    "steps": 262144,
+    "seconds": 0.043712712,
+    "ns_per_load": 166.7508,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 62174151553367363,
+    "steps": 262144,
+    "seconds": 0.044484998,
+    "ns_per_load": 169.6968,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 267275232968487347,
+    "steps": 131072,
+    "seconds": 0.034515663,
+    "ns_per_load": 263.3336,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 467718712097798327,
+    "steps": 262144,
+    "seconds": 0.059820733,
+    "ns_per_load": 228.198,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 480102102943390575,
+    "steps": 131072,
+    "seconds": 0.030088584,
+    "ns_per_load": 229.5577,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 885829438448354377,
+    "steps": 262144,
+    "seconds": 0.059201947,
+    "ns_per_load": 225.8375,
+    "sink": 0
+   },
+   {
+    "kind": "chase",
+    "bytes": 759250944,
+    "line": 64,
+    "seed": 185155181989169325,
+    "steps": 131072,
+    "seconds": 0.030136128,
+    "ns_per_load": 229.9204,
+    "sink": 0
+   }
+  ],
+  "stream:dram:1": [
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.099773455,
+    "GBps": 19.0068,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.120508704,
+    "GBps": 15.7364,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.124481642,
+    "GBps": 15.2342,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.098675164,
+    "GBps": 19.2184,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.107861965,
+    "GBps": 17.5815,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.143206229,
+    "GBps": 13.2423,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 1,
+    "passes": 2,
+    "seconds": 0.144372452,
+    "GBps": 13.1353,
+    "sink": 0
+   }
+  ],
+  "stream:l1:1": [
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.059233245,
+    "GBps": 290.0376,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.056047033,
+    "GBps": 306.5259,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.055985061,
+    "GBps": 306.8652,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.055863476,
+    "GBps": 307.5331,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.056339453,
+    "GBps": 304.935,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 1048576,
+    "seconds": 0.05641658,
+    "GBps": 304.5181,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 16384,
+    "threads": 1,
+    "passes": 524288,
+    "seconds": 0.039036413,
+    "GBps": 220.0493,
+    "sink": 0
+   }
+  ],
+  "flops:scalar_f64:1": [
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.150876071,
+    "GFLOPs": 14.2334,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.150636995,
+    "GFLOPs": 14.256,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.150608161,
+    "GFLOPs": 14.2587,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.150637403,
+    "GFLOPs": 14.256,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.15087205,
+    "GFLOPs": 14.2338,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.150303391,
+    "GFLOPs": 14.2877,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 1,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.15033534,
+    "GFLOPs": 14.2846,
+    "sink": 0
+   }
+  ],
+  "flops:vec_f64:1": [
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.16639829,
+    "GFLOPs": 103.2455,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.165762639,
+    "GFLOPs": 103.6414,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.167325486,
+    "GFLOPs": 102.6734,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.167801649,
+    "GFLOPs": 102.382,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.174482805,
+    "GFLOPs": 98.4617,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.16704015,
+    "GFLOPs": 102.8487,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 1,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.169294774,
+    "GFLOPs": 101.479,
+    "sink": 0
+   }
+  ],
+  "flops:vec_f32:1": [
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.166698539,
+    "GFLOPs": 206.119,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.167407658,
+    "GFLOPs": 205.2459,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.169104525,
+    "GFLOPs": 203.1864,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.166728769,
+    "GFLOPs": 206.0816,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.16635459,
+    "GFLOPs": 206.5452,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.171472457,
+    "GFLOPs": 200.3805,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 1,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 67108864,
+    "seconds": 0.167122512,
+    "GFLOPs": 205.5961,
+    "sink": 0
+   }
+  ],
+  "stream:dram:2": [
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 4,
+    "seconds": 0.130656088,
+    "GBps": 29.0285,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 4,
+    "seconds": 0.16393141,
+    "GBps": 23.1362,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 4,
+    "seconds": 0.143090769,
+    "GBps": 26.5059,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 4,
+    "seconds": 0.180123675,
+    "GBps": 21.0564,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 4,
+    "seconds": 0.179941293,
+    "GBps": 21.0777,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 2,
+    "seconds": 0.094275797,
+    "GBps": 20.1152,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 948188160,
+    "threads": 2,
+    "passes": 2,
+    "seconds": 0.092828429,
+    "GBps": 20.4288,
+    "sink": 0
+   }
+  ],
+  "stream:l1:2": [
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 1048576,
+    "seconds": 0.081276061,
+    "GBps": 422.7535,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 524288,
+    "seconds": 0.030731929,
+    "GBps": 559.0235,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 524288,
+    "seconds": 0.052546537,
+    "GBps": 326.9458,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 1048576,
+    "seconds": 0.080082366,
+    "GBps": 429.055,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 1048576,
+    "seconds": 0.075567664,
+    "GBps": 454.6884,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 524288,
+    "seconds": 0.051403193,
+    "GBps": 334.2179,
+    "sink": 0
+   },
+   {
+    "kind": "stream",
+    "bytes": 32768,
+    "threads": 2,
+    "passes": 524288,
+    "seconds": 0.036749211,
+    "GBps": 467.4895,
+    "sink": 0
+   }
+  ],
+  "flops:scalar_f64:2": [
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.099123742,
+    "GFLOPs": 21.6647,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.100333278,
+    "GFLOPs": 21.4035,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.101969935,
+    "GFLOPs": 21.06,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.099719213,
+    "GFLOPs": 21.5353,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.108124325,
+    "GFLOPs": 19.8612,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.098328474,
+    "GFLOPs": 21.8399,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "scalar_f64",
+    "threads": 2,
+    "lanes": 1,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.09832143,
+    "GFLOPs": 21.8415,
+    "sink": 0
+   }
+  ],
+  "flops:vec_f64:2": [
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.1075486,
+    "GFLOPs": 159.7405,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.118040681,
+    "GFLOPs": 145.5419,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.108150411,
+    "GFLOPs": 158.8516,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.108791546,
+    "GFLOPs": 157.9155,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.136718431,
+    "GFLOPs": 125.6588,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.107890502,
+    "GFLOPs": 159.2343,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f64",
+    "threads": 2,
+    "lanes": 8,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.110148921,
+    "GFLOPs": 155.9695,
+    "sink": 0
+   }
+  ],
+  "flops:vec_f32:2": [
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.10688349,
+    "GFLOPs": 321.4691,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.128503497,
+    "GFLOPs": 267.3837,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.111110624,
+    "GFLOPs": 309.239,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.111831088,
+    "GFLOPs": 307.2468,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.132172255,
+    "GFLOPs": 259.9618,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.104389935,
+    "GFLOPs": 329.148,
+    "sink": 0
+   },
+   {
+    "kind": "flops",
+    "op": "vec_f32",
+    "threads": 2,
+    "lanes": 16,
+    "chains": 16,
+    "iters": 33554432,
+    "seconds": 0.134943611,
+    "GFLOPs": 254.6229,
+    "sink": 0
+   }
+  ],
+  "timer": [
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.31,
+    "getres_ns": 1.0,
+    "seconds": 0.027635
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.275,
+    "getres_ns": 1.0,
+    "seconds": 0.027583
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.211,
+    "getres_ns": 1.0,
+    "seconds": 0.027521
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.145,
+    "getres_ns": 1.0,
+    "seconds": 0.027439
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.174,
+    "getres_ns": 1.0,
+    "seconds": 0.027482
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.227,
+    "getres_ns": 1.0,
+    "seconds": 0.027533
+   },
+   {
+    "kind": "timer",
+    "min_step_ns": 23.0,
+    "read_overhead_ns": 22.903,
+    "getres_ns": 1.0,
+    "seconds": 0.028333
+   }
+  ]
+ },
+ "digests": {
+  "measurement_sha256": "b1b5680b7dee6638be5ad474de3ecaea1ab19b754160b3bc403ff40bd9c5169d",
+  "profile_sha256": "28f5a0c4bf77338ee4512ea02c5326be49e00690ac884dd665da22cf236b864a",
+  "scheme": "sha256 of canonical JSON: keys sorted, no whitespace, UTF-8, NaN/Infinity forbidden, floats as Python repr (shortest round-trip). Not yet RFC 8785 (JCS): another language must format floats the same way to reproduce it",
+  "label": "derived"
+ }
+}

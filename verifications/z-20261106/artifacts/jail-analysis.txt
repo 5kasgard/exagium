@@ -1,0 +1,62 @@
+# bwrap jail analysis — why loop.py cannot run on this host (2026-11-06)
+
+Host: Z's sandbox, a kata microVM container (dmesg: "kata-agent"), kernel
+5.10.134-013.15.kangaroo.al8.x86_64, Debian 13 userland, 2 vCPU Intel Xeon
+(Granite Rapids, model 173), 4 GB RAM.
+
+## Symptom
+
+`bwrap --ro-bind /usr /usr ... --proc /proc ...` fails:
+
+    bwrap: Can't mount proc on /newroot/proc: Operation not permitted
+
+dmesg: `VFS: Mount too revealing`.
+
+Same from `unshare -Urmpf --mount-proc` and from a plain `mount -t proc` inside
+any unprivileged user+pid namespace. Building bwrap 0.11.0 from source changes
+nothing (no new-mount-API use; the classic mount(2) path).
+
+## Root cause (kernel 5.10 fs/namespace.c, verified against the tagged source)
+
+`mount_too_revealing()` -> `mnt_already_visible()`: to mount proc in a
+non-initial user namespace, the CURRENT mount namespace must already contain a
+"fully visible" proc mount (same s_type, mnt_root == s_root, compatible locked
+flags, and NO locked child mounts covering non-empty directories).
+
+This container's /proc has the runtime's read-only hardening submounts
+(/proc/bus, /proc/fs, /proc/irq, /proc/sys, /proc/sysrq-trigger). When any user
+namespace is unshared, the copied mounts get MNT_LOCKED (lock_mnt_tree), so the
+existing /proc is never "fully visible" and every new proc mount is refused
+with EPERM. A namespace with NO proc mounts also fails (the check needs a
+fully-visible example). Mounting via the new API (fsopen/fsmount/move_mount,
+tested with scripts/probe_mount.c) fails identically. Bind-mounting /proc's
+root hits the same check; binding a subdirectory (e.g. /proc/self) works but
+cannot serve as the fully-visible mount (mnt_root != s_root).
+
+Attempts that failed (scripts/umtest.c, detach_test.c, probe_mount.c):
+pivot_root to a tmpfs then lazy-detach the old tree (umount2 MNT_DETACH on
+/old succeeds, proc still refused); pre-creating a childless --bind of /proc in
+a parent namespace (the bind itself is refused); two-stage unshare (same).
+
+## Consequence for exagium
+
+loop.py's jail hardcodes `--proc /proc`, and timer.c / count.py read
+/proc/sys/kernel/ns_last_pid of the jail's own PID namespace, so a bind of the
+host /proc cannot substitute (it would break the one-pid rule and leak host
+pids). Therefore on this host:
+
+- `python3 -m unittest test_loop` → 11 failures + 2 errors, ALL with
+  "FAILED: bwrap cannot make a jail here" (fail-closed, correct behaviour);
+  4 pure-logic tests pass.
+- `loop.py reproduce/evaluate` cannot run, in `--test dev` or `--test test`.
+- Plan 2's decision-rule inputs were re-measured WITHOUT the jail instead
+  (code read first; see artifacts/plan2-remeasure.json).
+
+## Portability finding for the project
+
+"Must work on today's infrastructure, including VMs and cloud": loop.py (and
+anything that runs candidate code in a bubblewrap jail) does not run inside
+Docker/kata-style containers whose /proc carries locked read-only submounts —
+which is the default hardening in such runtimes. That includes typical
+cloud-function and CI-container environments. Worth a line in loop/README.md's
+limits. (The probe, the counter and the record checks are unaffected.)

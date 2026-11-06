@@ -1,0 +1,81 @@
+{
+ "schema": "z-remeasure-plan2/1",
+ "date_utc": "2026-11-06",
+ "disclosure": "Re-measured WITHOUT the bubblewrap jail (this host's kernel refuses proc mounts in user namespaces; see artifacts/jail-analysis.txt). Candidate code was read first and is benign. Training ran unjailed with numpy 2.1.3 (CI used 2.5.3): byte-identical anyway. Ir counted by the same counter/count.py (reference cache), one process classifying all 1797 test images. Native time not re-measured (not part of the decision rule; the trusted timer needs the jail).",
+ "n": 1797,
+ "candidates": [
+  {
+   "name": "linear",
+   "accuracy": 0.9504730105731776,
+   "predictions_sha256": "a3b144c0275fdbb315f64678e4738991023b1814b3f21d32419c88485249679c",
+   "Ir_total": 7652915,
+   "Ir_per_image": 4258.717306622148,
+   "retrained_weights_sha256_identical": true
+  },
+  {
+   "name": "thermo",
+   "accuracy": 0.9599332220367279,
+   "predictions_sha256": "de7e03915c3ac375920bdfa2a411d1f6b3a5cd0d82b83a54b15fa3eb3e49437c",
+   "Ir_total": 6496834,
+   "Ir_per_image": 3615.3778519755147,
+   "retrained_weights_sha256_identical": true
+  },
+  {
+   "name": "mlp16",
+   "accuracy": 0.9593767390094602,
+   "predictions_sha256": "08e617b611a7becc1787fdce44fc86f085fdf08d5d9bc943cfdd65ac0f677aa1",
+   "Ir_total": 1299492,
+   "Ir_per_image": 723.1452420701169,
+   "retrained_weights_sha256_identical": true
+  },
+  {
+   "name": "mlp32",
+   "accuracy": 0.9654980523094046,
+   "predictions_sha256": "b42052fd406ef6940a88b094ec73f4247ed737dbb773bd1a5d81dd7ddcf9e0c7",
+   "Ir_total": 1840553,
+   "Ir_per_image": 1024.2365052865887,
+   "retrained_weights_sha256_identical": true
+  },
+  {
+   "name": "mlp64",
+   "accuracy": 0.9610461880912632,
+   "predictions_sha256": "321060b014f046b2bbf55442dc2829f0ad5cd7e4635543ecba583e52ceaed7e3",
+   "Ir_total": 3009440,
+   "Ir_per_image": 1674.7022815804119,
+   "retrained_weights_sha256_identical": true
+  }
+ ],
+ "pairs_vs_thermo": {
+  "mlp16": {
+   "diff_pp": -0.06,
+   "z": -0.18
+  },
+  "mlp32": {
+   "diff_pp": 0.56,
+   "z": 1.62
+  },
+  "mlp64": {
+   "diff_pp": 0.11,
+   "z": 0.33
+  }
+ },
+ "pairs_vs_linear": {
+  "mlp16": {
+   "diff_pp": 0.89,
+   "z": 3.42
+  },
+  "mlp32": {
+   "diff_pp": 1.5,
+   "z": 4.34
+  },
+  "mlp64": {
+   "diff_pp": 1.06,
+   "z": 3.54
+  }
+ },
+ "decision_rule_result": {
+  "part_A": "PASS",
+  "part_B": "INCONCLUSIVE (mlp32 z=1.62, mlp64 z=0.33 vs thermo; both clear linear)",
+  "overall": "inconclusive - matches ledger entry 3"
+ }
+}

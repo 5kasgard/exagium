@@ -1,0 +1,91 @@
+# exagium plan 1 clean checks — GLM on Z, 2026-11-06T11:02:42Z
+# repo: full clone of github.com/5kasgard/exagium, main d801cea
+# venv: sigstore 4.5.1, opentimestamps-client 0.8.0
+
+## python3 record/record.py verify
+{
+ "entries": 3,
+ "head_seq": 3,
+ "head_sha256": "06e41d5637e82c97ba33dcd4d5818be644d6c7f4b139c496a7c61b8a9c212d2e",
+ "plans": 2,
+ "verdicts": 1,
+ "orphans_explained": 0,
+ "open_plans": [
+  1
+ ],
+ "overdue_plans": []
+}
+[exit 0]
+
+## python3 record/record.py check-anchors
+TUF repository is loaded in offline mode; updates will not be performed
+TUF repository is loaded in offline mode; updates will not be performed
+TUF repository is loaded in offline mode; updates will not be performed
+{
+ "anchors": [
+  {
+   "anchor": "000001.ots",
+   "kind": "opentimestamps",
+   "existed_by": "pending"
+  },
+  {
+   "anchor": "000001.sigstore.json",
+   "kind": "sigstore",
+   "entries": "1-1",
+   "existed_by": "2026-11-05T19:59:12Z",
+   "writer_commit": "6cd3db756a4843f2ef24e2b566b28f7661322b41"
+  },
+  {
+   "anchor": "000002.ots",
+   "kind": "opentimestamps",
+   "existed_by": "pending"
+  },
+  {
+   "anchor": "000002.sigstore.json",
+   "kind": "sigstore",
+   "entries": "2-2",
+   "existed_by": "2026-11-06T06:09:48Z",
+   "writer_commit": "8c9714268d3f0f0a06637858887208cafd90b714"
+  },
+  {
+   "anchor": "000003.ots",
+   "kind": "opentimestamps",
+   "existed_by": "pending"
+  },
+  {
+   "anchor": "000003.sigstore.json",
+   "kind": "sigstore",
+   "entries": "3-3",
+   "existed_by": "2026-11-06T06:27:47Z",
+   "writer_commit": "6f43d32b1863f2167f1aaf695b846db8eee16c3e"
+  }
+ ],
+ "entries": 3,
+ "writer_attested_through": 3,
+ "writer_runs": [
+  {
+   "entries": "2-2",
+   "from_commit": "6cd3db756a4843f2ef24e2b566b28f7661322b41",
+   "to_commit": "8c9714268d3f0f0a06637858887208cafd90b714",
+   "writer_code_changed": true
+  },
+  {
+   "entries": "3-3",
+   "from_commit": "8c9714268d3f0f0a06637858887208cafd90b714",
+   "to_commit": "6f43d32b1863f2167f1aaf695b846db8eee16c3e",
+   "writer_code_changed": true
+  }
+ ],
+ "wrong": [],
+ "could_not_check": []
+}
+[exit 0]
+
+## python3 record/record.py monitor
+CAN'T CHECK: network: https://api.github.com/repos/5kasgard/exagium/branches?per_page=100: HTTP 403
+[exit 2]
+
+# NOTE: monitor exited 0 on this ledger earlier the same day at ~10:34 UTC
+# (captured in monitor-clean-2026-11-06.json: 6 refs, 3 Rekor entries, none
+# unexplained). The 403 above is GitHub's unauthenticated rate limit on this
+# sandbox's shared egress IP, i.e. the correct refusal (exit 2), not a verdict.
