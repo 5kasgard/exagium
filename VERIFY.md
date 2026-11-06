@@ -1,4 +1,4 @@
-# Independent verification brief: exagium `probe/`, `counter/` and `record/`
+# Independent verification brief: exagium `probe/`, `counter/`, `record/` and `loop/`
 
 You are an independent verifier. Someone else built this tool. Your job is to check its claims and try to make it report something false. Don't trust the README; report only what you can show with commands, numbers and line references. A result of "I couldn't break X" is useful, and so is "X is wrong, here is how".
 
@@ -75,6 +75,17 @@ cd exagium && python3 record/record.py verify && python3 record/record.py check-
 2. **Write an entry nobody can tell from a genuine one.** The owner controls the repo, the inbox and the code. Try hand-written entries, rewritten history, deleted anchors, orphan laundering, and code changes that `writer_code_changed` misses. Earlier rounds' attacks are listed in the card; find new ones.
 3. **Verify an anchor without `record.py`:** use the card's `sigstore` and `gh` commands, and OpenTimestamps through a node or opentimestamps.org. Recompute an entry's sha256 in another language, since entries are RFC 8785 (JCS) bytes.
 4. **Exit codes.** Wrong data must exit 1, never 3. "Can't check" (exit 2) must never hide a wrong anchor.
+
+## Loop claims (`loop/`)
+The first loop scores small digit classifiers against two mandatory baselines: accuracy, simulated instructions per image (startup included) and native time. Ledger entry 2 is a pre-registered plan about three MLPs (`loop/candidates/`). Read `loop/README.md` and `loop.py`'s docstring. Needs Linux, gcc, valgrind 3.22+, bubblewrap (unprivileged user namespaces allowed), `numpy==2.5.3`, and the record's virtualenv.
+```
+python3 loop/loop.py reproduce loop/baselines/* loop/candidates/*      # weights must retrain byte for byte
+python3 loop/loop.py evaluate loop/baselines/linear loop/baselines/thermo loop/candidates/mlp16 \
+  loop/candidates/mlp32 loop/candidates/mlp64 --test test --plan 2 --rounds 30 --seed 20261106
+```
+1. **Re-measure plan 2 on your hardware** and judge it by its own decision rule. Accuracy and predictions should match ours exactly; Ir/img should match ours on the same architecture.
+2. **Read every `train.py` and `infer.c`.** The test labels are public, and counts are a claim for cooperative code (the docstring says why). Does any candidate carry test data in, or take a different path under valgrind?
+3. **Make a submission score better than it earns,** or make a failed check read as success. Earlier rounds' findings are listed in the card.
 
 ## Report
 Keep it under about 800 words, in this order:

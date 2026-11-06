@@ -3,7 +3,8 @@
 #      training file) and checks the weights are byte-identical to the frozen ones (loop.py reproduce);
 #   2. scores them on the dev split (the last 25% of the training file);
 #   3. for each request in loop/verify/, scores the named candidates on the test set, which loop.py only
-#      does when the ledger holds a plan that froze exactly those files.
+#      does when the ledger holds a plan that froze exactly those files. A request is removed once its plan has a
+#      verdict. Each step's output ends with its exit code.
 # A final job commits every job's output to the ci-runs branch (loop/<run id>/), so results stay in git.
 name: loop
 on:
@@ -41,11 +42,11 @@ jobs:
       - name: reproduce training (in the jail)
         run: |
           dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
-          "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1 | tee out/reproduce.txt || true
+          { "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1; echo "exit $?"; } | tee out/reproduce.txt || true
       - name: score on the dev split
         run: |
           dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
-          "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test dev --records out/records --out out/dev.json 2>&1 | tee out/dev.txt || true
+          { "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test dev --records out/records --out out/dev.json 2>&1; echo "exit $?"; } | tee out/dev.txt || true
       - name: score requested plans on the test set
         run: |
           for req in loop/verify/*.json; do
@@ -53,8 +54,8 @@ jobs:
             plan=$(python3 -c "import json,sys; print(int(json.load(open(sys.argv[1]))['plan']))" "$req")
             mapfile -t dirs < <(python3 -c "import json,sys; [print(d) for d in json.load(open(sys.argv[1]))['candidates']]" "$req")
             mapfile -t opts < <(python3 -c "import json,sys; r=json.load(open(sys.argv[1])); [print(x) for k in ('rounds','seed') if k in r for x in ('--'+k, int(r[k]))]" "$req")
-            "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" "${opts[@]}" --records out/records \
-              --out "out/test-plan$plan.json" 2>&1 | tee "out/test-plan$plan.txt" || true
+            { "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" "${opts[@]}" --records out/records \
+              --out "out/test-plan$plan.json" 2>&1; echo "exit $?"; } | tee "out/test-plan$plan.txt" || true
           done
       - uses: actions/upload-artifact@v4
         with:
