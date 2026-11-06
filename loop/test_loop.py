@@ -186,7 +186,26 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
         d = make(self.tmp, "threads", infer=threads)
         code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
         self.assertEqual(code, 1)
-        self.assertIn("more than one CPU", msg)
+        self.assertRegex(msg, "more than one CPU|more process|--single-process allows none")
+
+    def test_a_hidden_fork_child_is_refused(self):
+        """Review 3: a fork child does the work and is killed before it reports its counts (26x undercount)."""
+        forker = r"""#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+int main(int c, char **v){ long n = atol(v[3]); char *out = malloc(n + 1); int p[2]; pipe(p); fflush(stdout);
+  pid_t k = fork();
+  if (k == 0) { for (long i = 0; i < n; i++) out[i] = '1'; write(p[1], out, n); pause(); }
+  long got = 0; while (got < n) { long r = read(p[0], out + got, n - got); if (r <= 0) return 2; got += r; }
+  kill(k, SIGKILL); waitpid(k, 0, 0);
+  fwrite(out, 1, n, stdout); putchar(10); return 0; }
+"""
+        d = make(self.tmp, "forker", infer=forker)
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
+        self.assertEqual(code, 1)
+        self.assertRegex(msg, "more process|--single-process allows none")
 
     def test_jail_has_no_privilege(self):
         r = loop.jail(["/bin/sh", "-c", "id -u; grep CapEff /proc/self/status"], [], 60, cwd="/")

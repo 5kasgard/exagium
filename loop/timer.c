@@ -1,8 +1,10 @@
 // Trusted timer, run inside the candidate's jail: ./timer CPU PROG ARGS...
 // Pins itself (and so the child) to one CPU, forks, runs PROG with stdin and stderr on /dev/null and
 // stdout on a pipe, and measures CLOCK_MONOTONIC from just before fork to the child's exit.
-// Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status> <cpu ns>", where
-// cpu ns is the user+system time of the child and everything it waited for (more than wall time = more than one CPU).
+// Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status> <cpu ns> <pids>", where
+// cpu ns is the user+system time of the child and everything it waited for (more than wall time = more than one CPU),
+// and pids is how many pids the pid namespace handed out from just before fork to the child's exit: 1 means the child
+// made no other process or thread, not even one killed before it was reaped (review 3).
 // It makes itself non-dumpable first, so the child can't reach its file descriptors through /proc.
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -15,6 +17,14 @@
 #include <time.h>
 #include <unistd.h>
 
+static long long last_pid(void) {  // the pid namespace's last handed-out pid; the jail gives the timer its own namespace
+  FILE *f = fopen("/proc/sys/kernel/ns_last_pid", "r");
+  long long v = -1;
+  if (!f || fscanf(f, "%lld", &v) != 1) v = -1;
+  if (f) fclose(f);
+  return v;
+}
+
 int main(int argc, char **argv) {
   if (argc < 3) return 120;
   if (prctl(PR_SET_DUMPABLE, 0) != 0) return 121;
@@ -26,6 +36,8 @@ int main(int argc, char **argv) {
   if (devnull < 0) return 124;
   size_t cap = 1 << 16, len = 0;
   char *buf = malloc(cap);
+  long long pid0 = last_pid();
+  if (pid0 < 0) return 128;
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
   pid_t pid = fork();
@@ -46,10 +58,11 @@ int main(int argc, char **argv) {
   struct rusage ru;
   if (wait4(pid, &status, 0, &ru) != pid) return 127;
   clock_gettime(CLOCK_MONOTONIC, &t1);
+  long long pids = last_pid() - pid0;
   long long ns = (long long)(t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
   fwrite(buf, 1, len, stdout);
   long long cpu = ((long long)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000000000LL
                 + ((long long)ru.ru_utime.tv_usec + ru.ru_stime.tv_usec) * 1000LL;
-  printf("\nexagium-timer %lld %d %lld\n", ns, WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status), cpu);
+  printf("\nexagium-timer %lld %d %lld %lld\n", ns, WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status), cpu, pids);
   return 0;
 }

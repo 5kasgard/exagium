@@ -231,11 +231,13 @@ def timed(c, rows, timer, cpu):
         r = jail(["./timer", str(cpu), "./infer", "weights.bin", "x.bin", str(len(rows))], [(w, "/w", False)], 600)
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")  # the timer's own line is always last
     f = tail.split()
-    if r.returncode or not sep or len(f) != 3 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f):
+    if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f):
         raise Failed(f"{c['name']}: timer failed (exit {r.returncode}): {r.stderr.decode(errors='replace')[-300:]}")
-    ns, status, cpu_ns = (int(x) for x in f)
+    ns, status, cpu_ns, pids = (int(x) for x in f)
     if status:
         raise Failed(f"{c['name']}: infer exited {status}")
+    if pids != 1:
+        raise Failed(f"{c['name']}: made {pids - 1} more process(es) or thread(s); candidates must be one single-threaded process")
     if cpu_ns > CPU_SLACK[0] * ns + CPU_SLACK[1]:
         raise Failed(f"{c['name']}: used more than one CPU ({cpu_ns} ns CPU in {ns} ns wall); candidates must be single-threaded")
     return predictions(out, len(rows), c["name"]), ns
@@ -250,7 +252,7 @@ def count(c, rows, outdir):
             shutil.copy2(src, os.path.join(tool, name))
         with open(os.path.join(tool, "x.bin"), "wb") as f:
             f.write(bytes(v for r in rows for v in r[:64]))
-        r = jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--reps", "2", "--input", "/tool/infer",
+        r = jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", "--reps", "2", "--input", "/tool/infer",
                   "--input", "/tool/weights.bin", "--input", "/tool/x.bin", "--", "./infer", "weights.bin", "x.bin",
                   str(len(rows))], [(tool, "/tool", False)], 1800, cwd="/tmp")
     if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1 or not r.stdout.endswith(b"\n"):

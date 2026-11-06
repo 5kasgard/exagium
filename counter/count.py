@@ -14,6 +14,7 @@ declared --input files, an empty HOME and an empty TMPDIR, with a fixed environm
     python3 count.py --check ../runs/<record>.json [--input-dir DIR]
     python3 count.py --stdout-record -- ./candidate args       # the record on stdout, no file; for a caller
                                                                 # that runs this inside the candidate's jail
+    python3 count.py --single-process ...                      # also refuse any fork or thread (own pid namespace only)
 
 Exit codes: 0 counted, every rep identical and no code that can switch counting off (--check:
 same counts and output); 1 reps differ or such code was found (--check: counts or output differ,
@@ -199,7 +200,13 @@ def fresh_sandbox(inputs):
         shutil.copy2(v["path"], os.path.join(SANDBOX, "work", base))
 
 
-def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
+def last_pid():
+    """The last pid handed out in this pid namespace (needs a pid namespace of our own to mean anything)."""
+    with open("/proc/sys/kernel/ns_last_pid") as f:
+        return int(f.read())
+
+
+def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process=False):
     """Run cmd once under cachegrind in a fresh sandbox, children included. Counts summed over processes."""
     fresh_sandbox(inputs)
     with tempfile.TemporaryDirectory() as td:
@@ -212,6 +219,7 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
         reader.start()
         vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes", "--trace-children=yes",
               f"--cachegrind-out-file={td}/cg.%p", f"--log-fd={wfd}", *cache_args(cache), "--", *cmd]
+        pid0 = last_pid() if single_process else None
         t0 = datetime.datetime.now(datetime.timezone.utc)
         try:
             p = subprocess.run(vg, env=env, cwd=os.path.join(SANDBOX, "work"), capture_output=True,
@@ -219,6 +227,9 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None):
         finally:
             os.close(wfd)
         wall = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
+        if single_process and (made := last_pid() - pid0) != 1:
+            # every process or thread takes a pid, even one killed before it reports its counts (review 3)
+            raise Failure(f"the command made {made - 1} more process(es) or thread(s); --single-process allows none")
         reader.join(10)
         if reader.is_alive():  # someone still holds the log open: a process outlived the command
             raise Failure("a process outlived the command (its work would be counted late or not at all)")
@@ -293,7 +304,7 @@ def resolve_inputs(paths):
     return inputs
 
 
-def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=3600, keep_raw=None):
+def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=3600, keep_raw=None, single_process=False):
     exe = shutil.which("valgrind")
     if not exe:
         raise Failure("valgrind not found")
@@ -313,7 +324,7 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=36
     with open(SANDBOX + ".lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)  # one counter at a time owns the fixed sandbox path
         try:
-            rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw) for _ in range(reps)]
+            rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw, single_process) for _ in range(reps)]
         finally:
             shutil.rmtree(SANDBOX, ignore_errors=True)
     model = rows[0]["model"]
@@ -329,7 +340,8 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=36
         "inputs": {b: {"path": v["path"], "sha256": v["sha256"]} for b, v in inputs.items()},
         "executes": fp,
         "tool": {"valgrind": valgrind_version(exe), "files": tool_fingerprint(exe), "options": ["--tool=cachegrind", "--cache-sim=yes",
-                 "--trace-children=yes", "--command-line-only=yes"], "sandbox": SANDBOX},
+                 "--trace-children=yes", "--command-line-only=yes"] + (["exagium:--single-process"] if single_process else []),
+                 "sandbox": SANDBOX},
         "host": host(),
         "cache": {"requested": requested or "host", "simulated": model, "label": "chosen" if requested else "reported"},
         "reps": [{k: r[k] for k in ("counts", "processes", "wall_s", "stdout_sha256")} for r in rows],
@@ -482,6 +494,9 @@ def main(argv=None):
     ap.add_argument("--stdout-record", action="store_true",
                     help="print only the record (JSON) on stdout instead of writing a file; this process makes itself "
                          "non-dumpable first, so the program it counts (same uid) can't ptrace it or write to its stdout")
+    ap.add_argument("--single-process", action="store_true",
+                    help="refuse (exit 3) if the command makes any other process or thread, counted by the pid namespace's "
+                         "last pid; run this only in a pid namespace of its own (loop.py's jail), where nothing else starts processes")
     ap.add_argument("--input-dir", help="with --check: find inputs here by name instead of their recorded paths")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -497,7 +512,7 @@ def main(argv=None):
             import ctypes
             if ctypes.CDLL(None, use_errno=True).prctl(4, 0, 0, 0, 0) != 0:  # PR_SET_DUMPABLE = 4
                 raise Failure("cannot make the counter non-dumpable")
-        rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw)
+        rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw, single_process=a.single_process)
         if a.stdout_record:
             sys.stdout.write(json.dumps(rec, sort_keys=True) + "\n")
             v = rec["verdict"]
