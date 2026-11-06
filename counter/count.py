@@ -206,6 +206,12 @@ def last_pid():
         return int(f.read())
 
 
+def debug_dir_libraries():
+    """Valgrind gives the program LD_LIBRARY_PATH=/usr/lib/debug, which ldd (and so the fingerprint) doesn't see."""
+    d = "/usr/lib/debug"
+    return sorted(f for f in (os.listdir(d) if os.path.isdir(d) else []) if ".so" in f and os.path.isfile(os.path.join(d, f)))
+
+
 def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process=False):
     """Run cmd once under cachegrind in a fresh sandbox, children included. Counts summed over processes."""
     fresh_sandbox(inputs)
@@ -316,6 +322,9 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=36
         if not sep or not k.replace("_", "").isalnum() or k in ("PATH", "HOME", "TMPDIR") or k.startswith(DENY_ENV_PREFIXES):
             raise Failure(f"--env {kv}: must be KEY=VALUE, and not PATH, HOME, TMPDIR or {', '.join(DENY_ENV_PREFIXES)}*")
         env[k] = v
+    if debug_dir_libraries():
+        raise Failure(f"/usr/lib/debug holds shared libraries {debug_dir_libraries()}: valgrind's LD_LIBRARY_PATH would load "
+                      "them unfingerprinted (review 4)")
     inputs = resolve_inputs(input_paths)
     fp, prog = fingerprint(cmd, inputs)
     scanned = [prog, *[v["path"] for v in inputs.values()], *fp["program"]["shared_libs"]]

@@ -8,9 +8,19 @@ README.md that is never shown to the candidate's code). The contracts:
           of 64 uint8 pixels. N = 0 is startup only and must print just the newline.
 All candidate code runs in a jail (bubblewrap): fresh tmpfs /tmp, read-only /usr, no network, its own
 PID namespace, uid 65534 with every capability dropped, a fresh session keyring, and a working
-directory holding only the files that step needs. The repo, the test
-labels and the frozen weights are not in it. Known copies of the dataset (files named optdigits* or
-digits.csv*) under /usr and the Python prefix are masked.
+directory holding only the files that step needs. The repo, the test file and the frozen weights are
+not in it. Known copies of the dataset (files named optdigits* or digits.csv*) under /usr and the
+Python prefix are masked. Each step must be one single-threaded process: the jail's pid namespace
+counts every process or thread, even one killed before it reports.
+
+Limits a verifier must cover by reading the candidate's code (review 4):
+  - The test labels are public (UCI; scikit-learn's load_digits is the test file). A train.py can carry
+    them in as data and still reproduce byte for byte. Read train.py (task/SOURCE.md).
+  - Counts are a claim for code that isn't trying to cheat. Valgrind is always detectable from inside
+    (its LD_PRELOAD, /proc/self/maps, its CPU), so a candidate could take a cheaper path when counted
+    than when timed. Predictions are cross-checked between the runs; the work done isn't. Code that
+    dispatches on CPU features (glibc's own memcpy included) is counted on its AVX2-or-lower path.
+    Read infer.c.
 
     python3 loop.py freeze DIR...            # digests for a plan's "inputs"
     python3 loop.py reproduce DIR...         # retrain in the jail; weights must be byte-identical
@@ -42,7 +52,7 @@ RECORD = os.path.join(REPO, "record", "record.py")
 TIMER = os.path.join(HERE, "timer.c")
 FILES = ("train.py", "infer.c", "weights.bin")
 OPTIONAL = ("README.md",)
-CFLAGS = ["-O2", "-std=c11", "-ffp-contract=off"]  # an explicit choice: no -march, so the counted path is the one that runs
+CFLAGS = ["-O2", "-std=c11", "-ffp-contract=off"]  # an explicit choice: no -march, so the compiled code is the same in both runs (run-time dispatch can still differ)
 ENV = {"PATH": "/usr/local/bin:/usr/bin:/bin", "LC_ALL": "C", "LANG": "C", "TZ": "UTC", "PYTHONHASHSEED": "0",
        "PYTHONDONTWRITEBYTECODE": "1", "OMP_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1",
        "HOME": "/tmp", "TMPDIR": "/tmp"}
@@ -237,7 +247,8 @@ def timed(c, rows, timer, cpu):
     if status:
         raise Failed(f"{c['name']}: infer exited {status}")
     if pids != 1:
-        raise Failed(f"{c['name']}: made {pids - 1} more process(es) or thread(s); candidates must be one single-threaded process")
+        raise Failed(f"{c['name']}: the jail handed out {pids} pid(s) (0 = the child wasn't the next pid); "
+                     "candidates must be one single-threaded process")
     if cpu_ns > CPU_SLACK[0] * ns + CPU_SLACK[1]:
         raise Failed(f"{c['name']}: used more than one CPU ({cpu_ns} ns CPU in {ns} ns wall); candidates must be single-threaded")
     return predictions(out, len(rows), c["name"]), ns
@@ -456,6 +467,7 @@ def main(argv=None):
                 raise Failed(f"training does not reproduce the frozen weights here: {', '.join(bad)}")
         s = evaluate(dirs, a.test, a.rounds, a.seed, a.records)
         s["plan"], s["reproduced"] = plan, repro
+        s["valid"] = not s["problems"]  # a scoreboard with problems is not a result (review 4)
         show(s)
         if a.out:
             with open(a.out, "x") as fh:

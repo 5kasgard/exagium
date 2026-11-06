@@ -59,6 +59,7 @@ int main(int argc, char **argv) {
   if (wait4(pid, &status, 0, &ru) != pid) return 127;
   clock_gettime(CLOCK_MONOTONIC, &t1);
   long long pids = last_pid() - pid0;
+  if (pid != pid0 + 1) pids = 0;  // the child must be the very next pid, so a pid wrap can't hide anything
   long long ns = (long long)(t1.tv_sec - t0.tv_sec) * 1000000000LL + (t1.tv_nsec - t0.tv_nsec);
   fwrite(buf, 1, len, stdout);
   long long cpu = ((long long)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec) * 1000000000LL
