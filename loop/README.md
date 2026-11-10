@@ -8,7 +8,7 @@ python3 loop.py freeze DIR...                      # digests for a plan's "input
 python3 loop.py reproduce DIR...                   # retrain in the jail; weights must be byte-identical
 python3 loop.py evaluate DIR... --test dev         # smoke test (in-sample for anything trained on the whole file)
 python3 loop.py evaluate DIR... --test test --plan SEQ [--rounds R] [--seed S]
-python3 -m unittest -v test_loop                   # 17 tests, ~15 s
+python3 -m unittest -v test_loop                   # 18 tests, ~15 s
 ```
 Exit codes: 0 done; 1 a check failed; 2 bad arguments (e.g. `--test test` without `--plan`; the docstring omits this); 3 failure. Plan 2 froze `loop.py`, `timer.c`, `counter/count.py`, `record/record.py`, the task and the candidates. `record.py` changed after entry 4 (a fix found by Z), so re-measure plan 2 at commit `113a3f6`, the last one with every frozen file unchanged. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
 
@@ -29,6 +29,7 @@ For each candidate, on one machine, in one `evaluate`:
 - **Simulated instructions per image:** `counter/count.py` (reference cache) counts *one* process classifying all N images, divided by N. Startup is included, so no work can escape the count by moving to N = 0. The N = 0 count is shown as "marginal", informational only.
 - **Native ns per image:** the same one-process run, timed inside the jail by `timer.c` (pinned to one CPU). R rounds, candidates in a fresh random order each round, rows freshly shuffled each run. Predictions of every timed run and the counted run must agree, after undoing the shuffle.
 - **Cross-checks:** time per simulated instruction more than 30× the lowest candidate's is flagged. The scoreboard JSON carries `valid`: false whenever any check raised a problem.
+- **Meter disagreements** (`cost_disagreements`, printed as `METERS DISAGREE`): every pair where one candidate uses fewer simulated instructions yet is slower natively past 2 SE (paired, interleaved rounds). These aren't problems with the run; they mark where an instruction-count cost claim alone would be wrong.
 
 **The test set is gated.** `--test test` refuses unless the ledger verifies and its anchors check, entry SEQ is a plan whose `inputs` hold every digest `freeze` gives now (task files, `loop.py`, `timer.c`, `count.py`, `record.py`, every candidate file), and every candidate's training reproduces its weights byte for byte, in the jail, here.
 
@@ -49,6 +50,32 @@ Four rounds. Rounds 1 and 2 were by one independent adversarial agent; their att
 4. **Round 4** was also cut off while writing attacks, then finished as a code-only review. It confirmed the PID rule, the output parsing, the label isolation and the maths. Its findings are fixed or now stated as limits: a `valid` flag, the next-pid rule, unfingerprinted `/usr/lib/debug` libraries, and the two limits below. Its suggested test of writing into the jail's stdout through `/proc/1/fd` fails closed (tested).
 
 Attack testing in rounds 3 and 4 is thinner than in rounds 1 and 2.
+
+## Two meters, and why both count
+Simulated instructions are a deterministic work count; they are not a cost. Plan 2's own data shows the gap. Native time per simulated instruction, startup removed, from the committed scoreboards:
+
+| | EPYC 7763 | arm64 |
+|---|---|---|
+| linear | 0.089 ns | 0.077 ns |
+| thermo | 0.094 ns | 0.075 ns |
+| mlp16 | 0.224 ns | 0.145 ns |
+| mlp32 | 0.228 ns | 0.143 ns |
+| mlp64 | 0.214 ns | 0.145 ns |
+
+An MLP instruction took 1.9–2.6× as long as a baseline one. mlp64 used 0.43× linear's instructions on x86-64 (0.65× on arm64), yet it was slower than linear or thermo, past 2 SE, on all 7 hosts that scored plan 2.
+
+**What explains it** (tested 2026-11-11 on the same data, after the fact, so hypotheses only):
+- **Cache misses: not enough.** Adding simulated L1 misses to instructions cuts the error of a per-host fitted time model (5 candidates, so easily overfitted) from 30–46% to 22–32%. mlp16 has almost no misses (2.4 per image) yet the same high time per instruction.
+- **Branch mispredictions: not for mlp16.** Cachegrind's branch simulator gives mlp16 3.7 mispredictions per image against linear's 4.1. mlp64 has 14.6, which may explain part of its gap.
+- **Instructions per nanosecond: the leading hypothesis.** On the EPYC, linear retires about 11 simulated instructions per ns, the MLPs about 4.4–4.7 (the clock speed isn't recorded, so this isn't stated per cycle). A plausible cause is chains of dependent table lookups. Neither instruction counts nor cachegrind can see this; hardware counters (`perf`) can, and no host so far exposes them. Testing it is part of calibration on real hardware.
+
+**The rule for every plan from now on.** A cost claim of candidate X over baseline B must pass both meters:
+1. **Simulated instructions,** per architecture: Ir_X / (acc_X − 2·SE(acc_X)) < Ir_B / acc_B. This is plan 2's form; it lets accuracy noise count only against the candidate.
+2. **Native time,** on every host that scores the plan, each judged on its own: X's paired `ns_per_image_diff` against B is below −2 × its SE. There's no averaging across hosts, and a host where the difference is under 2 SE fails the claim.
+
+If one meter passes and the other doesn't, the claim is inconclusive; `cost_disagreements` lists the pairs where they point opposite ways. Plan 2 predates this rule and was judged by its own.
+
+**A phantom meter.** This workspace's VM offers a `power/energy-psys` counter, which opens without error but reads exactly 0 J idle and under load. A meter that is present but dead must be reported as unavailable, never as zero joules.
 
 ## Trust model and limits
 A verifier must cover these by reading the candidates' code:
@@ -84,7 +111,7 @@ The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 ho
 - **Part B is inconclusive.** Both MLPs beat linear clearly (z 4.3 and 3.5), and both are cheaper per correct answer. But their lead over thermo is +0.56 points (z 1.62) for mlp32 and +0.11 (z 0.33) for mlp64, short of 2 SE. On the validation holdout it had been about +1.1 points: the edge shrank on the 13 new writers.
 - **Code reading** (rule amendment 2): no test data carried in, and no environment-dependent path, in any of the five.
 
-**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size. Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
+**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.8–2.6× faster on the six CI hosts (2.3× on the EPYC cited), not the 3.5–5.4× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
 
 ## Files
 - `loop.py`: freeze, reproduce, evaluate; `timer.c`: the trusted timer; `test_loop.py`: the tests.

@@ -2,7 +2,7 @@
 
 You are an independent verifier. Someone else built this tool. Your job is to check its claims and try to make it report something false. Don't trust the README; report only what you can show with commands, numbers and line references. A result of "I couldn't break X" is useful, and so is "X is wrong, here is how".
 
-**The most valuable thing you can do is run it on hardware the author never had.** It was built and checked on one 2-vCPU Intel cloud VM with no energy meters. Examples:
+**The most valuable thing you can do is run it on hardware the author never had.** It was built and checked on 2-vCPU Intel cloud VMs and free GitHub runners (AMD EPYC, Intel, arm64), none with a working energy meter. Examples:
 - bare metal;
 - an AMD or ARM CPU;
 - a machine with readable RAPL (`/sys/class/powercap/intel-rapl*`) or working `perf` counters;

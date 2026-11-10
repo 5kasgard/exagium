@@ -389,9 +389,26 @@ def evaluate(dirs, test, rounds, seed, outdir):
                                    "mean and SE over interleaved rounds",
                        "marginal_*": "minus the N = 0 run, per image: INFORMATIONAL and gameable, since a candidate "
                                      "can move work into its N = 0 run; never use it to decide",
-                       "SE": "assumes independent images; the test set has 13 writers, so true SEs are larger"},
+                       "SE": "assumes independent images; the test set has 13 writers, so true SEs are larger",
+                       "cost_disagreements": "pairs where fewer simulated instructions came with a longer native time, "
+                                             "past 2 SE: on these, an instruction-count cost claim alone would be wrong"},
             "host": versions(), "cflags": CFLAGS, "inputs": digests(dirs),
-            "candidates": board, "pairs": pairs, "problems": problems}
+            "candidates": board, "pairs": pairs, "cost_disagreements": cost_disagreements(pairs), "problems": problems}
+
+
+def cost_disagreements(pairs):
+    """Pairs where the two cost meters point opposite ways: a uses fewer simulated instructions than b, yet a's native
+    time per image is longer by more than 2 SE (paired, interleaved rounds). Simulated instructions miss dependency
+    chains, mispredicted branches and cache behaviour, so a cost claim that rests on them alone can be wrong
+    (system review, 2026-11-11: mlp64 used 0.43x linear's instructions and was slower on all 7 hosts). Each
+    disagreeing pair is listed once, from the side the instruction count favours."""
+    out = []
+    for p in pairs:
+        se = p.get("ns_per_image_diff_se")
+        if p["Ir_ratio"] < 1 and se is not None and p["ns_per_image_diff"] > 2 * se:
+            out.append({"fewer_instructions": p["a"], "but_slower_than": p["b"], "Ir_ratio": p["Ir_ratio"],
+                        "ns_per_image_diff": p["ns_per_image_diff"], "ns_per_image_diff_se": se})
+    return out
 
 
 def require_plan(seq, dirs):
@@ -424,6 +441,9 @@ def show(s):
         m, mse = c["marginal_native_ns_per_image"]
         print(f"  {'':14s} marginal (informational): Ir/img {c['marginal_simulated_Ir_per_image']:,.0f}  ns/img {m:.1f}"
               + (f" ±{mse:.1f}" if mse is not None else ""))
+    for d in s.get("cost_disagreements", []):
+        print(f"  METERS DISAGREE: {d['fewer_instructions']} uses {d['Ir_ratio']:.2f}x {d['but_slower_than']}'s instructions "
+              f"but is {d['ns_per_image_diff']:.1f} ±{d['ns_per_image_diff_se']:.1f} ns/img slower")
     for p in s["problems"]:
         print("  PROBLEM:", p)
 

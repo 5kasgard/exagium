@@ -1,0 +1,269 @@
+You are auditing a public research project's write-up. Check every factual or numeric claim in the CLAIMS below against the RAW DATA only. Do not trust the claims. For each claim, say SUPPORTED, WRONG (give the correct value from the data), OVERSTATED, or NOT CHECKABLE FROM THIS DATA. Then judge whether the proposed 'rule for every plan' is well-defined and computable from the data fields, and whether the code function does what the text says. Be terse; list only problems in detail.
+
+=== CLAIMS (two sections of the card) ===
+## Two meters, and why both count
+Simulated instructions are a deterministic work count; they are not a cost. Plan 2's own data shows the gap. Native time per simulated instruction, startup removed, from the committed scoreboards:
+
+| | EPYC 7763 | arm64 |
+|---|---|---|
+| linear | 0.089 ns | 0.077 ns |
+| thermo | 0.094 ns | 0.075 ns |
+| mlp16 | 0.224 ns | 0.145 ns |
+| mlp32 | 0.228 ns | 0.143 ns |
+| mlp64 | 0.214 ns | 0.145 ns |
+
+An MLP instruction took 1.9–2.5× as long as a baseline one. mlp64 used 0.43× linear's instructions on x86-64 (0.65× on arm64), yet it was slower than linear or thermo, past 2 SE, on all 7 hosts that scored plan 2.
+
+**What explains it** (tested 2026-11-11 on the same data, after the fact, so hypotheses only):
+- **Cache misses: not enough.** Adding simulated L1 misses to instructions cuts the error of a per-host fitted time model (5 candidates, so easily overfitted) from 30–46% to 22–32%. mlp16 has almost no misses (2.4 per image) yet the same high time per instruction.
+- **Branch mispredictions: not for mlp16.** Cachegrind's branch simulator gives mlp16 3.7 mispredictions per image against linear's 4.1. mlp64 has 14.6, which may explain part of its gap.
+- **Instructions per nanosecond: the leading hypothesis.** On the EPYC, linear retires about 11 simulated instructions per ns, the MLPs about 4.4–4.7 (the clock speed isn't recorded, so this isn't stated per cycle). A plausible cause is chains of dependent table lookups. Neither instruction counts nor cachegrind can see this; hardware counters (`perf`) can, and no host so far exposes them. Testing it is part of calibration on real hardware.
+
+**The rule for every plan from now on:** a cost claim must state both meters. It passes only if the candidate is cheaper by simulated instructions per correct answer *and* faster natively by more than 2 SE (paired), on every architecture it claims. If the meters disagree, the claim is inconclusive. Plan 2 predates this rule and was judged by its own.
+
+**A phantom meter.** This workspace's VM offers a `power/energy-psys` counter, which opens without error but reads exactly 0 J idle and under load. A meter that is present but dead must be reported as unavailable, never as zero joules.
+
+
+## Plan 2: the first claim
+**Outcome: inconclusive** (ledger entry 3, by `claude-loop1-verifier`; evidence in `results/plan2/`).
+
+A proposer agent built three MLPs, 64-H-10 with ReLU, run with layer 1 as int16 lookup tables, and registered two claims (entry 2) before the test set was touched:
+- **A:** mlp16 needs less than half the baselines' instructions per image, beats both on Ir per correct answer past 2 SE, and stays within 0.5 points of the better baseline's accuracy.
+- **B:** mlp32 or mlp64 is more accurate than *both* baselines past 2 SE, and beats both on Ir per correct answer past 2 SE.
+
+The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 hosts. Every scoreboard is valid, every candidate retrained byte-identically, and predictions are identical on all 7 hosts.
+
+| | Test acc | Ir/img x86-64 | Ir/img arm64 |
+|---|---|---|---|
+| linear | 0.9505 | 3,888 | 3,142 |
+| thermo | 0.9599 | 3,630 | 2,886 |
+| mlp16 | 0.9594 | 720 | 835 |
+| mlp32 | 0.9655 | 1,025 | 1,234 |
+| mlp64 | 0.9610 | 1,684 | 2,049 |
+
+- **Part A passes on every host.** mlp16 uses 0.19–0.29× the baselines' instructions, and its accuracy (0.9594) is 0.06 points below thermo's, inside the 0.5-point floor.
+- **Part B is inconclusive.** Both MLPs beat linear clearly (z 4.3 and 3.5), and both are cheaper per correct answer. But their lead over thermo is +0.56 points (z 1.62) for mlp32 and +0.11 (z 0.33) for mlp64, short of 2 SE. On the validation holdout it had been about +1.1 points: the edge shrank on the 13 new writers.
+- **Code reading** (rule amendment 2): no test data carried in, and no environment-dependent path, in any of the five.
+
+**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.9–2.3× faster, not the 5× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
+
+
+=== CODE ===
+def cost_disagreements(pairs):
+    """Pairs where the two cost meters point opposite ways: a uses fewer simulated instructions than b, yet a's native
+    time per image is longer by more than 2 SE (paired, interleaved rounds). Simulated instructions miss dependency
+    chains, mispredicted branches and cache behaviour, so a cost claim that rests on them alone can be wrong
+    (system review, 2026-11-11: mlp64 used 0.43x linear's instructions and was slower on all 7 hosts). Each
+    disagreeing pair is listed once, from the side the instruction count favours."""
+    out = []
+    for p in pairs:
+        se = p.get("ns_per_image_diff_se")
+        if p["Ir_ratio"] < 1 and se is not None and p["ns_per_image_diff"] > 2 * se:
+            out.append({"fewer_instructions": p["a"], "but_slower_than": p["b"], "Ir_ratio": p["Ir_ratio"],
+                        "ns_per_image_diff": p["ns_per_image_diff"], "ns_per_image_diff_se": se})
+    return out
+
+
+
+=== RAW DATA: per host scoreboards from the plan's test run (n=1797 images). Fields per candidate: acc, Ir/img total, ns/img total ± SE, marginal Ir/img (minus N=0 run), marginal ns/img ± SE, marginal data accesses/img, marginal L1 misses/img ===
+
+-- host ubuntu-24.04-1: AMD EPYC 7763 64-Core Processor
+linear: acc 0.950473, Ir/img 3888.2, ns/img 706.0±6.6, marg Ir 3812.8, marg ns 339.8±6.3, marg Dacc 1122.3, marg D1miss 0.04
+thermo: acc 0.959933, Ir/img 3629.8, ns/img 711.0±5.1, marg Ir 3555.8, marg ns 332.6±5.2, marg Dacc 1129.3, marg D1miss 0.43
+mlp16: acc 0.959377, Ir/img 720.4, ns/img 519.8±4.6, marg Ir 644.8, marg ns 144.7±5.3, marg Dacc 245.1, marg D1miss 2.37
+mlp32: acc 0.965498, Ir/img 1025.5, ns/img 605.4±2.7, marg Ir 950.0, marg ns 216.7±5.4, marg Dacc 404.9, marg D1miss 4.94
+mlp64: acc 0.961046, Ir/img 1683.9, ns/img 759.2±4.3, marg Ir 1608.2, marg ns 344.6±7.4, marg Dacc 741.0, marg D1miss 33.15
+  pair linear-thermo: Ir_ratio 1.0712, ns diff -5.0±8.4, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 5.3975, ns diff 186.2±8.3, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 3.7916, ns diff 100.6±6.9, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 2.3090, ns diff -53.1±7.9, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9336, ns diff 5.0±8.4, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 5.0389, ns diff 191.1±6.3, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 3.5396, ns diff 105.6±5.4, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 2.1556, ns diff -48.2±6.8, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.1853, ns diff -186.2±8.3, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.1985, ns diff -191.1±6.3, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.7025, ns diff -85.6±4.8, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4278, ns diff -239.3±6.4, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.2637, ns diff -100.6±6.9, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.2825, ns diff -105.6±5.4, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4236, ns diff 85.6±4.8, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6090, ns diff -153.7±4.8, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.4331, ns diff 53.1±7.9, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.4639, ns diff 48.2±6.8, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.3376, ns diff 239.3±6.4, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6421, ns diff 153.7±4.8, acc diff -0.004452±0.002609
+
+-- host ubuntu-24.04-2: AMD EPYC 7763 64-Core Processor
+linear: acc 0.950473, Ir/img 3888.2, ns/img 660.0±2.5, marg Ir 3812.8, marg ns 304.0±4.0, marg Dacc 1122.3, marg D1miss 0.04
+thermo: acc 0.959933, Ir/img 3629.8, ns/img 684.9±3.3, marg Ir 3555.8, marg ns 316.7±5.6, marg Dacc 1129.3, marg D1miss 0.43
+mlp16: acc 0.959377, Ir/img 720.4, ns/img 502.5±3.6, marg Ir 644.8, marg ns 127.8±5.2, marg Dacc 245.1, marg D1miss 2.37
+mlp32: acc 0.965498, Ir/img 1025.5, ns/img 595.7±4.6, marg Ir 950.0, marg ns 212.6±6.9, marg Dacc 404.9, marg D1miss 4.94
+mlp64: acc 0.961046, Ir/img 1683.9, ns/img 730.0±3.7, marg Ir 1608.2, marg ns 328.9±5.6, marg Dacc 741.0, marg D1miss 33.15
+  pair linear-thermo: Ir_ratio 1.0712, ns diff -24.9±3.6, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 5.3975, ns diff 157.5±4.1, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 3.7916, ns diff 64.3±5.0, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 2.3090, ns diff -70.0±3.8, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9336, ns diff 24.9±3.6, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 5.0389, ns diff 182.4±4.8, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 3.5396, ns diff 89.3±5.8, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 2.1556, ns diff -45.0±4.4, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.1853, ns diff -157.5±4.1, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.1985, ns diff -182.4±4.8, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.7025, ns diff -93.2±5.8, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4278, ns diff -227.5±4.2, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.2637, ns diff -64.3±5.0, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.2825, ns diff -89.3±5.8, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4236, ns diff 93.2±5.8, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6090, ns diff -134.3±4.4, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.4331, ns diff 70.0±3.8, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.4639, ns diff 45.0±4.4, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.3376, ns diff 227.5±4.2, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6421, ns diff 134.3±4.4, acc diff -0.004452±0.002609
+
+-- host ubuntu-24.04-3: INTEL(R) XEON(R) PLATINUM 8573C
+linear: acc 0.950473, Ir/img 3888.2, ns/img 556.2±8.4, marg Ir 3812.8, marg ns 310.3±8.2, marg Dacc 1122.3, marg D1miss 0.04
+thermo: acc 0.959933, Ir/img 3629.8, ns/img 527.0±5.9, marg Ir 3555.8, marg ns 267.4±6.9, marg Dacc 1129.3, marg D1miss 0.43
+mlp16: acc 0.959377, Ir/img 720.4, ns/img 371.8±6.2, marg Ir 644.8, marg ns 118.2±7.0, marg Dacc 245.1, marg D1miss 2.37
+mlp32: acc 0.965498, Ir/img 1025.5, ns/img 436.5±7.6, marg Ir 950.0, marg ns 175.0±10.1, marg Dacc 404.9, marg D1miss 4.94
+mlp64: acc 0.961046, Ir/img 1683.9, ns/img 574.7±8.4, marg Ir 1608.2, marg ns 287.2±10.6, marg Dacc 741.0, marg D1miss 33.15
+  pair linear-thermo: Ir_ratio 1.0712, ns diff 29.2±10.1, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 5.3975, ns diff 184.3±11.1, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 3.7916, ns diff 119.7±9.9, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 2.3090, ns diff -18.5±12.3, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9336, ns diff -29.2±10.1, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 5.0389, ns diff 155.2±9.1, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 3.5396, ns diff 90.5±8.8, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 2.1556, ns diff -47.7±9.8, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.1853, ns diff -184.3±11.1, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.1985, ns diff -155.2±9.1, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.7025, ns diff -64.6±10.1, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4278, ns diff -202.8±10.2, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.2637, ns diff -119.7±9.9, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.2825, ns diff -90.5±8.8, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4236, ns diff 64.6±10.1, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6090, ns diff -138.2±11.2, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.4331, ns diff 18.5±12.3, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.4639, ns diff 47.7±9.8, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.3376, ns diff 202.8±10.2, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6421, ns diff 138.2±11.2, acc diff -0.004452±0.002609
+
+-- host ubuntu-24.04-arm-1: 0xd49
+linear: acc 0.950473, Ir/img 3141.7, ns/img 580.9±8.2, marg Ir 3080.7, marg ns 237.4±8.3, marg Dacc 1118.7, marg D1miss 0.05
+thermo: acc 0.959933, Ir/img 2885.9, ns/img 559.1±7.8, marg Ir 2826.7, marg ns 212.7±7.4, marg Dacc 1118.7, marg D1miss 0.46
+mlp16: acc 0.959377, Ir/img 835.2, ns/img 458.3±5.3, marg Ir 774.7, marg ns 112.5±5.2, marg Dacc 232.4, marg D1miss 2.39
+mlp32: acc 0.965498, Ir/img 1233.6, ns/img 523.2±6.7, marg Ir 1173.1, marg ns 168.2±6.7, marg Dacc 405.0, marg D1miss 7.13
+mlp64: acc 0.961046, Ir/img 2049.4, ns/img 659.4±7.5, marg Ir 1988.7, marg ns 288.3±6.6, marg Dacc 735.5, marg D1miss 52.41
+  pair linear-thermo: Ir_ratio 1.0886, ns diff 21.8±8.0, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 3.7617, ns diff 122.6±6.1, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 2.5468, ns diff 57.7±6.8, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 1.5330, ns diff -78.5±5.9, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9186, ns diff -21.8±8.0, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 3.4555, ns diff 100.7±5.0, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 2.3395, ns diff 35.9±7.7, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 1.4082, ns diff -100.3±6.7, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.2658, ns diff -122.6±6.1, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.2894, ns diff -100.7±5.0, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.6770, ns diff -64.8±6.0, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4075, ns diff -201.0±4.8, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.3926, ns diff -57.7±6.8, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.4274, ns diff -35.9±7.7, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4770, ns diff 64.8±6.0, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6019, ns diff -136.2±5.1, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.6523, ns diff 78.5±5.9, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.7101, ns diff 100.3±6.7, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.4539, ns diff 201.0±4.8, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6614, ns diff 136.2±5.1, acc diff -0.004452±0.002609
+
+-- host ubuntu-24.04-arm-2: 0xd49
+linear: acc 0.950473, Ir/img 3141.7, ns/img 578.5±4.3, marg Ir 3080.7, marg ns 239.3±5.9, marg Dacc 1118.7, marg D1miss 0.05
+thermo: acc 0.959933, Ir/img 2885.9, ns/img 555.9±5.7, marg Ir 2826.7, marg ns 207.1±7.1, marg Dacc 1118.7, marg D1miss 0.46
+mlp16: acc 0.959377, Ir/img 835.2, ns/img 465.0±4.3, marg Ir 774.7, marg ns 114.8±6.3, marg Dacc 232.4, marg D1miss 2.39
+mlp32: acc 0.965498, Ir/img 1233.6, ns/img 529.5±3.9, marg Ir 1173.1, marg ns 172.3±5.0, marg Dacc 405.0, marg D1miss 7.13
+mlp64: acc 0.961046, Ir/img 2049.4, ns/img 659.7±3.3, marg Ir 1988.7, marg ns 281.7±6.2, marg Dacc 735.5, marg D1miss 52.41
+  pair linear-thermo: Ir_ratio 1.0886, ns diff 22.6±5.8, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 3.7617, ns diff 113.5±5.0, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 2.5468, ns diff 49.0±4.3, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 1.5330, ns diff -81.2±4.1, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9186, ns diff -22.6±5.8, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 3.4555, ns diff 90.9±6.5, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 2.3395, ns diff 26.3±4.5, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 1.4082, ns diff -103.8±5.8, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.2658, ns diff -113.5±5.0, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.2894, ns diff -90.9±6.5, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.6770, ns diff -64.6±5.1, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4075, ns diff -194.8±5.0, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.3926, ns diff -49.0±4.3, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.4274, ns diff -26.3±4.5, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4770, ns diff 64.6±5.1, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6019, ns diff -130.2±4.5, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.6523, ns diff 81.2±4.1, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.7101, ns diff 103.8±5.8, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.4539, ns diff 194.8±5.0, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6614, ns diff 130.2±4.5, acc diff -0.004452±0.002609
+
+-- host ubuntu-24.04-arm-3: 0xd49
+linear: acc 0.950473, Ir/img 3141.7, ns/img 608.7±4.3, marg Ir 3080.7, marg ns 246.9±5.7, marg Dacc 1118.7, marg D1miss 0.05
+thermo: acc 0.959933, Ir/img 2885.9, ns/img 583.9±4.5, marg Ir 2826.7, marg ns 207.2±6.8, marg Dacc 1118.7, marg D1miss 0.46
+mlp16: acc 0.959377, Ir/img 835.2, ns/img 490.7±5.0, marg Ir 774.7, marg ns 111.1±5.6, marg Dacc 232.4, marg D1miss 2.39
+mlp32: acc 0.965498, Ir/img 1233.6, ns/img 553.1±3.7, marg Ir 1173.1, marg ns 162.3±4.7, marg Dacc 405.0, marg D1miss 7.13
+mlp64: acc 0.961046, Ir/img 2049.4, ns/img 695.3±4.1, marg Ir 1988.7, marg ns 283.4±7.5, marg Dacc 735.5, marg D1miss 52.41
+  pair linear-thermo: Ir_ratio 1.0886, ns diff 24.9±5.7, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 3.7617, ns diff 118.1±5.7, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 2.5468, ns diff 55.7±4.3, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 1.5330, ns diff -86.6±5.5, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9186, ns diff -24.9±5.7, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 3.4555, ns diff 93.2±5.1, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 2.3395, ns diff 30.8±4.8, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 1.4082, ns diff -111.4±6.5, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.2658, ns diff -118.1±5.7, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.2894, ns diff -93.2±5.1, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.6770, ns diff -62.4±4.5, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4075, ns diff -204.6±6.3, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.3926, ns diff -55.7±4.3, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.4274, ns diff -30.8±4.8, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4770, ns diff 62.4±4.5, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6019, ns diff -142.3±4.5, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.6523, ns diff 86.6±5.5, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.7101, ns diff 111.4±6.5, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.4539, ns diff 204.6±6.3, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6614, ns diff 142.3±4.5, acc diff -0.004452±0.002609
+
+-- host test-local: Intel(R) Xeon(R) Processor @ 2.10GHz
+linear: acc 0.950473, Ir/img 3888.2, ns/img 970.5±38.4, marg Ir 3812.8, marg ns 323.6±37.4, marg Dacc 1122.3, marg D1miss 0.04
+thermo: acc 0.959933, Ir/img 3629.8, ns/img 1208.2±154.9, marg Ir 3555.8, marg ns 522.3±157.4, marg Dacc 1129.3, marg D1miss 0.43
+mlp16: acc 0.959377, Ir/img 720.4, ns/img 830.0±26.8, marg Ir 644.8, marg ns 170.9±31.3, marg Dacc 245.1, marg D1miss 2.37
+mlp32: acc 0.965498, Ir/img 1025.5, ns/img 894.3±28.6, marg Ir 950.0, marg ns 227.7±24.0, marg Dacc 404.9, marg D1miss 4.94
+mlp64: acc 0.961046, Ir/img 1683.9, ns/img 1117.3±76.0, marg Ir 1608.2, marg ns 437.2±75.8, marg Dacc 741.0, marg D1miss 33.15
+  pair linear-thermo: Ir_ratio 1.0712, ns diff -237.7±158.5, acc diff -0.009460±0.003286
+  pair linear-mlp16: Ir_ratio 5.3975, ns diff 140.5±38.2, acc diff -0.008904±0.002602
+  pair linear-mlp32: Ir_ratio 3.7916, ns diff 76.1±39.7, acc diff -0.015025±0.003458
+  pair linear-mlp64: Ir_ratio 2.3090, ns diff -146.8±68.3, acc diff -0.010573±0.002987
+  pair thermo-linear: Ir_ratio 0.9336, ns diff 237.7±158.5, acc diff 0.009460±0.003286
+  pair thermo-mlp16: Ir_ratio 5.0389, ns diff 378.2±157.9, acc diff 0.000556±0.003099
+  pair thermo-mlp32: Ir_ratio 3.5396, ns diff 313.8±148.0, acc diff -0.005565±0.003429
+  pair thermo-mlp64: Ir_ratio 2.1556, ns diff 90.9±157.2, acc diff -0.001113±0.003340
+  pair mlp16-linear: Ir_ratio 0.1853, ns diff -140.5±38.2, acc diff 0.008904±0.002602
+  pair mlp16-thermo: Ir_ratio 0.1985, ns diff -378.2±157.9, acc diff -0.000556±0.003099
+  pair mlp16-mlp32: Ir_ratio 0.7025, ns diff -64.4±30.1, acc diff -0.006121±0.002994
+  pair mlp16-mlp64: Ir_ratio 0.4278, ns diff -287.3±79.9, acc diff -0.001669±0.002155
+  pair mlp32-linear: Ir_ratio 0.2637, ns diff -76.1±39.7, acc diff 0.015025±0.003458
+  pair mlp32-thermo: Ir_ratio 0.2825, ns diff -313.8±148.0, acc diff 0.005565±0.003429
+  pair mlp32-mlp16: Ir_ratio 1.4236, ns diff 64.4±30.1, acc diff 0.006121±0.002994
+  pair mlp32-mlp64: Ir_ratio 0.6090, ns diff -222.9±74.8, acc diff 0.004452±0.002609
+  pair mlp64-linear: Ir_ratio 0.4331, ns diff 146.8±68.3, acc diff 0.010573±0.002987
+  pair mlp64-thermo: Ir_ratio 0.4639, ns diff -90.9±157.2, acc diff 0.001113±0.003340
+  pair mlp64-mlp16: Ir_ratio 2.3376, ns diff 287.3±79.9, acc diff 0.001669±0.002155
+  pair mlp64-mlp32: Ir_ratio 1.6421, ns diff 222.9±74.8, acc diff -0.004452±0.002609
+
+=== RAW DATA: cachegrind --branch-sim on the dev split (956 images), per image, startup removed ===
+linear  Ir 3813 cond branches 408.5 mispredicted 2.10 indirect mispredicted 2.00
+thermo  Ir 3556 cond branches 482.5 mispredicted 3.11 indirect mispredicted 2.00
+mlp16   Ir  646 cond branches  36.2 mispredicted 3.67 indirect mispredicted 0.00
+mlp32   Ir  950 cond branches  52.2 mispredicted 8.33 indirect mispredicted 0.00
+mlp64   Ir 1612 cond branches  84.2 mispredicted 14.58 indirect mispredicted 0.00
+=== RAW DATA: per-host least-squares fits of marginal ns over the 5 candidates, no intercept, RMS relative error ===
+model: Ir only | Ir + L1 misses | data accesses only | Ir + data accesses
+ubuntu-24.04-1 41.6% 29.2% 28.9% 16.3%; ubuntu-24.04-2 42.3% 29.2% 29.4% 14.4%; ubuntu-24.04-3 40.1% 27.8% 27.6% 17.2%
+arm-1 30.9% 23.1% 36.2% 22.5%; arm-2 31.7% 24.4% 37.1% 22.0%; arm-3 30.0% 22.4% 35.6% 20.3%; test-local 45.6% 31.5% 32.3% 15.7%
+=== RAW DATA: energy counter in the build VM: perf power/energy-psys opened OK; read 0 raw units over a 0.23 s busy loop and 0 over 1 s idle ===

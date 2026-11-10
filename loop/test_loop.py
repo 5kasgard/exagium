@@ -188,6 +188,17 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
         self.assertEqual(code, 1)
         self.assertRegex(msg, "more than one CPU|more process|--single-process allows none")
 
+    def test_cost_disagreements_list_opposite_meters_once(self):
+        """System review 2026-11-11: fewer instructions but slower past 2 SE must be reported, once per pair."""
+        import loop
+        pairs = [{"a": "x", "b": "y", "Ir_ratio": 0.4, "ns_per_image_diff": 50.0, "ns_per_image_diff_se": 8.0},
+                 {"a": "y", "b": "x", "Ir_ratio": 2.5, "ns_per_image_diff": -50.0, "ns_per_image_diff_se": 8.0},
+                 {"a": "x", "b": "z", "Ir_ratio": 0.4, "ns_per_image_diff": 10.0, "ns_per_image_diff_se": 8.0},
+                 {"a": "z", "b": "y", "Ir_ratio": 0.9, "ns_per_image_diff": -30.0, "ns_per_image_diff_se": 5.0},
+                 {"a": "w", "b": "y", "Ir_ratio": 0.9, "ns_per_image_diff": 30.0, "ns_per_image_diff_se": None}]
+        d = loop.cost_disagreements(pairs)
+        self.assertEqual([(x["fewer_instructions"], x["but_slower_than"]) for x in d], [("x", "y")])
+
     def test_a_hidden_fork_child_is_refused(self):
         """Review 3: a fork child does the work and is killed before it reports its counts (26x undercount)."""
         forker = r"""#include <signal.h>

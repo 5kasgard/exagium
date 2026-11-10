@@ -136,7 +136,7 @@ Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a differ
 The commit history shows each step.
 
 ## Limits
-- **Tier 2 only on both machines.** These are times, not joules. The energy score needs real-hardware calibration or a machine where RAPL or NVML shows as available.
+- **Tier 2 only on every machine so far** (A, B, C and Z). These are times, not joules. The energy score needs real-hardware calibration or a machine where RAPL or NVML shows as available.
 - **Only x86 Linux has been tested.** The NVML and ARM paths are untested; the vector ISA is recorded so an ARM ceiling isn't misread.
 - **Large sizes include TLB effects.** The THP mode is recorded.
 - **Complexity debt.** About 1,600 lines in total, mostly the level-fit statistics and their tests. Seven reviews say the fit has earned its place, but it's the part to watch. The known limits above are where the next round should start.
