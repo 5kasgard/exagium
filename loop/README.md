@@ -88,7 +88,7 @@ Other limits:
 - **Tier 2 only.** Instructions and nanoseconds, not joules; native time is dominated by process startup at this task's size.
 - **One task, one machine family per run.** Ir differs between x86-64 and arm64, so every Ir claim is per architecture.
 - **SEs assume independent images.**
-- **Size:** `loop.py` 486 lines, tests 224, `timer.c` 69, `loop.yml` 84.
+- **Size:** `loop.py` 506 lines, tests 235, `timer.c` 69, `loop.yml` 84.
 
 ## Plan 2: the first claim
 **Outcome: inconclusive** (ledger entry 3, by `claude-loop1-verifier`; evidence in `results/plan2/`).
