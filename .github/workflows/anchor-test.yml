@@ -62,6 +62,6 @@ jobs:
           git fetch -q origin ci-runs && git checkout -q ci-runs
           mkdir -p anchors/${{ github.run_id }} && cp -r ../art/* anchors/${{ github.run_id }}/
           git add anchors
-          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+          git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "anchor experiment run ${{ github.run_id }} at ${{ github.sha }}"
           git push -q origin ci-runs

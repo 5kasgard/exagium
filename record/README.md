@@ -14,7 +14,7 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
 python3 record.py head            # head seq and sha256
 python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
 python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
-python3 -m unittest -v test_record   # 21 tests, <1 s
+python3 -m unittest -v test_record   # 22 tests, <1 s
 ```
 - `verify` and `head` need only Python 3 (stdlib).
 - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
@@ -39,7 +39,7 @@ Proposals go in `ledger/inbox/NAME.json` as `{"kind": "plan" | "verdict" | "orph
 4. **Attests the range it added:** predicate `{from_seq, to_seq, prev_sha256, head_sha256}`, with the head entry as subject. Then it checks every anchor and commits.
 5. **If it fails or is cancelled after attesting,** it pushes the bundle and the entries to the `ci-runs` branch (`orphans/<run>/`), so the orphaned attestation can be explained with its real statement and entries. That branch is owner-writable, so it's a convenience, not evidence.
 
-The daily run also completes pending OpenTimestamps proofs.
+The daily run also completes pending OpenTimestamps proofs, then runs `check-anchors --max-pending-hours 48`, so a proof still pending two days after its attestation turns that run red. (For its first five days, 6–10 Nov 2026, the upgrade failed silently: `shopt -s nullglob` deleted the unquoted `[bot]` email, so `git config user.email` ran with no value and exited 1. Found by the system review; every bot email in every workflow is now quoted.)
 - Steps run under `bash -eo pipefail`, so a failing command in a pipe fails the run.
 - `record.py` runs under `python3 -I`, so a file next to it can't shadow the standard library.
 - `checkout` and `attest` are pinned by commit SHA.

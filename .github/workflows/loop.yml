@@ -79,6 +79,6 @@ jobs:
           d=loop/${{ github.run_id }}; mkdir -p $d
           cp -r ../art/* $d/ 2>/dev/null || echo "no job produced output" > $d/none.txt; echo "${{ github.sha }}" > $d/commit.txt
           git add loop
-          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+          git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "loop run ${{ github.run_id }} at ${{ github.sha }}"
           for i in 1 2 3; do git push -q origin ci-runs && break; git pull -q --rebase origin ci-runs; done

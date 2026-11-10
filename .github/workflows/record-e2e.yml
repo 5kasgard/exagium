@@ -90,7 +90,7 @@ jobs:
           rc=0; python3 -I record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER" || rc=$?
           [ $rc -eq 0 ] || [ $rc -eq 2 ]
           git config user.name github-actions
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add ledger
           git commit -q -m "ledger: entries ${{ steps.ingest.outputs.from }}-${{ steps.ingest.outputs.seq }}, head sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
           git push -q origin "HEAD:$LEDGER_REF"
@@ -102,7 +102,7 @@ jobs:
           cd "$d" && git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git fetch -q origin ci-runs && git checkout -q ci-runs
           mkdir -p orphans && cp -r "$RUNNER_TEMP/ledger-orphan" "orphans/${{ github.run_id }}" && git add orphans
-          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "orphaned writer attestation, run ${{ github.run_id }}"
+          git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' commit -q -m "orphaned writer attestation, run ${{ github.run_id }}"
           git push -q origin ci-runs
   gh-verify:
     # Can `gh attestation verify` accept a genuine anchor when pinned to this writer and ref? (review 1, finding 10)
@@ -131,5 +131,5 @@ jobs:
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}"
           git fetch -q origin ci-runs && git checkout -q ci-runs
           mkdir -p e2e && cp "$RUNNER_TEMP/gh.txt" e2e/gh-${{ github.run_id }}.txt && git add e2e
-          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -q -m "e2e gh verify ${{ github.run_id }}"
+          git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' commit -q -m "e2e gh verify ${{ github.run_id }}"
           git push -q origin ci-runs

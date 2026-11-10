@@ -15,7 +15,7 @@ Commands: ingest | verify | head | range | check-anchors | monitor.
 Exit codes: 0 ok; 1 the ledger, an anchor or the monitor's finding is wrong; 2 can't check (missing
 library or network); 3 unexpected failure. A failure is never reported as a verdict.
 """
-import argparse, base64, datetime, hashlib, json, os, re, subprocess, sys, urllib.error, urllib.request
+import argparse, base64, datetime, hashlib, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 
 MAX_INT = 2**53 - 1
 KINDS = ("plan", "verdict", "orphan")
@@ -386,6 +386,7 @@ def cmd_check_anchors(a):
     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
     chain, _ = load_chain(a.ledger)
     rows, bad, cant, ranges, stamped = [], [], [], [], set()
+    pending, attested_at = [], {}
     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
         n = os.path.basename(path)
         m = ANCHOR_NAME.fullmatch(n)
@@ -399,12 +400,15 @@ def cmd_check_anchors(a):
             if m.group(2) == "ots":
                 t = check_ots(path, raw, a.explorer)
                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+                if t is None:
+                    pending.append(seq)
             else:
                 t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
                 if not isinstance(pred, dict) or not isinstance(pred.get("from_seq"), int) or pred.get("to_seq") != seq \
                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
                 ranges.append((pred["from_seq"], seq, commit))
+                attested_at[seq] = t
                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
                              "writer_commit": commit})
         except Bad as ex:
@@ -416,6 +420,14 @@ def cmd_check_anchors(a):
         # was removed (found by Z, 2026-11-06)
         if hi not in stamped:
             bad.append(f"anchors/{hi:06d}.ots is missing, though the writer stamps every range head before attesting")
+    if a.max_pending_hours is not None:
+        # a proof still pending long after its Sigstore time means the daily upgrade isn't running (it failed silently
+        # for its first five days; review 2026-11-11). Opt-in, so the writer's own pre-check never blocks on it.
+        for seq in pending:
+            t = attested_at.get(seq)
+            if t is not None and time.time() - t > a.max_pending_hours * 3600:
+                bad.append(f"anchors/{seq:06d}.ots is still pending {(time.time() - t) / 3600:.0f} h after its attestation "
+                           f"(limit {a.max_pending_hours} h): is the daily upgrade running?")
     covered, changes, prev_commit = 0, [], None
     for lo, hi, commit in sorted(ranges):
         if lo != covered + 1:
@@ -612,6 +624,8 @@ def main(argv=None):
             p.add_argument("--ref", default="refs/heads/main")
             p.add_argument("--explorer", action="append", default=None,
                            help="esplora API base; default blockstream.info and mempool.space")
+            p.add_argument("--max-pending-hours", type=float, default=None,
+                           help="treat an OpenTimestamps proof still pending this long after its attestation as wrong")
         else:
             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")

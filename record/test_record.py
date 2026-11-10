@@ -1,5 +1,5 @@
 """Tests for record.py's ledger rules (offline; anchors are tested in CI)."""
-import io, json, os, shutil, tempfile, unittest, contextlib, hashlib
+import io, json, os, time, shutil, tempfile, unittest, contextlib, hashlib
 import record as R
 
 PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
@@ -239,6 +239,29 @@ class Ledger(unittest.TestCase):
             self.assertIn("000002.ots is missing", err)
             open(os.path.join(self.d, "anchors", "000002.ots"), "wb").write(b"stub")
             self.assertEqual(self.run_cmd("check-anchors")[0], 0)
+        finally:
+            for k, f in saved.items():
+                setattr(R, k, f)
+
+    def test_a_proof_left_pending_too_long_is_caught_only_when_asked(self):
+        # review 2026-11-11: the daily upgrade failed silently for five days; --max-pending-hours makes that visible
+        self._two_entries()
+        chain, _ = R.load_chain(self.d)
+        os.makedirs(os.path.join(self.d, "anchors"))
+        open(os.path.join(self.d, "anchors", "000002.sigstore.json"), "w").write("{}")
+        open(os.path.join(self.d, "anchors", "000002.ots"), "wb").write(b"stub")
+        three_days_ago = time.time() - 72 * 3600
+        stubs = {"check_sigstore": lambda *a: (three_days_ago, R.range_predicate(chain, 1, 2), "c0ffee"),
+                 "check_ots": lambda *a: None}
+        saved = {k: getattr(R, k) for k in stubs}
+        try:
+            for k, f in stubs.items():
+                setattr(R, k, f)
+            self.assertEqual(self.run_cmd("check-anchors")[0], 0)
+            rc, _, err = self.run_cmd("check-anchors", "--max-pending-hours", "48")
+            self.assertEqual(rc, 1)
+            self.assertIn("still pending 72 h", err)
+            self.assertEqual(self.run_cmd("check-anchors", "--max-pending-hours", "96")[0], 0)
         finally:
             for k, f in saved.items():
                 setattr(R, k, f)

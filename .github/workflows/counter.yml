@@ -60,6 +60,6 @@ jobs:
           mkdir -p runs/${{ github.run_id }}
           for d in ../art/*/; do mkdir -p "runs/${{ github.run_id }}/$(basename $d)" && cp -r "$d"* "runs/${{ github.run_id }}/$(basename $d)/"; done
           git add runs
-          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com \
+          git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "counter cross-host run ${{ github.run_id }} at ${{ github.sha }}"
           git push -q origin ci-runs
