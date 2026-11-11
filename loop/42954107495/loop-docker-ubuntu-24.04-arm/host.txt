@@ -1,0 +1,20 @@
+7.0.0-1017-azure
+0
+CPU part	: 0xd49
+Seccomp:	2
+bwrap: No permissions to create new namespace, likely because the kernel does not allow non-privileged user namespaces. See <https://deb.li/bubblewrap> or <file:///usr/share/doc/bubblewrap/README.Debian.gz>.
+bwrap exit 1
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/loop.py", line 320, in check_jail
+    check_confine()
+  File "/__w/exagium/exagium/loop/loop.py", line 286, in check_confine
+    raise Failed(f"confine does not confine here (exit {r.returncode}, {out!r}): "
+loop.Failed: confine does not confine here (exit 126, ''): 
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/__w/exagium/exagium/loop/loop.py", line 323, in check_jail
+    raise Failed(f"no jail available: {JAIL['bwrap_error'] or 'bwrap not tried'}; and {e}")
+loop.Failed: no jail available: bwrap cannot make a jail here: ; and confine does not confine here (exit 126, ''): 
