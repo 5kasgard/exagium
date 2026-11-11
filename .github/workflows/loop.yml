@@ -61,8 +61,48 @@ jobs:
         with:
           name: loop-${{ matrix.runner }}-${{ matrix.slot }}
           path: out
+  docker:
+    # The jail's fallback (confine: Landlock + seccomp) inside a stock container with Docker's default seccomp
+    # profile, where bubblewrap can't make its namespaces. Records which jail mode loop.py chose.
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    container: ubuntu:24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: tools
+        run: |
+          apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git gcc valgrind bubblewrap python3 python3-venv >/dev/null
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: host and jail mode
+        run: |
+          git config --global --add safe.directory "$PWD"
+          python3 -m venv /opt/venv && /opt/venv/bin/pip install -q numpy==2.5.3
+          mkdir -p out && { uname -r; id -u; grep -m1 -E 'model name|CPU part' /proc/cpuinfo || true; grep Seccomp: /proc/self/status; } > out/host.txt
+          { bwrap --unshare-all --ro-bind / / true 2>&1; echo "bwrap exit $?"; } >> out/host.txt || true
+          /opt/venv/bin/python -c "import sys; sys.path.insert(0, 'loop'); import loop; loop.check_jail(); print('jail mode', loop.JAIL['mode'], '| bwrap:', loop.JAIL['bwrap_error'])" >> out/host.txt 2>&1 || true
+          cat out/host.txt
+      - name: loop tests
+        run: |
+          { cd loop && /opt/venv/bin/python -m unittest test_loop 2>&1; echo "exit $?"; } | tee out/tests.txt || true
+      - name: reproduce and score on the dev split
+        run: |
+          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/)
+          { /opt/venv/bin/python loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1; echo "exit $?"; } | tee out/reproduce.txt || true
+          { /opt/venv/bin/python loop/loop.py evaluate $dirs --test dev --rounds 10 --records out/records --out out/dev.json 2>&1; echo "exit $?"; } | tee out/dev.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: loop-docker-${{ matrix.runner }}
+          path: out
   collect:
-    needs: run
+    needs: [run, docker]
     if: always()
     runs-on: ubuntu-24.04
     permissions:
