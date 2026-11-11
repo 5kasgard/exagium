@@ -5,7 +5,9 @@
 // not these: SysV shared memory, semaphores and message queues and POSIX message queues (the host's IPC namespace,
 // unlike bwrap's private one), and file metadata (chmod, chown, timestamps, extended attributes), which a candidate
 // with the harness's uid could otherwise set on the harness's own files as a cache (system review 2026-11-11; the
-// SysV hole found independently by an outside reviewer). Call after PR_SET_NO_NEW_PRIVS; returns 0 on success.
+// SysV hole found independently by an outside reviewer). Nor may it change another process's rlimits, CPU affinity,
+// priority or memory placement: the harness shares our uid and pid namespace, so a nice value set on loop.py would
+// slow every later timed run and an rlimit could carry state between runs (found by a separate fact-check agent). Call after PR_SET_NO_NEW_PRIVS; returns 0 on success.
 #ifndef EXAGIUM_SECCOMP_FILTER_H
 #define EXAGIUM_SECCOMP_FILTER_H
 #include <errno.h>
@@ -44,6 +46,13 @@
 #define SELF_ONLY(nr, pid) BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, (nr), 0, 4), \
   BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[0])), \
   BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, (pid), 1, 0), \
+  BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ERRNO | EPERM), \
+  BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
+// resource and scheduling settings: allowed on our own pid or 0 (= ourselves), never on another process
+#define SELF_OR_ZERO(nr, pid) BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, (nr), 0, 5), \
+  BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[0])), \
+  BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, (pid), 2, 0), \
+  BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 0, 1, 0), \
   BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ERRNO | EPERM), \
   BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
 
@@ -86,7 +95,12 @@ static int exagium_seccomp(uint32_t pid) {
     DENY(__NR_setxattr, EPERM), DENY(__NR_lsetxattr, EPERM), DENY(__NR_fsetxattr, EPERM), DENY(__NR_setxattrat, EPERM),
     DENY(__NR_removexattr, EPERM), DENY(__NR_lremovexattr, EPERM), DENY(__NR_fremovexattr, EPERM),
     DENY(__NR_removexattrat, EPERM),
-    SELF_ONLY(__NR_kill, pid),
+    DENY(__NR_setpriority, EPERM), DENY(__NR_ioprio_set, EPERM), DENY(__NR_sched_setscheduler, EPERM),
+    DENY(__NR_sched_setparam, EPERM), DENY(__NR_sched_setattr, EPERM), DENY(__NR_migrate_pages, EPERM),
+    DENY(__NR_move_pages, EPERM), DENY(__NR_process_madvise, EPERM), DENY(__NR_process_mrelease, EPERM),
+    SELF_OR_ZERO(__NR_prlimit64, pid),
+    LD_NR, SELF_OR_ZERO(__NR_sched_setaffinity, pid),
+    LD_NR, SELF_ONLY(__NR_kill, pid),
     LD_NR, SELF_ONLY(__NR_tkill, pid),
     LD_NR, SELF_ONLY(__NR_tgkill, pid),
     LD_NR, DENY(__NR_rt_sigqueueinfo, EPERM), DENY(__NR_rt_tgsigqueueinfo, EPERM),

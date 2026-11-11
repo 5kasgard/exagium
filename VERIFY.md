@@ -77,16 +77,16 @@ cd exagium && python3 record/record.py verify && python3 record/record.py check-
 4. **Exit codes.** Wrong data must exit 1, never 3. "Can't check" (exit 2) must never hide a wrong anchor.
 
 ## Loop claims (`loop/`)
-The first loop scores small digit classifiers against two mandatory baselines: accuracy, simulated instructions per image (startup included) and native time. Ledger entry 2 is a pre-registered plan about three MLPs (`loop/candidates/`). Read `loop/README.md` and `loop.py`'s docstring. Needs Linux, gcc, valgrind 3.22+, bubblewrap (unprivileged user namespaces allowed), `numpy==2.5.3`, and the record's virtualenv.
+The first loop scores small digit classifiers against two mandatory baselines: accuracy, simulated instructions per image (startup included) and native time. Ledger entry 2 is a pre-registered plan about three MLPs (`loop/candidates/`). Read `loop/README.md` and `loop.py`'s docstring. Needs Linux, gcc, valgrind 3.22+, bubblewrap (unprivileged user namespaces allowed) or Linux 6.7+ for the fallback jail, `numpy==2.5.3`, and the record's virtualenv.
 ```
 python3 loop/loop.py reproduce loop/baselines/* loop/candidates/*      # weights must retrain byte for byte
 python3 loop/loop.py evaluate loop/baselines/linear loop/baselines/thermo loop/candidates/mlp16 \
   loop/candidates/mlp32 loop/candidates/mlp64 --test test --plan 2 --rounds 30 --seed 20261106
 ```
-0. Check out commit `113a3f6` first: plan 2 froze `record/record.py`, which changed after it. The jail needs unprivileged `/proc` mounts in user namespaces; some containers refuse them (see `loop/README.md`).
+0. Check out commit `113a3f6` first: plan 2 froze `record/record.py`, which changed after it. If bubblewrap can't run (most containers), `loop.py` uses the fallback jail; the output's `"jail"` field says which. To test the fallback itself, check out `main` and run `EXAGIUM_JAIL=confine python3 -m unittest test_loop` in `loop/`.
 1. **Re-measure plan 2 on your hardware** and judge it by its own decision rule. Accuracy and predictions should match ours exactly; Ir/img should match ours on the same architecture.
 2. **Read every `train.py` and `infer.c`.** The test labels are public, and counts are a claim for cooperative code (the docstring says why). Does any candidate carry test data in, or take a different path under valgrind?
-3. **Make a submission score better than it earns,** or make a failed check read as success. Earlier rounds' findings are listed in the card.
+3. **Make a submission score better than it earns** (under either jail), or make a failed check read as success. Earlier rounds' findings are listed in the card.
 
 ## Report
 Keep it under about 800 words, in this order:

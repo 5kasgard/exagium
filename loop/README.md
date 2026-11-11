@@ -42,6 +42,23 @@ All candidate code (training, the counted run, the timed runs) runs in bubblewra
 
 **One process, one thread.** The counter (`--single-process`) and the timer both read the jail's PID namespace `ns_last_pid` before and after a run, and refuse unless exactly one pid was handed out. That catches a child killed before it reports, an unreaped child and a thread alike. The jail can't write that file. The timer also requires the child to be the very next pid, so a pid wrap can't hide one.
 
+## The fallback jail (when bubblewrap can't run)
+Stock Docker, Kubernetes and some VMs refuse unprivileged user namespaces, so bubblewrap can't build its jail. `loop.py` then falls back to **confine** (`confine.c`, `seccomp_filter.h`), which needs no privilege at all. The mode is chosen at start-up by a self-test (bubblewrap first), recorded in every output as `"jail"`, and can be forced with `EXAGIUM_JAIL=bwrap|confine`.
+- **Files (Landlock ABI 4+, Linux 6.7+; `confine` refuses older ABIs, which leave truncate or TCP outside Landlock):** reads are allowed only on a list carved around the dataset copies. A directory on the way to a hidden file can be listed but not read through; a symlink is granted only if its real path doesn't lead to a hidden file (site-packages is a symlink on Debian and Ubuntu). Writes go only to the step's own directories (under the counter, also its sandbox and count files, which it cross-checks). No TCP.
+- **Everything else (seccomp):** no fork, clone, sockets, keyring, ptrace, signals to other processes, namespaces, mounts, io_uring, BPF or perf. No SysV IPC or POSIX message queues, and no chmod, chown, utimes or xattr writes, because those outlive a run and Landlock doesn't cover them. Rlimits, CPU affinity, priority and scheduling only on the process itself: the harness shares its uid and pid namespace, so a nice value set on `loop.py` would slow every later timed run. An outside reviewer found the IPC hole independently, our own review the metadata hole, and a separate fact-check agent the rlimit and priority hole (its test fails on the old filter).
+- **The meters, almost unchanged.** The timer runs under Landlock only, so Landlock's setup (about 630 rules) isn't timed; the seccomp filter is installed in the timed child just before `exec`, a small cost bubblewrap runs don't pay (not yet measured). The counter wraps valgrind in confine with the same lists, plus `/proc/self` and `/proc/cpuinfo` (valgrind needs them). bubblewrap's one-pid check is replaced by seccomp refusing every way to make a process or thread.
+
+**Results** (`test_loop`, 20 tests: the attacks from rounds 1, 2 and 4 replayed, plus network, keyring, fork, IPC, metadata, rlimit, priority, affinity and scheduler attempts; ptrace, namespaces, mounts, io_uring, BPF and perf are denied but not separately tested):
+- **H1, it refuses what bubblewrap refuses:** holds. Every test passes in both modes, here and in stock `ubuntu:24.04` Docker on x86-64 and arm64 (the `docker` job in `loop.yml`).
+- **H2, same programs, same counts:** holds on the same host: Ir/img is identical in both modes. Between Docker's image and the runner's, only process startup differs (−413 Ir per run on x86-64, −175 on arm64), so compare Ir across hosts with the same OS image.
+- **H3, it works where bubblewrap can't:** holds in stock Docker. Not on Z's kata sandbox: its kernel (5.10) predates Landlock, so neither jail runs there and `loop.py` fails closed.
+
+**Limits of the fallback** (bubblewrap has none of these):
+- `stat()` still reveals that a hidden file *exists*; only reading it is refused. Dataset copies are masked by name, as under bubblewrap.
+- Candidate code runs as the harness's own uid, not 65534 (as root in CI's Docker job; Landlock and seccomp bind root too). It can't write or signal outside its directories, but it can read whatever the allow-list grants.
+- Reading a file can update its access time, a weak channel that `relatime` mounts mostly close.
+- A hostile candidate that stalls (for example, one that retries fork) costs time until the step's timeout. That is a slow failure, never a better score.
+
 ## Review
 Four rounds. Rounds 1 and 2 were by one independent adversarial agent; their attack scripts are in the handoff bundle (`review-loop/`).
 1. **Round 1** found: work moved into the N = 0 run; `/tmp` caches across runs; memoising passes; reading labels through `__FILE__` and the repo; `reproduce` reporting identical falsely; training reading the test file; name collisions; unfrozen inputs; a local plan passing the gate; dev being in-sample. Fixed by the jail, the startup-included score, the trusted timer, unique names, and the gate.
@@ -84,11 +101,11 @@ A verifier must cover these by reading the candidates' code:
 - **The time/Ir band** is relative to the lowest candidate and wide (30×). It catches gross hiding only.
 
 Other limits:
-- **The jail needs a kernel that lets an unprivileged user namespace mount `/proc`.** Z's kata container (kernel 5.10, with read-only `/proc` submounts) refuses it ("mount too revealing"), so `loop.py` fails closed there: 11 failures and 2 errors in `test_loop`, all "bwrap cannot make a jail". Z re-measured plan 2 without the jail, after reading the code, and matched every accuracy and prediction exactly (`verifications/z-20261106/`).
+- **The bubblewrap jail needs a kernel that lets an unprivileged user namespace mount `/proc`.** Z's kata container (kernel 5.10) refuses it. The fallback above needs Landlock ABI 4 (Linux 6.7+) instead; with neither, `loop.py` fails closed. Z re-measured plan 2 without the jail, after reading the code, and matched every accuracy and prediction exactly (`verifications/z-20261106/`).
 - **Tier 2 only.** Instructions and nanoseconds, not joules; native time is dominated by process startup at this task's size.
 - **One task, one machine family per run.** Ir differs between x86-64 and arm64, so every Ir claim is per architecture.
 - **SEs assume independent images.**
-- **Size:** `loop.py` 506 lines, tests 235, `timer.c` 69, `loop.yml` 84.
+- **Size:** `loop.py` 666 lines, tests 331, `timer.c` 76, `confine.c` 99, `seccomp_filter.h` 113, `loop.yml` 133.
 
 ## Plan 2: the first claim
 **Outcome: inconclusive** (ledger entry 3, by `claude-loop1-verifier`; evidence in `results/plan2/`).
@@ -114,7 +131,7 @@ The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 ho
 **So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.8–2.6× faster on the six CI hosts (2.3× on the EPYC cited), not the 3.5–5.4× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
 
 ## Files
-- `loop.py`: freeze, reproduce, evaluate; `timer.c`: the trusted timer; `test_loop.py`: the tests.
+- `loop.py`: freeze, reproduce, evaluate; `timer.c`: the trusted timer; `confine.c` and `seccomp_filter.h`: the fallback jail; `test_loop.py`: the tests.
 - `task/`: the dataset and its source. `baselines/`, `candidates/`: the five entries of plan 2.
 - `verify/`: CI requests to score a plan on the test set, removed once the plan has a verdict (empty now). `results/plan2/`: the verifier's evidence.
-- `../.github/workflows/loop.yml`: reproduce and score on 3 x86-64 and 3 arm64 runners, results to the `ci-runs` branch.
+- `../.github/workflows/loop.yml`: reproduce and score on 3 x86-64 and 3 arm64 runners, plus the fallback jail in stock Docker on both; results to the `ci-runs` branch.

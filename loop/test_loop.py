@@ -211,7 +211,8 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
 
     @unittest.skipUnless(MODE == "confine", "the fallback's own channels (bwrap isolates these by namespace)")
     def test_confine_refuses_ipc_and_metadata_channels(self):
-        """System review 2026-11-11: SysV IPC, POSIX queues and file metadata outlive a run and aren't Landlock's."""
+        """SysV IPC, POSIX queues and file metadata outlive a run and aren't Landlock's; a parent's rlimits, nice
+        value, affinity and scheduler are shared with the harness. All must be refused; the own process's must not."""
         target = os.path.join(self.tmp, "harness-owned.txt")
         open(target, "w").write("x")
         before = os.stat(target)
@@ -220,7 +221,9 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
 #include <mqueue.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sched.h>
 #include <sys/ipc.h>
+#include <sys/resource.h>
 #include <sys/msg.h>
 #include <sys/sem.h>
 #include <sys/shm.h>
@@ -235,6 +238,13 @@ int main(int c, char **v){ long n = atol(v[3]); int k = '0'; const char *t = %s;
   if (setxattr(t, "user.cache", "1", 1, 0) == 0) k = '9';
   if (chmod(t, 0777) == 0) k = '9';
   if (utimensat(AT_FDCWD, t, 0, 0) == 0) k = '9';
+  pid_t pp = getppid(); struct rlimit rl = {0, 0}; cpu_set_t cs; CPU_ZERO(&cs); CPU_SET(0, &cs);
+  struct sched_param sp = {0};
+  if (prlimit(pp, RLIMIT_CORE, &rl, 0) == 0) k = '9';
+  if (setpriority(PRIO_PROCESS, pp, 19) == 0) k = '9';
+  if (sched_setaffinity(pp, sizeof cs, &cs) == 0) k = '9';
+  if (sched_setscheduler(pp, SCHED_BATCH, &sp) == 0) k = '9';
+  if (prlimit(0, RLIMIT_CORE, &rl, 0) != 0) k = '8';
   for(long i=0;i<n;i++) putchar(k); putchar(10); return 0; }
 """ % json.dumps(target)
         d = make(self.tmp, "channels", infer=hostile)

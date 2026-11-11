@@ -73,7 +73,8 @@ int main(int argc, char **argv) {
   int i = 1, seccomp = 1;
   if (argc > 1 && !strcmp(argv[1], "--no-seccomp")) { seccomp = 0; i = 2; }
   long abi = syscall(__NR_landlock_create_ruleset, NULL, 0, 1 /* LANDLOCK_CREATE_RULESET_VERSION */);
-  if (abi < 1) return fail("Landlock is not available (needs Linux 5.13+ with Landlock enabled)");
+  // ABI 4 (Linux 6.7): before it, truncate (ABI 3) and TCP (ABI 4) are outside Landlock, so refuse rather than half-jail
+  if (abi < 4) { fprintf(stderr, "confine: Landlock ABI %ld; needs 4+ (Linux 6.7+)\n", abi); return 125; }
   struct ruleset_attr ra = {fs_handled((int)abi), abi >= 4 ? NET_BIND_TCP | NET_CONNECT_TCP : 0,
                             abi >= 6 ? SCOPE_ABSTRACT_UNIX | SCOPE_SIGNAL : 0};
   size_t size = abi >= 6 ? 24 : abi >= 4 ? 16 : 8;
