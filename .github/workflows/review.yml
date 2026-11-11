@@ -1,0 +1,43 @@
+# Outside review: send a committed prompt file to free engines of other model families and save the
+# replies, as received, on router-runs under reviews/<run id>/. Manual only.
+name: review
+on:
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: "path of the prompt file in the repo"
+        required: true
+      engines:
+        description: "space-separated ENGINE:MODEL list"
+        default: "cloudflare:@cf/openai/gpt-oss-120b cloudflare:@cf/meta/llama-4-scout-17b-16e-instruct"
+permissions:
+  contents: write
+defaults:
+  run:
+    shell: bash
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: ask
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PROMPT: ${{ github.event.inputs.prompt }}
+          ENGINES: ${{ github.event.inputs.engines }}
+        run: |
+          rc=0; python3 -I router/review.py "$PROMPT" "$RUNNER_TEMP/rev" $ENGINES || rc=$?
+          cp "$PROMPT" "$RUNNER_TEMP/rev/prompt.txt"; echo "$GITHUB_SHA $PROMPT" > "$RUNNER_TEMP/rev/source.txt"
+          echo "exit $rc"
+      - name: save the replies on router-runs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+          mkdir -p reviews && cp -r "$RUNNER_TEMP/rev" "reviews/$GITHUB_RUN_ID"
+          git add reviews && git commit -qm "outside review $GITHUB_RUN_ID" && git push -q origin router-runs
+          echo "exit 0"

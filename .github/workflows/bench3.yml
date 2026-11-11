@@ -45,7 +45,9 @@ jobs:
           if [ "$left" -lt 0 ]; then left=180; echo "allowance unreadable: planning for $left"; fi
           git fetch -q origin router-runs && git worktree add -q "$RUNNER_TEMP/rr" FETCH_HEAD
           mkdir -p "$RUNNER_TEMP/rr/bench/bench3"
-          if [ "$MODE" = pilot ]; then
+          if [ "$MODE" != pilot ] && [ ! -f router/bench3/REGISTERED ]; then
+            p='{"n": 0, "open": -1, "include": []}'; echo "not registered yet: nothing runs"
+          elif [ "$MODE" = pilot ]; then
             p='{"n": 2, "open": -1, "include": [{"task":"T2","arm":"A","model":"openrouter/nvidia/nemotron-3-ultra-550b-a55b:free","rep":0},{"task":"T2","arm":"Z","model":"none","rep":0}]}'
           else
             p=$(python3 -I router/bench3/decide.py plan "$RUNNER_TEMP/rr/bench/bench3" "$left")
