@@ -1,0 +1,117 @@
+# bench-1: OpenHands (headless CLI) with free models on exagium's past fixes. See router/bench/PREREG.md.
+# Manual only. Each job gives the agent the pre-fix tree (no git history) and a task statement, then grades the
+# result with the fix commit's hidden test. One final job commits every result to router-runs.
+name: bench
+on:
+  workflow_dispatch:
+concurrency:
+  group: bench
+  cancel-in-progress: false
+permissions:
+  contents: write
+defaults:
+  run:
+    shell: bash
+jobs:
+  attempt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 2   # OpenRouter free: 20 requests/min across the account
+      matrix:
+        task: [T1, T2, T3]
+        arm:
+          - {name: A, model: "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free", key: openrouter}
+          - {name: B, model: "openrouter/recursive/flint-v1.0:free", key: openrouter}
+          - {name: C, model: "gemini/gemini-3.8-flash", key: gemini}
+          - {name: Z, model: "none", key: none}   # control: no agent, grade the untouched base
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {fetch-depth: 0, path: src}
+      - name: refuse paid models
+        run: |
+          [ "${{ matrix.arm.name }}" = Z ] && { echo "control arm"; echo "exit 0"; exit 0; }
+          m="${{ matrix.arm.model }}"
+          if [[ "$m" == openrouter/* && "$m" != *:free ]]; then echo "paid model refused: $m"; exit 1; fi
+          echo "exit 0"
+      - name: pre-fix workspace with no history
+        run: |
+          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='${{ matrix.task }}'][0];print(t['base'],t['fix'],t['hidden_test'])")
+          echo "FIX=$fix" >> "$GITHUB_ENV"; echo "HIDDEN=$hidden" >> "$GITHUB_ENV"
+          mkdir ws && git -C src archive "$base" | tar -x -C ws
+          rm -rf ws/router/bench   # the agent must not see the grader or other tasks
+          git -C src show "$fix:record/test_record.py" > "$RUNNER_TEMP/fix_test.py"
+          cd ws && git init -q && git add -A && git -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          echo "exit 0"
+      - name: install OpenHands CLI
+        if: matrix.arm.name != 'Z'
+        run: |
+          pip install -q uv && uv tool install -q --python 3.12 "git+https://github.com/openhands/openhands-cli@283c6ac3610f4299f405f7389f65766dcb83e12a"  # v1.16.0, pinned
+          echo "OH_VERSION=$(openhands --version 2>&1 | tail -1)" >> "$GITHUB_ENV"; echo "exit 0"
+      - name: agent attempt
+        if: matrix.arm.name != 'Z'
+        env:
+          LLM_MODEL: ${{ matrix.arm.model }}
+          LLM_API_KEY: ${{ matrix.arm.key == 'openrouter' && secrets.OPENROUTER_API_KEY || secrets.GEMINI_API_KEY }}
+          OPENHANDS_WORK_DIR: ${{ github.workspace }}/ws
+        run: |
+          cd ws; t0=$(date +%s); rc=0
+          /usr/bin/time -v -o "$RUNNER_TEMP/time.txt" timeout 1500 openhands --headless --json --override-with-envs \
+            -f "$GITHUB_WORKSPACE/src/router/bench/tasks/${{ matrix.task }}.md" > "$RUNNER_TEMP/events.jsonl" 2> "$RUNNER_TEMP/stderr.txt" || rc=$?
+          echo "AGENT_RC=$rc" >> "$GITHUB_ENV"; echo "WALL=$(( $(date +%s) - t0 ))" >> "$GITHUB_ENV"
+          echo "exit $rc"
+      - name: grade
+        if: always()
+        run: |
+          out="$RUNNER_TEMP/result.json"
+          git -C ws add -A >/dev/null 2>&1; diffstat=$(git -C ws diff --cached --shortstat base 2>/dev/null || true)
+          g=$(python3 src/router/bench/grade.py ws "$RUNNER_TEMP/fix_test.py" "$HIDDEN" "src/router/bench/p2p-$FIX.json")
+          python3 - "$g" "$diffstat" > "$out" <<'EOF'
+          import json, os, re, sys
+          g = json.loads(sys.argv[1]); ev = os.path.join(os.environ["RUNNER_TEMP"], "events.jsonl")
+          raw = open(ev, errors="replace").read() if os.path.exists(ev) else ""
+          lines = [l for l in raw.splitlines() if l.strip().startswith("{")]
+          kinds = {}
+          for l in lines:
+              try: k = json.loads(l).get("kind") or json.loads(l).get("type") or "?"
+              except Exception: k = "unparsed"
+              kinds[k] = kinds.get(k, 0) + 1
+          tm = open(os.path.join(os.environ["RUNNER_TEMP"], "time.txt")).read() if os.path.exists(os.path.join(os.environ["RUNNER_TEMP"], "time.txt")) else ""
+          rss = re.search(r"Maximum resident set size \(kbytes\): (\d+)", tm)
+          err = open(os.path.join(os.environ["RUNNER_TEMP"], "stderr.txt"), errors="replace").read() if os.path.exists(os.path.join(os.environ["RUNNER_TEMP"], "stderr.txt")) else ""
+          contam = bool(re.search(os.environ["FIX"][:7] + r"|github\.com/5kasgard|5kasgard/exagium", raw))
+          print(json.dumps({"task": "${{ matrix.task }}", "arm": "${{ matrix.arm.name }}", "model": "${{ matrix.arm.model }}",
+              "openhands": os.environ.get("OH_VERSION"), "commit": os.environ.get("GITHUB_SHA"), "agent_rc": os.environ.get("AGENT_RC"), "wall_s": os.environ.get("WALL"),
+              "peak_rss_mb": round(int(rss.group(1)) / 1024) if rss else None, "events": len(lines), "event_kinds": kinds,
+              "rate_limited": len(re.findall(r"429|rate.?limit|RESOURCE_EXHAUSTED", raw + err, re.I)),
+              "contaminated": contam, "diff": sys.argv[2].strip(),
+              "passed": g["hidden"] == "pass" and not g["pass_to_pass_broken"], "grade": g,
+              "stderr_tail": err[-1500:]}))
+          EOF
+          cat "$out" | head -c 3000; echo; echo "exit 0"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench1-${{ matrix.task }}-${{ matrix.arm.name }}
+          path: |
+            ${{ runner.temp }}/result.json
+            ${{ runner.temp }}/events.jsonl
+            ${{ runner.temp }}/stderr.txt
+  record:
+    needs: attempt
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/download-artifact@v4
+        with: {path: art, pattern: bench1-*}
+      - name: commit results to router-runs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          dest="bench/bench1-$GITHUB_RUN_ID"; mkdir -p "/tmp/$dest" && cp -r art/* "/tmp/$dest/"
+          git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+          mkdir -p bench && cp -r "/tmp/$dest" bench/
+          git add bench && git commit -qm "bench-1 run $GITHUB_RUN_ID" && git push -q origin router-runs
+          echo "exit 0"
