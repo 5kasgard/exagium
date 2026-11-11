@@ -89,6 +89,15 @@ jobs:
           { bwrap --unshare-all --ro-bind / / true 2>&1; echo "bwrap exit $?"; } >> out/host.txt || true
           /opt/venv/bin/python -c "import sys; sys.path.insert(0, 'loop'); import loop; loop.check_jail(); print('jail mode', loop.JAIL['mode'], '| bwrap:', loop.JAIL['bwrap_error'])" >> out/host.txt 2>&1 || true
           cat out/host.txt
+      - name: valgrind under confine (diagnostic)
+        run: |
+          gcc -O2 -o /tmp/confine loop/confine.c
+          ro="--ro /usr --ro /lib --ro /bin --ro /etc/ld.so.cache --ro /dev/urandom --rw /dev/null --rw /tmp"
+          for extra in "--ro /proc/self" "--ro /proc"; do
+            echo "== confine $extra"
+            /tmp/confine $ro $extra -- /usr/bin/valgrind -v --tool=cachegrind --cachegrind-out-file=/dev/null /bin/true 2>&1 | tail -8
+            echo "exit ${PIPESTATUS[0]}"
+          done 2>&1 | tee out/valgrind-confine.txt || true
       - name: loop tests
         run: |
           { cd loop && /opt/venv/bin/python -m unittest test_loop 2>&1; echo "exit $?"; } | tee out/tests.txt || true
