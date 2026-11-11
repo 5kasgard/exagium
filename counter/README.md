@@ -13,7 +13,7 @@ python3 -m unittest -v test_count                          # 23 tests, ~34 s
 **Exit codes:**
 - **0:** counted, every rep identical in counts and output, and no code found that can switch counting off. With `--check`: same counts, processes and output, still clean.
 - **1:** reps differ in counts or output, or such code was found. With `--check`: counts or output differ, or the record was edited or is malformed.
-- **2:** `--check` can't compare like for like: another program, input, interpreter, shared library, loader cache, valgrind build, architecture or cache model; or the recorded run itself wasn't a clean exact count.
+- **2:** `--check` can't compare like for like: a record from another version of `count.py`, another program, input, interpreter, shared library, loader cache, valgrind build, architecture or cache model; or the recorded run itself wasn't a clean exact count.
 - **3:** the command or valgrind failed, a process called `exec` (below), or anything unexpected happened. A failure is never reported as a verdict.
 
 Needs Linux, Python 3 (stdlib only) and valgrind 3.22 or later. CI installs it with `apt install valgrind`.

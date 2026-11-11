@@ -25,6 +25,7 @@ Stdlib only. Needs Linux and valgrind >= 3.22.
 import argparse, datetime, fcntl, threading, gzip, hashlib, json, os, platform, shutil, statistics, subprocess, sys, tempfile
 
 SCHEMA = "exagium-count/3"
+OTHER_SCHEMA = "written by another version of count.py"
 # Reference cache model. An explicit choice (see README "Reference cache"): comparable across
 # hosts, not a model of any one host. Sizes in bytes, then ways, then line size.
 REFERENCE = {"I1": [32768, 8, 64], "D1": [49152, 12, 64], "LL": [8388608, 16, 64]}
@@ -406,7 +407,7 @@ def _validate(rec):
     if hashlib.sha256(canonical(body)).hexdigest() != rec.get("digest_sha256"):
         return "record digest does not match its contents (edited after it was written)"
     if rec.get("schema") != SCHEMA:
-        return f"schema {rec.get('schema')!r}, expected {SCHEMA}"
+        return OTHER_SCHEMA + f" ({rec.get('schema')!r}, this version reads {SCHEMA})"
     cmd, env, inputs, cache = rec["command"], rec["env"], rec["inputs"], rec["cache"]["requested"]
     if not (isinstance(cmd, list) and cmd and all(isinstance(c, str) for c in cmd)):
         return "command must be a non-empty list of strings"
@@ -441,7 +442,8 @@ def check(path, input_dir=None, reps=None):
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
         return 1, f"malformed record: {type(e).__name__}: {e}"
     if problem:
-        return 1, problem
+        # an intact record from another version is "can't compare" (2), not "edited" (1): Z, 2026-11-12
+        return (2 if problem.startswith(OTHER_SCHEMA) else 1), problem
     try:
         return _recheck(rec, input_dir, reps)
     except (KeyError, TypeError, AttributeError, ValueError) as e:

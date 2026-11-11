@@ -102,6 +102,7 @@ A verifier must cover these by reading the candidates' code:
 
 Other limits:
 - **The bubblewrap jail needs a kernel that lets an unprivileged user namespace mount `/proc`.** Z's kata container (kernel 5.10) refuses it. The fallback above needs Landlock ABI 4 (Linux 6.7+) instead; with neither, `loop.py` fails closed. Z re-measured plan 2 without the jail, after reading the code, and matched every accuracy and prediction exactly (`verifications/z-20261106/`).
+- **The CPU pin isn't enforced (open, found by Z 2026-11-12).** The timer pins each candidate to one CPU, but a candidate may move itself to another; neither jail refuses that. On a host with unevenly loaded CPUs it could time faster than it earns. Effect not yet measured.
 - **Tier 2 only.** Instructions and nanoseconds, not joules; native time is dominated by process startup at this task's size.
 - **One task, one machine family per run.** Ir differs between x86-64 and arm64, so every Ir claim is per architecture.
 - **SEs assume independent images.**

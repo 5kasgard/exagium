@@ -181,6 +181,15 @@ class Counter(unittest.TestCase):
         code, msg = count.check(p4)
         self.assertEqual(code, 1, msg)
         self.assertIn("malformed", msg)
+        # an intact record from an older version can't be compared: 2, not 1
+        old = {"schema": "exagium-count/2", "reps": []}
+        old["digest_sha256"] = count.hashlib.sha256(count.canonical(old)).hexdigest()
+        p5 = os.path.join(d, "old.json")
+        with open(p5, "w") as f:
+            json.dump(old, f)
+        code, msg = count.check(p5)
+        self.assertEqual(code, 2, msg)
+        self.assertIn("another version", msg)
 
     def test_check_refuses_a_changed_program(self):
         prog = os.path.join(self.td, "mlp_copy")
