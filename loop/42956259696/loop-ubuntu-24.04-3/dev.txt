@@ -1,0 +1,16 @@
+split dev-in-sample (n=956), 30 rounds, host AMD EPYC 9V45 96-Core Processor
+  linear         acc 0.9854 ±0.0039  Ir/img     3,955  Ir/correct     4,013  ns/img    716.9 ±3.5
+                 marginal (informational): Ir/img 3,813  ns/img 207.4 ±7.5
+  thermo         acc 1.0000 ±0.0000  Ir/img     3,695  Ir/correct     3,695  ns/img    733.5 ±3.7
+                 marginal (informational): Ir/img 3,556  ns/img 212.0 ±5.7
+  mlp16          acc 0.9895 ±0.0033  Ir/img       788  Ir/correct       796  ns/img    615.0 ±4.8
+                 marginal (informational): Ir/img 646  ns/img 99.1 ±7.4
+  mlp32          acc 1.0000 ±0.0000  Ir/img     1,092  Ir/correct     1,092  ns/img    688.8 ±6.1
+                 marginal (informational): Ir/img 950  ns/img 155.4 ±8.4
+  mlp64          acc 0.9958 ±0.0021  Ir/img     1,754  Ir/correct     1,761  ns/img    800.8 ±5.2
+                 marginal (informational): Ir/img 1,612  ns/img 236.7 ±8.6
+  METERS DISAGREE: thermo uses 0.93x linear's instructions but is 16.7 ±4.5 ns/img slower
+  METERS DISAGREE: mlp64 uses 0.44x linear's instructions but is 84.0 ±6.1 ns/img slower
+  METERS DISAGREE: mlp64 uses 0.47x thermo's instructions but is 67.3 ±7.2 ns/img slower
+wrote out/dev.json sha256 374860ed9fb8e6f9f875b5b86068c0153a088780d3b726b9b6e9c99b219a308b
+exit 0
