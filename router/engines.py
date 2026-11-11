@@ -42,6 +42,8 @@ def call(engine, model, prompt, system=None, max_tokens=2000):
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     text, usage = None, None
     if engine == "openrouter":
+        if not model.endswith(":free") and os.environ.get("ROUTER_ALLOW_PAID") != "1":
+            raise ValueError(f"refusing paid OpenRouter model {model}: the account holds credit; set ROUTER_ALLOW_PAID=1 only with the owner's approval")
         st, j = _post("https://openrouter.ai/api/v1/chat/completions",
                       {"model": model, "messages": msgs, "max_tokens": max_tokens},
                       {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
