@@ -1,0 +1,15 @@
+split dev-in-sample (n=956), 10 rounds, host AMD EPYC 7763 64-Core Processor
+  linear         acc 0.9854 ±0.0039  Ir/img     3,954  Ir/correct     4,013  ns/img   1180.4 ±9.0
+                 marginal (informational): Ir/img 3,813  ns/img 319.7 ±24.2
+  thermo         acc 1.0000 ±0.0000  Ir/img     3,695  Ir/correct     3,695  ns/img   1198.2 ±9.5
+                 marginal (informational): Ir/img 3,556  ns/img 319.0 ±15.2
+  mlp16          acc 0.9895 ±0.0033  Ir/img       788  Ir/correct       796  ns/img   1004.8 ±13.1
+                 marginal (informational): Ir/img 646  ns/img 149.2 ±9.0
+  mlp32          acc 1.0000 ±0.0000  Ir/img     1,091  Ir/correct     1,091  ns/img   1101.3 ±9.3
+                 marginal (informational): Ir/img 950  ns/img 224.2 ±9.2
+  mlp64          acc 0.9958 ±0.0021  Ir/img     1,753  Ir/correct     1,761  ns/img   1286.8 ±23.0
+                 marginal (informational): Ir/img 1,612  ns/img 356.7 ±15.8
+  METERS DISAGREE: mlp64 uses 0.44x linear's instructions but is 106.4 ±23.3 ns/img slower
+  METERS DISAGREE: mlp64 uses 0.47x thermo's instructions but is 88.6 ±24.4 ns/img slower
+wrote out/dev.json sha256 81d7886e5068c23c9582f7391652b22a063a388997bf94c1460d9a4dc3982481
+exit 0
