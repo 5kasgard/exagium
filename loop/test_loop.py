@@ -209,6 +209,45 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
                 s = json.load(fh)
             self.assertEqual(s["candidates"][0]["correct"], sum(r[64] == 0 for r in loop.split("dev")), msg)
 
+    @unittest.skipUnless(MODE == "confine", "the fallback's own channels (bwrap isolates these by namespace)")
+    def test_confine_refuses_ipc_and_metadata_channels(self):
+        """System review 2026-11-11: SysV IPC, POSIX queues and file metadata outlive a run and aren't Landlock's."""
+        target = os.path.join(self.tmp, "harness-owned.txt")
+        open(target, "w").write("x")
+        before = os.stat(target)
+        hostile = r"""#define _GNU_SOURCE
+#include <fcntl.h>
+#include <mqueue.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/xattr.h>
+#include <unistd.h>
+int main(int c, char **v){ long n = atol(v[3]); int k = '0'; const char *t = %s;
+  if (shmget(0x6578, 4096, IPC_CREAT | 0600) >= 0) k = '9';
+  if (semget(0x6578, 1, IPC_CREAT | 0600) >= 0) k = '9';
+  if (msgget(0x6578, IPC_CREAT | 0600) >= 0) k = '9';
+  if (mq_open("/exagium", O_CREAT | O_RDWR, 0600, 0) != (mqd_t)-1) k = '9';
+  if (setxattr(t, "user.cache", "1", 1, 0) == 0) k = '9';
+  if (chmod(t, 0777) == 0) k = '9';
+  if (utimensat(AT_FDCWD, t, 0, 0) == 0) k = '9';
+  for(long i=0;i<n;i++) putchar(k); putchar(10); return 0; }
+""" % json.dumps(target)
+        d = make(self.tmp, "channels", infer=hostile)
+        out = os.path.join(self.tmp, "c.json")
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"), "--out", out)
+        with open(out) as fh:
+            s = json.load(fh)
+        self.assertEqual(s["candidates"][0]["correct"], sum(r[64] == 0 for r in loop.split("dev")), msg)
+        after = os.stat(target)
+        self.assertEqual((before.st_mode, before.st_mtime_ns), (after.st_mode, after.st_mtime_ns))
+        with self.assertRaises(OSError):
+            os.getxattr(target, "user.cache")
+
     def test_carve_hides_files_even_through_symlinks(self):
         """confine mode: the allow-list must leave hidden files unreachable, including via a symlinked parent."""
         import loop
