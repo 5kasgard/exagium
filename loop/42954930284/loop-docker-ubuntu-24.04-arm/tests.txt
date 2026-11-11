@@ -1,0 +1,71 @@
+../__w/exagium/exagium/loop/test_loop.py:218: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpzwsylha4/root/real/pkg/data/digits.csv.gz' mode='w' encoding='utf-8'>
+  open(os.path.join(r, f), "w").write("x")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/__w/exagium/exagium/loop/test_loop.py:218: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpzwsylha4/root/real/pkg/data/other.txt' mode='w' encoding='utf-8'>
+  open(os.path.join(r, f), "w").write("x")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/__w/exagium/exagium/loop/test_loop.py:218: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpzwsylha4/root/real/pkg/mod.py' mode='w' encoding='utf-8'>
+  open(os.path.join(r, f), "w").write("x")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/__w/exagium/exagium/loop/test_loop.py:218: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpzwsylha4/root/real/top.txt' mode='w' encoding='utf-8'>
+  open(os.path.join(r, f), "w").write("x")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...F.E.FEF....F..
+======================================================================
+ERROR: test_inference_jail_hides_repo_task_readme_and_earlier_runs (test_loop.Loop.test_inference_jail_hides_repo_task_readme_and_earlier_runs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 163, in test_inference_jail_hides_repo_task_readme_and_earlier_runs
+    with open(out) as fh:
+         ^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp82pslb21/h.json'
+
+======================================================================
+ERROR: test_more_than_one_cpu_is_refused (test_loop.Loop.test_more_than_one_cpu_is_refused)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 208, in test_more_than_one_cpu_is_refused
+    with open(out) as fh:
+         ^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp3dvbc6qb/t.json'
+
+======================================================================
+FAIL: test_evaluate_constant_classifier_on_dev (test_loop.Loop.test_evaluate_constant_classifier_on_dev)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 121, in test_evaluate_constant_classifier_on_dev
+    self.assertEqual(code, 0, msg)
+AssertionError: 1 != 0 : FAILED: seven: counter failed (exit 3):
+count failed: Failure: exit 1: 
+
+
+
+======================================================================
+FAIL: test_malformed_output_fails (test_loop.Loop.test_malformed_output_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 115, in test_malformed_output_fails
+    self.assertIn("exactly", msg)
+AssertionError: 'exactly' not found in 'FAILED: bad: counter failed (exit 3):\ncount failed: Failure: exit 1: \n\n'
+
+======================================================================
+FAIL: test_n0_must_print_only_a_newline_and_startup_is_counted (test_loop.Loop.test_n0_must_print_only_a_newline_and_startup_is_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 181, in test_n0_must_print_only_a_newline_and_startup_is_counted
+    self.assertRegex(msg, "N = 0 it must print only a newline|exactly 0 digits")
+AssertionError: Regex didn't match: 'N = 0 it must print only a newline|exactly 0 digits' not found in 'FAILED: pad: counter failed (exit 3):\ncount failed: Failure: exit 1: \n\n'
+
+======================================================================
+FAIL: test_timing_run_must_agree_with_counted_predictions (test_loop.Loop.test_timing_run_must_agree_with_counted_predictions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/__w/exagium/exagium/loop/test_loop.py", line 141, in test_timing_run_must_agree_with_counted_predictions
+    self.assertIn("timing run's predictions differ", msg)
+AssertionError: "timing run's predictions differ" not found in 'FAILED: flaky: counter failed (exit 3):\ncount failed: Failure: exit 1: \n\n'
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.711s
+
+FAILED (failures=4, errors=2)
+exit 1
