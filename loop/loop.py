@@ -244,7 +244,9 @@ def confined(cmd, binds, timeout, cwd, seccomp=True):
         for p in ro:
             pre[-1:-1] = ["--ro", p]
         args = pre + [real(x) for x in cmd]
-        return subprocess.run(args, capture_output=True, timeout=timeout, cwd=real(cwd), env=env, preexec_fn=_fresh_keyring)
+        # no fresh keyring here: confine's seccomp filter refuses every keyring call to the candidate (and Docker's
+        # default profile refuses them to us too, so joining one would fail; CI run 42954107495)
+        return subprocess.run(args, capture_output=True, timeout=timeout, cwd=real(cwd), env=env)
 
 
 SELF_TEST = """
