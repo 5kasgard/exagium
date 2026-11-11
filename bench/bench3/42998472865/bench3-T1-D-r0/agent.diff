@@ -1,0 +1,82 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..c298743 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,25 +385,55 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    # First, collect all attested range heads from Sigstore anchors and check for missing .ots files
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+         seq = int(m.group(1))
++        if m.group(2) != "sigstore.json":
++            continue  # skip ots files for now
++        try:
++            t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
++            if not isinstance(pred, dict) or not isinstance(pred.get("from_seq"), int) or pred.get("to_seq") != seq \
++                    or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
++                raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
++            ranges.append((pred["from_seq"], seq, commit))
++            rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
++                         "writer_commit": commit})
++        except Bad as ex:
++            bad.append(str(ex))
++        except CantCheck as ex:
++            cant.append(f"anchors/{n}: {ex}")
++    
++    # Now check that every attested range head has its .ots file
++    for lo, hi, commit in sorted(ranges):
++        ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{hi:06d}.ots is missing")
++            print(f"BAD: {hi:06d}.ots is missing", file=sys.stderr)
++        else:
++            try:
++                raw = open(os.path.join(a.ledger, "entries", f"{hi:06d}.json"), "rb").read()
++                t = check_ots(ots_path, raw, a.explorer)
++                rows.append({"anchor": f"{hi:06d}.ots", "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
++            except Bad as ex:
++                bad.append(str(ex))
++            except CantCheck as ex:
++                cant.append(f"anchors/{hi:06d}.ots: {ex}")
++    
++    # Process any ots anchors that weren't in ranges (standalone ots files without sigstore anchors)
++    for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
++        n = os.path.basename(path)
++        m = ANCHOR_NAME.fullmatch(n)
++        seq = int(m.group(1))
++        if m.group(2) != "ots":
++            continue  # skip sigstore files for now
++        if any(seq == hi for _, hi, _ in ranges):
++            continue  # already processed this seq
+         try:
+-            if not 1 <= seq <= len(chain):
+-                raise Bad(f"anchors/{n}: no entry {seq}")
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+-            if m.group(2) == "ots":
+-                t = check_ots(path, raw, a.explorer)
+-                rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+-            else:
+-                t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+-                if not isinstance(pred, dict) or not isinstance(pred.get("from_seq"), int) or pred.get("to_seq") != seq \
+-                        or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+-                    raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
+-                ranges.append((pred["from_seq"], seq, commit))
+-                rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+-                             "writer_commit": commit})
++            t = check_ots(path, raw, a.explorer)
++            rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
