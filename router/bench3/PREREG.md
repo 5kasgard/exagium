@@ -36,8 +36,8 @@ bench-2 gave one attempt per task per model. Its intervals overlap (3 of 3 is 29
   E and F answered a one-line probe on 2026-11-11. `gemma-4-31b-it:free` was probed and returned an upstream rate limit (1 of 1), so it isn't an arm. Cloudflare Workers AI isn't an arm: its free 10,000 neurons a day is below one attempt's uncached prompt tokens at the listed rates (bench-2's smallest attempt read 0.28M prompt tokens; a listed mid-size model costs 40,000 neurons per million). That is arithmetic from the price list, not a test.
 - **Batches sized to the measured allowance.** Each batch asks the provider how many free requests are left, plans `(left − 20) // 80` attempts (at most 12), and each attempt checks again and is skipped under 180. A skipped attempt is not a result. Batches run twice a day until no cell is open. Order: controls, then repeat 1 of every task and arm, then repeat 2, and so on.
 - **Provider cuts are retried.** An attempt ending in a provider error (rate limit, quota, auth, timeout, 5xx) is not counted and its cell is retried in a later batch. After 3 cuts the cell is recorded as `provider_cut` and left out of every denominator.
-- **Futility stop.** An arm with 0 clean passes in its first 6 counted attempts stops (0 of 6 puts its rate under 46% at 95%).
-- **Network seal.** On the runner, traffic leaving any container is refused except DNS and Cloudflare's published address ranges, which hold the model provider. Before each attempt a container must reach the provider and be refused by github.com, or the attempt doesn't start. Refused connections are counted. Limit: other sites behind Cloudflare stay reachable, so the bench-2 clean rule still applies as well.
+- **Futility stop.** An arm with 0 clean passes in its first 6 counted attempts, in planned order (repeats 1 and 2 of each task), stops (0 of 6 puts its rate under 46% at 95%).
+- **Network seal.** On the runner, traffic leaving any container is refused except DNS and Cloudflare's published address ranges, which hold the model provider. Before each attempt a container must reach the provider and be refused by github.com, or the attempt doesn't start. Refused connections are counted; the count includes the harness's own refused calls (12 in the pilot, all to GitHub's raw-file hosts, none from an agent action). Limit: other sites behind Cloudflare stay reachable, so the bench-2 clean rule still applies as well.
 - **Snapshots.** `run_agent.py` copies the workspace's `record/` each time its contents change, with the number of actions so far. Afterwards each copy is graded by the agent's own test file ("visible") and by the grader ("hidden"). The agent never sees this. Limit: only `record/` is snapshotted; the rest of the tree is taken from the end state.
 - **Measures fixed:** the diff counts content lines only; model calls are the distinct response ids in the event log; the control has its own label.
 
@@ -64,7 +64,9 @@ bench-2 gave one attempt per task per model. Its intervals overlap (3 of 3 is 29
   - **Holds** if there are at least 8 such attempts, at least 90% kept, and the median saving is at least 20%.
   - **Fails** if under 75% kept or the median saving is under 10%. Else **inconclusive**.
   - It is a measurement of what a stop rule would have done. No attempt is actually stopped.
-- **Budget:** report median calls per counted attempt, per arm and overall, and calls per clean pass. No threshold.
+- **Budget:** report median calls per counted attempt, per arm and overall, and calls per clean pass. Calls spent in provider-cut attempts are reported apart. No threshold.
+- **Void:** if any control passes, the status says VOID and no verdict stands.
+- **Also reported, with no verdict:** the share of an attempt's actions that came after the hidden test first passed (the most any stop rule could save).
 - Verdicts are final only when the status says complete. Until then the status is marked provisional.
 
 ## Spend
@@ -74,5 +76,30 @@ $0. OpenRouter free models only. Worst case 75 × 80 = 6,000 requests over about
 - Three tasks, all in one file (`record/record.py`), all from this repo's public history. A model trained on the repo after the fixes could know them. Rates here are for this kind of task.
 - Attempts on the same task are not independent draws of "a task"; the interval describes repeat runs of these three.
 - Calls counted from response ids miss retries that produced no event. The provider's own count of requests left is recorded before each attempt.
+- A 35-minute timeout leaves no record of its cause. If the provider hung, the attempt still counts as that worker's fail; timeouts are listed per arm so this can be seen.
 - Free model listings change; a model that disappears mid-run shows up as provider cuts.
 - The pilot (one attempt and one control, `mode=pilot`) checks the instruments and counts for nothing.
+
+## Outside review before registering (2026-11-11)
+The prompt (`router/bench3/review/prereg-attack.prompt.txt`) went to two models outside every arm's family through `review.yml`; the replies are saved as received in `router-runs:reviews/42996860780/`.
+- **gpt-oss-120b (OpenAI, on Cloudflare): 8 findings.**
+  - **Applied (3):**
+    - Futility looked at the first 6 results sorted by task, which is one task's five repeats plus one, not repeats 1 and 2 of each task. Now sorted in planned order, with a test.
+    - A passing control only made the run "incomplete". It now marks the run VOID.
+    - Calls spent in provider-cut attempts were left out of the budget. Now reported apart.
+  - **Partly applied (1):** a timeout caused by a hung provider counts as the worker's fail. The cause can't be recovered from a killed attempt, so this is now a stated limit.
+  - **Rejected (4), with the reason:**
+    - "`outside_paths` may be missing": `measure.py` always writes it.
+    - "The minimum of 5 attempts isn't in the rule": it is ("inconclusive under 5 counted attempts").
+    - "`unclassified` shouldn't count as a crash": that is the stated, deliberate strict reading.
+    - "Controls exceed the batch limit": controls make no model calls.
+- **llama-4-scout (Meta, on Cloudflare): 8 findings, none applied.** Each was checked against the code: the provider test already runs before the finished test; integer comparison is exact; the others restate rules as written.
+
+## Pilot (run 42996691546, commit `a339a68`; counts for nothing)
+One attempt (Nemotron on T2) and one control went through every step.
+- The network seal check passed: the provider was reached and github.com was refused.
+- The attempt ended `finished`, passed cleanly, with 53 calls and 52 actions; the diff counted `record.py` +71 −1 and nothing else; 5 snapshots, no snapshot errors.
+- The control failed as required and got the `control` label.
+- The provider reported 346 free requests left, so the allowance reading works.
+- One thing it showed, as a direction only: the first visible-green snapshot (action 24) did **not** pass the hidden test; the hidden test first passed at action 26 of 52.
+- Changed after the pilot: the refused-connection list no longer splits one destination by source port. Nothing else.

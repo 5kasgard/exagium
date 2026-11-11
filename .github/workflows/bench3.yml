@@ -153,7 +153,7 @@ jobs:
           git -C "$WS" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true
           git -C "$WS" diff --cached HEAD > "$O/agent.diff" 2>/dev/null || true
           all=$(sudo dmesg | grep -c 'B3DROP ' || true)
-          sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
+          sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SPT=[0-9]*//' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
           python3 -c "import json,os;json.dump({'check_provider':os.environ.get('SEAL_OK'),'check_github':os.environ.get('SEAL_NO'),'drops':max(0,int('$all' or 0)-int(os.environ.get('CHECK_DROPS') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
           meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'${{ matrix.model }}','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='Z','left_before':'${LEFT:-}'}))")
           python3 "$P/measure.py" "$O" "$WS" "$P/fix_test.py" "$HIDDEN" "$P/p2p-$FIX.json" "$meta" > "$O/result.json"
