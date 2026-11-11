@@ -50,6 +50,8 @@ TASK = {"train": os.path.join(HERE, "task", "optdigits.tra"), "test": os.path.jo
 COUNT = os.path.join(REPO, "counter", "count.py")
 RECORD = os.path.join(REPO, "record", "record.py")
 TIMER = os.path.join(HERE, "timer.c")
+CONFINE = os.path.join(HERE, "confine.c")
+SECCOMP = os.path.join(HERE, "seccomp_filter.h")
 FILES = ("train.py", "infer.c", "weights.bin")
 OPTIONAL = ("README.md",)
 CFLAGS = ["-O2", "-std=c11", "-ffp-contract=off"]  # an explicit choice: no -march, so the compiled code is the same in both runs (run-time dispatch can still differ)
@@ -113,7 +115,7 @@ def split(name):
 
 
 def digests(dirs):
-    tools = (TASK["train"], TASK["test"], os.path.abspath(__file__), TIMER, COUNT, RECORD)
+    tools = (TASK["train"], TASK["test"], os.path.abspath(__file__), TIMER, CONFINE, SECCOMP, COUNT, RECORD)
     out = [{"name": rel(p), "sha256": sha256_file(p)} for p in tools]
     for d in dirs:
         out += [{"name": rel(os.path.join(d, f)), "sha256": sha256_file(os.path.join(d, f))} for f in FILES]
@@ -147,8 +149,66 @@ def _fresh_keyring():
         os._exit(126)
 
 
-def jail(cmd, binds, timeout, cwd="/w"):
-    """Run cmd in bubblewrap. binds: [(src, dst, writable)]. Returns CompletedProcess (bytes)."""
+# The jail has two modes, chosen once by check_jail() and recorded in every output:
+#   "bwrap": bubblewrap, as above (preferred);
+#   "confine": where bwrap can't start (e.g. containers that refuse unprivileged /proc mounts), loop/confine.c:
+#     Landlock limits files to a read allow-list plus the step's writable directories; seccomp refuses new processes
+#     and threads, sockets, the keyring, ptrace and signals to others. Dataset copies are carved out of the allow-list.
+#     It runs as the caller's uid, with the host's pid namespace: process creation is refused outright instead of
+#     counted. EXAGIUM_JAIL=bwrap|confine forces a mode.
+JAIL = {"mode": None, "confine": None, "bwrap_error": None}
+
+
+def carve(roots, hidden):
+    """(read, list_only): paths to allow so that everything under roots is readable except the hidden files
+    (Landlock only allows). A directory on the way to a hidden file may be listed (names, not contents), as with
+    bwrap's masks, whose names stay visible too."""
+    hidden = {os.path.realpath(h) for h in hidden}
+    out, listed = [], []
+    def leads_to_hidden(p):
+        return p in hidden or any(h.startswith(p + "/") for h in hidden)
+    def walk(p):
+        if p in hidden:
+            return
+        if os.path.islink(p):
+            # a Landlock rule on a symlink grants its whole target: never one that leads to a hidden file (its
+            # contents stay reachable through the real path, carved there if it lies under a root)
+            if not leads_to_hidden(os.path.realpath(p)):
+                out.append(p)
+            return
+        if not any(h.startswith(p + "/") for h in hidden) or not os.path.isdir(p):
+            out.append(p)
+            return
+        listed.append(p)
+        for e in sorted(os.listdir(p)):
+            walk(os.path.join(p, e))
+    real = sorted({os.path.realpath(r) for r in roots if os.path.exists(r)})
+    for r in real:
+        if not any(r.startswith(o + "/") for o in real if o != r):
+            walk(r)
+    return out, listed
+
+
+def read_allow():
+    """[(flag, path)] for confine: what candidate code may read, carved around copies of the dataset."""
+    read, listed = carve(["/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc/ld.so.cache", *python_roots()], masks())
+    return [("--ro", p) for p in read + ["/dev/urandom"]] + [("--ls", p) for p in listed]
+
+
+def confine_args(rw, seccomp=True):
+    a = [JAIL["confine"]] + ([] if seccomp else ["--no-seccomp"])
+    for flag, p in read_allow():
+        a += [flag, p]
+    for p in rw:
+        a += ["--rw", p]
+    return a + ["--rw", "/dev/null", "--"]
+
+
+def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
+    """Run cmd jailed. binds: [(src, dst, writable)]. Returns CompletedProcess (bytes).
+    seccomp=False (confine mode only): Landlock alone, for the trusted timer, which forks and filters its child."""
+    if JAIL["mode"] == "confine":
+        return confined(cmd, binds, timeout, cwd, seccomp)
     a = ["bwrap", "--ro-bind", "/usr", "/usr", "--symlink", "usr/lib", "/lib", "--symlink", "usr/lib64", "/lib64",
          "--symlink", "usr/bin", "/bin", "--symlink", "usr/sbin", "/sbin", "--proc", "/proc", "--dev", "/dev",
          "--tmpfs", "/tmp", "--unshare-all", "--uid", "65534", "--gid", "65534", "--cap-drop", "ALL",
@@ -167,15 +227,100 @@ def jail(cmd, binds, timeout, cwd="/w"):
     return subprocess.run(a, capture_output=True, timeout=timeout, preexec_fn=_fresh_keyring)
 
 
-def check_jail():
+def confined(cmd, binds, timeout, cwd, seccomp=True):
+    """confine mode: the bwrap paths (/w, /tool, /tmp) become real directories; nothing is mounted."""
+    with tempfile.TemporaryDirectory(prefix="exagium-jail-tmp-") as tmp:
+        where = {dst: src for src, dst, _ in binds}
+        where["/tmp"] = tmp
+        def real(x):
+            for dst in sorted(where, key=len, reverse=True):
+                if x == dst or x.startswith(dst + "/"):
+                    return where[dst] + x[len(dst):]
+            return x
+        env = dict(ENV, HOME=tmp, TMPDIR=tmp)
+        rw = [tmp] + [src for src, _, w in binds if w]
+        ro = [src for src, _, w in binds if not w]
+        pre = confine_args(rw, seccomp)
+        for p in ro:
+            pre[-1:-1] = ["--ro", p]
+        args = pre + [real(x) for x in cmd]
+        return subprocess.run(args, capture_output=True, timeout=timeout, cwd=real(cwd), env=env, preexec_fn=_fresh_keyring)
+
+
+SELF_TEST = """
+import os, socket, sys
+bad = []
+try:
+    open(sys.argv[1]).close(); bad.append("read the repo")
+except OSError: pass
+try:
+    pid = os.fork()
+    if pid == 0: os._exit(0)
+    bad.append("fork")
+except OSError: pass
+try:
+    socket.socket(); bad.append("socket")
+except OSError: pass
+try:
+    open(sys.argv[2], "w").close(); bad.append("write outside")
+except OSError: pass
+open("ok", "w").write("ok")
+print("bad:" + ",".join(bad) if bad else "confined")
+"""
+
+
+def check_confine():
+    """Build confine.c and prove, on this host, that it confines (fail closed otherwise)."""
+    d = tempfile.mkdtemp(prefix="exagium-confine-")
+    exe = os.path.join(d, "confine")
+    r = subprocess.run(["gcc", "-O2", "-std=c11", "-o", exe, CONFINE], capture_output=True, text=True, env=ENV)
+    if r.returncode:
+        raise Failed(f"confine.c does not compile here:\n{r.stderr}")
+    JAIL["confine"] = exe
+    with tempfile.TemporaryDirectory(prefix="exagium-selftest-") as w:
+        outside = os.path.join(d, "outside")
+        r = confined([sys.executable, "-I", "-c", SELF_TEST, os.path.join(REPO, "README.md"), outside], [(w, "/w", True)],
+                     60, "/w")
+        out = r.stdout.decode(errors="replace").strip()
+        if r.returncode or out != "confined" or not os.path.exists(os.path.join(w, "ok")) or os.path.exists(outside):
+            raise Failed(f"confine does not confine here (exit {r.returncode}, {out!r}): "
+                         f"{r.stderr.decode(errors='replace')[-500:]}")
+
+
+def check_bwrap():
     if not shutil.which("bwrap"):
-        raise Failed("bubblewrap (bwrap) is needed: candidate code only runs in the jail")
+        raise Failed("bubblewrap (bwrap) is not installed")
     r = jail(["/bin/sh", "-c", "id -u; grep -E '^Cap(Eff|Prm|Inh|Bnd|Amb)' /proc/self/status"], [], 60, cwd="/")
     if r.returncode:
         raise Failed(f"bwrap cannot make a jail here: {r.stderr.decode(errors='replace')[-500:]}")
     lines = r.stdout.decode().split()
     if lines[0] != "65534" or any(v != "0000000000000000" for v in lines[2::2]):
         raise Failed(f"the jail still has a privileged uid or capabilities: {r.stdout.decode()}")
+
+
+def check_jail():
+    """Pick the jail: bwrap if it works here, else confine; EXAGIUM_JAIL=bwrap|confine forces one."""
+    if JAIL["mode"]:
+        return
+    forced = os.environ.get("EXAGIUM_JAIL")
+    if forced not in (None, "", "bwrap", "confine"):
+        raise Failed(f"EXAGIUM_JAIL={forced}: must be bwrap or confine")
+    if forced != "confine":
+        try:
+            JAIL["mode"] = "bwrap"
+            check_bwrap()
+            return
+        except Failed as e:
+            JAIL["mode"] = None
+            if forced == "bwrap":
+                raise
+            JAIL["bwrap_error"] = str(e)[:300]
+    JAIL["mode"] = "confine"
+    try:
+        check_confine()
+    except Failed as e:
+        JAIL["mode"] = None
+        raise Failed(f"no jail available: {JAIL['bwrap_error'] or 'bwrap not tried'}; and {e}")
 
 
 # ---------- reproduce ----------
@@ -192,7 +337,7 @@ def reproduce(d):
             raise Failed(f"{rel(d)}: train.py wrote no weights.bin")
         have = sha256_file(got)
     return {"candidate": rel(d), "expected_sha256": want, "retrained_sha256": have, "identical": have == want,
-            "jailed": True, **versions()}
+            "jailed": True, "jail": JAIL["mode"], **versions()}
 
 
 def versions():
@@ -238,15 +383,19 @@ def timed(c, rows, timer, cpu):
             shutil.copy2(src, os.path.join(w, name))
         with open(os.path.join(w, "x.bin"), "wb") as f:
             f.write(bytes(v for r in rows for v in r[:64]))
-        r = jail(["./timer", str(cpu), "./infer", "weights.bin", "x.bin", str(len(rows))], [(w, "/w", False)], 600)
+        # confine mode: Landlock is set up before the clock starts; the timer's child adds the seccomp filter
+        sc = ["--seccomp"] if JAIL["mode"] == "confine" else []
+        r = jail(["./timer", *sc, str(cpu), "./infer", "weights.bin", "x.bin", str(len(rows))], [(w, "/w", False)], 600,
+                 seccomp=not sc)
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")  # the timer's own line is always last
     f = tail.split()
-    if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f):
+    if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \
+            or not (f[3].isdigit() or f[3] == b"-1"):  # pids is -1 in confine mode (not counted)
         raise Failed(f"{c['name']}: timer failed (exit {r.returncode}): {r.stderr.decode(errors='replace')[-300:]}")
     ns, status, cpu_ns, pids = (int(x) for x in f)
     if status:
         raise Failed(f"{c['name']}: infer exited {status}")
-    if pids != 1:
+    if pids != 1 and JAIL["mode"] == "bwrap":  # in confine mode process creation is refused, not counted
         raise Failed(f"{c['name']}: the jail handed out {pids} pid(s) (0 = the child wasn't the next pid); "
                      "candidates must be one single-threaded process")
     if cpu_ns > CPU_SLACK[0] * ns + CPU_SLACK[1]:
@@ -263,9 +412,18 @@ def count(c, rows, outdir):
             shutil.copy2(src, os.path.join(tool, name))
         with open(os.path.join(tool, "x.bin"), "wb") as f:
             f.write(bytes(v for r in rows for v in r[:64]))
-        r = jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", "--reps", "2", "--input", "/tool/infer",
-                  "--input", "/tool/weights.bin", "--input", "/tool/x.bin", "--", "./infer", "weights.bin", "x.bin",
-                  str(len(rows))], [(tool, "/tool", False)], 1800, cwd="/tmp")
+        tail = ["--reps", "2", "--input", "/tool/infer", "--input", "/tool/weights.bin", "--input", "/tool/x.bin", "--",
+                "./infer", "weights.bin", "x.bin", str(len(rows))]
+        if JAIL["mode"] == "confine":
+            # count.py runs outside the confinement (it needs its reader thread) and starts valgrind inside it
+            ro = [x for flag, p in read_allow() for x in (("--confine-ro", p) if flag == "--ro" else ("--confine-ls", p))]
+            with tempfile.TemporaryDirectory(prefix="exagium-cnt-cwd-") as cwd:
+                r = subprocess.run([sys.executable, "-I", os.path.join(tool, "count.py"), "--stdout-record",
+                                    "--confine", JAIL["confine"], *ro, *[x.replace("/tool", tool, 1) for x in tail]],
+                                   capture_output=True, timeout=1800, cwd=cwd, env=dict(ENV, HOME=cwd, TMPDIR=cwd))
+        else:
+            r = jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", *tail],
+                     [(tool, "/tool", False)], 1800, cwd="/tmp")
     if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1 or not r.stdout.endswith(b"\n"):
         raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")
     try:
@@ -382,7 +540,7 @@ def evaluate(dirs, test, rounds, seed, outdir):
                           "Ir_ratio": a["counts"]["Ir"] / b["counts"]["Ir"],
                           "ns_per_image_diff": tm, "ns_per_image_diff_se": tse})
     return {"schema": "exagium-loop/2", "split": "test" if test == "test" else "dev-in-sample", "n": n,
-            "rounds": rounds, "seed": seed, "cpu_pinned": cpu,
+            "rounds": rounds, "seed": seed, "cpu_pinned": cpu, "jail": JAIL["mode"],
             "labels": {"accuracy": "measured on the split",
                        "simulated_*": "cachegrind, reference cache: one process classifying all N images (startup included), / N",
                        "native_*": "wall time inside the jail, one process classifying all N images (startup included), / N; "

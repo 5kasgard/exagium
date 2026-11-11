@@ -34,6 +34,14 @@ def run(*argv):
     return code, out.getvalue() + err.getvalue()
 
 
+def jail_mode():
+    loop.check_jail()
+    return loop.JAIL["mode"]
+
+
+MODE = jail_mode()  # "bwrap", or "confine" where bwrap can't run (or EXAGIUM_JAIL=confine)
+
+
 class Loop(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
@@ -79,8 +87,9 @@ class Loop(unittest.TestCase):
     def test_training_jail_has_no_network_repo_or_frozen_weights(self):
         probe = ("import os, socket, sys\nseen = []\n"
                  "try:\n socket.create_connection(('1.1.1.1', 443), timeout=3); seen.append('net')\nexcept OSError:\n pass\n"
-                 "for p in (%r, %r, %r, '/home'):\n if os.path.exists(p): seen.append(p)\n"
-                 "for pid in os.listdir('/proc'):\n if pid.isdigit():\n  try:\n   if os.listdir('/proc/%%s/cwd' %% pid) not in ([], ['train.csv', 'train.py'], ['train.py', 'train.csv']): seen.append(pid)\n  except OSError:\n   pass\n"
+                 "for p in (%r, %r, %r, '/home'):\n try:\n  os.listdir(p) if os.path.isdir(p) else open(p, 'rb').read(1)\n  seen.append(p)\n except OSError:\n  pass\n"
+                 "try:\n pids = os.listdir('/proc')\nexcept OSError:\n pids = []\n"
+                 "for pid in pids:\n if pid.isdigit():\n  try:\n   if os.listdir('/proc/%%s/cwd' %% pid) not in ([], ['train.csv', 'train.py'], ['train.py', 'train.csv']): seen.append(pid)\n  except OSError:\n   pass\n"
                  "open(sys.argv[2], 'wb').write(repr(seen).encode())\n") % (loop.REPO, loop.TASK["test"], os.path.dirname(os.path.abspath(__file__)))
         d = make(self.tmp, "n", b"[]", train=probe)
         code, msg = run("reproduce", d)
@@ -155,9 +164,14 @@ int main(int c, char **v){ long n = atol(v[3]); int k = '0';
             s = json.load(fh)
         # every native run printed '0': repo, task, README and earlier runs were out of reach
         self.assertEqual(s["candidates"][0]["correct"], sum(r[64] == 0 for r in loop.split("dev")))
-        # the counter's two reps share one jail, so the marker reaches rep 2: that shows up as reps that differ
-        self.assertEqual(code, 1)
-        self.assertTrue(s["problems"] and all("counter exit 1 (exact=False" in p for p in s["problems"]), s["problems"])
+        if MODE == "bwrap":
+            # the counter's two reps share one jail, so the marker reaches rep 2: that shows up as reps that differ
+            self.assertEqual(code, 1)
+            self.assertTrue(s["problems"] and all("counter exit 1 (exact=False" in p for p in s["problems"]), s["problems"])
+        else:
+            # confine: no writable /tmp outside the sandbox, so not even the counter's reps can pass a marker
+            self.assertEqual(code, 0, msg)
+            self.assertEqual(s["jail"], "confine")
 
     def test_n0_must_print_only_a_newline_and_startup_is_counted(self):
         pad = CONST.replace("for(long i=0;i<n;i++) putchar(k);", "if (n == 0) putchar('7'); for(long i=0;i<n;i++) putchar(k);")
@@ -180,13 +194,37 @@ static void *spin(void *a) { struct timespec t0, t; clock_gettime(CLOCK_MONOTONI
 int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
   for (int i = 0; i < 64; i++) CPU_SET(i, &all);
   sched_setaffinity(0, sizeof all, &all);  /* undo the timer's pin */
-  if (n > 0) { pthread_t t; pthread_create(&t, 0, spin, 0); spin(0); pthread_join(t, 0); }
-  for(long i=0;i<n;i++) putchar('1'); putchar(10); return 0; }
+  char k = '1';
+  if (n > 0) { pthread_t t; if (pthread_create(&t, 0, spin, 0) == 0) { spin(0); pthread_join(t, 0); } else k = '0'; }
+  for(long i=0;i<n;i++) putchar(k); putchar(10); return 0; }
 """
         d = make(self.tmp, "threads", infer=threads)
-        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
-        self.assertEqual(code, 1)
-        self.assertRegex(msg, "more than one CPU|more process|--single-process allows none")
+        out = os.path.join(self.tmp, "t.json")
+        code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"), "--out", out)
+        if MODE == "bwrap":
+            self.assertEqual(code, 1)
+            self.assertRegex(msg, "more than one CPU|more process|--single-process allows none")
+        else:  # confine: the thread is never created ('0' printed every time), so a second CPU can't be used
+            with open(out) as fh:
+                s = json.load(fh)
+            self.assertEqual(s["candidates"][0]["correct"], sum(r[64] == 0 for r in loop.split("dev")), msg)
+
+    def test_carve_hides_files_even_through_symlinks(self):
+        """confine mode: the allow-list must leave hidden files unreachable, including via a symlinked parent."""
+        import loop
+        r = os.path.join(self.tmp, "root")
+        os.makedirs(os.path.join(r, "real", "pkg", "data"))
+        for f in ("real/pkg/data/digits.csv.gz", "real/pkg/data/other.txt", "real/pkg/mod.py", "real/top.txt"):
+            open(os.path.join(r, f), "w").write("x")
+        os.symlink("real", os.path.join(r, "alias"))
+        os.symlink("real/top.txt", os.path.join(r, "top-link"))
+        hidden = os.path.join(r, "alias", "pkg", "data", "digits.csv.gz")
+        read, listed = loop.carve([r], [hidden])
+        self.assertNotIn(os.path.join(r, "alias"), read)  # would grant the whole real tree
+        self.assertIn(os.path.join(r, "top-link"), read)  # a symlink that leads nowhere hidden is fine
+        self.assertIn(os.path.join(r, "real", "pkg", "data", "other.txt"), read)
+        self.assertFalse(any(p == os.path.realpath(hidden) or os.path.realpath(hidden).startswith(p + "/") for p in read))
+        self.assertIn(os.path.join(r, "real", "pkg", "data"), listed)
 
     def test_cost_disagreements_list_opposite_meters_once(self):
         """System review 2026-11-11: fewer instructions but slower past 2 SE must be reported, once per pair."""
@@ -208,6 +246,7 @@ int main(int c, char **v){ long n = atol(v[3]); cpu_set_t all; CPU_ZERO(&all);
 #include <sys/wait.h>
 int main(int c, char **v){ long n = atol(v[3]); char *out = malloc(n + 1); int p[2]; pipe(p); fflush(stdout);
   pid_t k = fork();
+  if (k < 0) return 3;  /* fork refused (confine mode) */
   if (k == 0) { for (long i = 0; i < n; i++) out[i] = '1'; write(p[1], out, n); pause(); }
   long got = 0; while (got < n) { long r = read(p[0], out + got, n - got); if (r <= 0) return 2; got += r; }
   kill(k, SIGKILL); waitpid(k, 0, 0);
@@ -216,12 +255,20 @@ int main(int c, char **v){ long n = atol(v[3]); char *out = malloc(n + 1); int p
         d = make(self.tmp, "forker", infer=forker)
         code, msg = run("evaluate", d, "--rounds", "2", "--records", os.path.join(self.tmp, "r"))
         self.assertEqual(code, 1)
-        self.assertRegex(msg, "more process|--single-process allows none")
+        if MODE == "bwrap":
+            self.assertRegex(msg, "more process|--single-process allows none")
+        else:  # confine: fork itself is refused, so the program gives up
+            self.assertRegex(msg, "exited 3|counter failed")
 
     def test_jail_has_no_privilege(self):
-        r = loop.jail(["/bin/sh", "-c", "id -u; grep CapEff /proc/self/status"], [], 60, cwd="/")
-        self.assertEqual(r.stdout.decode().split()[0], "65534")
-        self.assertIn("CapEff:\t0000000000000000", r.stdout.decode())
+        if MODE == "bwrap":
+            r = loop.jail(["/bin/sh", "-c", "id -u; grep CapEff /proc/self/status"], [], 60, cwd="/")
+            self.assertEqual(r.stdout.decode().split()[0], "65534")
+            self.assertIn("CapEff:\t0000000000000000", r.stdout.decode())
+        else:  # confine: same uid, but no new privileges and a seccomp filter in place
+            code = "import ctypes; p = ctypes.CDLL(None).prctl; print(p(39, 0, 0, 0, 0), p(21, 0, 0, 0, 0))"
+            r = loop.jail([sys.executable, "-I", "-c", code], [], 60, cwd="/")
+            self.assertEqual(r.stdout.decode().split(), ["1", "2"], r.stderr.decode())
 
     def test_duplicate_names_refused(self):
         a = make(os.path.join(self.tmp, "x"), "same")

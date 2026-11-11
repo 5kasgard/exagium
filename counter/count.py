@@ -212,7 +212,20 @@ def debug_dir_libraries():
     return sorted(f for f in (os.listdir(d) if os.path.isdir(d) else []) if ".so" in f and os.path.isfile(os.path.join(d, f)))
 
 
-def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process=False):
+def confine_prefix(confine, td):
+    """With --confine: valgrind (and so the program) starts inside loop/confine.c's Landlock + seccomp confinement,
+    reading only the given paths and writing only the sandbox, the count-file directory and /dev/null."""
+    if not confine:
+        return []
+    a = [confine["exe"]]
+    for p in confine["ro"]:
+        a += ["--ro", p]
+    for p in confine.get("ls", []):
+        a += ["--ls", p]
+    return a + ["--ro", "/proc/self", "--rw", SANDBOX, "--rw", td, "--rw", "/dev/null", "--"]
+
+
+def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process=False, confine=None):
     """Run cmd once under cachegrind in a fresh sandbox, children included. Counts summed over processes."""
     fresh_sandbox(inputs)
     with tempfile.TemporaryDirectory() as td:
@@ -223,7 +236,7 @@ def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process
         chunks = []
         reader = threading.Thread(target=lambda: chunks.extend(iter(lambda: os.read(rfd, 65536), b"")), daemon=True)
         reader.start()
-        vg = [exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes", "--trace-children=yes",
+        vg = [*confine_prefix(confine, td), exe, "--command-line-only=yes", "--tool=cachegrind", "--cache-sim=yes", "--trace-children=yes",
               f"--cachegrind-out-file={td}/cg.%p", f"--log-fd={wfd}", *cache_args(cache), "--", *cmd]
         pid0 = last_pid() if single_process else None
         t0 = datetime.datetime.now(datetime.timezone.utc)
@@ -310,7 +323,8 @@ def resolve_inputs(paths):
     return inputs
 
 
-def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=3600, keep_raw=None, single_process=False):
+def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=3600, keep_raw=None, single_process=False,
+          confine=None):
     exe = shutil.which("valgrind")
     if not exe:
         raise Failure("valgrind not found")
@@ -333,7 +347,7 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=36
     with open(SANDBOX + ".lock", "a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)  # one counter at a time owns the fixed sandbox path
         try:
-            rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw, single_process) for _ in range(reps)]
+            rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw, single_process, confine) for _ in range(reps)]
         finally:
             shutil.rmtree(SANDBOX, ignore_errors=True)
     model = rows[0]["model"]
@@ -349,8 +363,9 @@ def count(cmd, reps=3, cache=REFERENCE, extra_env=(), input_paths=(), timeout=36
         "inputs": {b: {"path": v["path"], "sha256": v["sha256"]} for b, v in inputs.items()},
         "executes": fp,
         "tool": {"valgrind": valgrind_version(exe), "files": tool_fingerprint(exe), "options": ["--tool=cachegrind", "--cache-sim=yes",
-                 "--trace-children=yes", "--command-line-only=yes"] + (["exagium:--single-process"] if single_process else []),
-                 "sandbox": SANDBOX},
+                 "--trace-children=yes", "--command-line-only=yes"] + (["exagium:--single-process"] if single_process else [])
+                 + (["exagium:--confine"] if confine else []),
+                 "sandbox": SANDBOX, **({"confine": {"sha256": sha256_file(confine["exe"]), "ro": confine["ro"], "ls": confine.get("ls", [])}} if confine else {})},
         "host": host(),
         "cache": {"requested": requested or "host", "simulated": model, "label": "chosen" if requested else "reported"},
         "reps": [{k: r[k] for k in ("counts", "processes", "wall_s", "stdout_sha256")} for r in rows],
@@ -506,6 +521,13 @@ def main(argv=None):
     ap.add_argument("--single-process", action="store_true",
                     help="refuse (exit 3) if the command makes any other process or thread, counted by the pid namespace's "
                          "last pid; run this only in a pid namespace of its own (loop.py's jail), where nothing else starts processes")
+    ap.add_argument("--confine", metavar="BINARY",
+                    help="start valgrind inside loop/confine.c (Landlock + seccomp: no new processes, no network, files "
+                         "limited to the --confine-ro paths, the sandbox and the count files); for hosts where loop.py "
+                         "can't use bubblewrap")
+    ap.add_argument("--confine-ro", action="append", default=[], metavar="PATH", help="a path valgrind may read (repeat)")
+    ap.add_argument("--confine-ls", action="append", default=[], metavar="PATH",
+                    help="a directory valgrind may list but not read beneath (repeat)")
     ap.add_argument("--input-dir", help="with --check: find inputs here by name instead of their recorded paths")
     ap.add_argument("cmd", nargs=argparse.REMAINDER)
     a = ap.parse_args(argv)
@@ -521,7 +543,13 @@ def main(argv=None):
             import ctypes
             if ctypes.CDLL(None, use_errno=True).prctl(4, 0, 0, 0, 0) != 0:  # PR_SET_DUMPABLE = 4
                 raise Failure("cannot make the counter non-dumpable")
-        rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw, single_process=a.single_process)
+        confine = None
+        if a.confine:
+            if not os.path.isabs(a.confine) or not all(os.path.isabs(p) for p in a.confine_ro + a.confine_ls):
+                raise Failure("--confine, --confine-ro and --confine-ls need absolute paths")
+            confine = {"exe": a.confine, "ro": list(a.confine_ro), "ls": list(a.confine_ls)}
+        rec = count(cmd, a.reps, a.cache, a.env, a.input, keep_raw=a.keep_raw, single_process=a.single_process,
+                    confine=confine)
         if a.stdout_record:
             sys.stdout.write(json.dumps(rec, sort_keys=True) + "\n")
             v = rec["verdict"]
