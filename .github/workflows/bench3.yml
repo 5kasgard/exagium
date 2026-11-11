@@ -1,0 +1,187 @@
+# bench-3: repeats of bench-2's three tasks on five free models, in resumable batches sized to the day's
+# measured free allowance. See router/bench3/PREREG.md; every rule is code in router/bench3/decide.py.
+# Each batch: plan (what is still open, how much allowance is left) -> attempts -> record and status.
+# mode=pilot runs one unregistered attempt plus one control through the same steps; it counts for nothing.
+name: bench3
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run (registered batch) or pilot (instrument check, not counted)"
+        default: "run"
+  schedule:
+    - cron: "40 0,12 * * *"   # two batches a day until every cell is done; then the plan is empty
+concurrency:
+  group: bench
+  cancel-in-progress: false
+permissions:
+  contents: write
+defaults:
+  run:
+    shell: bash
+env:
+  SDK_REF: v1.61.0
+  IMAGE: ghcr.io/openhands/agent-server:1.61.0-python
+  MAX_ITERATIONS: "80"
+  MODE: ${{ github.event.inputs.mode || 'run' }}
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      n: ${{ steps.plan.outputs.n }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: the rules must pass their own test
+        run: python3 -I router/bench3/decide.py selftest; echo "exit $?"
+      - name: measured free allowance, then the plan
+        id: plan
+        env:
+          KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          left=$(curl -fsS -m 30 https://openrouter.ai/api/v1/key -H "Authorization: Bearer $KEY" \
+                 | python3 -c "import json,sys;d=json.load(sys.stdin)['data'].get('free_model_daily_requests') or {};print(d.get('remaining',-1))" || echo -1)
+          echo "free requests left, as the provider reports it: $left"
+          if [ "$left" -lt 0 ]; then left=180; echo "allowance unreadable: planning for $left"; fi
+          git fetch -q origin router-runs && git worktree add -q "$RUNNER_TEMP/rr" FETCH_HEAD
+          mkdir -p "$RUNNER_TEMP/rr/bench/bench3"
+          if [ "$MODE" = pilot ]; then
+            p='{"n": 2, "open": -1, "include": [{"task":"T2","arm":"A","model":"openrouter/nvidia/nemotron-3-ultra-550b-a55b:free","rep":0},{"task":"T2","arm":"Z","model":"none","rep":0}]}'
+          else
+            p=$(python3 -I router/bench3/decide.py plan "$RUNNER_TEMP/rr/bench/bench3" "$left")
+          fi
+          echo "$p" | python3 -c "import json,sys;p=json.load(sys.stdin);print('planned',p['n'],'of',p['open'],'open:',[(c['task'],c['arm'],c['rep']) for c in p['include']])"
+          echo "n=$(echo "$p" | python3 -c "import json,sys;print(json.load(sys.stdin)['n'])")" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(echo "$p" | python3 -c "import json,sys;print(json.dumps({'include':json.load(sys.stdin)['include']}))")" >> "$GITHUB_OUTPUT"
+          echo "exit 0"
+  attempt:
+    needs: plan
+    if: needs.plan.outputs.n != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 2   # OpenRouter free: 20 requests/min across the account
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {fetch-depth: 0, path: src}
+      - name: refuse paid models
+        run: |
+          m="${{ matrix.model }}"
+          if [[ "$m" != none && "$m" != *:free ]]; then echo "paid model refused: $m"; exit 1; fi
+          echo "exit 0"
+      - name: private grader copy, pre-fix workspace, then delete the full checkout
+        run: |
+          P="$RUNNER_TEMP/private"; mkdir -p "$P" "$RUNNER_TEMP/out/snaps"
+          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='${{ matrix.task }}'][0];print(t['base'],t['fix'],t['hidden_test'])")
+          echo "FIX=$fix" >> "$GITHUB_ENV"; echo "HIDDEN=$hidden" >> "$GITHUB_ENV"; echo "P=$P" >> "$GITHUB_ENV"
+          cp src/router/bench/grade.py src/router/bench3/run_agent.py src/router/bench3/measure.py src/router/bench3/decide.py "src/router/bench/p2p-$fix.json" "src/router/bench/tasks/${{ matrix.task }}.md" "$P/"
+          git -C src show "$fix:record/test_record.py" > "$P/fix_test.py"
+          WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
+          git -C src archive "$base" | tar -x -C "$WS"
+          rm -rf src   # nothing post-fix is left on the runner's disk outside $P
+          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          chmod -R a+rwX "$WS"   # the agent server runs as a non-root user inside its container
+          echo "exit 0"
+      - name: allowance guard (a refused attempt is not a result)
+        if: matrix.arm != 'Z'
+        env:
+          KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          left=$(curl -fsS -m 30 https://openrouter.ai/api/v1/key -H "Authorization: Bearer $KEY" \
+                 | python3 -c "import json,sys;d=json.load(sys.stdin)['data'].get('free_model_daily_requests') or {};print(d.get('remaining',-1))" || echo -1)
+          echo "free requests left: $left"; echo "LEFT=$left" >> "$GITHUB_ENV"
+          if [ "$left" -ge 0 ] && [ "$left" -lt 180 ]; then
+            echo '{"skipped": true, "requests_left_before": '"$left"'}' > "$RUNNER_TEMP/out/run.json"; echo "SKIP=1" >> "$GITHUB_ENV"; echo "skipped: under 180 left"
+          fi
+          echo "exit 0"
+      - name: install the pinned SDK and pull the matching Agent Server image
+        if: matrix.arm != 'Z' && env.SKIP != '1'
+        run: |
+          pip install -q uv && uv venv -q -p 3.12 "$RUNNER_TEMP/venv"
+          for p in openhands-sdk openhands-tools openhands-workspace; do
+            uv pip install -q -p "$RUNNER_TEMP/venv" "$p @ git+https://github.com/OpenHands/software-agent-sdk@$SDK_REF#subdirectory=$p"
+          done
+          docker pull -q "$IMAGE"
+          echo "exit 0"
+      - name: network seal (containers may reach DNS and the model provider's network only)
+        if: matrix.arm != 'Z' && env.SKIP != '1'
+        run: |
+          curl -fsS -m 30 https://www.cloudflare.com/ips-v4 -o "$RUNNER_TEMP/cf.txt"; echo >> "$RUNNER_TEMP/cf.txt"
+          ips=$(getent ahostsv4 openrouter.ai | awk '{print $1}' | sort -u | tr '\n' ' '); echo "openrouter.ai -> $ips"
+          python3 -c "import ipaddress,sys;nets=[ipaddress.ip_network(l.strip()) for l in open(sys.argv[1]) if l.strip()];ips=sys.argv[2].split();assert ips and all(any(ipaddress.ip_address(i) in n for n in nets) for i in ips),'provider address outside the allowed ranges'" "$RUNNER_TEMP/cf.txt" "$ips"
+          sudo iptables -N B3
+          sudo iptables -A B3 -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+          sudo iptables -A B3 -p udp --dport 53 -j RETURN
+          sudo iptables -A B3 -p tcp --dport 53 -j RETURN
+          while read -r net; do [ -n "$net" ] && sudo iptables -A B3 -d "$net" -j RETURN; done < "$RUNNER_TEMP/cf.txt"
+          sudo iptables -A B3 -j LOG --log-prefix "B3DROP "
+          sudo iptables -A B3 -j REJECT
+          sudo iptables -I DOCKER-USER -i docker0 ! -o docker0 -j B3
+          t='import sys,urllib.request
+          try:
+              urllib.request.urlopen(sys.argv[1], timeout=15); print("reached")
+          except Exception as e:
+              print("refused" if "refused" in str(e).lower() or "unreachable" in str(e).lower() else "error: "+str(e)[:200])'
+          ok=$(docker run --rm --entrypoint python3 "$IMAGE" -c "$t" https://openrouter.ai/api/v1/models | tail -1)
+          no=$(docker run --rm --entrypoint python3 "$IMAGE" -c "$t" https://github.com/5kasgard/exagium | tail -1)
+          echo "provider: $ok; github: $no"
+          echo "SEAL_OK=$ok" >> "$GITHUB_ENV"; echo "SEAL_NO=$no" >> "$GITHUB_ENV"
+          echo "CHECK_DROPS=$(sudo dmesg | grep -c 'B3DROP ' || true)" >> "$GITHUB_ENV"
+          if [ "$ok" != reached ] || [ "$no" != refused ]; then echo "network seal check failed"; exit 1; fi
+          echo "exit 0"
+      - name: agent attempt (sealed container)
+        if: matrix.arm != 'Z' && env.SKIP != '1'
+        env:
+          LLM_MODEL: ${{ matrix.model }}
+          LLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENHANDS_SUPPRESS_BANNER: "1"
+        run: |
+          rc=0; timeout 2100 "$RUNNER_TEMP/venv/bin/python" "$P/run_agent.py" "$P/${{ matrix.task }}.md" "$WS" "$RUNNER_TEMP/out" "$IMAGE" "$MAX_ITERATIONS" || rc=$?
+          echo "AGENT_RC=$rc" >> "$GITHUB_ENV"; echo "exit $rc"
+      - name: grade and measure
+        if: always()
+        run: |
+          O="$RUNNER_TEMP/out"; mkdir -p "$O/snaps"
+          if [ "${{ matrix.arm }}" = Z ]; then echo '{"control": true}' > "$O/run.json"; fi
+          [ -f "$O/run.json" ] || echo '{"error": "harness: no run.json (agent step rc='"${AGENT_RC:-none}"')"}' > "$O/run.json"
+          [ -f "$O/events.jsonl" ] || : > "$O/events.jsonl"
+          sudo chown -R "$(id -u)" "$WS" 2>/dev/null || true
+          git -C "$WS" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true
+          git -C "$WS" diff --cached HEAD > "$O/agent.diff" 2>/dev/null || true
+          all=$(sudo dmesg | grep -c 'B3DROP ' || true)
+          sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
+          python3 -c "import json,os;json.dump({'check_provider':os.environ.get('SEAL_OK'),'check_github':os.environ.get('SEAL_NO'),'drops':max(0,int('$all' or 0)-int(os.environ.get('CHECK_DROPS') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
+          meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'${{ matrix.model }}','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='Z','left_before':'${LEFT:-}'}))")
+          python3 "$P/measure.py" "$O" "$WS" "$P/fix_test.py" "$HIDDEN" "$P/p2p-$FIX.json" "$meta" > "$O/result.json"
+          python3 -c "import json;r=json.load(open('$O/result.json'));print({k:r[k] for k in ('task','arm','rep','end','passed','clean','calls','actions','wall_s','diff_files','n_snaps','green_actions','green_kept','first_hidden_pass_actions','egress_drops','snapshot_errors')})"
+          gzip -9 "$O/events.jsonl"; rm -f "$O/egress.txt"
+          echo "exit 0"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench3-${{ matrix.task }}-${{ matrix.arm }}-r${{ matrix.rep }}
+          path: ${{ runner.temp }}/out/
+  record:
+    needs: [plan, attempt]
+    if: always() && needs.plan.outputs.n != '0'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/download-artifact@v4
+        with: {path: art, pattern: bench3-*}
+      - name: commit results and the generated status to router-runs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp router/bench3/decide.py /tmp/decide.py
+          sub=bench3; [ "$MODE" = pilot ] && sub=bench3-pilot
+          mkdir -p "/tmp/new/$GITHUB_RUN_ID"; cp -r art/* "/tmp/new/$GITHUB_RUN_ID/"
+          find /tmp/new -type d -name snaps -prune -exec rm -rf {} +   # snapshots stay in the run's artifacts
+          git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+          mkdir -p "bench/$sub" && cp -r "/tmp/new/$GITHUB_RUN_ID" "bench/$sub/"
+          python3 -I /tmp/decide.py status "bench/$sub" > "bench/$sub/STATUS.md"
+          cat "bench/$sub/STATUS.md" >> "$GITHUB_STEP_SUMMARY"; cat "bench/$sub/STATUS.md"
+          git add bench && git commit -qm "bench-3 $MODE batch $GITHUB_RUN_ID" && git push -q origin router-runs
+          echo "exit 0"
