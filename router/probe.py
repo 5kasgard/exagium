@@ -26,10 +26,12 @@ def main(out):
         st, models = gemini_models()
         recs.append({"engine": "gemini", "model": "models.list", "ok": st == 200, "status": st,
                      "text": json.dumps(models) if st == 200 else None, "error": None if st == 200 else models})
-        flash = [m for m in models if "flash" in m and not any(x in m for x in ("image", "tts", "live", "audio"))] if st == 200 else []
-        stable = [m for m in flash if "preview" not in m and "exp" not in m] or flash
-        if stable:
-            plan.append(("gemini", stable[0]))
+        want = os.environ.get("PROBE_GEMINI_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite,gemini-4-argon,gemini-4-carbon").split(",")
+        for m in want:  # one request each; listed is not the same as allowed on the free tier
+            if st == 200 and "models/" + m in models:
+                plan.append(("gemini", "models/" + m))
+            else:
+                recs.append({"engine": "gemini", "model": m, "ok": False, "error": "not in this key's model list"})
     for engine, model in plan:
         r = call(engine, model, PROMPT, max_tokens=1500)
         r["exact"] = (r["text"] or "").strip() == WANT
