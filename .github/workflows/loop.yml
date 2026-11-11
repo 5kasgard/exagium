@@ -93,7 +93,7 @@ jobs:
         run: |
           gcc -O2 -o /tmp/confine loop/confine.c
           ro="--ro /usr --ro /lib --ro /bin --ro /etc/ld.so.cache --ro /dev/urandom --rw /dev/null --rw /tmp"
-          for extra in "--ro /proc/self" "--ro /proc"; do
+          for extra in "--ro /proc/self" "--ro /proc/self --ro /proc/cpuinfo"; do
             echo "== confine $extra"
             /tmp/confine $ro $extra -- /usr/bin/valgrind -v --tool=cachegrind --cachegrind-out-file=/dev/null /bin/true 2>&1 | tail -8
             echo "exit ${PIPESTATUS[0]}"

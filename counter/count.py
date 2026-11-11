@@ -222,7 +222,8 @@ def confine_prefix(confine, td):
         a += ["--ro", p]
     for p in confine.get("ls", []):
         a += ["--ls", p]
-    return a + ["--ro", "/proc/self", "--rw", SANDBOX, "--rw", td, "--rw", "/dev/null", "--"]
+    # valgrind reads its own /proc entries, and on arm64 /proc/cpuinfo to identify the CPU (CI run 42955632373)
+    return a + ["--ro", "/proc/self", "--ro", "/proc/cpuinfo", "--rw", SANDBOX, "--rw", td, "--rw", "/dev/null", "--"]
 
 
 def one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw=None, single_process=False, confine=None):
