@@ -8,9 +8,9 @@ python3 loop.py freeze DIR...                      # digests for a plan's "input
 python3 loop.py reproduce DIR...                   # retrain in the jail; weights must be byte-identical
 python3 loop.py evaluate DIR... --test dev         # smoke test (in-sample for anything trained on the whole file)
 python3 loop.py evaluate DIR... --test test --plan SEQ [--rounds R] [--seed S]
-python3 -m unittest -v test_loop                   # 18 tests, ~15 s
+python3 -m unittest -v test_loop                   # 20 tests, ~20 s (1 skipped under bubblewrap)
 ```
-Exit codes: 0 done; 1 a check failed; 2 bad arguments (e.g. `--test test` without `--plan`; the docstring omits this); 3 failure. Plan 2 froze `loop.py`, `timer.c`, `counter/count.py`, `record/record.py`, the task and the candidates. `record.py` changed after entry 4 (a fix found by Z), so re-measure plan 2 at commit `113a3f6`, the last one with every frozen file unchanged. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
+Exit codes: 0 done; 1 a check failed; 2 bad arguments (e.g. `--test test` without `--plan`; the docstring omits this); 3 failure. Plan 2 froze `loop.py`, `timer.c`, `counter/count.py`, `record/record.py`, the task and the candidates. `record.py` changed after entry 4 (a fix found by Z), so re-measure plan 2 at commit `113a3f6`, the last one with every frozen file unchanged. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces or else Linux 6.7+ for the fallback jail, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
 
 ## The task
 UCI optdigits (`task/SOURCE.md`): 8×8 images of 0..16 pixel counts, 3,823 training rows from 30 writers, 1,797 test rows from 13 other writers. The **dev** split is the last 25% of the training file. It is the holdout the baselines use to choose their L2 strength, so it's in-sample for anything refit on the whole file: a smoke test only.
