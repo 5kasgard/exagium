@@ -11,7 +11,7 @@ on:
         description: "space-separated ENGINE:MODEL list"
         default: "cloudflare:@cf/openai/gpt-oss-120b cloudflare:@cf/meta/llama-4-scout-17b-16e-instruct"
 permissions:
-  contents: write
+  contents: write   # pushes the replies, as received, to the router-runs branch
 defaults:
   run:
     shell: bash
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes to router-runs and uploads no artifact
       - name: ask
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

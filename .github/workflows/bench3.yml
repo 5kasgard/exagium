@@ -15,7 +15,7 @@ concurrency:
   group: bench
   cancel-in-progress: false
 permissions:
-  contents: write
+  contents: read   # every job reads; only `record` writes, and asks for it itself
 defaults:
   run:
     shell: bash
@@ -32,6 +32,7 @@ jobs:
       n: ${{ steps.plan.outputs.n }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {persist-credentials: false}
       - name: the rules must pass their own test
         run: python3 -I router/bench3/decide.py selftest; echo "exit $?"
       - name: measured free allowance, then the plan
@@ -61,24 +62,29 @@ jobs:
     if: needs.plan.outputs.n != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      B_TASK: ${{ matrix.task }}
+      B_ARM: ${{ matrix.arm }}
+      B_REP: ${{ matrix.rep }}
+      B_MODEL: ${{ matrix.model }}
     strategy:
       fail-fast: false
       max-parallel: 2   # OpenRouter free: 20 requests/min across the account
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-        with: {fetch-depth: 0, path: src}
+        with: {fetch-depth: 0, path: src, persist-credentials: false}
       - name: refuse paid models
         run: |
-          m="${{ matrix.model }}"
+          m="$B_MODEL"
           if [[ "$m" != none && "$m" != *:free ]]; then echo "paid model refused: $m"; exit 1; fi
           echo "exit 0"
       - name: private grader copy, pre-fix workspace, then delete the full checkout
         run: |
           P="$RUNNER_TEMP/private"; mkdir -p "$P" "$RUNNER_TEMP/out/snaps"
-          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='${{ matrix.task }}'][0];print(t['base'],t['fix'],t['hidden_test'])")
+          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='$B_TASK'][0];print(t['base'],t['fix'],t['hidden_test'])")
           echo "FIX=$fix" >> "$GITHUB_ENV"; echo "HIDDEN=$hidden" >> "$GITHUB_ENV"; echo "P=$P" >> "$GITHUB_ENV"
-          cp src/router/bench/grade.py src/router/bench3/run_agent.py src/router/bench3/measure.py src/router/bench3/decide.py "src/router/bench/p2p-$fix.json" "src/router/bench/tasks/${{ matrix.task }}.md" "$P/"
+          cp src/router/bench/grade.py src/router/bench3/run_agent.py src/router/bench3/measure.py src/router/bench3/decide.py "src/router/bench/p2p-$fix.json" "src/router/bench/tasks/$B_TASK.md" "$P/"
           git -C src show "$fix:record/test_record.py" > "$P/fix_test.py"
           WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
           git -C src archive "$base" | tar -x -C "$WS"
@@ -136,17 +142,17 @@ jobs:
       - name: agent attempt (sealed container)
         if: matrix.arm != 'Z' && env.SKIP != '1'
         env:
-          LLM_MODEL: ${{ matrix.model }}
+          LLM_MODEL: $B_MODEL
           LLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENHANDS_SUPPRESS_BANNER: "1"
         run: |
-          rc=0; timeout 2100 "$RUNNER_TEMP/venv/bin/python" "$P/run_agent.py" "$P/${{ matrix.task }}.md" "$WS" "$RUNNER_TEMP/out" "$IMAGE" "$MAX_ITERATIONS" || rc=$?
+          rc=0; timeout 2100 "$RUNNER_TEMP/venv/bin/python" "$P/run_agent.py" "$P/$B_TASK.md" "$WS" "$RUNNER_TEMP/out" "$IMAGE" "$MAX_ITERATIONS" || rc=$?
           echo "AGENT_RC=$rc" >> "$GITHUB_ENV"; echo "exit $rc"
       - name: grade and measure
         if: always()
         run: |
           O="$RUNNER_TEMP/out"; mkdir -p "$O/snaps"
-          if [ "${{ matrix.arm }}" = Z ]; then echo '{"control": true}' > "$O/run.json"; fi
+          if [ "$B_ARM" = Z ]; then echo '{"control": true}' > "$O/run.json"; fi
           [ -f "$O/run.json" ] || echo '{"error": "harness: no run.json (agent step rc='"${AGENT_RC:-none}"')"}' > "$O/run.json"
           [ -f "$O/events.jsonl" ] || : > "$O/events.jsonl"
           sudo chown -R "$(id -u)" "$WS" 2>/dev/null || true
@@ -156,7 +162,7 @@ jobs:
           all=$(sudo dmesg | grep -c 'B3DROP ' || true)
           sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SPT=[0-9]*//' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
           python3 -c "import json,os;json.dump({'check_provider':os.environ.get('SEAL_OK'),'check_github':os.environ.get('SEAL_NO'),'drops':max(0,int('$all' or 0)-int(os.environ.get('CHECK_DROPS') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
-          meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'${{ matrix.model }}','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='Z','left_before':'${LEFT:-}'}))")
+          meta=$(python3 -c "import json;print(json.dumps({'task':'$B_TASK','arm':'$B_ARM','model':'$B_MODEL','rep':int('$B_REP'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'$B_ARM'=='Z','left_before':'${LEFT:-}'}))")
           # grading imports the agent's code: since 2026-11-13 it runs in a container with no network, no key
           # and no token (security fix; an honest attempt's result is unchanged). The image is pulled for every arm.
           docker pull -q "$IMAGE" > /dev/null
@@ -174,10 +180,12 @@ jobs:
           path: ${{ runner.temp }}/out/
   record:
     needs: [plan, attempt]
+    permissions:
+      contents: write   # pushes results and the status table to the router-runs branch
     if: always() && needs.plan.outputs.n != '0'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes to router-runs and uploads no artifact
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: {path: art, pattern: bench3-*}
       - name: commit results and the generated status to router-runs

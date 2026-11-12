@@ -16,7 +16,7 @@ concurrency:
   group: bench
   cancel-in-progress: false
 permissions:
-  contents: write
+  contents: read   # every job reads; only `record` writes, and asks for it itself
 defaults:
   run:
     shell: bash
@@ -33,6 +33,7 @@ jobs:
       n: ${{ steps.plan.outputs.n }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {persist-credentials: false}
       - name: the rules must pass their own test
         run: python3 -I router/bench4/decide.py selftest; echo "exit $?"
       - name: measured free allowance, then the plan
@@ -62,13 +63,18 @@ jobs:
     if: needs.plan.outputs.n != '0'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      B_TASK: ${{ matrix.task }}
+      B_ARM: ${{ matrix.arm }}
+      B_REP: ${{ matrix.rep }}
+      B_MODEL: ${{ matrix.model }}
     strategy:
       fail-fast: false
       max-parallel: 2   # OpenRouter free: 20 requests/min across the account
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-        with: {fetch-depth: 0, path: src}
+        with: {fetch-depth: 0, path: src, persist-credentials: false}
       - name: refuse paid models
         run: |
           if [[ "$MODEL" != *:free ]]; then echo "paid model refused: $MODEL"; exit 1; fi
@@ -81,10 +87,10 @@ jobs:
       - name: private grader copy, pre-fix workspace, then delete the full checkout
         run: |
           P="$RUNNER_TEMP/private"; mkdir -p "$P" "$RUNNER_TEMP/out"
-          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='${{ matrix.task }}'][0];print(t['base'],t['fix'],t['hidden_test'])")
+          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='$B_TASK'][0];print(t['base'],t['fix'],t['hidden_test'])")
           echo "FIX=$fix" >> "$GITHUB_ENV"; echo "HIDDEN=$hidden" >> "$GITHUB_ENV"; echo "P=$P" >> "$GITHUB_ENV"
           cp src/router/bench/grade.py src/router/bench4/*.py src/router/bench4/seal.sh "src/router/bench/p2p-$fix.json" "$P/"
-          sed 's/of this repository/of this repository, which is in \/workspace/' "src/router/bench/tasks/${{ matrix.task }}.md" > "$P/task.md"
+          sed 's/of this repository/of this repository, which is in \/workspace/' "src/router/bench/tasks/$B_TASK.md" > "$P/task.md"
           git -C src show "$fix:record/test_record.py" > "$P/fix_test.py"
           WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
           git -C src archive "$base" | tar -x -C "$WS"
@@ -124,18 +130,18 @@ jobs:
           BENCH4_KEY_FILE: ${{ runner.temp }}/meter.key
           BENCH4_SEAL_CHECK: "1"
         run: |
-          rc=0; timeout $((WALL_S + 300)) python3 "$P/attempt.py" "${{ matrix.arm }}" "$P/task.md" "$WS" "$RUNNER_TEMP/out" bench4:run "$MODEL" "$CAP" "$WALL_S" "$GW" 8088 || rc=$?
+          rc=0; timeout $((WALL_S + 300)) python3 "$P/attempt.py" "$B_ARM" "$P/task.md" "$WS" "$RUNNER_TEMP/out" bench4:run "$MODEL" "$CAP" "$WALL_S" "$GW" 8088 || rc=$?
           echo "exit $rc"
       - name: grade and measure
         if: always()
         run: |
           O="$RUNNER_TEMP/out"; mkdir -p "$O"
-          if [ "${{ matrix.arm }}" = control ]; then echo '{"control": true}' > "$O/run.json"; fi
+          if [ "$B_ARM" = control ]; then echo '{"control": true}' > "$O/run.json"; fi
           all=$(sudo dmesg | grep -c 'B4DROP ' || true)
           sudo dmesg | grep 'B4DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SPT=[0-9]*//' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
           python3 -c "import json,os;json.dump({'drops':max(0,int('${all:-0}' or 0)-int(os.environ.get('DROPS0') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
           sudo chown -R "$(id -u)" "$WS" "$O" 2>/dev/null || true
-          meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'$MODEL','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='control','left_before':'${LEFT:-}','image_id':open('$RUNNER_TEMP/image_id').read().strip() if __import__('os').path.exists('$RUNNER_TEMP/image_id') else None}))")
+          meta=$(python3 -c "import json;print(json.dumps({'task':'$B_TASK','arm':'$B_ARM','model':'$MODEL','rep':int('$B_REP'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'$B_ARM'=='control','left_before':'${LEFT:-}','image_id':open('$RUNNER_TEMP/image_id').read().strip() if __import__('os').path.exists('$RUNNER_TEMP/image_id') else None}))")
           rm -f "$RUNNER_TEMP/meter.key"
           # grading imports the agent's code: it runs in a container with no network, no key and no token
           docker run --rm --network none -v "$WS":/ws -v "$O":/o:ro -v "$P":/p:ro bench4:run \
@@ -153,10 +159,12 @@ jobs:
           path: ${{ runner.temp }}/out/
   record:
     needs: [plan, attempt]
+    permissions:
+      contents: write   # pushes results and the status table to the router-runs branch
     if: always() && needs.plan.outputs.n != '0'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes to router-runs and uploads no artifact
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: {path: art, pattern: bench4-*}
       - name: commit results and the generated status to router-runs
