@@ -1,0 +1,60 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 231ebea..ebe4e10 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -386,6 +386,7 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    pending_proofs = []  # list of (seq, sigstore_time) for pending proofs
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -407,6 +408,8 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                if t is None:
++                    pending_proofs.append((seq, t))
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
+@@ -416,6 +419,20 @@ def cmd_check_anchors(a):
+         # was removed (found by Z, 2026-11-06)
+         if hi not in stamped:
+             bad.append(f"anchors/{hi:06d}.ots is missing, though the writer stamps every range head before attesting")
++    
++    # Check pending proofs against threshold if --max-pending-hours is set
++    if a.max_pending_hours is not None:
++        now = datetime.datetime.now(datetime.timezone.utc)
++        for seq, sigstore_time in pending_proofs:
++            if sigstore_time is not None:
++                attestation_time = datetime.datetime.fromtimestamp(sigstore_time, datetime.timezone.utc)
++                hours_since = (now - attestation_time).total_seconds() / 3600
++                if hours_since > a.max_pending_hours:
++                    bad.append(f"range head {seq:06d} still pending {int(hours_since)} h")
++                    print(f"still pending {int(hours_since)} h", file=sys.stderr)
++    else:
++        # Without the option, pending proofs are still accepted (exit 0)
++        pass
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+@@ -612,6 +629,8 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=int, default=None,
++                           help="if set, exit 1 if any range head's proof is still pending and its Sigstore attestation time is more than H hours ago")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")

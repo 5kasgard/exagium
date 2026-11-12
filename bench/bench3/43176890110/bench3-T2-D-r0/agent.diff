@@ -1,0 +1,384 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..08e7f39 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -102,6 +102,48 @@ def _need(d, key, typ, where):
+     if key not in d or not isinstance(d[key], typ) or (typ is int and isinstance(d[key], bool)):
+         raise Bad(f"{where}: needs {key} ({typ.__name__})")
+     return d[key]
++def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:
++    """Check that orphan.body.entries_b64 matches the attested range from pred.
++    
++    Returns None if valid, otherwise a problem string containing:
++    - 'range' for wrong count
++    - 'chain' for broken prev links
++    - 'head' for mismatched head hash
++    """
++    body = orphan.get("body", {})
++    entries_b64 = body.get("entries_b64", [])
++    
++    # Count check
++    expected_count = pred.get("to_seq", 0) - pred.get("from_seq", 0) + 1
++    if not isinstance(entries_b64, list) or len(entries_b64) != expected_count:
++        return f"range: expected {expected_count} entries, got {len(entries_b64)}"
++    
++    # Decode entries
++    entries = []
++    for i, b64 in enumerate(entries_b64):
++        try:
++            entries.append(base64.b64decode(b64, validate=True))
++        except Exception:
++            return f"range: entry {i+1} is not valid base64"
++    
++    # Chain validation
++    prev = pred.get("prev_sha256")
++    for i, entry_bytes in enumerate(entries):
++        try:
++            entry = parse_canonical(entry_bytes, f"orphan.entries_b64[{i}]")
++        except Bad:
++            return f"range: entry {i+1} is not canonical"
++        if entry.get("prev") != prev:
++            return f"chain: entry {i+1} prev doesn't match expected {prev}"
++        # Next entry should chain from this entry's sha256
++        prev = hashlib.sha256(entry_bytes).hexdigest()
++    
++    # Head validation
++    last_hash = hashlib.sha256(entries[-1]).hexdigest()
++    if last_hash != pred.get("head_sha256"):
++        return f"head: last entry hash {last_hash} != attested head {pred.get('head_sha256')}"
++    
++    return None
+ 
+ 
+ def _name(d, where):
+@@ -149,13 +191,22 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        if "entries_b64" in body:
++            entries_b64 = _need(body, "entries_b64", list, where)
++            for i, b64 in enumerate(entries_b64):
++                if not isinstance(b64, str):
++                    raise Bad(f"{where}.entries_b64[{i}]: must be a base64 string")
++                try:
++                    base64.b64decode(b64, validate=True)
++                except ValueError:
++                    raise Bad(f"{where}.entries_b64[{i}]: not valid base64")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
+@@ -533,6 +584,11 @@ def cmd_monitor(a):
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
+                 continue
++            # Check that the orphan entries match the attested range
++            problem = _orphan_entries_problem(o, pred)
++            if problem:
++                bad.append(f"orphan entry {o['seq']}: {problem}")
++                continue
+             orphans.append(dict(row, explained_by_entry=o["seq"], attested_range=f"{pred.get('from_seq')}-{pred.get('to_seq')}"))
+     missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []
+     print(json.dumps({"refs_checked": refs, "rekor_entries": len(seen), "ledger_anchors": len(known),
+diff --git a/record/test_full.py b/record/test_full.py
+new file mode 100644
+index 0000000..7df6141
+--- /dev/null
++++ b/record/test_full.py
+@@ -0,0 +1,127 @@
++#!/usr/bin/env python3
++"""Test orphan entries checking integration."""
++import json
++import base64
++import tempfile
++import os
++import sys
++sys.path.insert(0, '.')
++
++import record as R
++
++def test_orphan_entries_in_monitor():
++    """Simulate the monitor's orphan checking with entries_b64."""
++    with tempfile.TemporaryDirectory() as d:
++        os.makedirs(os.path.join(d, "entries"))
++        
++        # Create a simple chain: entry1 (plan), entry2 (plan), entry3 (verdict)
++        e1 = {
++            "seq": 1,
++            "prev": None,
++            "kind": "plan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "proposer",
++                "claim": "test",
++                "test": "test",
++                "decision_rule": "rule",
++                "baseline": "baseline",
++                "inputs": [],
++                "verdict_due": "9999-12-31",
++                "notes": ""
++            }
++        }
++        raw1 = R.canonical(e1)
++        
++        e2 = {
++            "seq": 2,
++            "prev": R.hashlib.sha256(raw1).hexdigest(),
++            "kind": "plan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "proposer",
++                "claim": "test2",
++                "test": "test2",
++                "decision_rule": "rule2",
++                "baseline": "baseline2",
++                "inputs": [],
++                "verdict_due": "9999-12-31",
++                "notes": ""
++            }
++        }
++        raw2 = R.canonical(e2)
++        
++        e3 = {
++            "seq": 3,
++            "prev": R.hashlib.sha256(raw2).hexdigest(),
++            "kind": "verdict",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "verifier",
++                "plan": {"seq": 1, "sha256": R.hashlib.sha256(raw1).hexdigest()},
++                "outcome": "pass",
++                "evidence": [],
++                "notes": ""
++            }
++        }
++        raw3 = R.canonical(e3)
++        
++        # Write to disk
++        with open(os.path.join(d, "entries", "000001.json"), "wb") as f:
++            f.write(raw1)
++        with open(os.path.join(d, "entries", "000002.json"), "wb") as f:
++            f.write(raw2)
++        with open(os.path.join(d, "entries", "000003.json"), "wb") as f:
++            f.write(raw3)
++        
++        chain, _ = R.load_chain(d)
++        head_hash = chain[-1][1]
++        
++        # Simulate monitor by calling _orphan_entries_problem directly
++        # This mimics what cmd_monitor does
++        orphan = {
++            "seq": 4,
++            "prev": chain[-1][1],
++            "kind": "orphan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "owner",
++                "log_index": 12345,
++                "reason": "run failed after attesting",
++                "statement_b64": base64.b64encode(json.dumps({
++                    "predicate": {
++                        "from_seq": 2,
++                        "to_seq": 3,
++                        "prev_sha256": chain[0][1],
++                        "head_sha256": head_hash
++                    }
++                }).encode()).decode(),
++                "entries_b64": [
++                    base64.b64encode(raw2).decode(),
++                    base64.b64encode(raw3).decode()
++                ]
++            }
++        }
++        
++        pred = {"from_seq": 2, "to_seq": 3, "prev_sha256": chain[0][1], "head_sha256": head_hash}
++        problem = R._orphan_entries_problem(orphan, pred)
++        assert problem is None, f"Expected None, got {problem}"
++        
++        # Now test with a bad orphan (wrong entries)
++        orphan_bad = orphan.copy()
++        orphan_bad["body"] = orphan["body"].copy()
++        # Tamper with entry2's body (change claim)
++        e2_tampered = json.loads(raw2.decode())
++        e2_tampered["body"]["claim"] = "tampered"
++        raw2_tampered = R.canonical(e2_tampered)
++        orphan_bad["body"]["entries_b64"][0] = base64.b64encode(raw2_tampered).decode()
++        
++        problem = R._orphan_entries_problem(orphan_bad, pred)
++        # The prev of entry2 in the tampered entry will be wrong (the prev chain will be different)
++        # So it should be a "chain" problem
++        assert problem is not None and "chain" in problem, f"Expected chain problem, got {problem}"
++        
++        print("All integration tests passed")
++
++if __name__ == "__main__":
++    test_orphan_entries_in_monitor()
+\ No newline at end of file
+diff --git a/record/test_orphan_entries.py b/record/test_orphan_entries.py
+new file mode 100644
+index 0000000..ae4128d
+--- /dev/null
++++ b/record/test_orphan_entries.py
+@@ -0,0 +1,154 @@
++#!/usr/bin/env python3
++"""Quick test for _orphan_entries_problem function."""
++import json
++import base64
++import record as R
++import tempfile
++import os
++
++def test_orphan_entries_problem():
++    with tempfile.TemporaryDirectory() as d:
++        os.makedirs(os.path.join(d, "entries"))
++        # Create a simple chain: entry1 (plan), entry2 (plan), entry3 (verdict)
++        # We'll manually write entries to get known hashes
++        # entry1: plan
++        e1 = {
++            "seq": 1,
++            "prev": None,
++            "kind": "plan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "proposer",
++                "claim": "test",
++                "test": "test",
++                "decision_rule": "rule",
++                "baseline": "baseline",
++                "inputs": [],
++                "verdict_due": "9999-12-31",
++                "notes": ""
++            }
++        }
++        raw1 = R.canonical(e1)
++        # entry2: plan
++        e2 = {
++            "seq": 2,
++            "prev": R.hashlib.sha256(raw1).hexdigest(),
++            "kind": "plan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "proposer",
++                "claim": "test2",
++                "test": "test2",
++                "decision_rule": "rule2",
++                "baseline": "baseline2",
++                "inputs": [],
++                "verdict_due": "9999-12-31",
++                "notes": ""
++            }
++        }
++        raw2 = R.canonical(e2)
++        # entry3: verdict
++        e3 = {
++            "seq": 3,
++            "prev": R.hashlib.sha256(raw2).hexdigest(),
++            "kind": "verdict",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "verifier",
++                "plan": {"seq": 1, "sha256": R.hashlib.sha256(raw1).hexdigest()},
++                "outcome": "pass",
++                "evidence": [],
++                "notes": ""
++            }
++        }
++        raw3 = R.canonical(e3)
++        # Write to disk
++        with open(os.path.join(d, "entries", "000001.json"), "wb") as f:
++            f.write(raw1)
++        with open(os.path.join(d, "entries", "000002.json"), "wb") as f:
++            f.write(raw2)
++        with open(os.path.join(d, "entries", "000003.json"), "wb") as f:
++            f.write(raw3)
++        
++        # Load chain to get head hash
++        chain, _ = R.load_chain(d)
++        head_hash = chain[-1][1]  # entry3's sha256
++        
++        # Create an orphan with entries_b64 that match the attested range 2-3
++        # We'll write a dummy orphan with entries_b64
++        orphan = {
++            "seq": 4,
++            "prev": chain[-1][1],
++            "kind": "orphan",
++            "written_at": "2024-01-01T00:00:00Z",
++            "body": {
++                "by": "owner",
++                "log_index": 12345,
++                "reason": "run failed after attesting",
++                "statement_b64": base64.b64encode(json.dumps({
++                    "predicate": {
++                        "from_seq": 2,
++                        "to_seq": 3,
++                        "prev_sha256": chain[0][1],  # entry1's sha256
++                        "head_sha256": head_hash
++                    }
++                }).encode()).decode(),
++                "entries_b64": [
++                    base64.b64encode(raw2).decode(),
++                    base64.b64encode(raw3).decode()
++                ]
++            }
++        }
++        
++        # Test the function
++        pred = {"from_seq": 2, "to_seq": 3, "prev_sha256": chain[0][1], "head_sha256": head_hash}
++        problem = R._orphan_entries_problem(orphan, pred)
++        assert problem is None, f"Expected None, got {problem}"
++        print("PASS: valid orphan entries")
++        
++        # Test with wrong count (only one entry)
++        orphan2 = orphan.copy()
++        orphan2["body"] = orphan["body"].copy()
++        orphan2["body"]["entries_b64"] = [base64.b64encode(raw2).decode()]
++        problem = R._orphan_entries_problem(orphan2, pred)
++        assert problem is not None and "range" in problem, f"Expected range problem, got {problem}"
++        print(f"PASS: wrong count - {problem}")
++        
++        # Test with broken chain (wrong prev)
++        orphan3 = orphan.copy()
++        orphan3["body"] = orphan["body"].copy()
++        # tamper with second entry's prev in the entry (not the chain)
++        e3_tampered = json.loads(raw3.decode())
++        e3_tampered["prev"] = "bad"
++        raw3_tampered = R.canonical(e3_tampered)
++        orphan3["body"]["entries_b64"] = [
++            base64.b64encode(raw2).decode(),
++            base64.b64encode(raw3_tampered).decode()
++        ]
++        problem = R._orphan_entries_problem(orphan3, pred)
++        assert problem is not None and "chain" in problem, f"Expected chain problem, got {problem}"
++        print(f"PASS: broken chain - {problem}")
++        
++        # Test with wrong head hash
++        orphan4 = orphan.copy()
++        orphan4["body"] = orphan["body"].copy()
++        # change head hash in pred
++        pred_wrong = pred.copy()
++        pred_wrong["head_sha256"] = "0" * 64
++        problem = R._orphan_entries_problem(orphan4, pred_wrong)
++        assert problem is not None and "head" in problem, f"Expected head problem, got {problem}"
++        print(f"PASS: wrong head - {problem}")
++        
++        # Test with missing entries_b64 (should return None? Actually entries_b64 empty list)
++        orphan5 = orphan.copy()
++        orphan5["body"] = orphan["body"].copy()
++        orphan5["body"]["entries_b64"] = []
++        problem = R._orphan_entries_problem(orphan5, pred)
++        # Since expected count is 2, empty list -> wrong count, so problem with "range"
++        assert problem is not None and "range" in problem, f"Expected range problem for missing entries, got {problem}"
++        print(f"PASS: missing entries - {problem}")
++        
++        print("All tests passed")
++
++if __name__ == "__main__":
++    test_orphan_entries_problem()
+\ No newline at end of file

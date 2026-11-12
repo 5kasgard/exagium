@@ -1,0 +1,69 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 231ebea..51c5cb6 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -386,6 +386,8 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    # Track attestation times for range heads (from sigstore bundles)
++    head_attestations = {}  # seq -> attestation_time (unix timestamp)
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -405,6 +407,7 @@ def cmd_check_anchors(a):
+                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
+                 ranges.append((pred["from_seq"], seq, commit))
++                head_attestations[seq] = t
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
+         except Bad as ex:
+@@ -427,6 +430,29 @@ def cmd_check_anchors(a):
+         prev_commit = commit
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
++    
++    # Check for stuck pending OTS proofs if --max-pending-hours is set
++    if a.max_pending_hours is not None:
++        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
++        max_pending_seconds = a.max_pending_hours * 3600
++        for lo, hi, commit in sorted(ranges):
++            if hi in stamped:
++                # Find the OTS proof for this range head and check if it's pending
++                ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++                if os.path.exists(ots_path):
++                    raw = open(os.path.join(a.ledger, "entries", f"{hi:06d}.json"), "rb").read()
++                    try:
++                        t = check_ots(ots_path, raw, a.explorer)
++                        if t is None:  # proof is pending
++                            attestation_time = head_attestations.get(hi)
++                            if attestation_time is not None:
++                                hours_pending = int((now - attestation_time) // 3600)
++                                if now - attestation_time > max_pending_seconds:
++                                    bad.append(f"anchors/{hi:06d}.ots: still pending {hours_pending} h (attested {iso(attestation_time)})")
++                    except (Bad, CantCheck):
++                        # Already handled in the main loop, but we can't check pending status
++                        pass
++    
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
+                       "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
+     for x in bad:
+@@ -612,6 +638,8 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=int, metavar="H",
++                           help="exit 1 if any range head's OTS proof is pending and its Sigstore attestation is more than H hours old")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")

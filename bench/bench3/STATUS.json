@@ -1,106 +1,113 @@
 {
  "complete": false,
- "open_cells": 72,
- "counted": 3,
+ "open_cells": 60,
+ "counted": 15,
  "provider_cut": [],
  "control_ok": true,
  "void": false,
  "seal": "holds",
- "egress_drops": 36,
+ "egress_drops": 180,
  "ends": {
-  "iteration_cap": 1,
-  "stuck": 1,
-  "finished": 1
+  "iteration_cap": 3,
+  "stuck": 3,
+  "finished": 6,
+  "unclassified": 3
  },
  "harness": {
-  "no_crash": 3,
-  "n": 3,
-  "verdict": "inconclusive"
+  "no_crash": 12,
+  "n": 15,
+  "verdict": "holds"
  },
  "arms": {
   "A": {
    "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
-   "clean_passes": 1,
-   "n": 1,
-   "low": 0.025,
+   "clean_passes": 3,
+   "n": 3,
+   "low": 0.292,
    "high": 1.0,
    "usable": "inconclusive",
    "stopped_for_futility": false,
    "median_calls": 30,
-   "calls_per_clean_pass": 30.0,
+   "calls_per_clean_pass": 32.7,
    "median_wall_s": 302.6,
    "ends": {
-    "finished": 1
+    "finished": 3
    }
   },
   "B": {
    "model": "openrouter/recursive/flint-v1.0:free",
    "clean_passes": 0,
-   "n": 1,
+   "n": 3,
    "low": 0.0,
-   "high": 0.975,
+   "high": 0.708,
    "usable": "inconclusive",
    "stopped_for_futility": false,
-   "median_calls": 37,
+   "median_calls": 19,
    "calls_per_clean_pass": null,
-   "median_wall_s": 303.4,
+   "median_wall_s": 149.8,
    "ends": {
-    "stuck": 1
+    "stuck": 3
    }
   },
   "D": {
    "model": "openrouter/cohere/north-mini-code:free",
-   "clean_passes": 0,
-   "n": 1,
-   "low": 0.0,
-   "high": 0.975,
+   "clean_passes": 1,
+   "n": 3,
+   "low": 0.008,
+   "high": 0.906,
    "usable": "inconclusive",
    "stopped_for_futility": false,
    "median_calls": 80,
-   "calls_per_clean_pass": null,
-   "median_wall_s": 321.5,
+   "calls_per_clean_pass": 199.0,
+   "median_wall_s": 303.0,
    "ends": {
-    "iteration_cap": 1
+    "iteration_cap": 2,
+    "finished": 1
    }
   },
   "E": {
    "model": "openrouter/baidu/ernie-5.5-flash-preview:free",
-   "clean_passes": 0,
-   "n": 0,
-   "low": 0.0,
-   "high": 1.0,
+   "clean_passes": 2,
+   "n": 3,
+   "low": 0.094,
+   "high": 0.992,
    "usable": "inconclusive",
    "stopped_for_futility": false,
-   "median_calls": null,
-   "calls_per_clean_pass": null,
-   "median_wall_s": 0,
-   "ends": {}
+   "median_calls": 56,
+   "calls_per_clean_pass": 87.5,
+   "median_wall_s": 243.6,
+   "ends": {
+    "iteration_cap": 1,
+    "finished": 2
+   }
   },
   "F": {
    "model": "openrouter/dots-studio/dots-3-note-preview:free",
    "clean_passes": 0,
-   "n": 0,
+   "n": 3,
    "low": 0.0,
-   "high": 1.0,
+   "high": 0.708,
    "usable": "inconclusive",
    "stopped_for_futility": false,
-   "median_calls": null,
+   "median_calls": 0,
    "calls_per_clean_pass": null,
-   "median_wall_s": 0,
-   "ends": {}
+   "median_wall_s": 21.2,
+   "ends": {
+    "unclassified": 3
+   }
   }
  },
  "ranking": [],
  "stop_on_green": {
-  "n": 1,
-  "kept": 1,
-  "median_saving": 0.5,
+  "n": 6,
+  "kept": 3,
+  "median_saving": 0.6927767354596623,
   "verdict": "inconclusive",
-  "median_share_of_actions_after_first_hidden_pass": 0.5
+  "median_share_of_actions_after_first_hidden_pass": 0.6299249530956847
  },
  "budget": {
   "median_calls": 37,
-  "total_calls": 147,
+  "total_calls": 543,
   "calls_in_uncounted_attempts": 0
  }
 }
