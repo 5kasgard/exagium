@@ -1,0 +1,73 @@
+<!-- openrouter nvidia/nemotron-3-ultra-550b-a55b:free status=200 latency=84.38s -->
+
+ID: REC-001 | severity: high | file: record/record.py:228-251 | the defect in one sentence | cmd_ingest writes entries one at a time but validates the entire chain after each write, so a crash after writing entry N but before removing the inbox file leaves entry N in the ledger and the proposal in inbox, causing duplicate ingestion on restart | evidence (quote at most 2 lines) |     with open(out, "xb") as f:
+        f.write(raw)
+        try:
+            load_chain(a.ledger)  # the new entry must pass every rule
+        except Bad as ex:
+            os.remove(out)
+            raise Bad(f"inbox/{n}: {ex}")
+        chain.append((e, hashlib.sha256(raw).hexdigest()))
+        os.remove(p) | the cheapest test that would prove it | Kill the process after line 242 (after write, before os.remove(p)) and restart ingest; the same proposal will be ingested again as entry N+1 with different seq | confidence | seen | what would show it is a false alarm | If the inbox file is removed before writing the entry (atomic move) or if there's a separate "already ingested" marker file
+
+ID: REC-002 | severity: high | file: record/record.py:399-413 | the defect in one sentence | cmd_check_anchors reads entry files without verifying they haven't been modified since the anchor was created, so a mutated entry file would pass anchor checks if the anchor covers the mutated bytes | evidence (quote at most 2 lines) |             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+            if m.group(2) == "ots":
+                t = check_ots(path, raw, a.explorer) | the cheapest test that would prove it | Modify an entry file after its anchor exists, then run check-anchors; it will verify the anchor against the modified bytes | confidence | seen | what would show it is a false alarm | If check_ots and check_sigstore verified against the hash stored in the chain rather than re-reading the file
+
+ID: REC-003 | severity: medium | file: record/record.py:431-439 | the defect in one sentence | _code_changed uses git diff between commits but doesn't handle the case where commits are not ancestors/descendants, so merge commits or unrelated histories could give misleading "writer_code_changed" results | evidence (quote at most 2 lines) |     r = subprocess.run(["git", "-C", root, "diff", "--quiet", c1, c2, "--", "record", ".github"])
+    return {0: False, 1: True}.get(r.returncode, "unknown") | the cheapest test that would prove it | Create two unrelated commits with different record/ code, run check-anchors with ranges covering both; the diff will show changes but they're not a linear history | confidence | seen | what would show it is a false alarm | If the code verified commit ancestry before diffing, or documented the limitation
+
+ID: REC-004 | severity: medium | file: record/record.py:534-597 | the defect in one sentence | cmd_monitor's "published" set is computed once before checking orphans, but if an orphan explains a log index whose entries were published then removed, the check at line 587 uses a stale "published" set that doesn't reflect the current ledger state | evidence (quote at most 2 lines) |     published = _published_entry_hashes(a, a.git_rev) if explained else set()
+            if head in published and head not in current: | the cheapest test that would prove it | Create an orphan explaining entries that were published then force-pushed away; the check will pass because published is computed from git history before the force push | confidence | inferred | what would show it is a false alarm | If published were recomputed per-orphan or if the check used the current chain state
+
+ID: REC-005 | severity: medium | file: record/record.py:558-566 | the defect in one sentence | cmd_monitor calls _pages for each ref which can raise CantCheck on 404, but the exception is caught at the top level (line 643) returning exit 2, so a single failing ref aborts monitoring of all other refs | evidence (quote at most 2 lines) |         uuids = _get("https://rekor.sigstore.dev/api/v1/index/retrieve", json.dumps({"subject": identity(a.repo, a.workflow, ref)}).encode())
+            if uuids is None:
+                raise CantCheck("Rekor's index returned 404") | the cheapest test that would prove it | Configure a ref that returns 404 from Rekor's index; monitor exits 2 without checking other refs | confidence | seen | what would show it is a false alarm | If CantCheck were caught per-ref and logged, continuing to other refs
+
+ID: REC-006 | severity: low | file: record/record.py:91-97 | the defect in one sentence | parse_canonical calls _check_value which rejects floats, but JSON allows NaN/Infinity which parse_constant rejects earlier, yet the error message doesn't distinguish between "float value" and "NaN/Infinity" | evidence (quote at most 2 lines) |     if isinstance(v, float):
+            raise Bad(f"{where}: floats aren't allowed; write numbers with a fraction as strings") | the cheapest test that would prove it | Submit a proposal with {"body": {"claim": "x", "test": "y", "decision_rule": "z", "by": "a", "value": float("nan")}}; error says "floats aren't allowed" but it was NaN | confidence | seen | what would show it is a false alarm | If the error message distinguished NaN/Infinity from regular floats
+
+ID: CNT-001 | severity: high | file: counter/count.py:349-354 | the defect in one sentence | The sandbox lock is held during all reps, but if the process crashes between reps, the lock file remains and the sandbox directory is left in an inconsistent state (not cleaned up) | evidence (quote at most 2 lines) |     with open(SANDBOX + ".lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)  # one counter at a time owns the fixed sandbox path
+            try:
+                rows = [one_rep(cmd, cache, env, exe, inputs, timeout, keep_raw, single_process, confine) for _ in range(reps)] | the cheapest test that would prove it | Kill the process during the second rep; the lock file persists and sandbox directory remains with partial state | confidence | seen | what would show it is a false alarm | If the lock used a pid file with stale detection, or if sandbox cleanup happened in a finally block outside the lock
+
+ID: CNT-002 | severity: high | file: counter/count.py:230-303 | the defect in one sentence | one_rep creates a pipe for valgrind logs but if valgrind crashes before writing "Command:" header, the reader thread blocks indefinitely on os.read, and the 10-second join timeout may not fire if the pipe is never closed | evidence (quote at most 2 lines) |         reader = threading.Thread(target=lambda: chunks.extend(iter(lambda: os.read(rfd, 65536), b"")), daemon=True)
+            reader.start() | the cheapest test that would prove it | Run a command that causes valgrind to crash immediately (e.g., invalid binary); the reader thread may hang | confidence | inferred | what would show it is a false alarm | If the pipe were set to non-blocking or if there were a timeout on the read
+
+ID: CNT-003 | severity: medium | file: counter/count.py:251-253 | the defect in one sentence | --single-process checks pid allocation but doesn't account for valgrind's own internal threads/processes, so it may falsely flag legitimate valgrind behavior as extra processes | evidence (quote at most 2 lines) |     if single_process and (made := last_pid() - pid0) != 1:
+            # every process or thread takes a pid, even one killed before it reports its counts (review 3)
+            raise Failure(f"the command made {made - 1} more process(es) or thread(s)") | the cheapest test that would prove it | Run a simple command with --single-process in a pid namespace; valgrind may allocate extra pids for its own use | confidence | inferred | what would show it is a false alarm | If the code documented that valgrind's own pids are included, or filtered them
+
+ID: CNT-004 | severity: medium | file: counter/count.py:367-370 | the defect in one sentence | The tool fingerprint includes the count.py script's hash, but if count.py is modified after the record is written, _recheck will fail with "a different valgrind launcher or cachegrind binary" because it recomputes the fingerprint | evidence (quote at most 2 lines) |             "count.py": sha256_file(os.path.abspath(__file__)) | the cheapest test that would prove it | Write a record, modify count.py, run --check; it fails with "a different valgrind launcher or cachegrind binary" even though valgrind is unchanged | confidence | seen | what would show it is a false alarm | If the fingerprint excluded count.py or if _recheck didn't compare it
+
+ID: CNT-005 | severity: medium | file: counter/count.py:460-465 | the defect in one sentence | _recheck compares valgrind version strings and tool fingerprints, but version strings may be identical while the actual binary differs (e.g., rebuilt from same source), and the fingerprint comparison only checks launcher and cachegrind, not the full toolchain | evidence (quote at most 2 lines) |     if not exe or valgrind_version(exe) != rec["tool"]["valgrind"]:
+            return 2, "valgrind missing or a different version"
+        tf = tool_fingerprint(exe)
+        if {k: tf[k] for k in ("launcher", "cachegrind")} != {k: rec["tool"]["files"][k] for k in ("launcher", "cachegrind")}: | the cheapest test that would prove it | Rebuild valgrind from same source (same version string), run --check; it passes fingerprint but may have different behavior | confidence | inferred | what would show it is a false alarm | If the fingerprint included build IDs or if the comparison was documented as best-effort
+
+ID: CNT-006 | severity: low | file: counter/count.py:119-129 | the defect in one sentence | shared_libs uses ldd which resolves libraries at runtime with the current LD_LIBRARY_PATH, but the sandbox runs with a fixed environment, so the fingerprint may not match what valgrind actually loads | evidence (quote at most 2 lines) |     p = subprocess.run(["ldd", path], capture_output=True, text=True)
+        for line in p.stdout.splitlines():
+            lib = line.split("=>")[-1].split("(")[0].strip() | the cheapest test that would prove it | Set LD_LIBRARY_PATH to a custom path, run count.py; ldd resolves to different libraries than valgrind will load in the sandbox | confidence | seen | what would show it is a false alarm | If ldd were run with the sandbox environment, or if the fingerprint recorded the actual loaded libraries from valgrind output
+
+ID: CNT-007 | severity: low | file: counter/count.py:499-508 | the defect in one sentence | parse_cache accepts "reference" and "host" as strings but returns REFERENCE dict or "host" string, while the rest of the code expects a dict for cache configs, creating a type inconsistency | evidence (quote at most 2 lines) |     if s in ("reference", "host"):
+            return REFERENCE if s == "reference" else "host" | the cheapest test that would prove it | Run with --cache=host, then check cache_args(cache) at line 189; it returns [] for "host" string but expects dict for others | confidence | seen | what would show it is a false alarm | If the code consistently used a sentinel object or string for "host" mode
+
+ID: CNT-008 | severity: low | file: counter/count.py:335-343 | the defect in one sentence | The debug directory check raises Failure if /usr/lib/debug contains .so files, but this is a host configuration issue, not a user error, and should be a warning or CantCheck (exit 2) not a Failure (exit 3) | evidence (quote at most 2 lines) |     if debug_dir_libraries():
+            raise Failure(f"/usr/lib/debug holds shared libraries {debug_dir_libraries()}: valgrind's LD_LIBRARY_PATH would load "
+                          "them unfingerprinted (review 4)") | the cheapest test that would prove it | Create a .so file in /usr/lib/debug, run count.py; it exits 3 (failure) instead of 2 (can't compare) | confidence | seen | what would show it is a false alarm | If this raised CantCheck instead of Failure
+
+checked, no finding: Empty/zero/one inputs handled in both files (record.py:188 checks empty chain, count.py:333 checks empty cmd)
+checked, no finding: Very large inputs bounded (record.py:20 MAX_INT, count.py:1<<20 read chunks)
+checked, no finding: Unicode handled via UTF-8 encode/decode with errors="replace" in count.py:258, strict in record.py
+checked, no finding: Line endings normalized by JSON parsing in both files
+checked, no finding: JSON canonicalization enforced in record.py (RFC 8785 via canonical()), count.py uses sort_keys
+checked, no finding: Hashing uses sha256 consistently in both files
+checked, no finding: Time zones use UTC explicitly (record.py:222, count.py:35 BASE_ENV TZ=UTC)
+checked, no finding: Clock sources use datetime.timezone.utc in record, datetime.now(timezone.utc) in count
+checked, no finding: Error paths not swallowed - both use specific exception types (Bad/CantCheck/Failure)
+checked, no finding: Exit codes correct - 0 success, 1 data error, 2 can't check, 3 unexpected failure in both files
+checked, no finding: No marker files or retry counters creating hidden state machines
+checked, no finding: No "already done" guards that could be bypassed by crashes
+checked, no finding: No side effects that can be lost or done twice except REC-001 and CNT-001 identified above
+checked, no finding: No partial writes except REC-001 (uses "xb" mode for atomic create)
