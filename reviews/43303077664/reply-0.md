@@ -1,0 +1,3 @@
+<!-- cloudflare @cf/openai/gpt-oss-120b status=200 latency=79.13s -->
+
+{"result": {"id": "chatcmpl-69e15b31-888c-426d-95c8-b04a5d7b8d83", "object": "chat.completion", "created": 1794516198, "model": "@cf/openai/gpt-oss-120b", "choices": [{"index": 0, "message": {"role": "assistant", "content": null, "refusal": null, "annotations": null, "audio": null, "function_call": null, "reasoning": "We need to produce findings about loop's confinement and timing code, focusing on threat model: candidate program hostile, wants to escape confinement, read/write outside, use network, fake measured cost.\n\nWe must check for defects: syscall filtering gaps, missing syscalls, Lan
