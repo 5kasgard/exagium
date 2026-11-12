@@ -1,0 +1,3 @@
+<!-- cloudflare @cf/openai/gpt-oss-120b status=200 latency=88.58s -->
+
+{"result": {"id": "chatcmpl-3bfb3cc5-6537-46cd-960f-c887e3f056f4", "object": "chat.completion", "created": 1794516199, "model": "@cf/openai/gpt-oss-120b", "choices": [{"index": 0, "message": {"role": "assistant", "content": null, "refusal": null, "annotations": null, "audio": null, "function_call": null, "reasoning": "We need to produce output: first a table for survivors classified as EQUIVALENT, MISSING TEST, or POSSIBLE BUG. For each survivor line, we list line | mutation | class | assertion or reason.\n\nOnly produce findings for POSSIBLE BUG items, using the required format: ID | severity
