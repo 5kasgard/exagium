@@ -37,7 +37,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
-          mkdir -p reviews && cp -r "$RUNNER_TEMP/rev" "reviews/$GITHUB_RUN_ID"
-          git add reviews && git commit -qm "outside review $GITHUB_RUN_ID" && git push -q origin router-runs
-          echo "exit 0"
+          # several reviews can run at once: rebuild the commit on the newest router-runs and retry the push
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+            mkdir -p reviews && rm -rf "reviews/$GITHUB_RUN_ID" && cp -r "$RUNNER_TEMP/rev" "reviews/$GITHUB_RUN_ID"
+            git add reviews && git commit -qm "outside review $GITHUB_RUN_ID"
+            git push -q origin router-runs && { echo "pushed on try $i"; exit 0; }
+            sleep $((i * 7))
+          done
+          exit 1
