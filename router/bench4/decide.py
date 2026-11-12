@@ -255,6 +255,54 @@ def selftest():
     s2 = status(full)
     assert s2["complete"] and s2["switch_to"] == "pi" and set(s2["switch_candidates"]) == {"goose", "pi"}
     markdown(s); markdown(s2)
+
+    # Added 2026-11-13 after a mutation check (60 of 163 mutants killed). Tests only: no rule above changed.
+    # Each line names the break it catches. Expected values come from scipy or are derived by hand, not from this file.
+    assert classify({"ending": "exited"}, [{"status": 500}], False) == "provider_error"     # 5xx boundary: >= 500, not > 500
+    assert classify({"ending": "exited"}, [{"status": 499}], False) == "exited"             # a 4xx stays the harness's own
+    for (k, n), (lo, hi) in {(0, 9): (0.0, 0.3363), (5, 9): (0.2120, 0.8630), (9, 9): (0.6637, 1.0)}.items():
+        got = interval(k, n)                                                               # Clopper-Pearson, scipy reference
+        assert abs(got[0] - lo) < 5e-4 and abs(got[1] - hi) < 5e-4, (k, n, got)
+    assert abs(fisher_less(3, 9, 9, 9) - 0.0045249) < 1e-6                                 # scipy fisher_exact, alternative=less
+    pe = lambda t, a, rep: res(t, a, rep, "provider_error")
+    d2 = cells([pe("T1", "goose", 0)] * 2)
+    assert ("T1", "goose", 0) not in d2                                                    # 2 provider errors: retried, not cut
+    d3 = cells([pe("T1", "goose", 0)] * 3)
+    assert d3[("T1", "goose", 0)] == "provider_cut"                                        # the 3rd cuts the cell
+    assert cells([pe("T1", "goose", 0)] * 3 + [res("T1", "goose", 0, "exited", p=True)])[("T1", "goose", 0)] != "provider_cut"  # a counted attempt wins
+    s3 = status(rs + [pe("T2", "goose", 0)] * 3 + [res("T3", "goose", 0, "seal_failed")])
+    assert s3["provider_cut"] == [] and s3["seal_checks_failed"] == 1                      # goose cells were already counted; seal fails are tallied
+    late = [res(t, "pi", r, "exited", p=(t == "T1" and r == 2)) for t in TASKS for r in range(REPS)]
+    assert futile(cells(late), "pi")                                                       # futility reads reps 0-1 first; a pass in rep 2 is too late
+    early = [res(t, "pi", r, "exited", p=(t == "T1" and r == 1)) for t in TASKS for r in range(REPS)]
+    assert not futile(cells(early), "pi")
+    assert not futile(cells([res(t, "openhands", r, "exited") for t in TASKS for r in range(REPS)]), "openhands")  # the base is never stopped
+
+    def arm(a, tok, passes):
+        return [res(t, a, r, "exited", p=(r < passes), tok=tok) for t in TASKS for r in range(REPS)]
+    base = [res(t, "control", 0, "control") for t in TASKS] + arm("openhands", 800000, 3)
+    rest = lambda **kw: [x for a in ("mini", "goose", "pi", "opencode") for x in arm(a, kw.get(a, 800000), kw.get(a + "_p", 3))]
+    s4 = status(base + rest(goose=240000))                                                 # ratio 0.30: at most 1/3, a candidate
+    assert s4["arms"]["goose"]["token_ratio"] == 0.3 and s4["switch_to"] == "goose"
+    s5 = status(base + rest(goose=272000))                                                 # ratio 0.34: above 1/3, not a candidate
+    assert s5["arms"]["goose"]["cheaper"] is True and s5["switch_to"] is None
+    s6 = status(base + rest(goose=24000, goose_p=1))                                       # 3/9 vs 9/9: cheaper per pass but worse
+    g6 = s6["arms"]["goose"]
+    assert g6["worse"] and g6["cheaper"] is True and g6["token_ratio"] == 0.09 and s6["switch_to"] is None
+    s7 = status(base + rest(goose=1200000))                                                # ratio 1.5 everywhere: interval [1.5, 1.5]
+    assert s7["arms"]["goose"]["cheaper"] is False                                         # "cheaper" needs the upper end below 1
+    voided = [res("T1", "control", 0, "control", p=True)] + base[1:] + rest(goose=240000)
+    sv = status(voided)
+    assert sv["void"] and not sv["control_ok"] and sv["switch_to"] is None                 # a passing control voids any switch
+    assert not status(base[1:] + rest(goose=240000))["control_ok"]                         # a missing control is not "control fails all"
+    part = status(base + arm("goose", 240000, 3))
+    assert not part["complete"] and part["switch_to"] is None                              # open cells: no verdict yet
+    assert [c["arm"] for c in plan(base, 1000)[0]].count("control") == 0                   # controls already run are not re-run
+    for miss, known in ((4, True), (5, False)):                                            # usage missing on at most 10% of calls
+        assert tokens_known([res("T1", "mini", 0, "exited", calls=40, miss=miss)]) is known
+    assert tokens_known([res("T1", "mini", 0, "exited", calls=0)]) is False                # no calls: tokens unknown, not "all known"
+    sc = status(rs + [pe("T1", "pi", 2)] * 3)
+    assert sc["provider_cut"] == [("T1", "pi", 2)] and sc["counted"] == 42      # 9+9+9+9+6 agent attempts; a cut cell is not counted
     print("selftest ok:", len(ENDS), "labels reached")
 
 
