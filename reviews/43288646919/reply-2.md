@@ -1,0 +1,3 @@
+<!-- cloudflare @cf/qwen/qwen3-30b-a3b-fp8 status=200 latency=27.31s -->
+
+{"result": {"id": "chatcmpl-003c2e6e-19d2-4dd1-8e0f-e15c094e5a5b", "object": "chat.completion", "created": 1794511141, "model": "@cf/qwen/qwen3-30b-a3b-fp8", "choices": [{"index": 0, "message": {"role": "assistant", "content": null, "refusal": null, "annotations": null, "audio": null, "function_call": null, "reasoning": "\nOkay, let's start by looking at the user's query. They want me to act as an outside reviewer and attack the pre-registration document for a small benchmark of coding-agent harnesses. The task is to find specific issues in the rules, code, setup, statistical methods, and anyt

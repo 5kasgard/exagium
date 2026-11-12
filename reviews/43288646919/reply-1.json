@@ -1,0 +1,19 @@
+{
+ "t": "2026-11-12T19:18:45Z",
+ "engine": "cloudflare",
+ "model": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+ "ok": true,
+ "status": 200,
+ "latency_s": 16.06,
+ "usage": {
+  "prompt_tokens": 8398,
+  "completion_tokens": 830,
+  "total_tokens": 9228,
+  "prompt_tokens_details": {
+   "cached_tokens": 0
+  },
+  "neurons": 309.5997009277344
+ },
+ "text": "1. **Ambiguous Rule for `provider_error`:**\n   - **Line:** `if upstream_bad and not passed: return \"provider_error\"`\n   - **Issue:** If a provider error occurs but the attempt passes, the outcome is ambiguous. The rule does not specify what happens in this case.\n   - **Example:** An attempt fails due to a provider error but passes the hidden test.\n   - **Fix:** Add a condition to handle the case where the attempt passes despite a provider error.\n\n2. **Disagreement Between Prose and Code on `provider_error`:**\n   - **Line:** `if upstream_bad and not passed: return \"provider_error\"`\n   - **Issue:** The prose states that a pass despite a provider error still counts, but the code does not reflect this.\n   - **Example:** An attempt passes the hidden test but encounters a provider error.\n   - **Fix:** Ensure the code allows a pass despite a provider error.\n\n3. **Unfair Penalization by the Seal Check:**\n   - **Line:** `if not seal[\"ok\"]: meter.terminate(); run[\"ending\"] = \"seal_failed\"; ...`\n   - **Issue:** The seal check can fail due to transient network issues, unfairly penalizing a harness.\n   - **Example:** A harness is penalized for a temporary network glitch.\n   - **Fix:** Add retries or a more robust network check to the seal verification.\n\n4. **Statistical Mistake in Fisher Test:**\n   - **Line:** `def fisher_less(a, n1, b, n2):`\n   - **Issue:** The Fisher exact test is one-sided but should be two-sided to avoid bias.\n   - **Example:** A harness with a slightly lower pass rate might be incorrectly labeled as \"worse.\"\n   - **Fix:** Use a two-sided Fisher exact test to ensure fairness.\n\n5. **Unfair Advantage Due to Model Name Rewriting:**\n   - **Line:** `req[\"model\"] = MODEL`\n   - **Issue:** Rewriting model names can change the behavior of harnesses that rely on specific models for side calls.\n   - **Example:** A harness that uses a different model for summaries gets the same model, altering its performance.\n   - **Fix:** Allow harnesses to specify different models for side calls without rewriting.\n\n6. **Potential Void Run Due to Unchecked Control Failures:**\n   - **Line:** `if any(c[\"passed\"] for c in controls):`\n   - **Issue:** The control must fail all three tasks, but the code does not explicitly check this.\n   - **Example:** A control fails only two tasks, voiding the run.\n   - **Fix:** Explicitly check that the control fails all three tasks before proceeding.\n\n7. **Ambiguous Rule for `harness_crash`:**\n   - **Line:** `if not run or run.get(\"ending\") in (None, \"start_failed\"): return \"harness_crash\"`\n   - **Issue:** The rule does not specify what constitutes a \"harness crash,\" leading to potential ambiguity.\n   - **Example:** A harness fails to start due to a missing dependency, but the rule does not cover this case.\n   - **Fix:** Define clear criteria for what constitutes a \"harness crash.\"\n\n8. **Potential Bias in the Switch Rule:**\n   - **Line:** `if v[\"cheaper\"] is True and not v[\"worse\"] and v[\"token_ratio\"] is not None and v[\"token_ratio\"] <= 1 / 3:`\n   - **Issue:** The switch rule favors harnesses that use at most 1/3 of the base's tokens per pass, which may not always be the most efficient.\n   - **Example:** A harness that uses 34% of the base's tokens per pass is not considered, even if it is more efficient in other ways.\n   - **Fix:** Consider a range of token ratios rather than a fixed threshold.",
+ "error": null
+}
