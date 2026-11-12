@@ -30,7 +30,7 @@ def run_tests(workdir, fix_test_file, timeout=900):
     rec = os.path.join(workdir, "record")
     shutil.copyfile(fix_test_file, os.path.join(rec, "test_record.py"))
     try:
-        p = subprocess.run([sys.executable, "-c", RUNNER], cwd=rec, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run([sys.executable, "-I", "-c", RUNNER], cwd=rec, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"_harness": "timeout"}
     for line in p.stdout.splitlines():

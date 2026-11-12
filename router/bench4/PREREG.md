@@ -28,20 +28,27 @@ With the model held fixed, which harness solves exagium's tasks for the fewest t
 - The same task text (bench-3's T1–T3, with "which is in /workspace" added).
 - The same grader, hidden tests and pass-to-pass lists.
 - **The same budget:** **80 model calls**, counted by the meter, which refuses the 81st. The attempt is stopped 30 s after the first refusal. Wall cap: 35 minutes.
-- **The same seal:** the container's only network peer is the meter on the host. Nothing is forwarded (no DNS, no internet), and the key never enters the container. Before each attempt, a probe from the same image must reach the meter and be refused by 1.1.1.1 and github.com, or the attempt doesn't start.
+- **The same seal:** the container's only network peer is the meter on the host. Nothing is forwarded (no DNS, no internet, IPv4 or IPv6), and the key never enters the container. Before each attempt, a probe from the same image must reach the meter and be refused by 1.1.1.1, its IPv6 address and github.com, or the attempt doesn't start.
+- **The same request rules:** the meter rebuilds every request from an allowlist of fields. It drops any field that could reach another model or the web (`models`, `provider`, `plugins`, `transforms`, `route`), keeps caching and grouping fields, and sets the model.
 
 ## Changed from bench-3, and why
 - **Calls and tokens are counted by one meter** that all harnesses go through, not by each harness's own logs. Calls are forwarded requests; tokens are from the provider's usage block on each response. This fixes bench-2's broken call count for good.
 - **Tools run in the agent's container** for every arm, OpenHands included (bench-3 ran OpenHands' tools in a separate Agent Server container). So the OpenHands arm here isn't identical to bench-3's arm A.
 - **"Clean" is by construction:** no attempt can reach anything but the meter. Refused outbound connections are counted and reported per attempt; most come from the harnesses themselves (update checks, telemetry), not the agent.
 
+## Security (from an audit before registration; see the review section)
+- **The key** reaches only the meter, through a file the meter deletes once read. It is in no process environment.
+- **Snapshots** copy links as links and never follow them. All links are deleted before anything is uploaded.
+- **Grading imports the agent's code,** so it runs in a container with no network, no key and no GitHub token. Git runs with hooks and fsmonitor off, and the tests run under `python3 -I`.
+- **A pass whose non-test code touches the test machinery** (`unittest`, `TestResult`, `sys.modules`, `builtins`, `__import__`, `os._exit`, `sys.exit`, `atexit`, or the result marker), or that adds a file shadowing a standard module, **counts as a fail** and is listed with its lines. An honest fix to `record.py` touches none of these.
+
 ## Endings (one per attempt; the first match wins)
 1. `control`.
 2. `skipped_budget`: the allowance guard refused it. Not a result.
 3. `seal_failed`: the pre-attempt probe failed, so the attempt didn't start. Not a result; reported.
 4. `harness_crash`: no run record, or the container never started.
-5. `provider_error`: the provider answered a forwarded call with an error, and the attempt didn't pass. Not counted; retried, and after 3 the cell is `provider_cut` and left out.
-6. `call_cap`: stopped at the 80-call cap.
+5. `provider_error`: the provider's own trouble on a forwarded call (a 429, a 5xx, or a stream that broke or carried an error), and the attempt didn't pass. Not counted; retried, and after 3 the cell is `provider_cut` and left out. A 4xx the harness caused is its own failure, not a provider error.
+6. `call_cap`: the meter refused a call at the 80-call cap (whether the harness then stopped by itself or was stopped 30 s later).
 7. `timeout`: stopped at the wall cap.
 8. `exited`: the harness ended on its own.
 
@@ -58,7 +65,7 @@ Counted attempts are 4, 6, 7 and 8. A pass despite a provider error still counts
 - **Pass:** the hidden test passes with no pass-to-pass test broken.
 - **Per arm:** passes over counted attempts, with a Clopper-Pearson 95% interval.
 - **Tokens per pass** (the primary measure) = total tokens (prompt + completion) over all of an arm's counted attempts ÷ its passes, as in the study above. **Calls per pass** likewise; that is the measure the OpenRouter limit binds on.
-- **Cheaper:** the 95% percentile-bootstrap interval of (arm's tokens per pass ÷ base's tokens per pass) lies wholly below 1.
+- **Cheaper:** undefined if the base never passed. Otherwise, the 95% percentile-bootstrap interval of (arm's tokens per pass ÷ base's tokens per pass) lies wholly below 1.
   - Attempts are resampled within each task, separately for each arm. B = 10,000, seed 20261113.
   - If more than 10% of an arm's calls lack a usage block, its tokens are "unmeasured" and it can't be called cheaper.
 - **Worse:** a one-sided Fisher exact test gives p < 0.05 that the arm's pass rate is below the base's.
@@ -74,3 +81,33 @@ Counted attempts are 4, 6, 7 and 8. A pass despite a provider error still counts
 
 ## Spend
 $0. OpenRouter free model only (the workflow refuses a slug without `:free`). GitHub-hosted runners, for this project's own development and testing.
+
+## Outside review and audit before registering (2026-11-13)
+**Security audit** (a separate Claude agent, security-auditor role, read-only): 2 critical, 2 high and 6 medium-or-lower findings. All but two were applied (see Security above, plus fixes to the meter, attempt and measure).
+- **Critical 1, applied:** snapshots followed symlinks from a process holding the key, so `ln -s /proc/self/environ` in `record/` would have copied the key into a public artifact.
+- **Critical 2, applied:** grading ran the agent's code on the runner host, which has sudo, a write token and the internet.
+- **Applied:** the meter's field allowlist (an agent could have asked OpenRouter for paid fallback models or web search); every forwarded call logged even if a side drops mid-way; stream errors and truncation detected; chunked request bodies refused before counting; `attempt.py` always writes its record and reaps the meter; snapshots taken as one state, labelled after the copy; snapshot grading deduplicated and given a 15-minute budget; IPv6 rules; artifact actions pinned to commits.
+- **Not applied:** running the meter as a separate user (the key-file change removes what that would protect); `max-parallel: 1` (provider 429s are retried, not counted).
+- **Found but not caught by the audit:** the artifact uploader itself may follow links, so links are now deleted before upload.
+
+**Outside review** (prompt `router/bench4/review/prereg-attack.prompt.txt`, through `review.yml`; replies as received in `router-runs:reviews/43288646919/`). Note: the prompt held the pre-registration, `decide.py`, `meter.py` and `attempt.py`, but not `measure.py`.
+- **gpt-oss-120b (OpenAI): 8 findings.**
+  - **Applied (3):** the seal check is now on unless explicitly turned off for local tests; an attempt that reached the cap and then stopped by itself is labelled `call_cap`, not `exited`; "cheaper" is undefined when the base never passed.
+  - **Rejected (5), with the reason:** `calls` is written by `measure.py` (not seen); `start_failed` maps to `harness_crash` in `classify`; the first match wins, so no ending has two labels; `cells()` holds only counted attempts, so futility already counts only those; `plan()` counts open cells regardless of the allowance argument.
+- **mistral-small-3.1 (Mistral): 8 findings, none applied.**
+  - The code already counts a pass despite a provider error.
+  - A failed seal check isn't counted, so its cell is retried.
+  - A one-sided Fisher test is the question asked ("worse").
+  - The rest restate design choices already listed as limits.
+- **qwen3-30b (Alibaba):** returned no content (its reasoning used up the output budget).
+
+## Pilot 1 (run 43288494399, commit `c284b4f`, before the security fixes; counts for nothing)
+One attempt per harness on T2, plus the control. Every instrument produced its measures; the seal probe passed on every attempt.
+- The control failed as required.
+- **OpenCode** passed in 12 calls and 302K tokens. **Goose** passed in 27 calls and 695K. **mini-swe-agent** passed in 47 calls and 1.42M. **OpenHands** passed in 42 calls and 1.56M. **Pi** failed in 12 calls and 258K.
+- No call lacked a usage block.
+- Containers' outbound connections were refused 9–57 times per attempt, from the harnesses' own update and cost-table fetches.
+- No agent created a link or touched anything outside `record/`.
+- One attempt each: a direction, not evidence. The order differs from the published study (where OpenCode used the most tokens), which is why this bench measures rather than assumes.
+
+A second pilot runs on the hardened code before registration.

@@ -150,17 +150,24 @@ jobs:
           [ -f "$O/run.json" ] || echo '{"error": "harness: no run.json (agent step rc='"${AGENT_RC:-none}"')"}' > "$O/run.json"
           [ -f "$O/events.jsonl" ] || : > "$O/events.jsonl"
           sudo chown -R "$(id -u)" "$WS" 2>/dev/null || true
-          git -C "$WS" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true
-          git -C "$WS" diff --cached HEAD > "$O/agent.diff" 2>/dev/null || true
+          G="git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c safe.directory=*"
+          $G -C "$WS" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true
+          $G -C "$WS" diff --cached HEAD > "$O/agent.diff" 2>/dev/null || true
           all=$(sudo dmesg | grep -c 'B3DROP ' || true)
           sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SPT=[0-9]*//' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
           python3 -c "import json,os;json.dump({'check_provider':os.environ.get('SEAL_OK'),'check_github':os.environ.get('SEAL_NO'),'drops':max(0,int('$all' or 0)-int(os.environ.get('CHECK_DROPS') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
           meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'${{ matrix.model }}','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='Z','left_before':'${LEFT:-}'}))")
-          python3 "$P/measure.py" "$O" "$WS" "$P/fix_test.py" "$HIDDEN" "$P/p2p-$FIX.json" "$meta" > "$O/result.json"
+          # grading imports the agent's code: since 2026-11-13 it runs in a container with no network, no key
+          # and no token (security fix; an honest attempt's result is unchanged). The image is pulled for every arm.
+          docker pull -q "$IMAGE" > /dev/null
+          docker run --rm --network none --user 0 --entrypoint python3 -v "$WS":/ws -v "$O":/o:ro -v "$P":/p:ro "$IMAGE" \
+            -I /p/measure.py /o /ws /p/fix_test.py "$HIDDEN" "/p/p2p-$FIX.json" "$meta" > "$O/result.json.tmp"
+          python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$O/result.json.tmp" && mv "$O/result.json.tmp" "$O/result.json"
           python3 -c "import json;r=json.load(open('$O/result.json'));print({k:r[k] for k in ('task','arm','rep','end','passed','clean','calls','actions','wall_s','diff_files','n_snaps','green_actions','green_kept','first_hidden_pass_actions','egress_drops','snapshot_errors')})"
           gzip -9 "$O/events.jsonl"; rm -f "$O/egress.txt"
+          find "$O" -type l -print -delete | head -20   # links are never uploaded (an uploader may follow them)
           echo "exit 0"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: bench3-${{ matrix.task }}-${{ matrix.arm }}-r${{ matrix.rep }}
@@ -171,7 +178,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: {path: art, pattern: bench3-*}
       - name: commit results and the generated status to router-runs
         run: |
@@ -180,7 +187,8 @@ jobs:
           cp router/bench3/decide.py /tmp/decide.py
           sub=bench3; [ "$MODE" = pilot ] && sub=bench3-pilot
           mkdir -p "/tmp/new/$GITHUB_RUN_ID"; cp -r art/* "/tmp/new/$GITHUB_RUN_ID/"
-          find /tmp/new -type d -name snaps -prune -exec rm -rf {} +   # snapshots stay in the run's artifacts
+          find /tmp/new -type d -name snaps -prune -exec rm -rf {} +
+          find /tmp/new -type l -delete   # snapshots stay in the run's artifacts
           git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
           mkdir -p "bench/$sub" && cp -r "/tmp/new/$GITHUB_RUN_ID" "bench/$sub/"
           python3 -I /tmp/decide.py status "bench/$sub" > "bench/$sub/STATUS.md"

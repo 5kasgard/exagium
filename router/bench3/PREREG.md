@@ -103,3 +103,17 @@ One attempt (Nemotron on T2) and one control went through every step.
 - The provider reported 346 free requests left, so the allowance reading works.
 - One thing it showed, as a direction only: the first visible-green snapshot (action 24) did **not** pass the hidden test; the hidden test first passed at action 26 of 52.
 - Changed after the pilot: the refused-connection list no longer splits one destination by source port. Nothing else.
+
+## Amendment during the run: security fixes (2026-11-13, after batch 43176890110)
+A security audit of bench-4 (a separate Claude agent) found two holes that bench-3 shares. Both are fixed from the next batch. Neither can change an honest attempt's result.
+1. **Snapshots followed symlinks.** `run_agent.py`, which holds the key in its environment, copied `record/` following links, so a link to `/proc/self/environ` would have copied the key into a public artifact. Snapshots now copy links as links and hash only regular files, and all links are deleted before upload.
+2. **Grading ran the agent's code on the runner host,** which has sudo, a write token and the internet. Grading now runs in the Agent Server image with no network, no key and no token (Python 3.13 there, 3.12 before). Git runs with hooks and fsmonitor off, and tests run under `python3 -I`.
+
+**Checked before the fix:**
+- No recorded result names a symlink or any file outside `record/`, except the `loop/task/optdigits.*` line-ending changes, which also appear in attempts that made no calls.
+- No key string appears in `router-runs`.
+- The key's paid spend is $0.
+
+**A limit that stays:** in bench-3 the Agent Server container itself holds the key (that is how the SDK's remote workspace works) and can reach the provider's network. bench-4's meter design removes this.
+
+**Also pinned:** the artifact actions, to commits.

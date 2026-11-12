@@ -73,8 +73,7 @@ jobs:
         run: |
           if [[ "$MODEL" != *:free ]]; then echo "paid model refused: $MODEL"; exit 1; fi
           echo "exit 0"
-      - name: build the harness image (pinned versions, warmed against a local mock)
-        if: matrix.arm != 'control'
+      - name: build the harness image (pinned versions, warmed against a local mock; also the grading sandbox)
         run: |
           docker build -q -t bench4:run src/router/bench4 > "$RUNNER_TEMP/build.log" 2>&1 || { tail -40 "$RUNNER_TEMP/build.log"; exit 1; }
           docker image inspect bench4:run --format '{{.Id}}' | tee "$RUNNER_TEMP/image_id"
@@ -112,10 +111,17 @@ jobs:
           echo "DROPS0=$(sudo dmesg | grep -c 'B4DROP ' || true)" >> "$GITHUB_ENV"
           echo "GW=$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
           echo "exit 0"
-      - name: agent attempt (one harness, through the meter)
+      - name: hand the key to a file only the meter reads (it deletes the file once read)
         if: matrix.arm != 'control' && env.SKIP != '1'
         env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          umask 077; printf '%s' "$KEY" > "$RUNNER_TEMP/meter.key"
+          echo "exit 0"
+      - name: agent attempt (one harness, through the meter; no key in this step's environment)
+        if: matrix.arm != 'control' && env.SKIP != '1'
+        env:
+          BENCH4_KEY_FILE: ${{ runner.temp }}/meter.key
           BENCH4_SEAL_CHECK: "1"
         run: |
           rc=0; timeout $((WALL_S + 300)) python3 "$P/attempt.py" "${{ matrix.arm }}" "$P/task.md" "$WS" "$RUNNER_TEMP/out" bench4:run "$MODEL" "$CAP" "$WALL_S" "$GW" 8088 || rc=$?
@@ -130,11 +136,17 @@ jobs:
           python3 -c "import json,os;json.dump({'drops':max(0,int('${all:-0}' or 0)-int(os.environ.get('DROPS0') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
           sudo chown -R "$(id -u)" "$WS" "$O" 2>/dev/null || true
           meta=$(python3 -c "import json;print(json.dumps({'task':'${{ matrix.task }}','arm':'${{ matrix.arm }}','model':'$MODEL','rep':int('${{ matrix.rep }}'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'${{ matrix.arm }}'=='control','left_before':'${LEFT:-}','image_id':open('$RUNNER_TEMP/image_id').read().strip() if __import__('os').path.exists('$RUNNER_TEMP/image_id') else None}))")
-          python3 "$P/measure.py" "$O" "$WS" "$P/fix_test.py" "$HIDDEN" "$P/p2p-$FIX.json" "$meta" > "$O/result.json"
+          rm -f "$RUNNER_TEMP/meter.key"
+          # grading imports the agent's code: it runs in a container with no network, no key and no token
+          docker run --rm --network none -v "$WS":/ws -v "$O":/o:ro -v "$P":/p:ro bench4:run \
+            python3 -I /p/measure.py /o /ws /p/fix_test.py "$HIDDEN" "/p/p2p-$FIX.json" "$meta" > "$O/result.json.tmp"
+          python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$O/result.json.tmp" && mv "$O/result.json.tmp" "$O/result.json"
           python3 -c "import json;r=json.load(open('$O/result.json'));print({k:r.get(k) for k in ('task','arm','rep','end','passed','calls','tokens','wall_s','diff_files','green_calls','green_kept','first_hidden_pass_calls','egress','upstream_errors')})"
           rm -f "$O/egress.txt"
+          # links an agent left in its snapshots are deleted, never uploaded (an uploader may follow them)
+          find "$O" -type l -print -delete | head -20
           echo "exit 0"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: bench4-${{ matrix.task }}-${{ matrix.arm }}-r${{ matrix.rep }}
@@ -145,7 +157,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: {path: art, pattern: bench4-*}
       - name: commit results and the generated status to router-runs
         run: |
@@ -155,6 +167,7 @@ jobs:
           sub=bench4; [ "$MODE" = pilot ] && sub=bench4-pilot
           mkdir -p "/tmp/new/$GITHUB_RUN_ID"; cp -r art/* "/tmp/new/$GITHUB_RUN_ID/"
           find /tmp/new -type d -name snaps -prune -exec rm -rf {} +
+          find /tmp/new -type l -delete
           git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
           mkdir -p "bench/$sub" && cp -r "/tmp/new/$GITHUB_RUN_ID" "bench/$sub/"
           python3 -I /tmp/decide.py status "bench/$sub" > "bench/$sub/STATUS.md"

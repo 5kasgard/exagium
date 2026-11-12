@@ -29,7 +29,10 @@ def classify(run, calls, passed, control=False):
         return "seal_failed"
     if not run or run.get("ending") in (None, "start_failed"):
         return "harness_crash"
-    upstream_bad = any(isinstance(c.get("status"), int) and c["status"] != 200 for c in calls)
+    # only the provider's own trouble (rate limit, server error, a stream that broke or carried an error) is
+    # retried; any other refusal of a harness's request (a 4xx it caused) is that harness's failure
+    upstream_bad = any(isinstance(c.get("status"), int) and (c["status"] == 429 or c["status"] >= 500 or c.get("stream_error")
+                                                              or c.get("truncated")) for c in calls)
     if upstream_bad and not passed:
         return "provider_error"
     return {"call_cap": "call_cap", "timeout": "timeout", "exited": "exited"}.get(run["ending"], "harness_crash")
@@ -165,7 +168,9 @@ def status(results):
         if a != BASE and rs and rb:
             v["worse_p"] = round(fisher_less(k, len(rs), sum(r["passed"] for r in rb), len(rb)), 4)
             v["worse"] = v["worse_p"] < 0.05
-            if v["tokens_known"] and tokens_known(rb):
+            if not sum(r["passed"] for r in rb):
+                v["token_ratio"], v["token_ratio_95"], v["cheaper"] = None, None, "undefined: the base never passed"
+            elif v["tokens_known"] and tokens_known(rb):
                 tl, th = boot_ratio(rs, rb, tok)
                 pb = per_pass(rb, tok)
                 v["token_ratio"] = None if math.isinf(pb) or not k else round(per_pass(rs, tok) / pb, 3)
@@ -221,6 +226,8 @@ def selftest():
     assert classify({"ending": "exited"}, [{"status": 502}], True) == "exited"          # a pass despite a hiccup counts
     assert classify({"ending": "exited"}, [{"status": 502}], False) == "provider_error"
     assert classify({"ending": "call_cap"}, [{"status": "refused_cap"}], False) == "call_cap"
+    assert classify({"ending": "exited"}, [{"status": 400}], False) == "exited"                 # a 4xx it caused is its own
+    assert classify({"ending": "exited"}, [{"status": 200, "truncated": True}], False) == "provider_error"
     assert abs(fisher_less(0, 9, 9, 9) - 1 / math.comb(18, 9)) < 1e-12 and abs(fisher_less(9, 9, 0, 9) - 1.0) < 1e-9
     assert fisher_less(5, 9, 9, 9) < 0.05 < fisher_less(7, 9, 9, 9)
 

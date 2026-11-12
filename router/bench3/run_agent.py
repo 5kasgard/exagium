@@ -19,12 +19,16 @@ rec = os.path.join(ws, "record")
 
 
 def tree_hash(d):
+    """Regular files only: links are neither followed nor read (this process holds the key in its
+    environment, so following a link to /proc/self/environ would copy the key into the artifacts)."""
     h = hashlib.sha256()
-    for root, dirs, files in os.walk(d):
-        dirs[:] = sorted(x for x in dirs if x != "__pycache__")
+    for root, dirs, files in os.walk(d, followlinks=False):
+        dirs[:] = sorted(x for x in dirs if x != "__pycache__" and not os.path.islink(os.path.join(root, x)))
         for f in sorted(files):
             p = os.path.join(root, f)
-            if os.path.isfile(p) and os.path.getsize(p) < 2_000_000:
+            if os.path.islink(p):
+                h.update(b"L" + os.path.relpath(p, d).encode() + b"\0")
+            elif os.path.isfile(p) and os.path.getsize(p) < 2_000_000:
                 h.update(os.path.relpath(p, d).encode() + b"\0" + open(p, "rb").read() + b"\0")
     return h.hexdigest()
 
@@ -34,7 +38,7 @@ def snapshot():
         h = tree_hash(rec)
         if h != state["last"]:
             i = len(run["snaps"])
-            shutil.copytree(rec, os.path.join(out, "snaps", f"{i:03d}"), ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree(rec, os.path.join(out, "snaps", f"{i:03d}"), symlinks=True, ignore=shutil.ignore_patterns("__pycache__"))
             run["snaps"].append({"i": i, "actions": state["actions"], "hash": h, "t": round(time.time() - t0, 1)})
             state["last"] = h
     except Exception as e:  # a snapshot must never break an attempt
