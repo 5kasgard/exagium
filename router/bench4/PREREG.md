@@ -110,4 +110,14 @@ One attempt per harness on T2, plus the control. Every instrument produced its m
 - No agent created a link or touched anything outside `record/`.
 - One attempt each: a direction, not evidence. The order differs from the published study (where OpenCode used the most tokens), which is why this bench measures rather than assumes.
 
-A second pilot runs on the hardened code before registration.
+## Pilots 2 and 3 (hardened code; count for nothing)
+- **Pilot 2** (run 43291835746, commit `a24f913`): the control failed as required. Goose, mini-swe-agent, OpenHands and Pi each passed (20, 43, 47 and 15 calls; 408K, 1.27M, 1.55M and 323K tokens). The OpenCode attempt was cancelled, by mistake, while it was still running.
+- **Pilot 3** (run 43294062930, commit `c73d778`, the workflow being registered): the control failed as required. Pi, Goose, mini-swe-agent and OpenHands passed (20, 23, 25 and 56 calls; 457K, 546K, 669K and 2.31M tokens). OpenCode failed in 12 calls and 296K tokens.
+- In both pilots, on every attempt:
+  - the seal probe passed;
+  - every forwarded call was logged, with no calls unlogged;
+  - no upstream error;
+  - no links in the uploaded results;
+  - the key does not appear in them.
+- Single attempts move a lot between pilots. For example, Pi failed and then passed, OpenCode passed and then failed, and mini-swe-agent used 1.42M and then 669K tokens. This is why the decision rests on 9 attempts per harness and a bootstrap, not on any pilot.
+- Before pilot 3, a workflow security audit (zizmor 1.29.0) found 49 findings. All were fixed or given written reasons in `c73d778`.
