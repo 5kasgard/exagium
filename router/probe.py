@@ -55,7 +55,10 @@ HINTS = {"llm7": ["gpt-4o-mini"], "nvidia": ["nemotron"], "mistral": ["mistral-s
 # them, so only open-weight models are probed there.
 CANDIDATES = {
     "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "moonshotai/kimi-k2.6"],
-    "llm7": ["glm-5.3", "deepseek-v4-pro", "kimi-k2.7-code"],
+    # 2026-11-14 run 43522346396: llm7 open-weight models return 402 (paid balance); the 0731 Flash answered on the free key.
+    "llm7": ["DeepSeek-V4-Flash-0731"],
+    # nara lists closed frontier and "abliterated" (safety-removed) models; only plain open-weight ones are probed.
+    "nara": ["deepseek-v4-pro", "glm-5.3", "kimi-k2.7-code"],
 }
 
 
