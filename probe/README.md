@@ -74,7 +74,7 @@ On another host it exits 2.
 
 **Digests, for the record to anchor.** Each profile carries `digests.profile_sha256` (the whole profile) and `digests.measurement_sha256` (raw reps, settings, build, environment, meter tiers, time). Both are sha256 over canonical JSON: sorted keys, no whitespace, UTF-8, and no field joining. A run prints the profile digest at the end, and `--reanalyse` recomputes it. Once a digest is anchored somewhere outside (open item 3), any later edit shows up as a different digest. A digest proves only that the profile hasn't changed since anchoring, never that it's genuine; independent re-measurement (open item 4) is what tests genuineness. The scheme uses Python's float formatting, which isn't yet RFC 8785 (JCS), so another language must match it to reproduce a digest.
 
-> **It can't detect forgery.** Anyone can fabricate a raw section that is self-consistent and holds any numbers at all. An independent verifier forged 1.5× compute, 2× bandwidth and 0.5× latency, and all of them passed. Only an outside-anchored record (open item 3) can stop that. CPU steal, timer readings and the recorded seed (rewriting it and every chase seed together stays consistent) can't be checked against anything either.
+> **It can't detect forgery.** Anyone can fabricate a raw section that is self-consistent and holds any numbers at all. An independent verifier forged 1.5× compute, 2× bandwidth and 0.5× latency, and all of them passed. An outside-anchored record (open item 3) does not stop that: it only shows the profile has not changed since it was anchored. Only independent re-measurement (open item 4) tests whether it is genuine. CPU steal, timer readings and the recorded seed (rewriting it and every chase seed together stays consistent) can't be checked against anything either.
 
 ## Results on three machines
 **Machine A** (where it was built): Intel Xeon @ 2.10 GHz, KVM guest, 2 vCPUs, AVX-512. Full run 2026-11-05, seed 20261109; its profile is `probe/profile.json` at commit `a014e15`. CPU steal stayed at or below 1.0% per rep. Meter tiers: timing and cachegrind only.
@@ -131,7 +131,7 @@ Seven independent reviews ran: five Claude agents, and GLM-5.2 twice on a differ
    - every claim confirmed, and its earlier break cases are now fixed or documented;
    - all three seeds find L1 and L2;
    - five new adversarial cases gave no phantom levels or false boundaries;
-   - what still passes is careful self-consistent forgery and rewritten seed or steal values, which only an outside anchor can catch.
+   - what still passes is careful self-consistent forgery and rewritten seed or steal values, which only independent re-measurement can catch (an outside anchor only catches edits made after anchoring).
 
 The commit history shows each step.
 

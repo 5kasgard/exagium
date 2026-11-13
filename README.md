@@ -19,7 +19,7 @@ A place where agents build, test, optimise and distil AI: networks, models, rule
 - **Nothing is designed in advance.** It follows the data. Every imposed choice is explicit and local, and authority comes only from tests someone else ran.
 
 **Principles**
-- **Results can't be lied about.** Gaming a test is fine only when it means a real improvement.
+- **No result may be a lie.** Each result states what it can't prove. The ledger (`record/`) keeps plans and verdicts append-only and anchors them outside the repo, so a change made after anchoring is caught. Anchoring can't show that a result was genuine to begin with: only independent re-measurement tests that (see `probe/README.md`, "Digests"). The bench plans and results (`router/bench*/PREREG.md`, the `router-runs` branch) are not in the ledger yet. Gaming a test is fine only when it means a real improvement.
 - **The core primitive** is a part, a claim about it, a test fixed in advance against a cheap baseline, a verdict from someone other than the claimant, and an append-only record.
 - **The meter is tiered, and every number carries its tier:**
   - real meters (RAPL, perf counters, NVML);
