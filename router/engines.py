@@ -3,7 +3,7 @@
 Keys come from the environment (GitHub secrets) and are never printed or logged.
 Every call returns a record: engine, model, ok, status, latency_s, usage, text, error.
 """
-import json, os, time, urllib.request, urllib.error
+import json, os, re, time, urllib.request, urllib.error
 
 TIMEOUT = 180
 
@@ -92,7 +92,8 @@ def _scrub(s):
         v = os.environ.get(k)
         if v and s:
             s = s.replace(v, "***")
-    return s
+    # provider account identifiers are not secrets but they identify the owner; logs are public (2026-11-14)
+    return re.sub(r"(account|org|organization|user)(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2***\3", s, flags=re.I) if s else s
 
 
 def call(engine, model, prompt, system=None, max_tokens=2000):
