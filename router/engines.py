@@ -93,7 +93,7 @@ def _scrub(s):
         if v and s:
             s = s.replace(v, "***")
     # provider account identifiers are not secrets but they identify the owner; logs are public (2026-11-14)
-    return re.sub(r"(account|org|organization|user)(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2***\3", s, flags=re.I) if s else s
+    return re.sub(r"(account|org|organization|user)(_?id)?(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2\3***\4", s, flags=re.I) if s else s
 
 
 def call(engine, model, prompt, system=None, max_tokens=2000):
