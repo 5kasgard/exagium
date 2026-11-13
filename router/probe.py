@@ -50,6 +50,15 @@ HINTS = {"llm7": ["gpt-4o-mini"], "nvidia": ["nemotron"], "mistral": ["mistral-s
          "sambanova": ["DeepSeek"], "cohere": ["command"], "groq": ["gpt-oss"]}
 
 
+# Measured 2026-11-14 (run 43519222584): listed is not the same as callable (nemotron-51b listed, 404 on call).
+# LLM7 also lists closed frontier models (Claude, GPT, Gemini) for free; a free proxy cannot be verified to serve
+# them, so only open-weight models are probed there.
+CANDIDATES = {
+    "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "moonshotai/kimi-k2.6"],
+    "llm7": ["glm-5.3", "deepseek-v4-pro", "kimi-k2.7-code"],
+}
+
+
 def pick_model(name, ids):
     """PROBE_<NAME>_MODEL if set, else the first listed id matching a hint, else the first chat-like id."""
     env = os.environ.get(f"PROBE_{name.upper()}_MODEL")
@@ -79,13 +88,14 @@ def probe_compat():
         recs.append({"engine": name, "model": "models.list", "ok": listed, "status": st, "limits": lim,
                      "n_models": len(ids) if listed else None, "text": json.dumps(ids[:300]) if listed else None,
                      "error": None if listed else ids})
-        m = pick_model(name, ids if listed else [])
-        if m is None:
-            recs.append({"engine": name, "model": "none", "ok": False, "error": "no chat model chosen; set PROBE_%s_MODEL" % name.upper()})
-            continue
-        r = compat_call(name, m, PROMPT)
-        r["exact"] = (r["text"] or "").strip() == WANT
-        recs.append(r)
+        cands = [c for c in CANDIDATES.get(name, []) if listed and c in ids][:3] or [pick_model(name, ids if listed else [])]
+        for m in cands:
+            if m is None:
+                recs.append({"engine": name, "model": "none", "ok": False, "error": "no chat model chosen; set PROBE_%s_MODEL" % name.upper()})
+                continue
+            r = compat_call(name, m, PROMPT, max_tokens=400)   # reasoning models spend tokens before answering
+            r["exact"] = (r["text"] or "").strip() == WANT
+            recs.append(r)
     return recs
 
 
