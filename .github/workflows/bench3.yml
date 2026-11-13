@@ -142,7 +142,7 @@ jobs:
       - name: agent attempt (sealed container)
         if: matrix.arm != 'Z' && env.SKIP != '1'
         env:
-          LLM_MODEL: $B_MODEL
+          LLM_MODEL: ${{ env.B_MODEL }}   # env: values are not shell-expanded; "$B_MODEL" here sent the literal text (fixed 2026-11-14)
           LLM_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           OPENHANDS_SUPPRESS_BANNER: "1"
         run: |

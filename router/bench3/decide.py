@@ -82,31 +82,53 @@ def share_verdict(k, n, min_n=5):
     return "holds" if 9 * k >= 7 * n else "fails" if 9 * k <= 4 * n else "inconclusive"
 
 
+INSTRUMENT = "instrument_fault"   # amendment 2026-11-14: not counted, cell retried, shown on STATUS
+
+
+def reconcile(r, run):
+    """Amendment 2026-11-14. A counted attempt whose harness record names a model (run.json "model") that
+    differs from the cell's model (result "model") never tested the arm: it is an instrument fault.
+    A run.json with no "model" key (the workflow's fallback after a timeout or a missing record) is left alone."""
+    if r.get("end") in COUNTED and isinstance(run, dict) and "model" in run and run["model"] != r.get("model"):
+        return dict(r, end=INSTRUMENT, end_recorded=r.get("end"))
+    return r
+
+
 def load(d):
     out = []
     for f in sorted(glob.glob(os.path.join(d, "*", "*", "result.json"))):
-        out.append(json.load(open(f)))
+        rp = os.path.join(os.path.dirname(f), "run.json")
+        try:
+            run = json.load(open(rp)) if os.path.exists(rp) else None
+        except (ValueError, OSError):
+            run = None   # an unreadable run record never changes a label
+        out.append(reconcile(json.load(open(f)), run))
     return out
 
 
 def cells(results):
-    """(task, arm, rep) -> the counted result, or 'provider_cut', or None while still open."""
-    done, tries = {}, {}
+    """(task, arm, rep) -> the counted result, 'provider_cut', 'instrument_cut', or absent while still open."""
+    done, tries, faults = {}, {}, {}
     for r in results:
         key = (r["task"], r["arm"], r["rep"])
         if r["end"] in COUNTED or r["end"] == "control":
             done.setdefault(key, r)   # the first counted result stands; a rerun never replaces it
         elif r["end"] == "provider_error":
             tries[key] = tries.get(key, 0) + 1
+        elif r["end"] == INSTRUMENT:
+            faults[key] = faults.get(key, 0) + 1
     for key, n in tries.items():
         if key not in done and n >= MAX_TRIES:
             done[key] = "provider_cut"
+    for key, n in faults.items():   # amendment 2026-11-14: a fault that recurs cannot loop forever
+        if key not in done and n >= MAX_TRIES:
+            done[key] = "instrument_cut"
     return done
 
 
 def arm_stats(done, arm):
     # planned order: repeat first, then task, so "the first 6" are repeats 1 and 2 of each task
-    rs = [v for (t, a, r), v in sorted(done.items(), key=lambda kv: (kv[0][2], kv[0][0])) if a == arm and v != "provider_cut"]
+    rs = [v for (t, a, r), v in sorted(done.items(), key=lambda kv: (kv[0][2], kv[0][0])) if a == arm and not isinstance(v, str)]
     k = sum(1 for r in rs if r["passed"] and r["clean"])
     return rs, k
 
@@ -156,16 +178,19 @@ def stop_on_green(rs):
 
 def status(results):
     done = cells(results)
-    counted = [v for v in done.values() if v != "provider_cut" and v["end"] in COUNTED]
-    controls = [v for v in done.values() if v != "provider_cut" and v["end"] == "control"]
+    counted = [v for v in done.values() if not isinstance(v, str) and v["end"] in COUNTED]
+    controls = [v for v in done.values() if not isinstance(v, str) and v["end"] == "control"]
     _, open_n = plan(results, 0)
-    s = {"complete": open_n == 0 and len(controls) == len(TASKS), "open_cells": open_n, "counted": len(counted),
+    icut = any(v == "instrument_cut" for v in done.values())   # amendment 2026-11-14: a cut blocks completion
+    s = {"complete": open_n == 0 and len(controls) == len(TASKS) and not icut, "open_cells": open_n, "counted": len(counted),
          "provider_cut": sorted(k for k, v in done.items() if v == "provider_cut"),
+         "instrument_cut": sorted(k for k, v in done.items() if v == "instrument_cut"),
          "control_ok": len(controls) == len(TASKS) and not any(c["passed"] for c in controls),
          "void": any(c["passed"] for c in controls),   # a control that passes voids the whole run
          "seal": "holds" if not any(r["outside_paths"] for r in counted) else "broken",
          "egress_drops": sum(r.get("egress_drops") or 0 for r in counted),
-         "ends": {e: sum(1 for r in counted if r["end"] == e) for e in ENDS if any(r["end"] == e for r in counted)}}
+         "ends": {e: sum(1 for r in counted if r["end"] == e) for e in ENDS if any(r["end"] == e for r in counted)},
+         "instrument_faults": sum(1 for r in results if r["end"] == INSTRUMENT)}
     ok = sum(1 for r in counted if r["end"] not in CRASH)
     s["harness"] = {"no_crash": ok, "n": len(counted), "verdict": share_verdict(ok, len(counted))}
     s["arms"] = {}
@@ -185,7 +210,7 @@ def status(results):
     s["stop_on_green"] = stop_on_green(counted)
     calls = [r["calls"] for r in counted if r.get("calls") is not None]
     s["budget"] = {"median_calls": statistics.median(calls) if calls else None, "total_calls": sum(calls),
-                   "calls_in_uncounted_attempts": sum(r.get("calls") or 0 for r in results if r["end"] in ("provider_error", "skipped_budget"))}
+                   "calls_in_uncounted_attempts": sum(r.get("calls") or 0 for r in results if r["end"] in ("provider_error", "skipped_budget", INSTRUMENT))}
     return s
 
 
@@ -197,11 +222,13 @@ def markdown(s):
          f"- Seal: **{s['seal']}**; blocked outbound connections: {s['egress_drops']}",
          f"- Harness (no crash): {s['harness']['no_crash']}/{s['harness']['n']}, **{s['harness']['verdict']}**",
          f"- Endings: {s['ends']}",
+         f"- Instrument faults (wrong model sent; not counted, retried): {s['instrument_faults']}",
          f"- Budget: median {s['budget']['median_calls']} calls per attempt; {s['budget']['total_calls']} calls in counted attempts, "
-         f"{s['budget']['calls_in_uncounted_attempts']} more in provider-cut ones",
+         f"{s['budget']['calls_in_uncounted_attempts']} more in uncounted ones (provider errors, skips, instrument faults)",
          f"- Stop on visible green: {s['stop_on_green']}",
          f"- Ranking claims: {s['ranking'] or 'none'}",
-         f"- Provider-cut cells: {s['provider_cut'] or 'none'}", "",
+         f"- Provider-cut cells: {s['provider_cut'] or 'none'}",
+         f"- Instrument-cut cells (wrong model sent 3 times; fix the workflow): {s['instrument_cut'] or 'none'}", "",
          "| Arm | Clean | 95% | Usable | Calls | Per pass |", "|---|---|---|---|---|---|"]
     for a, v in s["arms"].items():
         L.append(f"| {a} {v['model'].split('/')[-1].replace(':free', '')} | {v['clean_passes']}/{v['n']} | "
@@ -273,6 +300,38 @@ def selftest():
     assert futile(cells(six), "E")
     assert s["budget"]["calls_in_uncounted_attempts"] == 120
     markdown(s)
+    # 5. amendment 2026-11-14: a wrong model sent is an instrument fault, not a result
+    m = ARMS["A"][0]
+    bad = res("T1", "A", 1, "unclassified", model=m)
+    assert reconcile(bad, {"model": "$B_MODEL"})["end"] == INSTRUMENT
+    assert reconcile(bad, {"model": m})["end"] == "unclassified"            # right model: stays counted
+    assert reconcile(bad, None)["end"] == "unclassified"                     # no run record: rule unchanged
+    for end, rc in (("timeout", "124"), ("timeout", "137"), ("harness_crash", "none")):   # the workflow's fallback record
+        fb = {"error": f"harness: no run.json (agent step rc={rc})"}
+        assert reconcile(res("T1", "A", 1, end, model=m), fb)["end"] == end
+    sk = res("T1", "A", 1, "skipped_budget", model=m)
+    assert reconcile(sk, {"model": None})["end"] == "skipped_budget"         # uncounted endings untouched
+    ctl = res("T1", "Z", 0, "control", model="none")
+    assert reconcile(ctl, {"control": True})["end"] == "control"
+    rs5 = [res(t, "Z", 0, "control") for t in TASKS] + [reconcile(bad, {"model": "$B_MODEL"})]
+    assert ("T1", "A", 1) not in cells(rs5)                                  # cell stays open
+    assert plan(rs5, 1000)[1] == 75                                          # and is planned again
+    assert status(rs5)["instrument_faults"] == 1 and status(rs5)["counted"] == 0
+    rs6 = rs5 + [reconcile(bad, {"model": "$B_MODEL"})] * 2                  # third fault on one cell: cut, not looped
+    assert cells(rs6)[("T1", "A", 1)] == "instrument_cut" and plan(rs6, 1000)[1] == 74
+    s6 = status(rs6)
+    assert s6["instrument_cut"] == [("T1", "A", 1)] and s6["arms"]["A"]["n"] == 0 and "Instrument-cut" in markdown(s6)
+    allcut = [res(t, "Z", 0, "control") for t in TASKS] + [dict(res(t, a, r, INSTRUMENT, model=ARMS[a][0]))
+              for t in TASKS for a in ARMS for r in range(REPS) for _ in range(MAX_TRIES)]
+    assert plan(allcut, 1000)[1] == 0 and not status(allcut)["complete"]      # never "final" with cut cells
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:                                # load() applies the rule from disk
+        os.makedirs(os.path.join(td, "1", "c"))
+        json.dump(bad, open(os.path.join(td, "1", "c", "result.json"), "w"))
+        json.dump({"model": "$B_MODEL"}, open(os.path.join(td, "1", "c", "run.json"), "w"))
+        assert load(td)[0]["end"] == INSTRUMENT and load(td)[0]["end_recorded"] == "unclassified"
+        open(os.path.join(td, "1", "c", "run.json"), "w").write("{trunc")      # corrupt run record: no crash, no relabel
+        assert load(td)[0]["end"] == "unclassified"
     print("selftest ok:", len(ENDS), "labels reached")
 
 

@@ -117,3 +117,17 @@ A security audit of bench-4 (a separate Claude agent) found two holes that bench
 **A limit that stays:** in bench-3 the Agent Server container itself holds the key (that is how the SDK's remote workspace works) and can reach the provider's network. bench-4's meter design removes this.
 
 **Also pinned:** the artifact actions, to commits.
+
+## Amendment during the run: wrong model sent (2026-11-14, after batch 43497261141)
+**Fault.** Commit `c73d778` (workflow hardening, 2026-11-13) moved the model into a step's `env:` block as `LLM_MODEL: $B_MODEL`. GitHub does not expand shell variables in `env:` values, so in batches 43384007906 and 43497261141 the harness sent the literal text `$B_MODEL` as the model name. All 21 agent attempts in those batches failed at the first request with `LLM Provider NOT provided`, after 0 model calls. They were labelled `unclassified` and counted as crashes. Under the rule "the first counted result stands", they would have stood. The damage to the verdicts was: the harness share went from 12/15 (holds) to 12/36 (fails), and arms B and F were stopped for futility with 3 of their 6 futility attempts coming from this fault.
+
+**Rule added.** When a counted attempt's harness record (`run.json`) names a model, and that model differs from the cell's model, the attempt is an `instrument_fault`. It did not test the arm, so it is not counted, its cell stays open, and it is retried. If one cell gets 3 instrument faults, it is recorded as `instrument_cut`: it is left out of every denominator, and STATUS names it so the workflow gets fixed. That cap stops a recurring fault from looping forever. A run with any instrument-cut cell is never `complete`, so its verdicts never become final. Reopening a cut cell needs a further amendment. STATUS also shows the fault count. The rule is `decide.reconcile`, applied in `decide.load`, with selftests. It compares two recorded strings and reads no error text.
+- **Left alone on purpose:** a `run.json` with no `model` field. That is the workflow's fallback record after a timeout (rc 124 or 137) or a missing record, so endings 3 and 4 keep their meaning and stay counted. An unreadable `run.json` is also left alone and never changes a label. The rule also leaves alone endings that are not counted: a wrong-model attempt that the provider list matches (for example an authentication error) stays `provider_error` and counts toward the 3 provider cuts.
+- Calls made in instrument-fault attempts are reported with the other uncounted calls.
+- A separate review agent found the timeout case in an earlier draft of this rule, before the rule was deployed.
+
+**Checked against every record that existed on 2026-11-14:** the rule relabels exactly the 21 attempts that sent `$B_MODEL`. No other attempt is touched. That includes the 3 arm-F attempts that failed at 0 calls with a provider `400 bad request`: they sent the right model, a 400 is not in the provider-error list (rate limit, quota, auth, timeout, 5xx), and this file already keeps the strict reading that `unclassified` counts as a crash. They stay counted.
+
+**Fix.** `LLM_MODEL: ${{ env.B_MODEL }}`. actionlint and zizmor (offline) are clean. A scan of every workflow for shell variables outside `run:` blocks finds the old line in the old file and nothing in the new files.
+
+**Limit.** A model that silently answers under a different name from the one sent cannot be seen by this rule. The provider's response model is not compared.
