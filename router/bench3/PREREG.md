@@ -131,3 +131,6 @@ A security audit of bench-4 (a separate Claude agent) found two holes that bench
 **Fix.** `LLM_MODEL: ${{ env.B_MODEL }}`. actionlint and zizmor (offline) are clean. A scan of every workflow for shell variables outside `run:` blocks finds the old line in the old file and nothing in the new files.
 
 **Limit.** A model that silently answers under a different name from the one sent cannot be seen by this rule. The provider's response model is not compared.
+
+## Amendment during the run: workspace race (2026-11-14)
+The bench-5 pilot (run 43578600622) failed while preparing its workspace: `git commit` started git's automatic maintenance, which deleted `.git/objects/maintenance.lock` while `chmod -R` walked the tree, and `chmod` exited 1. This workflow has the same two lines. A hit here skips the agent and writes the fallback record "harness: no run.json (agent step rc=none)", which is labelled `harness_crash` and counted. **Checked:** no attempt in this bench has that record (0 on 2026-11-14). **Fix:** the workspace commit now runs with `maintenance.auto=false` and `gc.auto=0`, so no background process touches the tree. No rule changes, and no recorded result changes.

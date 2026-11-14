@@ -95,7 +95,7 @@ jobs:
           WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
           git -C src archive "$base" | tar -x -C "$WS"
           rm -rf src   # nothing post-fix is left on the runner's disk outside $P
-          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c maintenance.auto=false -c gc.auto=0 -c user.name=bench -c user.email=bench@example.invalid commit -qm base
           chmod -R a+rwX "$WS"
           echo "exit 0"
       - name: allowance guard (a refused attempt is not a result)

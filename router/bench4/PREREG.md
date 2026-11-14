@@ -121,3 +121,6 @@ One attempt per harness on T2, plus the control. Every instrument produced its m
   - the key does not appear in them.
 - Single attempts move a lot between pilots. For example, Pi failed and then passed, OpenCode passed and then failed, and mini-swe-agent used 1.42M and then 669K tokens. This is why the decision rests on 9 attempts per harness and a bootstrap, not on any pilot.
 - Before pilot 3, a workflow security audit (zizmor 1.29.0) found 49 findings. All were fixed or given written reasons in `c73d778`.
+
+## Amendment during the run: workspace race (2026-11-14)
+The bench-5 pilot (run 43578600622) failed while preparing its workspace: `git commit` started git's automatic maintenance, which deleted `.git/objects/maintenance.lock` while `chmod -R` walked the tree, and `chmod` exited 1. This workflow has the same two lines. A hit here skips the agent and writes the fallback record "harness: no run.json (agent step rc=none)", which is labelled `harness_crash` and counted. **Checked:** no attempt in this bench has that record (0 on 2026-11-14). **Fix:** the workspace commit now runs with `maintenance.auto=false` and `gc.auto=0`, so no background process touches the tree. No rule changes, and no recorded result changes.

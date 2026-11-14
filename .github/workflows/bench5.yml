@@ -99,7 +99,8 @@ jobs:
           WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
           git -C src archive "$base" | tar -x -C "$WS"
           rm -rf src   # nothing post-fix is left on the runner's disk outside $P
-          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c maintenance.auto=false -c gc.auto=0 -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          # (pilot 43578600622: auto-maintenance removed .git/objects/maintenance.lock while chmod -R walked the tree)
           chmod -R a+rwX "$WS"   # the agent server runs as a non-root user inside its container
           echo "STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
           echo "exit 0"
