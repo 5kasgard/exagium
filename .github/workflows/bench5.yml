@@ -8,7 +8,9 @@ on:
     inputs:
       mode:
         description: "run (registered batch) or pilot (instrument check, not counted)"
-        default: "run"
+        type: choice
+        options: [run, pilot]
+        default: run
   schedule:
     - cron: "20 5 * * *"   # retries open cells once a day; the plan is empty once every cell is done
 concurrency:
@@ -29,6 +31,7 @@ env:
   SHA_RUN_AGENT: 7a5f5e7617be78bd757bff6b0afe7a209b3eb79ed7b3e82244e367af461e473e
   SHA_MEASURE: 3fe4e1c4e6d4d6ea8132297dc06cbf74d3b5c3617342fc877d28c0ca8ca78edf
   SHA_GRADE: 6e3c5fc9934cc44924ca6da2bdc5a22e0d43244ebb2e7c8a8dcbe173958ba9e1
+  SHA_DECIDE3: bd8d17cad698b01d487d2600882254073f1b79a2f0b03f08a7fff6fbe7b01f7a   # bench-3's rules, imported by bench-5
 jobs:
   plan:
     runs-on: ubuntu-24.04
@@ -38,8 +41,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with: {persist-credentials: false}
-      - name: the rules must pass their own test
-        run: python3 -I router/bench5/decide.py selftest; echo "exit $?"
+      - name: the rules must pass their own test, on bench-3's registered rule file
+        run: |
+          case "$MODE" in run|pilot) ;; *) echo "unknown mode: $MODE"; exit 1;; esac
+          echo "$SHA_DECIDE3  router/bench3/decide.py" | sha256sum -c
+          python3 -I router/bench5/decide.py selftest; echo "exit $?"
       - name: the plan
         id: plan
         run: |
@@ -51,7 +57,7 @@ jobs:
             p='{"n": 2, "open": -1, "include": [{"task":"T2","arm":"N","model":"nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b","rep":0},{"task":"T2","arm":"Z","model":"none","rep":0}]}'
           else
             p=$(python3 -I router/bench5/decide.py plan "$RUNNER_TEMP/rr/bench/bench5")
-            first=$(find "$RUNNER_TEMP/rr/bench/bench5" -name result.json | head -1)
+            first=$(find "$RUNNER_TEMP/rr/bench/bench5" -name result.json -print -quit)   # no pipe: head would SIGPIPE find under pipefail
             hour=$(date -u +%H)
             # capacity C reads the first batch, which must fit inside one UTC day (a batch takes about 2-3 hours)
             if [ -z "$first" ] && [ "$((10#$hour))" -ge 18 ]; then
@@ -66,7 +72,7 @@ jobs:
     needs: plan
     if: needs.plan.outputs.n != '0'
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 55   # 35-minute agent cap plus setup and grading
     env:
       B_TASK: ${{ matrix.task }}
       B_ARM: ${{ matrix.arm }}
@@ -86,6 +92,7 @@ jobs:
           echo "$SHA_RUN_AGENT  src/router/bench3/run_agent.py" | sha256sum -c
           echo "$SHA_MEASURE  src/router/bench3/measure.py" | sha256sum -c
           echo "$SHA_GRADE  src/router/bench/grade.py" | sha256sum -c
+          echo "$SHA_DECIDE3  src/router/bench3/decide.py" | sha256sum -c
           echo "exit 0"
       - name: private grader copy, pre-fix workspace, then delete the full checkout
         run: |
@@ -141,6 +148,7 @@ jobs:
           echo "SEAL_OK=$ok" >> "$GITHUB_ENV"; echo "SEAL_NO=$no" >> "$GITHUB_ENV"
           echo "CHECK_DROPS=$(sudo dmesg | grep -c 'B5DROP ' || true)" >> "$GITHUB_ENV"
           if [ "$ok" != reached ] || [ "$no" != refused ] || [ "$cf" != refused ]; then echo "network seal check failed"; exit 1; fi
+          echo "SETUP_OK=1" >> "$GITHUB_ENV"   # setup and seal passed: from here, an attempt is a result
           echo "exit 0"
       - name: agent attempt (sealed container)
         if: matrix.arm != 'Z'
@@ -156,6 +164,10 @@ jobs:
         run: |
           O="$RUNNER_TEMP/out"; mkdir -p "$O/snaps"
           if [ "$B_ARM" = Z ]; then echo '{"control": true}' > "$O/run.json"; fi
+          # audit 2026-11-14: a failed install or seal check is not an attempt. It is recorded as skipped (not counted, retried).
+          if [ "$B_ARM" != Z ] && [ "${SETUP_OK:-}" != 1 ] && [ ! -f "$O/run.json" ]; then
+            echo '{"skipped": true, "why": "setup or seal check failed before any model call"}' > "$O/run.json"
+          fi
           [ -f "$O/run.json" ] || echo '{"error": "harness: no run.json (agent step rc='"${AGENT_RC:-none}"')"}' > "$O/run.json"
           [ -f "$O/events.jsonl" ] || : > "$O/events.jsonl"
           sudo chown -R "$(id -u)" "$WS" 2>/dev/null || true
@@ -204,7 +216,7 @@ jobs:
             git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
             mkdir -p "bench/$sub" && rm -rf "bench/$sub/$GITHUB_RUN_ID" && cp -r "/tmp/new/$GITHUB_RUN_ID" "bench/$sub/"
             python3 -I /tmp/decide.py status "bench/$sub" bench/bench3 > "bench/$sub/STATUS.md"
-            git add bench && git commit -qm "bench-5 $MODE batch $GITHUB_RUN_ID"
+            git add bench && { git diff --cached --quiet || git commit -qm "bench-5 $MODE batch $GITHUB_RUN_ID"; }
             if git push -q origin router-runs; then echo "pushed on try $i"; break; fi
             [ "$i" = 6 ] && exit 1; sleep $((i * 7))
           done

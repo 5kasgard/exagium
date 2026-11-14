@@ -20,6 +20,7 @@ The Forge's best-measured free worker is Nemotron 3 Ultra (bench-3 arm A: 6 of 6
   - `router/bench3/run_agent.py` 7a5f5e7617be78bd757bff6b0afe7a209b3eb79ed7b3e82244e367af461e473e
   - `router/bench3/measure.py` 3fe4e1c4e6d4d6ea8132297dc06cbf74d3b5c3617342fc877d28c0ca8ca78edf
   - `router/bench/grade.py` 6e3c5fc9934cc44924ca6da2bdc5a22e0d43244ebb2e7c8a8dcbe173958ba9e1
+  - `router/bench3/decide.py` bd8d17cad698b01d487d2600882254073f1b79a2f0b03f08a7fff6fbe7b01f7a (bench-3's rules, imported; checked in every job)
 - Endings, counted attempts, clean passes, the Clopper-Pearson interval, provider retries (3 cuts make a `provider_cut` cell), instrument faults (bench-3's 2026-11-14 amendment) and the void rule: `decide.py` imports these from `router/bench3/decide.py`. It does not copy them.
 - The no-agent control Z runs once per task and must fail all 3, or the run is void.
 
@@ -29,15 +30,19 @@ The Forge's best-measured free worker is Nemotron 3 Ultra (bench-3 arm A: 6 of 6
 - **No allowance reading.** NIM sends no rate-limit headers (0 of 5 probe runs) and publishes no daily limit. NVIDIA staff wrote in September 2025 that the credit system was replaced by unpublished per-model rate limits; forum posts report about 40 requests a minute. So the plan is every open cell, and the measurement is C itself.
 - **4 attempts in parallel.** An agent call took 12.6–86.8 s on NIM in the probe. At 4 agents this stays under 40 requests a minute unless calls take under 6 s. The SDK retries short rate-limit refusals itself; only a refusal that ends an attempt counts against C.
 - **Tighter network seal.** NIM resolves to 2 fixed addresses (AWS Global Accelerator: 99.83.136.103 and 75.2.113.119 on 2026-11-14). Containers may reach DNS and those addresses on port 443, nothing else. Before each attempt a container must reach NIM and be refused by github.com and by openrouter.ai, or the attempt does not start. bench-3's seal allowed all of Cloudflare's ranges, so this one is stricter.
-- **One more provider pattern.** A refusal for credit or payment (`402`, "insufficient credits" and similar) is a `provider_error`: not counted, retried. bench-3 never saw one. Timeouts and harness crashes keep their meaning.
+- **A failed setup is not an attempt.** If the SDK install, the image pull or the seal check fails, no model call was made. The attempt is recorded as skipped (bench-3's `skipped_budget` label): not counted, and retried. STATUS shows the count. (In bench-3 the same failure would be a counted `harness_crash`.)
+- **One more provider pattern.** Any refusal (the pattern under C) is a `provider_error`: not counted, retried. bench-3's own pattern already covers 429, rate limits and quota; this adds `402`, payment, credit and `403`/permission refusals. Timeouts and harness crashes keep their meaning. Checked: on all 53 bench-3 run records the new pattern changes no label and matches nothing.
 - **Start times.** Each attempt records `started_utc` (UTC, when its workspace was ready) and the parallel count.
 - **First batch timing.** The workflow refuses to start the first registered batch at 18:00 UTC or later, so it cannot cross midnight UTC.
 
 ## Decisions, fixed now
 - **C** reads only the first registered batch that ran agent attempts, counting every agent attempt in it, counted or not (capacity is about what the provider served).
-  - **Fails** if any attempt's error names a refusal: `429`, rate limit, `RESOURCE_EXHAUSTED`, quota, `402`, payment, credit, `403`, forbidden.
-  - **Holds** if there is no refusal, the batch has at least 21 agent attempts, and all of them started on the same UTC day.
-  - **Inconclusive** otherwise (fewer than 21 attempts, a missing start time, or the batch crossed a UTC day).
+  - The error text read is the run record's error plus the grader's list of event-log error codes.
+  - A **refusal** is: a 429, 402 or 403 in an HTTP context ("Error code: 429", "HTTP 403", "429 Too Many Requests"); a rate limit; `RESOURCE_EXHAUSTED`; an exceeded quota; permission denied; payment required; or insufficient or exhausted credits. The exact pattern is `REFUSAL` in `decide.py`, with tests for look-alikes that must not match ("line 403", "accredited", "disk quota").
+  - **Fails** if any attempt in the batch shows a refusal.
+  - **Holds** if there is no refusal, no attempt is *blind*, the batch has at least 21 agent attempts, and all of them started on the same UTC day. Blind means a timeout or a missing run record: the agent is killed before it writes its error, so throttling could hide there.
+  - **Inconclusive** otherwise.
+  - Skipped attempts (failed setup) made no model call, so they are not part of C.
   - A server fault (5xx, timeout) is not a refusal: the provider still served that attempt. It is not counted for P and its cell is retried.
   - C is a lower bound at 4 in parallel. It does not measure NIM's real daily limit if that limit is higher.
 - **P**, from N's counted attempts and bench-3 arm A's counted attempts:
@@ -46,7 +51,7 @@ The Forge's best-measured free worker is Nemotron 3 Ultra (bench-3 arm A: 6 of 6
   - **Holds** if N's lower end is at least 50%, A has at least one counted attempt, and N is not worse. A detectably better N still holds.
   - **Fails** if N's upper end is under 50%, or N is worse.
   - **Inconclusive** otherwise.
-- **Final** only when bench-5 is complete, every bench-3 arm-A cell is done, and the run is not void. Until then STATUS says "Not final".
+- **Final** only when bench-5 is complete, every bench-3 arm-A cell holds a counted result (a cut cell blocks it, as in bench-3), and the run is not void. Until then STATUS says "Not final". A void run reports "void" for the pool decision.
 - **Harness**: reported with bench-3's rule (holds at 7/9 or more with no crash).
 - **Reported, no verdict:** median calls per attempt, wall seconds per call and prompt tokens per call, for N and A. A large gap in prompt tokens per call would show a hidden prompt (the probe found one on Nara: 304 vs 36).
 
@@ -60,6 +65,47 @@ $0. The NIM key is a free NVIDIA Developer Program key with no payment method, u
 - Fisher's test with about 21 and 15 attempts detects only large differences. "Not detectably worse" is weak evidence of "the same".
 - Concurrency: bench-5 has its own group, so it can push to `router-runs` while bench-3 or bench-4 does. bench-5 retries its own push. A bench-3 or bench-4 push that loses this race fails, and its cells run again in a later batch.
 - NIM's trial terms let NVIDIA change limits at any time. A C result describes the day it was measured.
+- **The 35-minute cap makes P partly a speed test.** A timeout counts as a fail. bench-3 arm A used 26–50 calls at 6–14 s a call; the probe saw NIM take 12.6–86.8 s for one call. At more than about 42 s a call, a 50-call attempt times out. In real use a slow provider also fails tasks, so this is kept, and timeouts are listed. The pilot ran at 6.3 s a call.
+- C at 4 in parallel is one point. It doesn't give NIM's limit at other loads.
 
 ## Pilot
 One attempt (N on T2) and one control, `mode=pilot`, before registering. It counts for nothing. It must show: the seal check passes; the model name sent is the arm's; real calls; a label from the list.
+
+## Pilots (count for nothing)
+- **43578600622:** the N job failed before the agent started. `git commit` started git's auto-maintenance, which deleted `.git/objects/maintenance.lock` while `chmod -R` walked the tree. This was an instrument race, not NIM. It was fixed here and in bench-3 and bench-4 (commit `f76f2da`; their PREREGs carry a dated note).
+- **43579088036:**
+  - Seal: passed. NIM was reached; github.com and openrouter.ai were refused.
+  - Model: the record names `nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b`.
+  - Result: T2 `finished`, a clean pass, in 25 calls and 158 s (6.3 s a call). The hidden test first passed at action 12.
+  - Tokens: 770,479 prompt tokens, of which 670,752 were cache reads (NIM reports caching). That is 30.8K prompt tokens per call, against arm A's 34.7K, so there is no sign of a hidden prompt.
+  - Blocked connections: 12, to GitHub's raw-file hosts and the harness's other hosts. That matches bench-3's pilot (12).
+  - Control: failed, as required.
+
+## Checks before registering (2026-11-14)
+**Separate audit agent (read-only): 10 findings, all applied.**
+1. A failed seal check became a counted crash. It is now skipped.
+2. C could not see refusals that existed only in the event log, or throttling hidden by a timeout. It now reads the grader's error codes, and it treats timeouts and missing records as blind.
+3. The 35-minute cap measures speed. This is now a stated limit, and the job limit is 55 minutes.
+4. `bench3/decide.py` was imported without a hash check. It is now checked.
+5. `find | head` under pipefail would fail once there were about 52 results. It now uses `find -print -quit`.
+6. The refusal pattern matched look-alikes and missed "rate limit exceeded" and "payment method required". It is now precise, with tests.
+7. A 403 was a refusal for C but a counted crash for P. It is now a provider error for both.
+8. "Final" could be true with every arm-A cell cut. A cut cell now blocks it.
+9. A mistyped mode started a registered batch. The input is now a fixed choice, and the plan job checks it.
+10. The record job aborted when a retry had nothing to commit. That case is now handled.
+The audit also confirmed: Fisher's test matches SciPy within 3.3e-16; `compare()` gives exactly one verdict in all 34,408 cases; and bench-5's labels equal bench-3's on all 53 bench-3 records.
+
+**Outside review (`review.yml`, run 43578640763; replies saved as received on `router-runs:reviews/43578640763/`).**
+- **gpt-oss-120b (OpenAI, on Cloudflare): 8 findings.**
+  - Applied (3):
+    - batch order without `int()`;
+    - one shared refusal pattern for labels and C;
+    - a void run no longer reports a pool decision.
+  - Rejected (5), with the reason:
+    - "REFUSAL contains Timeout": it does not.
+    - "skipped attempts should count for C": they made no model call.
+    - "`parallel` can be faked": it is set by the workflow, not the agent.
+    - "A with 0 attempts should fail": inconclusive is the stated intent.
+    - "multiple controls per task": the plan schedules one and the first result stands.
+- **llama-4-scout (Meta, on Cloudflare): 8 findings, none applied.** Each was generic or already handled (for example, `_per_call` already guards an empty list).
+- **gemini-3.5-flash-lite:** returned 404 (wrong model name in the dispatch). No review.

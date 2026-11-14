@@ -25,10 +25,18 @@ TASKS, REPS = ["T1", "T2", "T3"], 7
 MAX_TRIES = b3.MAX_TRIES
 ENDS, COUNTED, CRASH = b3.ENDS, b3.COUNTED, b3.CRASH
 INSTRUMENT = b3.INSTRUMENT
-# NIM-only addition: a refusal for credit or payment is the provider's, not the worker's. bench-3 never saw one.
-EXTRA_PROVIDER = re.compile(r"\b402\b|PaymentRequired|insufficient (credit|balance)|credits? (exhausted|exceeded)", re.I)
-# Capacity: an attempt the provider refused (rate, quota, credit or permission), as opposed to a server fault.
-REFUSAL = re.compile(r"\b429\b|RateLimit|RESOURCE_EXHAUSTED|quota|\b402\b|PaymentRequired|credit|\b403\b|Forbidden", re.I)
+# A refusal: the provider declined to serve (rate, quota, credit, payment or permission), as opposed to a server
+# fault. Status codes count only in an HTTP context, so "line 403" or a path holding "/403/" do not match.
+# One pattern for both uses (outside review, 2026-11-14): every refusal is a provider_error (not counted, retried),
+# and C reads the same pattern.
+REFUSAL = re.compile(
+    r"(?:Error code|status(?:[ _]code)?|HTTP)\W{0,3}4(?:29|02|03)\b|\b4(?:29|02|03)\W{0,3}(?:Too Many|Payment|Forbidden)"
+    r"|RateLimitError|\brate[ -]?limit(?:ed|s)?\b|RESOURCE_EXHAUSTED|insufficient_quota|\bquota (?:exceeded|exhausted)"
+    r"|exceeded (?:your |the )?(?:current )?quota|PermissionDenied|PaymentRequired|payment (?:method )?required"
+    r"|insufficient (?:credits?|balance)|credits? (?:exhausted|exceeded)|out of credits", re.I)
+EXTRA_PROVIDER = REFUSAL
+# An attempt C cannot see into: killed at the time cap, or no run record. Throttling could hide in either.
+BLIND = re.compile(r"no run\.json")
 C_MIN = 21                         # attempts that must be served inside one UTC day for C to hold
 ALPHA = 0.05
 
@@ -60,7 +68,9 @@ def load(d):
         except (ValueError, OSError):
             run = None
         r = reconcile(json.load(open(f)), run)
-        r["_err"] = _errtext(run or {}, []) if run else ""
+        # error text from run.json and from the grader's record of the event-log error codes (audit, 2026-11-14)
+        r["_err"] = " ".join(filter(None, [_errtext(run or {}, []) if run else "", str(r.get("error") or ""),
+                                           " ".join(map(str, r.get("error_codes") or []))]))
         r["_prompt_tokens"] = ((run or {}).get("tokens") or {}).get("prompt_tokens") if isinstance(run, dict) else None
         out.append(r)
     return out
@@ -90,19 +100,21 @@ def capacity(results):
     agents = [r for r in results if r.get("arm") == "N" and r.get("end") != "skipped_budget" and not r.get("pilot")]
     if not agents:
         return {"verdict": "inconclusive", "why": "no registered agent attempt yet"}
-    first = min(agents, key=lambda r: int(r.get("run_id") or 0))["run_id"]
+    first = min(agents, key=lambda r: (len(str(r.get("run_id"))), str(r.get("run_id"))))["run_id"]   # numeric order, no int()
     b = [r for r in agents if r.get("run_id") == first]
     days = sorted({_day(r) for r in b} - {None})
     refused = [r for r in b if REFUSAL.search(r.get("_err") or "")]
+    blind = [r for r in b if r.get("end") == "timeout" or BLIND.search(r.get("_err") or "")]
     served = sum(r.get("calls") or 0 for r in b)
-    out = {"batch": first, "attempts": len(b), "calls_served": served, "refused": len(refused), "utc_days": days,
+    out = {"batch": first, "attempts": len(b), "calls_served": served, "refused": len(refused), "blind": len(blind), "utc_days": days,
            "parallel": max((r.get("parallel") or 0) for r in b)}
     if refused:
         v, why = "fails", f"NIM refused {len(refused)} of {len(b)} attempts in the batch"
-    elif len(b) >= C_MIN and len(days) == 1 and all(_day(r) for r in b):
+    elif len(b) >= C_MIN and not blind and len(days) == 1 and all(_day(r) for r in b):
         v, why = "holds", f"{len(b)} attempts ({served} calls) served in one UTC day with no refusal"
     else:
-        v, why = "inconclusive", "fewer than 21 attempts, a missing start time, or the batch crossed a UTC day"
+        v, why = "inconclusive", ("fewer than 21 attempts, a timeout or missing record (C can't see into those), "
+                                  "a missing start time, or the batch crossed a UTC day")
     return dict(out, verdict=v, why=why)
 
 
@@ -146,7 +158,8 @@ def bench3_arm_a(d):
     done = b3.cells(rs)
     got = [v for (t, a, r), v in done.items() if a == B3_ARM and not isinstance(v, str) and v["end"] in COUNTED]
     k = sum(1 for r in got if r["passed"] and r["clean"])
-    complete = all((t, B3_ARM, r) in done for t in b3.TASKS for r in range(b3.REPS))
+    # complete only when every arm-A cell holds a counted result: a cut cell blocks it, as it blocks bench-3 (audit)
+    complete = all(not isinstance(done.get((t, B3_ARM, r), "open"), str) for t in b3.TASKS for r in range(b3.REPS))
     return k, len(got), complete, got
 
 
@@ -179,7 +192,8 @@ def status(results, b3dir=None):
     s["capacity"] = capacity(results)
     s["compare"] = compare(k, len(rs), ak, an, acomp)
     s["final"] = s["complete"] and acomp and not s["void"]
-    s["second_pool"] = ("yes" if s["capacity"]["verdict"] == "holds" and s["compare"]["verdict"] == "holds" else
+    s["setup_skips"] = sum(1 for r in results if r["end"] == "skipped_budget")
+    s["second_pool"] = ("void" if s["void"] else "yes" if s["capacity"]["verdict"] == "holds" and s["compare"]["verdict"] == "holds" else
                         "no" if "fails" in (s["capacity"]["verdict"], s["compare"]["verdict"]) else "undecided")
     s["report"] = {  # no verdict: reported for routing
         "N": {"median_calls": statistics.median([r["calls"] for r in rs if r.get("calls") is not None] or [0]),
@@ -200,9 +214,10 @@ def markdown(s):
          f"- Control fails all tasks, as required: **{s['control_ok']}**",
          f"- Seal: **{s['seal']}**; blocked outbound connections: {s['egress_drops']}",
          f"- Harness (no crash): {s['harness']['no_crash']}/{s['harness']['n']}, **{s['harness']['verdict']}**",
-         f"- Endings: {s['ends']}; provider errors (not counted, retried): {s['provider_errors']}; instrument faults: {s['instrument_faults']}",
+         f"- Endings: {s['ends']}; provider errors (not counted, retried): {s['provider_errors']}; instrument faults: {s['instrument_faults']}; "
+         f"setup or seal failures before any model call (not counted, retried): {s['setup_skips']}",
          f"- **C, capacity: {c['verdict']}.** {c.get('why', '')}. "
-         f"Batch {c.get('batch')}: {c.get('attempts')} attempts, {c.get('calls_served')} calls, {c.get('refused')} refused, "
+         f"Batch {c.get('batch')}: {c.get('attempts')} attempts, {c.get('calls_served')} calls, {c.get('refused')} refused, {c.get('blind')} blind, "
          f"UTC days {c.get('utc_days')}, parallel {c.get('parallel')}",
          f"- **P, pass rate vs arm A: {p['verdict']}.** N {p['n_clean']}/{p['n']} clean "
          f"({round(100 * p['low'])}–{round(100 * p['high'])}%); A {p['a_clean']}/{p['a_n']}; Fisher p = {p['fisher_p']}",
@@ -284,7 +299,28 @@ def selftest():
     assert v["void"] and "VOID" in markdown(v)
     s2 = status(one_refused)
     assert s2["second_pool"] == "no" and s2["provider_errors"] == 1 and s2["open_cells"] == 1
-    # 7. instrument faults use bench-3's amended rule
+    # 7. refusal pattern: matches refusals, not look-alikes (audit and outside review, 2026-11-14)
+    for t in ("litellm.RateLimitError: x", "Error code: 429 - {...}", "429 Too Many Requests", "Rate limit exceeded",
+              "payment method required", "402 Payment Required", "insufficient credits", "LLMPermissionDeniedError: 403 Forbidden",
+              '{"status":429,"title":"Too Many Requests"}', "HTTP 403", "You exceeded your current quota", "RESOURCE_EXHAUSTED"):
+        assert REFUSAL.search(t), t
+    for t in ("accredited", "credit_limit", "line 403", "/tmp/x/403/y", "disk quota", "forbidden_paths", "ServiceUnavailable 503",
+              "Timeout", "run: ValueError: odd", "a1b2403c", "MaxIterationsReached"):
+        assert not REFUSAL.search(t), t
+    assert classify({"status": "x", "error": "run: LLMPermissionDeniedError: 403 Forbidden"}, []) == "provider_error"
+    # 8. C can't see into timeouts or missing records; refusals in the grader's error codes count; ids order numerically
+    tmo = full[:-1] + [res("T3", 6, "timeout", _err="harness: no run.json (agent step rc=124)")]
+    assert capacity(tmo)["verdict"] == "inconclusive" and capacity(tmo)["blind"] == 1
+    ev_only = [dict(r, _err=r["_err"] + " RateLimitError") if r["task"] == "T1" and r["rep"] == 3 and r["arm"] == "N" else r for r in full]
+    assert capacity(ev_only)["verdict"] == "fails"
+    ids = full + [res("T1", 0, "finished", p=True, run_id="99")]
+    assert capacity(ids)["batch"] == "99"                                    # "99" < "100" numerically, not as text
+    skip = full[:-1] + [res("T3", 6, "skipped_budget", calls=None)]
+    assert capacity(skip)["attempts"] == 20 and capacity(skip)["verdict"] == "inconclusive"
+    assert status(skip)["setup_skips"] == 1 and status(skip)["open_cells"] == 1
+    # 9. a void run never reports a pool decision
+    assert status([res("T1", 0, "control", p=True, arm="Z")])["second_pool"] == "void"
+    # 10. instrument faults use bench-3's amended rule
     assert reconcile(res("T1", 0, "unclassified"), {"model": "$B_MODEL"})["end"] == INSTRUMENT
     print("selftest ok: bench-5 rules, on bench-3's labels")
 
