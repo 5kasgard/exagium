@@ -1,0 +1,29 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..d6c573c 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -149,13 +149,23 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        if "entries_b64" in body:
++            if not isinstance(body["entries_b64"], list):
++                raise Bad(f"{where}: entries_b64 must be a list")
++            for i, b64 in enumerate(body["entries_b64"]):
++                if not isinstance(b64, str):
++                    raise Bad(f"{where}: entries_b64[{i}] must be a string")
++                try:
++                    base64.b64decode(b64, validate=True)
++                except ValueError:
++                    raise Bad(f"{where}: entries_b64[{i}] must be base64")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")

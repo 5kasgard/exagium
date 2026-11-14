@@ -1,0 +1,51 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..161f214 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,6 +385,7 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    sigstore_seq = set()  # track sequence numbers that have sigstore attestations
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -397,6 +398,7 @@ def cmd_check_anchors(a):
+                 t = check_ots(path, raw, a.explorer)
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:
++                sigstore_seq.add(seq)  # this sequence has a sigstore attestation
+                 t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+                 if not isinstance(pred, dict) or not isinstance(pred.get("from_seq"), int) or pred.get("to_seq") != seq \
+                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+@@ -409,6 +411,9 @@ def cmd_check_anchors(a):
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
+     covered, changes, prev_commit = 0, [], None
++    # Collect all range heads (the 'to_seq' values from sigstore attestations)
++    # We also include sigstore_seq for attestations that couldn't be checked
++    range_heads = {hi for _, hi, _ in ranges} | sigstore_seq
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+             bad.append(f"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}")
+@@ -419,6 +424,11 @@ def cmd_check_anchors(a):
+         prev_commit = commit
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
++    # Check that each range head has a corresponding .ots file
++    for seq in sorted(range_heads):
++        ots_path = os.path.join(a.ledger, "anchors", f"{seq:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"anchors/{seq:06d}.ots is missing")
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
+                       "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
+     for x in bad:

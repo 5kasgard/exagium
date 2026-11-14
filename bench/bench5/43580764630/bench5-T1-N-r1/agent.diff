@@ -1,0 +1,46 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..efe7cab 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,13 +385,18 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    sigstore_seqs = set()
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+         seq = int(m.group(1))
++        if not 1 <= seq <= len(chain):
++            bad.append(f"anchors/{n}: no entry {seq}")
++            continue
++        # Collect sigstore sequence numbers regardless of verification outcome
++        if m.group(2) == "sigstore.json":
++            sigstore_seqs.add(seq)
+         try:
+-            if not 1 <= seq <= len(chain):
+-                raise Bad(f"anchors/{n}: no entry {seq}")
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
+                 t = check_ots(path, raw, a.explorer)
+@@ -408,6 +413,11 @@ def cmd_check_anchors(a):
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++    # Every sigstore range head must have a corresponding .ots proof
++    for seq in sigstore_seqs:
++        ots_path = os.path.join(a.ledger, "anchors", f"{seq:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{seq:06d}.ots is missing")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:

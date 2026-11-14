@@ -1,0 +1,71 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..fce5d14 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -35,6 +35,42 @@ class CantCheck(Exception):
+     """A check couldn't run (missing library, network): exit 2."""
+ 
+ 
++def _orphan_entries_problem(orphan, pred):
++    """Validate that the entries hidden by an orphan match its attestation predicate.
++    orphan["body"]["entries_b64"] is a list of base64-encoded canonical entry bytes.
++    pred is the writer's predicate with from_seq, to_seq, prev_sha256, head_sha256.
++    Returns None if entries match the attested range, else a short problem string containing
++    'range', 'chain', or 'head' indicating the mismatch.
++    Returns None if entries_b64 is not provided (validation skipped)."""
++    entries_b64 = orphan.get("body", {}).get("entries_b64")
++    if not isinstance(entries_b64, list):
++        return None  # no entries provided, skip validation
++    expected_count = pred.get("to_seq", 0) - pred.get("from_seq", 1) + 1
++    if len(entries_b64) != expected_count:
++        return "range"
++    prev_expected = pred.get("prev_sha256")
++    last_hash = prev_expected  # for empty range, head should equal prev
++    for i, b64 in enumerate(entries_b64):
++        try:
++            raw = base64.b64decode(b64, validate=True)
++        except ValueError:
++            return "chain"
++        # parse to check prev field
++        try:
++            entry = parse_json(raw, f"orphan entry {i}")
++        except Bad:
++            return "chain"
++        if not isinstance(entry, dict) or "prev" not in entry:
++            return "chain"
++        if entry["prev"] != prev_expected:
++            return "chain"
++        prev_expected = hashlib.sha256(raw).hexdigest()
++        last_hash = prev_expected
++    if last_hash != pred.get("head_sha256"):
++        return "head"
++    return None
++
++
+ # ---------- canonical form ----------
+ def canonical(obj):
+     return json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8")
+@@ -149,13 +185,21 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+-            base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
++            stmt_b64 = _need(body, "statement_b64", str, where)
++            base64.b64decode(stmt_b64, validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        # validate hidden entries match the attestation predicate
++        stmt = parse_json(base64.b64decode(stmt_b64), f"{where} statement")
++        pred = (stmt or {}).get("predicate") or {}
++        if pred:
++            prob = _orphan_entries_problem({"body": body}, pred)
++            if prob:
++                raise Bad(f"{where}: orphan entries don't match attestation ({prob})")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")

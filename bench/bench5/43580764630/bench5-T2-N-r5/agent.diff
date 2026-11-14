@@ -1,0 +1,75 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..9fb5753 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -149,13 +149,21 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        if "entries_b64" in body:
++            if not isinstance(body["entries_b64"], list):
++                raise Bad(f"{where}: entries_b64 must be a list")
++            for i, b in enumerate(body["entries_b64"]):
++                try:
++                    base64.b64decode(b, validate=True)
++                except ValueError:
++                    raise Bad(f"{where}: entries_b64[{i}] must be base64")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
+@@ -285,6 +293,36 @@ def identity(repo, workflow, ref):
+     return f"https://github.com/{repo}/{workflow}@{ref}"
+ 
+ 
++def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:
++    """Validate that the orphan's entries_b64 matches the attested range.
++    Returns None if valid, otherwise a short problem string containing 'range', 'chain', or 'head'."""
++    if "entries_b64" not in orphan["body"]:
++        return "missing entries_b64"
++    entries_b64 = orphan["body"]["entries_b64"]
++    from_seq = pred.get("from_seq")
++    to_seq = pred.get("to_seq")
++    prev_sha256 = pred.get("prev_sha256")
++    head_sha256 = pred.get("head_sha256")
++    
++    # Check count
++    expected_count = to_seq - from_seq + 1
++    if len(entries_b64) != expected_count:
++        return f"range: expected {expected_count} entries, got {len(entries_b64)}"
++    
++    prev_hash = prev_sha256
++    for i, entry_b64 in enumerate(entries_b64):
++        entry_bytes = base64.b64decode(entry_b64)
++        entry = parse_json(entry_bytes, f"orphan entry {i}")
++        if entry.get("prev") != prev_hash:
++            return f"chain: entry {i} prev {entry.get('prev')!r} doesn't link from {prev_hash!r}"
++        prev_hash = hashlib.sha256(entry_bytes).hexdigest()
++    
++    if prev_hash != head_sha256:
++        return f"head: final hash {prev_hash!r} doesn't match head_sha256 {head_sha256!r}"
++    
++    return None
++
++
+ def range_predicate(chain, from_seq, to_seq):
+     """What the writer attests: the range of entries one run added, tied to the chain on both ends."""
+     return {"from_seq": from_seq, "to_seq": to_seq,
+@@ -529,6 +567,10 @@ def cmd_monitor(a):
+                 bad.append(f"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}")
+                 continue
+             pred = (parse_json(stmt, f"orphan entry {o['seq']} statement") or {}).get("predicate") or {}
++            problem = _orphan_entries_problem(o, pred)
++            if problem:
++                bad.append(f"orphan entry {o['seq']}: {problem}")
++                continue
+             head = pred.get("head_sha256")
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")

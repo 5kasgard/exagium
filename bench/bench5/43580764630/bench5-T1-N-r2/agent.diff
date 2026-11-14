@@ -1,0 +1,95 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..bcedeee 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -412,6 +412,10 @@ def cmd_check_anchors(a):
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+             bad.append(f"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}")
++        # each range head (hi) must have a corresponding .ots proof
++        ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{hi:06d}.ots is missing")
+         covered = max(covered, hi)
+         if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)
+             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
+diff --git a/record/test_record.py b/record/test_record.py
+index 9e3084a..648108e 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -1,5 +1,6 @@
+ """Tests for record.py's ledger rules (offline; anchors are tested in CI)."""
+ import io, json, os, shutil, tempfile, unittest, contextlib, hashlib
++from unittest.mock import patch
+ import record as R
+ 
+ PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
+@@ -222,6 +223,59 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(rc, 1)
+         self.assertIn("never attested by the writer", err)
+ 
++    def test_check_anchors_detects_missing_ots_proof(self):
++        # A Sigstore attestation for a range head requires the corresponding .ots proof to exist.
++        # Create two entries and mock both check_sigstore and check_ots to test the logic.
++        self._two_entries()
++        anchors_dir = os.path.join(self.d, "anchors")
++        os.makedirs(anchors_dir, exist_ok=True)
++        # Create dummy anchor files (they'll be mocked)
++        with open(os.path.join(anchors_dir, "000001.ots"), "w") as f:
++            f.write('dummy')
++        with open(os.path.join(anchors_dir, "000002.ots"), "w") as f:
++            f.write('dummy')
++        with open(os.path.join(anchors_dir, "000002.sigstore.json"), "w") as f:
++            f.write('{"dummy": "bundle"}')
++        
++        # Mock both check_ots and check_sigstore to return valid results
++        with patch('record.check_ots') as mock_ots, \
++             patch('record.check_sigstore') as mock_sigstore:
++            # check_ots returns the earliest Bitcoin block time (or None for pending)
++            mock_ots.return_value = 1234567890
++            # check_sigstore returns (integrated_time, predicate, commit)
++            mock_sigstore.return_value = (1234567890, {
++                "from_seq": 1, "to_seq": 2,
++                "prev_sha256": None,  # from_seq == 1 means no prev
++                "head_sha256": hashlib.sha256(open(self.entry(2), "rb").read()).hexdigest()
++            }, "fake_commit_hash")
++            rc, out, err = self.run_cmd("check-anchors")
++            # Should pass because both .ots files exist
++            self.assertEqual(rc, 0, f"Expected 0, got {rc}: {err}")
++            self.assertNotIn("000002.ots is missing", err)
++        
++        # Now delete the .ots file for the range head (entry 2)
++        os.remove(os.path.join(anchors_dir, "000002.ots"))
++        
++        # Run check-anchors again with mock - should fail with missing .ots error
++        with patch('record.check_ots') as mock_ots, \
++             patch('record.check_sigstore') as mock_sigstore:
++            mock_ots.return_value = 1234567890
++            mock_sigstore.return_value = (1234567890, {
++                "from_seq": 1, "to_seq": 2,
++                "prev_sha256": None,
++                "head_sha256": hashlib.sha256(open(self.entry(2), "rb").read()).hexdigest()
++            }, "fake_commit_hash")
++            rc, out, err = self.run_cmd("check-anchors")
++            self.assertEqual(rc, 1, f"Expected 1, got {rc}: {err}")
++            self.assertIn("000002.ots is missing", err)
++
++    def test_check_anchors_missing_ots_error_format(self):
++        # Verify the error message format for missing .ots files
++        # This test ensures the error message contains "NNNNNN.ots is missing"
++        self.assertEqual(f"{2:06d}.ots is missing", "000002.ots is missing")
++        self.assertEqual(f"{1:06d}.ots is missing", "000001.ots is missing")
++        self.assertEqual(f"{123456:06d}.ots is missing", "123456.ots is missing")
++
+     def test_unknown_files_and_fields_are_refused(self):
+         self._two_entries()
+         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")

@@ -1,0 +1,27 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..3a99017 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -408,6 +408,13 @@ def cmd_check_anchors(a):
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++
++    # Check that each attested range head (from sigstore) has a corresponding .ots proof file
++    for _, hi, _ in ranges:
++        ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{hi:06d}.ots is missing")
++
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
