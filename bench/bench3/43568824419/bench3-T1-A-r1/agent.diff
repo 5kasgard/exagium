@@ -1,0 +1,48 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..7b35d44 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,6 +385,8 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    required_ots = set()  # seq numbers that must have .ots proofs (range heads from sigstore)
++    found_ots = set()     # seq numbers that have .ots files
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -395,6 +397,7 @@ def cmd_check_anchors(a):
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
+                 t = check_ots(path, raw, a.explorer)
++                found_ots.add(seq)
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:
+                 t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+@@ -402,12 +405,17 @@ def cmd_check_anchors(a):
+                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
+                 ranges.append((pred["from_seq"], seq, commit))
++                required_ots.add(seq)  # this seq is a range head, must have .ots
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++    # Check that every required .ots proof exists
++    for seq in required_ots:
++        if seq not in found_ots:
++            bad.append(f"{seq:06d}.ots is missing")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:

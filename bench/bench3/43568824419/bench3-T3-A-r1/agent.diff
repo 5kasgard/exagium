@@ -1,0 +1,68 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 231ebea..c443d19 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -386,6 +386,10 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    # Track Sigstore attestation time for each range head (seq -> integratedTime)
++    sigstore_attestation = {}
++    # Track OTS proof result for each seq (seq -> block_time or None if pending)
++    ots_result = {}
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -398,6 +402,7 @@ def cmd_check_anchors(a):
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
+                 t = check_ots(path, raw, a.explorer)
++                ots_result[seq] = t
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:
+                 t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+@@ -405,6 +410,7 @@ def cmd_check_anchors(a):
+                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
+                 ranges.append((pred["from_seq"], seq, commit))
++                sigstore_attestation[seq] = t
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
+         except Bad as ex:
+@@ -416,6 +422,18 @@ def cmd_check_anchors(a):
+         # was removed (found by Z, 2026-11-06)
+         if hi not in stamped:
+             bad.append(f"anchors/{hi:06d}.ots is missing, though the writer stamps every range head before attesting")
++    # Check for pending OTS proofs that exceed max-pending-hours
++    if getattr(a, "max_pending_hours", None) is not None:
++        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
++        for lo, hi, commit in sorted(ranges):
++            # hi is the range head; check its OTS proof
++            ots_time = ots_result.get(hi)
++            if ots_time is None:  # pending (either no proof file, or proof exists but not yet confirmed)
++                attest_time = sigstore_attestation.get(hi)
++                if attest_time is not None:
++                    hours_pending = int((now - attest_time) // 3600)
++                    if hours_pending > a.max_pending_hours:
++                        bad.append(f"anchors/{hi:06d}.ots: still pending {hours_pending} h")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+@@ -612,6 +630,8 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=int, metavar="H",
++                           help="if a range head's OTS proof is still pending after H hours since Sigstore attestation, exit 1")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")

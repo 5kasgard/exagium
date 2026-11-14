@@ -1,0 +1,83 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/README.md b/record/README.md
+index 1731b76..ab1be03 100644
+--- a/record/README.md
++++ b/record/README.md
+@@ -14,7 +14,7 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
+ python3 record.py head            # head seq and sha256
+ python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
+ python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
+-python3 -m unittest -v test_record   # 20 tests, <1 s
++python3 -m unittest -v test_record   # 21 tests, <1 s
+ ```
+ - `verify` and `head` need only Python 3 (stdlib).
+ - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
+@@ -76,6 +76,7 @@ So hiding an attested verdict means publishing it inside the orphan entry. The `
+ |---|---|
+ | Entry unchanged since anchored? | `check-anchors`: Sigstore subject and OTS proof match its bytes |
+ | Every entry vouched for by the writer? | `check-anchors`: ranges cover 1..head, no gap or overlap |
++| Each range head's OTS proof present? | `check-anchors`: an expected `NNNNNN.ots` that was deleted is reported, not skipped |
+ | Existed by when? | Rekor `integratedTime`; Bitcoin block time (existence only) |
+ | Which code wrote each range? | `check-anchors`: each run's certified commit, and whether anything under `record/` or `.github/` changed since the last run |
+ | Runs held back, forked or deleted? | `monitor`: every writer attestation on any ref is in the ledger or published by an orphan entry; no force push or deletion of the ledger branch |
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..f4c178b 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,7 +385,8 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
+-    for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
++    paths = _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors")
++    for path in paths:
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+         seq = int(m.group(1))
+@@ -408,6 +409,14 @@ def cmd_check_anchors(a):
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++    present = {os.path.basename(p) for p in paths}
++    # A range head is attested by its Sigstore bundle, so it must also carry a proof of the head entry's bytes.
++    heads = {int(m.group(1)) for n in present if (m := ANCHOR_NAME.fullmatch(n)) and m.group(2) != "ots"}
++    heads.update(hi for _, hi, _ in ranges)
++    for seq in sorted(heads):
++        name = f"{seq:06d}.ots"
++        if seq <= len(chain) and name not in present:
++            bad.append(f"{name} is missing (the writer's Sigstore range ending at entry {seq} is unattested by OpenTimestamps)")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+diff --git a/record/test_record.py b/record/test_record.py
+index 9e3084a..8612a47 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -222,6 +222,19 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(rc, 1)
+         self.assertIn("never attested by the writer", err)
+ 
++    def test_check_anchors_reports_a_missing_ots_proof_for_an_attested_range_head(self):
++        # review: deleting anchors/NNNNNN.ots left check-anchors silent, because it only looked at files present.
++        self._two_entries()
++        os.makedirs(os.path.join(self.d, "anchors"))
++        for seq in (1, 2):  # a Sigstore bundle per range head; the proof of entry 2 is deleted
++            open(os.path.join(self.d, "anchors", f"{seq:06d}.sigstore.json"), "w").write("{}")
++            open(os.path.join(self.d, "anchors", f"{seq:06d}.ots"), "w").write("proof")
++        os.remove(os.path.join(self.d, "anchors", "000002.ots"))
++        rc, _, err = self.run_cmd("check-anchors")
++        self.assertEqual(rc, 1)
++        self.assertIn("000002.ots is missing", err)
++        self.assertNotIn("000001.ots is missing", err)
++
+     def test_unknown_files_and_fields_are_refused(self):
+         self._two_entries()
+         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")

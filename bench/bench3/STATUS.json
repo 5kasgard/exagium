@@ -1,38 +1,39 @@
 {
  "complete": false,
- "open_cells": 22,
- "counted": 36,
+ "open_cells": 39,
+ "counted": 27,
  "provider_cut": [],
+ "instrument_cut": [],
  "control_ok": true,
  "void": false,
  "seal": "holds",
- "egress_drops": 420,
+ "egress_drops": 542,
  "ends": {
-  "iteration_cap": 3,
-  "stuck": 3,
-  "finished": 6,
-  "unclassified": 24
+  "iteration_cap": 4,
+  "stuck": 7,
+  "finished": 11,
+  "unclassified": 5
  },
+ "instrument_faults": 21,
  "harness": {
-  "no_crash": 12,
-  "n": 36,
-  "verdict": "fails"
+  "no_crash": 22,
+  "n": 27,
+  "verdict": "holds"
  },
  "arms": {
   "A": {
    "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
-   "clean_passes": 3,
-   "n": 8,
-   "low": 0.085,
-   "high": 0.755,
-   "usable": "inconclusive",
+   "clean_passes": 6,
+   "n": 6,
+   "low": 0.541,
+   "high": 1.0,
+   "usable": "holds",
    "stopped_for_futility": false,
-   "median_calls": 0.0,
-   "calls_per_clean_pass": 32.7,
-   "median_wall_s": 21.95,
+   "median_calls": 40.5,
+   "calls_per_clean_pass": 39.0,
+   "median_wall_s": 302.70000000000005,
    "ends": {
-    "finished": 3,
-    "unclassified": 5
+    "finished": 6
    }
   },
   "B": {
@@ -43,75 +44,76 @@
    "high": 0.459,
    "usable": "fails",
    "stopped_for_futility": true,
-   "median_calls": 7.5,
+   "median_calls": 16.5,
    "calls_per_clean_pass": null,
-   "median_wall_s": 68.55,
+   "median_wall_s": 132.5,
    "ends": {
-    "stuck": 3,
-    "unclassified": 3
+    "stuck": 6
    }
   },
   "D": {
    "model": "openrouter/cohere/north-mini-code:free",
-   "clean_passes": 1,
-   "n": 8,
-   "low": 0.003,
-   "high": 0.527,
+   "clean_passes": 2,
+   "n": 5,
+   "low": 0.053,
+   "high": 0.853,
    "usable": "inconclusive",
    "stopped_for_futility": false,
-   "median_calls": 0.0,
-   "calls_per_clean_pass": 199.0,
-   "median_wall_s": 20.8,
+   "median_calls": 80,
+   "calls_per_clean_pass": 154.5,
+   "median_wall_s": 245.4,
    "ends": {
-    "iteration_cap": 2,
-    "finished": 1,
-    "unclassified": 5
+    "iteration_cap": 3,
+    "stuck": 1,
+    "finished": 1
    }
   },
   "E": {
    "model": "openrouter/baidu/ernie-5.5-flash-preview:free",
    "clean_passes": 2,
-   "n": 7,
-   "low": 0.037,
-   "high": 0.71,
+   "n": 5,
+   "low": 0.053,
+   "high": 0.853,
    "usable": "inconclusive",
    "stopped_for_futility": false,
-   "median_calls": 0,
-   "calls_per_clean_pass": 87.5,
-   "median_wall_s": 22.5,
+   "median_calls": 56,
+   "calls_per_clean_pass": 145.0,
+   "median_wall_s": 243.6,
    "ends": {
     "iteration_cap": 1,
-    "finished": 2,
-    "unclassified": 4
+    "finished": 4
    }
   },
   "F": {
    "model": "openrouter/dots-studio/dots-3-note-preview:free",
    "clean_passes": 0,
-   "n": 7,
+   "n": 5,
    "low": 0.0,
-   "high": 0.41,
-   "usable": "fails",
-   "stopped_for_futility": true,
+   "high": 0.522,
+   "usable": "inconclusive",
+   "stopped_for_futility": false,
    "median_calls": 0,
    "calls_per_clean_pass": null,
-   "median_wall_s": 20.6,
+   "median_wall_s": 21.2,
    "ends": {
-    "unclassified": 7
+    "unclassified": 5
    }
   }
  },
- "ranking": [],
+ "ranking": [
+  "A above B",
+  "A above F"
+ ],
  "stop_on_green": {
-  "n": 6,
-  "kept": 3,
-  "median_saving": 0.6927767354596623,
-  "verdict": "inconclusive",
-  "median_share_of_actions_after_first_hidden_pass": 0.6299249530956847
+  "n": 10,
+  "kept": 4,
+  "median_saving": 0.5979020979020979,
+  "verdict": "fails",
+  "median_share_of_actions_after_first_hidden_pass": 0.5291375291375291
  },
  "budget": {
-  "median_calls": 0.0,
-  "total_calls": 543,
+  "median_calls": 37,
+  "total_calls": 948,
   "calls_in_uncounted_attempts": 0
  }
 }

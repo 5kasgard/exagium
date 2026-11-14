@@ -1,0 +1,235 @@
+diff --git a/record/README.md b/record/README.md
+index bc34ae0..ad7a101 100644
+--- a/record/README.md
++++ b/record/README.md
+@@ -58,11 +58,12 @@ A daily job completes pending OpenTimestamps proofs. Steps run under `bash -eo p
+ 
+ `verify` lists **open** and **overdue** plans. Completeness can't come from cryptography, so this list is how a missing verdict becomes visible.
+ 
+-**Orphan entries.** An attestation the writer made but the ledger doesn't hold (a run that failed after attesting) is flagged by `monitor` until an `orphan` entry `{by, log_index, reason, statement_b64}` explains it. The explanation is refused if either:
++**Orphan entries.** An attestation the writer made but the ledger doesn't hold (a run that failed after attesting) is flagged by `monitor` until an `orphan` entry `{by, log_index, reason, statement_b64, entries_b64}` explains it. The explanation is refused if any of:
+ - the statement isn't the one Rekor holds for that log index (its payload hash);
++- its predicate attests a range but the entries that run hid aren't published with it: `entries_b64` holds that range's canonical entries, chained from `prev_sha256` and ending at `head_sha256`;
+ - the attested head was ever published on the ledger branch and later removed.
+ 
+-So an orphan can't launder a deleted verdict. The `reason` is a claim; the statement and the entries on `ci-runs` are the evidence.
++So an orphan can't launder a deleted verdict, and it can't hide an entry either: the entries it attests are in the ledger, so a reviewer reads them. The `reason` is a claim; the statement and the entries on `ci-runs` are the evidence.
+ 
+ ## What a stranger can check, and how
+ | Question | How |
+@@ -134,6 +135,7 @@ Each fix has a test or an e2e run.
+ **Round 2 found two more breaks:**
+ 1. **Laundering:** truncating published entries and explaining their attestation with an orphan. Now refused, by statement and git-history checks. Replayed in a clone: exit 1, "published on HEAD and later removed".
+ 2. **The certificate named a different commit from the code that ran.** Now the writer runs exactly the triggering commit.
++3. **An orphan explained only by its statement.** A run that attested entries and then failed could hide them (e.g. a failing verdict) behind a bare orphan. Now an orphan whose statement attests a range must publish that range's entries: exact count, chained from `prev_sha256` to `head_sha256`. Replayed: exit 1, "inbox/a.json: 000001.json: range: no hidden entries are published for the attested range 1-1".
+ 
+ It also found that an explorer outage blocked the writer (now tolerated), and that a Rekor 404 read as "no entries" (now can't-check).
+ 
+diff --git a/record/record.py b/record/record.py
+index b2e508c..35744d8 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -149,13 +149,18 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        if "entries_b64" in body:  # the entries the attestation hid, one canonical entry per base64 string
++            lst = _need(body, "entries_b64", list, where)
++            for i, x in enumerate(lst):
++                if not isinstance(x, str):
++                    raise Bad(f"{where}.entries_b64[{i}]: must be a base64 string")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
+@@ -207,6 +212,10 @@ def load_chain(ledger):
+             if e["body"]["by"] == plans[ref["seq"]][1]:
+                 raise Bad(f"{name}: the verdict's author is the plan's author; a verdict must come from someone else")
+             verdict_of[ref["seq"]] = i
++        elif e["kind"] == "orphan":  # an orphan that attests a range must publish the entries it hid
++            problem = _orphan_problem(e)
++            if problem:
++                raise Bad(f"{name}: {problem}")
+         chain.append((e, h))
+     return chain, verdict_of
+ 
+@@ -240,6 +249,11 @@ def cmd_ingest(a):
+         except Bad as ex:
+             os.remove(out)
+             raise Bad(f"inbox/{n}: {ex}")
++        if prop["kind"] == "orphan":  # an orphan that attests a range must publish the entries it hid
++            problem = _orphan_problem(e)
++            if problem:
++                os.remove(out)
++                raise Bad(f"inbox/{n}: {problem}")
+         chain.append((e, hashlib.sha256(raw).hexdigest()))
+         os.remove(p)
+         print(out, flush=True)
+@@ -291,6 +305,63 @@ def range_predicate(chain, from_seq, to_seq):
+             "prev_sha256": chain[from_seq - 2][1] if from_seq > 1 else None, "head_sha256": chain[to_seq - 1][1]}
+ 
+ 
++def _statement_predicate(orphan, where="statement"):
++    """The predicate the orphan's statement carries, or {} if it isn't a JSON object with a predicate."""
++    try:
++        st = parse_json(base64.b64decode(orphan["body"]["statement_b64"], validate=True), where)
++        pred = st.get("predicate") if isinstance(st, dict) else None
++    except (Bad, ValueError, KeyError, TypeError):
++        return {}
++    return pred if isinstance(pred, dict) else {}
++
++
++def _is_range(pred):
++    return isinstance(pred, dict) and all(isinstance(pred.get(k), int) and not isinstance(pred.get(k), bool)
++                                          for k in ("from_seq", "to_seq"))
++
++
++def _orphan_entries_problem(orphan, pred):
++    """Why the entries an orphan hid don't account for the range its statement attests, or None if they do.
++
++    The hidden entries are the only evidence the orphan offers for an attestation the ledger never held: they must
++    be exactly the attested range, chained on both ends, or the orphan could explain away an attested entry."""
++    if not _is_range(pred):  # fail closed: a statement that attests no range proves nothing about hidden entries
++        return f"range: the statement isn't a predicate with integer from_seq and to_seq ({pred!r})"
++    lo, hi = pred["from_seq"], pred["to_seq"]
++    body = orphan.get("body") if isinstance(orphan, dict) else None
++    listed = body.get("entries_b64") if isinstance(body, dict) else None
++    if not isinstance(listed, list) or not listed:
++        return f"range: no hidden entries are published for the attested range {lo}-{hi}"
++    entries = []
++    for i, x in enumerate(listed):
++        try:
++            entries.append(base64.b64decode(x, validate=True))
++        except (ValueError, TypeError):
++            return f"range: hidden entry {lo + i} isn't base64-encoded entry bytes"
++    if len(entries) != hi - lo + 1:
++        return f"range: {len(entries)} hidden entries for an attested range of {hi - lo + 1} ({lo}-{hi})"
++    prev = pred.get("prev_sha256")
++    for i, raw in enumerate(entries):
++        try:
++            e = parse_canonical(raw, f"hidden entry {lo + i}")
++        except Bad as ex:
++            return f"chain: hidden entry {lo + i} isn't an entry in canonical form ({ex})"
++        if not isinstance(e, dict) or e.get("prev") != prev:
++            return f"chain: hidden entry {lo + i} doesn't chain from {prev}"
++        prev = hashlib.sha256(canonical(e)).hexdigest()
++    if prev != pred.get("head_sha256"):
++        return f"head: the hidden entries end at {prev}, not the attested head {pred.get('head_sha256')}"
++    return None
++
++
++def _orphan_problem(orphan):
++    """Why an orphan entry is wrong, or None. A statement that attests no range is only wrong to the monitor, which
++    can weigh it against the writer's attestations; one that attests a range is wrong wherever the orphan is read, so
++    the ledger's own commands refuse it too."""
++    pred = _statement_predicate(orphan, "orphan statement")
++    return _orphan_entries_problem(orphan, pred) if _is_range(pred) else None
++
++
+ def check_sigstore(bundle, digest, repo, workflow, ref):
+     """Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.
+     Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck."""
+@@ -483,9 +554,10 @@ def _refs(repo):
+ 
+ def cmd_monitor(a):
+     """List every Rekor entry signed by the writer workflow on any ref GitHub names. Each must be an anchor in the
+-    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were
+-    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the
+-    ledger branch is wrong. Entries are matched by Rekor log index, unique per attestation."""
++    ledger, or be explained by an orphan entry that matches Rekor's payload hash and, when its statement attests a
++    range, publishes exactly that range's entries; the attested head must also never have been published on the ledger
++    branch (so an orphan can't launder a deleted verdict). Any force push to the ledger branch is wrong. Entries are
++    matched by Rekor log index, unique per attestation."""
+     chain, _ = load_chain(a.ledger)
+     current = {h for _, h in chain}
+     known, bad = {}, []
+@@ -528,7 +600,11 @@ def cmd_monitor(a):
+             if body.get("kind") != "dsse" or body["spec"]["payloadHash"]["value"] != hashlib.sha256(stmt).hexdigest():
+                 bad.append(f"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}")
+                 continue
+-            pred = (parse_json(stmt, f"orphan entry {o['seq']} statement") or {}).get("predicate") or {}
++            pred = _statement_predicate(o, f"orphan entry {o['seq']} statement")
++            hidden = _orphan_problem(o)
++            if hidden:  # the orphan's entries are its only evidence; without them it just hides the attestation
++                bad.append(f"orphan entry {o['seq']}: {hidden}")
++                continue
+             head = pred.get("head_sha256")
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
+diff --git a/record/test_record.py b/record/test_record.py
+index d8b596e..45baf56 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -1,5 +1,5 @@
+ """Tests for record.py's ledger rules (offline; anchors are tested in CI)."""
+-import io, json, os, shutil, tempfile, unittest, contextlib, hashlib
++import io, base64, json, os, shutil, tempfile, unittest, contextlib, hashlib
+ import record as R
+ 
+ PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
+@@ -190,6 +190,58 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(self.run_cmd("ingest")[0], 0)
+         self.assertEqual(json.loads(self.run_cmd("verify")[1])["orphans_explained"], 1)
+ 
++    def _hidden(self, entries):
++        return [base64.b64encode(R.canonical(e)).decode() for e in entries]
++
++    def _hidden_plan(self, seq, prev, written_at):
++        return {"seq": seq, "prev": prev, "kind": "plan", "written_at": written_at,
++                "body": dict(PLAN, claim=f"claim {seq}")}
++
++    def _orphan_statement(self, pred, by="owner"):
++        stmt = R.canonical({"predicate": pred})
++        return {"by": by, "log_index": 12345, "reason": "run failed after attesting",
++                "statement_b64": base64.b64encode(stmt).decode()}
++
++    def test_orphan_must_publish_the_entries_it_hid(self):
++        # the bug: an orphan whose statement attested a range could hide entries (e.g. a failing verdict)
++        first = self._hidden_plan(1, None, "2026-11-05T00:00:00Z")
++        raw = R.canonical(first)
++        pred = {"from_seq": 1, "to_seq": 1, "prev_sha256": None, "head_sha256": hashlib.sha256(raw).hexdigest()}
++        body = self._orphan_statement(pred)
++        self.propose("a.json", "orphan", body)
++        rc, _, err = self.run_cmd("ingest")
++        self.assertEqual(rc, 1)
++        self.assertIn("range", err)
++        self.assertFalse(os.path.exists(self.entry(1)))
++        # publishing the attested entry satisfies it
++        body["entries_b64"] = self._hidden([first])
++        self.propose("a.json", "orphan", body)
++        self.assertEqual(self.run_cmd("ingest")[0], 0)
++        self.assertEqual(json.loads(self.run_cmd("verify")[1])["orphans_explained"], 1)
++
++    def test_orphan_hidden_entries_must_be_the_attested_range(self):
++        a = self._hidden_plan(1, None, "2026-11-05T00:00:00Z")
++        b = self._hidden_plan(2, hashlib.sha256(R.canonical(a)).hexdigest(), "2026-11-05T00:00:01Z")
++        pred = {"from_seq": 1, "to_seq": 2, "prev_sha256": None,
++                "head_sha256": hashlib.sha256(R.canonical(b)).hexdigest()}
++        # count wrong
++        p = R._orphan_entries_problem({"body": {"entries_b64": self._hidden([a])}}, pred)
++        self.assertIn("range", p)
++        self.assertIsNone(R._orphan_entries_problem({"body": {"entries_b64": self._hidden([a, b])}}, pred))
++        # a broken link
++        orphan = {"body": {"entries_b64": self._hidden([b, b])}}
++        self.assertIn("chain", R._orphan_entries_problem(orphan, pred))
++        # a chain that doesn't end at the attested head
++        c = self._hidden_plan(2, hashlib.sha256(R.canonical(a)).hexdigest(), "2026-11-05T00:00:02Z")
++        orphan = {"body": {"entries_b64": self._hidden([a, c])}}
++        self.assertIn("head", R._orphan_entries_problem(orphan, pred))
++
++    def test_orphan_statement_without_a_range_is_left_alone(self):
++        # not every orphan statement carries a range (the ledger can't judge those); only a range attestation is
++        # held to the entries it hid
++        self.propose("a.json", "orphan", {"by": "owner", "log_index": 1, "reason": "no predicate", "statement_b64": "e30="})
++        self.assertEqual(self.run_cmd("ingest")[0], 0)
++
+     def test_range_predicate_ties_both_ends(self):
+         self._two_entries()
+         rc, out, _ = self.run_cmd("range", "2", "2")
