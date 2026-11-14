@@ -36,6 +36,7 @@ A place where agents build, test, optimise and distil AI: networks, models, rule
 | [`record/`](record/) append-only, hash-chained plans and verdicts in [`ledger/`](ledger/); one CI writer; Sigstore (Rekor) and OpenTimestamps anchors; a monitor for hidden runs | done, 3 adversarial review rounds and an outside anchor study; plan 1 ("the record holds up") judged **pass** by outside verifier Z (ledger entry 4); see [record/README.md](record/README.md) |
 | [`loop/`](loop/) first loop: small classifiers vs mandatory baselines, jailed training and scoring, test set gated on a ledger plan | done, 4 review rounds; plan 2 judged **inconclusive** (ledger entry 3); see [loop/README.md](loop/README.md) |
 | [`pilots/lgn-20261115/`](pilots/lgn-20261115/) dev-only pilot: a logic-gate network compiled to one bit-sliced circuit, against mlp16 | done, 1 independent review; hypothesis **not supported** on dev (the near miss, lgn_b, uses 0.85× mlp16's instructions but is 72 ± 25 ns/img slower); test set never scored |
+| [`pilots/lgn-20261115-2/`](pilots/lgn-20261115-2/) dev-only pilot 2: why mlp16 is slow (not dependency chains), run-size dependence of native time, learned-wiring logic network | done, 1 independent review; lgn_d uses 0.45× mlp16's instructions and 0.63× its time at steady state; at task size 0.66× instructions and −27.9 ± 14.9 ns (under 2 SE); accuracy −0.73 ± 0.50 pt; test set never scored |
 | real-hardware calibration (tier 3) | needs hardware |
 
 ## Test it yourself
