@@ -1,0 +1,1265 @@
+{
+  "messages": [
+    {
+      "id": null,
+      "role": "user",
+      "created": 1794651743,
+      "content": [
+        {
+          "type": "text",
+          "text": "# Task: an orphaned attestation must publish the entries it hid\n\nYou are working in `record/` of this repository, which is in /workspace (`record/record.py` and its tests in `record/test_record.py`).\n\n**Background:** the ledger writer attests ranges of entries with a predicate `{\"from_seq\", \"to_seq\", \"prev_sha256\", \"head_sha256\"}`. If a run attests a range and then fails, an \"orphan\" record explains that attestation. A reviewer found that an orphan explained only by its statement could hide an attested entry, such as a failing verdict.\n\n**Required:** add a function to `record/record.py`:\n\n    _orphan_entries_problem(orphan: dict, pred: dict) -> str | None\n\n- `orphan[\"body\"][\"entries_b64\"]` is a list of base64-encoded canonical entry bytes (as produced by `R.canonical(entry)`).\n- Return `None` when the decoded entries are exactly the attested range: there are `to_seq - from_seq + 1` of them, the first chains from `pred[\"prev_sha256\"]` (its `prev` field), each next one chains from the previous one's sha256, and the sha256 of the last one's canonical bytes equals `pred[\"head_sha256\"]`.\n- Otherwise return a short problem string:\n  - one containing the word `range` when the count is wrong;\n  - one containing `chain` when an entry's `prev` doesn't link;\n  - one containing `head` when the last hash doesn't match `head_sha256`.\n- Wire it into wherever orphans are checked, so an orphan without valid hidden entries is reported.\n- All existing tests in `record/test_record.py` must still pass.\n\nRun the tests with `cd record && python3 -m unittest test_record`.\n"
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651744-V8Yarz5h7oSC0lNmRTEN",
+      "role": "assistant",
+      "created": 1794651744,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Let me start by exploring the repository structure to understand the codebase and then implement the required function.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-27141c99-da70-4cad-9dc1-3a29538f5a31",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "tree",
+              "arguments": {
+                "path": "/workspace/record"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_9d35a96a-d3d9-4e93-96ef-c13ef2fa9dac",
+      "role": "user",
+      "created": 1794651746,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-27141c99-da70-4cad-9dc1-3a29538f5a31",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "experiments/  [264]\n  anchors/  [264]\n    verifier1/  [0]\n    RESULTS.md  [103]\n    VERIFY-anchors.md  [85]\n    ots_check.py  [33]\n    sample_record.json.ots  [0]\n    try_anchors.sh  [43]\nREADME.md  [156]\nrecord.py  [596]\ntest_record.py  [217]\n"
+                }
+              ],
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651746-tbrtsrHAW2ZyfW7cXpEE",
+      "role": "assistant",
+      "created": 1794651746,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Let me first read the record.py file to understand the structure and then the test file to understand what tests exist.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-20a20f58-1807-4241-8be6-60e2d4a2f593",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_b7179f00-1b31-4cae-bec1-0ed49fd633be",
+      "role": "user",
+      "created": 1794651748,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-20a20f58-1807-4241-8be6-60e2d4a2f593",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "#!/usr/bin/env python3\n\"\"\"exagium record: an append-only, hash-chained ledger of plans and verdicts, with outside anchors.\n\nLayout (under --ledger, default ../ledger):\n  entries/000001.json ...   one entry per file; CI (.github/workflows/record.yml) is the only writer\n  anchors/NNNNNN.sigstore.json   Sigstore attestation by the writer of the range of entries it added, ending at NNNNNN\n  anchors/NNNNNN.ots             OpenTimestamps proof of entry NNNNNN's bytes\n  inbox/*.json                   proposals {\"kind\": ..., \"body\": ...}; CI moves them into entries/\n\nAn entry's identity is the sha256 of its stored bytes, which must be exactly its RFC 8785 (JCS) form\n(no trailing newline). The rules that make Python's json.dumps output equal JCS are enforced: ASCII\nkeys, no floats, integers within +-(2**53-1), no lone surrogates.\n\nCommands: ingest | verify | head | range | check-anchors | monitor.\nExit codes: 0 ok; 1 the ledger, an anchor or the monitor's finding is wrong; 2 can't check (missing\nlibrary or network); 3 unexpected failure. A failure is never reported as a verdict.\n\"\"\"\nimport argparse, base64, datetime, hashlib, json, os, re, subprocess, sys, urllib.error, urllib.request\n\nMAX_INT = 2**53 - 1\nKINDS = (\"plan\", \"verdict\", \"orphan\")\nOUTCOMES = (\"pass\", \"fail\", \"inconclusive\")\nHEX64 = re.compile(r\"[0-9a-f]{64}\")\nNAME = re.compile(r\"[a-z0-9][a-z0-9._-]{0,63}\")  # who: a plain ASCII handle, so \"same author\" can't hide behind look-alikes\nENTRY_NAME = re.compile(r\"([0-9]{6})\\.json\")\nANCHOR_NAME = re.compile(r\"([0-9]{6})\\.(sigstore\\.json|ots)\")\nISSUER = \"https://token.actions.githubusercontent.com\"\n\n\nclass Bad(Exception):\n    \"\"\"The data is wrong: exit 1.\"\"\"\n\n\nclass CantCheck(Exception):\n    \"\"\"A check couldn't run (missing library, network): exit 2.\"\"\"\n\n\n# ---------- canonical form ----------\ndef canonical(obj):\n    return json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(\",\", \":\"), allow_nan=False).encode(\"utf-8\")\n\n\ndef _check_value(v, where):\n    if isinstance(v, bool) or v is None:\n        return\n    if isinstance(v, str):\n        try:\n            v.encode(\"utf-8\")\n        except UnicodeEncodeError:\n            raise Bad(f\"{where}: string holds a lone surrogate\")\n        return\n    if isinstance(v, int):\n        if abs(v) > MAX_INT:\n            raise Bad(f\"{where}: integer outside +-(2**53-1)\")\n        return\n    if isinstance(v, float):\n        raise Bad(f\"{where}: floats aren't allowed; write numbers with a fraction as strings\")\n    if isinstance(v, list):\n        for i, x in enumerate(v):\n            _check_value(x, f\"{where}[{i}]\")\n        return\n    if isinstance(v, dict):\n        for k, x in v.items():\n            if not k.isascii():\n                raise Bad(f\"{where}: non-ASCII key {k!r}\")\n            _check_value(x, f\"{where}.{k}\")\n        return\n    raise Bad(f\"{where}: unsupported type {type(v).__name__}\")\n\n\ndef _no_dup_keys(pairs):\n    d = {}\n    for k, v in pairs:\n        if k in d:\n            raise Bad(f\"duplicate key {k!r}\")\n        d[k] = v\n    return d\n\n\ndef _no_constants(c):\n    raise Bad(f\"{c} isn't JSON\")\n\n\ndef parse_json(raw, where):\n    try:\n        return json.loads(raw.decode(\"utf-8\"), object_pairs_hook=_no_dup_keys, parse_constant=_no_constants)\n    except (UnicodeDecodeError, ValueError, RecursionError) as e:\n        raise Bad(f\"{where}: not valid UTF-8 JSON ({e})\")\n\n\ndef parse_canonical(raw, where):\n    \"\"\"Parse stored bytes; they must be exactly the canonical form of what they contain.\"\"\"\n    obj = parse_json(raw, where)\n    _check_value(obj, where)\n    if canonical(obj) != raw:\n        raise Bad(f\"{where}: bytes aren't in canonical form\")\n    return obj\n\n\n# ---------- schema ----------\ndef _need(d, key, typ, where):\n    if key not in d or not isinstance(d[key], typ) or (typ is int and isinstance(d[key], bool)):\n        raise Bad(f\"{where}: needs {key} ({typ.__name__})\")\n    return d[key]\n\n\ndef _name(d, where):\n    v = _need(d, \"by\", str, where)\n    if not NAME.fullmatch(v):\n        raise Bad(f\"{where}: by must be a lowercase ASCII handle matching {NAME.pattern}\")\n    return v\n\n\ndef _check_digests(lst, where):\n    if not isinstance(lst, list):\n        raise Bad(f\"{where}: must be a list\")\n    for i, x in enumerate(lst):\n        if not isinstance(x, dict) or set(x) != {\"name\", \"sha256\"} or not isinstance(x[\"name\"], str) \\\n                or not isinstance(x[\"sha256\"], str) or not HEX64.fullmatch(x[\"sha256\"]):\n            raise Bad(f\"{where}[{i}]: must be {{name, sha256}} with 64 lowercase hex\")\n\n\ndef check_body(kind, body, where):\n    if not isinstance(body, dict):\n        raise Bad(f\"{where}: body must be an object\")\n    _name(body, where)\n    if kind == \"plan\":\n        allowed = {\"by\", \"claim\", \"test\", \"decision_rule\", \"baseline\", \"inputs\", \"verdict_due\", \"notes\"}\n        for k in (\"claim\", \"test\", \"decision_rule\"):\n            if not _need(body, k, str, where).strip():\n                raise Bad(f\"{where}: {k} is empty\")\n        if \"inputs\" in body:\n            _check_digests(body[\"inputs\"], f\"{where}.inputs\")\n        if \"verdict_due\" in body:\n            try:\n                ok = isinstance(body[\"verdict_due\"], str) and len(body[\"verdict_due\"]) == 10 and \\\n                    datetime.date.fromisoformat(body[\"verdict_due\"]).isoformat() == body[\"verdict_due\"]\n            except ValueError:\n                ok = False\n            if not ok:\n                raise Bad(f\"{where}: verdict_due must be a real date, YYYY-MM-DD\")\n    elif kind == \"verdict\":\n        allowed = {\"by\", \"plan\", \"outcome\", \"evidence\", \"notes\"}\n        p = _need(body, \"plan\", dict, where)\n        if set(p) != {\"seq\", \"sha256\"} or not isinstance(p[\"seq\"], int) or isinstance(p[\"seq\"], bool) \\\n                or not isinstance(p[\"sha256\"], str) or not HEX64.fullmatch(p[\"sha256\"]):\n            raise Bad(f\"{where}: plan must be {{seq, sha256}}\")\n        if body.get(\"outcome\") not in OUTCOMES:\n            raise Bad(f\"{where}: outcome must be one of {OUTCOMES}\")\n        _check_digests(_need(body, \"evidence\", list, where), f\"{where}.evidence\")\n    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")\n    extra = set(body) - allowed\n    if extra:\n        raise Bad(f\"{where}: unknown body fields {sorted(extra)}\")\n\n\n# ---------- the chain ----------\ndef _listdir(ledger, sub, pattern, what):\n    d = os.path.join(ledger, sub)\n    if not os.path.exists(d):\n        return []\n    if os.path.islink(d) or not os.path.isdir(d):\n        raise Bad(f\"{sub}/ must be a plain directory\")\n    out = []\n    for n in sorted(os.listdir(d)):\n        p = os.path.join(d, n)\n        if not pattern.fullmatch(n) or os.path.islink(p) or not os.path.isfile(p):\n            raise Bad(f\"{sub}/{n!r}: unexpected {what}\")\n        out.append(p)\n    return out\n\n\ndef load_chain(ledger):\n    \"\"\"Check the whole chain; return ([(entry, sha256)], {plan seq: verdict seq}). Raises Bad on any fault.\"\"\"\n    chain, plans, verdict_of = [], {}, {}\n    for i, path in enumerate(_listdir(ledger, \"entries\", ENTRY_NAME, \"file in entries\"), start=1):\n        name = os.path.basename(path)\n        raw = open(path, \"rb\").read()\n        e = parse_canonical(raw, name)\n        if not isinstance(e, dict) or set(e) != {\"seq\", \"prev\", \"kind\", \"written_at\", \"body\"}:\n            raise Bad(f\"{name}: entry must have exactly seq, prev, kind, written_at, body\")\n        if e[\"seq\"] != i or name != f\"{i:06d}.json\":\n            raise Bad(f\"{name}: seq {e['seq']!r} out of order (expected {i})\")\n        if e[\"prev\"] != (chain[-1][1] if chain else None):\n            raise Bad(f\"{name}: prev doesn't match the previous entry's sha256\")\n        if e[\"kind\"] not in KINDS:\n            raise Bad(f\"{name}: kind must be one of {KINDS}\")\n        if not isinstance(e[\"written_at\"], str):\n            raise Bad(f\"{name}: written_at must be a string\")\n        check_body(e[\"kind\"], e[\"body\"], name)\n        h = hashlib.sha256(raw).hexdigest()\n        if e[\"kind\"] == \"plan\":\n            plans[i] = (h, e[\"body\"][\"by\"])\n        elif e[\"kind\"] == \"verdict\":\n            ref = e[\"body\"][\"plan\"]\n            if ref[\"seq\"] not in plans or plans[ref[\"seq\"]][0] != ref[\"sha256\"]:\n                raise Bad(f\"{name}: verdict refers to no earlier plan with that seq and sha256\")\n            if ref[\"seq\"] in verdict_of:\n                raise Bad(f\"{name}: plan {ref['seq']} already has a verdict (entry {verdict_of[ref['seq']]}); a re-run needs a new plan\")\n            if e[\"body\"][\"by\"] == plans[ref[\"seq\"]][1]:\n                raise Bad(f\"{name}: the verdict's author is the plan's author; a verdict must come from someone else\")\n            verdict_of[ref[\"seq\"]] = i\n        chain.append((e, h))\n    return chain, verdict_of\n\n\ndef make_entry(chain, kind, body, now=None):\n    check_body(kind, body, \"proposal\")\n    e = {\"seq\": len(chain) + 1, \"prev\": chain[-1][1] if chain else None, \"kind\": kind,\n         \"written_at\": now or datetime.datetime.now(datetime.timezone.utc).strftime(\"%Y-%m-%dT%H:%M:%SZ\"),\n         \"body\": body}\n    _check_value(e, \"proposal\")\n    return e\n\n\ndef cmd_ingest(a):\n    \"\"\"Move every inbox proposal (in file-name order) into the chain. Used by CI, the only writer.\n    Prints one line per entry as it's written; any bad proposal stops with exit 1 and nothing after it is written.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    os.makedirs(os.path.join(a.ledger, \"entries\"), exist_ok=True)\n    for p in _listdir(a.ledger, \"inbox\", re.compile(r\"[A-Za-z0-9._-]+\\.json\"), \"file in inbox (proposals are NAME.json)\"):\n        n = os.path.basename(p)\n        prop = parse_json(open(p, \"rb\").read(), f\"inbox/{n}\")\n        if not isinstance(prop, dict) or set(prop) != {\"kind\", \"body\"} or prop[\"kind\"] not in KINDS:\n            raise Bad(f\"inbox/{n}: must be {{kind, body}} with kind in {KINDS}\")\n        e = make_entry(chain, prop[\"kind\"], prop[\"body\"])\n        raw = canonical(e)\n        out = os.path.join(a.ledger, \"entries\", f\"{e['seq']:06d}.json\")\n        with open(out, \"xb\") as f:\n            f.write(raw)\n        try:\n            load_chain(a.ledger)  # the new entry must pass every rule, e.g. one verdict per plan\n        except Bad as ex:\n            os.remove(out)\n            raise Bad(f\"inbox/{n}: {ex}\")\n        chain.append((e, hashlib.sha256(raw).hexdigest()))\n        os.remove(p)\n        print(out, flush=True)\n    return 0\n\n\ndef cmd_verify(a):\n    chain, verdict_of = load_chain(a.ledger)\n    today = datetime.date.today().isoformat()\n    plans = [e for e, _ in chain if e[\"kind\"] == \"plan\"]\n    open_ = [e[\"seq\"] for e in plans if e[\"seq\"] not in verdict_of]\n    overdue = [e[\"seq\"] for e in plans if e[\"seq\"] not in verdict_of and e[\"body\"].get(\"verdict_due\", \"9999-12-31\") < today]\n    print(json.dumps({\"entries\": len(chain), \"head_seq\": len(chain), \"head_sha256\": chain[-1][1] if chain else None,\n                      \"plans\": len(plans), \"verdicts\": len(verdict_of),\n                      \"orphans_explained\": sum(e[\"kind\"] == \"orphan\" for e, _ in chain),\n                      \"open_plans\": open_, \"overdue_plans\": overdue}, indent=1))\n    return 0\n\n\ndef cmd_head(a):\n    chain, _ = load_chain(a.ledger)\n    print(f\"{len(chain)} {chain[-1][1] if chain else '-'}\")\n    return 0\n\n\n# ---------- anchors ----------\ndef _get(url, data=None, timeout=20, headers=False):\n    req = urllib.request.Request(url, data=data, headers={\"Content-Type\": \"application/json\", \"Accept\": \"application/json\",\n                                                          \"User-Agent\": \"exagium-record\"})\n    try:\n        with urllib.request.urlopen(req, timeout=timeout) as r:\n            body = r.read()\n            return (body, r.headers) if headers else body\n    except urllib.error.HTTPError as ex:\n        if ex.code == 404:\n            return (None, None) if headers else None\n        raise CantCheck(f\"network: {url}: HTTP {ex.code}\")\n    except OSError as ex:\n        raise CantCheck(f\"network: {url}: {ex}\")\n\n\ndef identity(repo, workflow, ref):\n    return f\"https://github.com/{repo}/{workflow}@{ref}\"\n\n\ndef range_predicate(chain, from_seq, to_seq):\n    \"\"\"What the writer attests: the range of entries one run added, tied to the chain on both ends.\"\"\"\n    return {\"from_seq\": from_seq, \"to_seq\": to_seq,\n            \"prev_sha256\": chain[from_seq - 2][1] if from_seq > 1 else None, \"head_sha256\": chain[to_seq - 1][1]}\n\n\ndef check_sigstore(bundle, digest, repo, workflow, ref):\n    \"\"\"Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.\n    Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck.\"\"\"\n    try:\n        from sigstore.models import Bundle\n        from sigstore.verify import Verifier, policy\n        from sigstore.errors import Error as SigstoreError\n    except ImportError as ex:\n        raise CantCheck(f\"sigstore-python isn't usable ({ex}); pip install sigstore==4.5.1 in a virtualenv\")\n    name = os.path.basename(bundle)\n    raw = open(bundle, \"rb\").read()\n    pol = policy.AllOf([policy.Identity(identity=identity(repo, workflow, ref), issuer=ISSUER),\n                        policy.GitHubWorkflowRepository(repo), policy.GitHubWorkflowRef(ref)])\n    try:\n        b = Bundle.from_json(raw)\n        ptype, payload = Verifier.production(offline=True).verify_dsse(b, pol)\n    except SigstoreError as ex:   # verification errors and malformed bundles alike: the anchor is wrong\n        raise Bad(f\"{name}: Sigstore verification failed: {ex}\")\n    except (ValueError, KeyError, TypeError) as ex:\n        raise Bad(f\"{name}: malformed bundle ({type(ex).__name__}: {ex})\")\n    st = parse_json(payload, f\"{name} payload\")\n    if ptype != \"application/vnd.in-toto+json\" or not isinstance(st, dict) or \\\n            [s.get(\"digest\", {}).get(\"sha256\") for s in st.get(\"subject\", [])] != [digest]:\n        raise Bad(f\"{name}: the attestation's subject isn't this entry\")\n    try:  # the same bytes the verifier just checked; their signed entry timestamp covers integratedTime\n        t = int(json.loads(raw)[\"verificationMaterial\"][\"tlogEntries\"][0][\"integratedTime\"])\n        from cryptography.x509 import ObjectIdentifier\n        commit = b.signing_certificate.extensions.get_extension_for_oid(\n            ObjectIdentifier(\"1.3.6.1.4.1.57264.1.3\")).value.value.decode(\"ascii\")  # the commit the run was given\n    except Exception as ex:\n        raise Bad(f\"{name}: malformed bundle or certificate ({type(ex).__name__}: {ex})\")\n    return t, st.get(\"predicate\"), commit\n\n\ndef check_ots(proof, entry_raw, explorers):\n    \"\"\"Returns the earliest Bitcoin block time the proof reaches, or None if it's still pending.\"\"\"\n    try:\n        from opentimestamps.core.timestamp import DetachedTimestampFile\n        from opentimestamps.core.notary import BitcoinBlockHeaderAttestation\n        from opentimestamps.core.serialize import StreamDeserializationContext, DeserializationError\n    except ImportError:\n        raise CantCheck(\"opentimestamps isn't installed (pip install opentimestamps-client==0.8.0)\")\n    name = os.path.basename(proof)\n    try:\n        with open(proof, \"rb\") as f:\n            dt = DetachedTimestampFile.deserialize(StreamDeserializationContext(f))\n        atts = list(dt.timestamp.all_attestations())\n    except (DeserializationError, ValueError, TypeError, EOFError) as ex:\n        raise Bad(f\"{name}: malformed proof ({ex})\")\n    if dt.file_digest != hashlib.sha256(entry_raw).digest():\n        raise Bad(f\"{name}: proof is for different bytes\")\n    times = []\n    for msg, att in atts:\n        if not isinstance(att, BitcoinBlockHeaderAttestation):\n            continue\n        headers = set()\n        for base in explorers:\n            bh = _get(f\"{base}/block-height/{att.height}\")\n            if bh is None:  # 404: either the block doesn't exist (a forged height) or the explorer is behind\n                tip = _get(f\"{base}/blocks/tip/height\")\n                if tip is not None and att.height > int(tip):\n                    raise Bad(f\"{name}: claims block {att.height}, beyond the chain tip {int(tip)}\")\n                raise CantCheck(f\"{base}: no block at height {att.height}\")\n            bh = bh.decode().strip()\n            hdr = _get(f\"{base}/block/{bh}/header\")\n            if hdr is None:\n                raise CantCheck(f\"{base}: no header for block {bh}\")\n            hdr = bytes.fromhex(hdr.decode().strip())\n            if hashlib.sha256(hashlib.sha256(hdr).digest()).digest()[::-1].hex() != bh:\n                raise CantCheck(f\"{base}: header doesn't hash to block {bh} (explorer fault)\")\n            headers.add(hdr)\n        if len(headers) != 1:\n            raise CantCheck(f\"explorers disagree about block {att.height}\")\n        hdr = headers.pop()\n        if hdr[36:68] != msg:\n            raise Bad(f\"{name}: path doesn't reach block {att.height}'s merkle root\")\n        times.append(int.from_bytes(hdr[68:72], \"little\"))\n    return min(times) if times else None\n\n\ndef iso(t):\n    return datetime.datetime.fromtimestamp(t, datetime.timezone.utc).strftime(\"%Y-%m-%dT%H:%M:%SZ\") if t else None\n\n\ndef cmd_check_anchors(a):\n    \"\"\"Every anchor must be right, and the writer's Sigstore ranges must cover entries 1..head with no gap or overlap.\n    Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    rows, bad, cant, ranges = [], [], [], []\n    for path in _listdir(a.ledger, \"anchors\", ANCHOR_NAME, \"file in anchors\"):\n        n = os.path.basename(path)\n        m = ANCHOR_NAME.fullmatch(n)\n        seq = int(m.group(1))\n        try:\n            if not 1 <= seq <= len(chain):\n                raise Bad(f\"anchors/{n}: no entry {seq}\")\n            raw = open(os.path.join(a.ledger, \"entries\", f\"{seq:06d}.json\"), \"rb\").read()\n            if m.group(2) == \"ots\":\n                t = check_ots(path, raw, a.explorer)\n                rows.append({\"anchor\": n, \"kind\": \"opentimestamps\", \"existed_by\": iso(t) or \"pending\"})\n            else:\n                t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)\n                if not isinstance(pred, dict) or not isinstance(pred.get(\"from_seq\"), int) or pred.get(\"to_seq\") != seq \\\n                        or not 1 <= pred[\"from_seq\"] <= seq or pred != range_predicate(chain, pred[\"from_seq\"], seq):\n                    raise Bad(f\"anchors/{n}: attested range {pred!r} doesn't match this chain\")\n                ranges.append((pred[\"from_seq\"], seq, commit))\n                rows.append({\"anchor\": n, \"kind\": \"sigstore\", \"entries\": f\"{pred['from_seq']}-{seq}\", \"existed_by\": iso(t),\n                             \"writer_commit\": commit})\n        except Bad as ex:\n            bad.append(str(ex))\n        except CantCheck as ex:\n            cant.append(f\"anchors/{n}: {ex}\")\n    covered, changes, prev_commit = 0, [], None\n    for lo, hi, commit in sorted(ranges):\n        if lo != covered + 1:\n            bad.append(f\"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}\")\n        covered = max(covered, hi)\n        if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)\n            changes.append({\"entries\": f\"{lo}-{hi}\", \"from_commit\": prev_commit, \"to_commit\": commit,\n                            \"writer_code_changed\": _code_changed(a, prev_commit, commit)})\n        prev_commit = commit\n    if covered < len(chain):\n        bad.append(f\"entries {covered + 1}-{len(chain)} were never attested by the writer\")\n    print(json.dumps({\"anchors\": rows, \"entries\": len(chain), \"writer_attested_through\": covered,\n                      \"writer_runs\": changes, \"wrong\": bad, \"could_not_check\": cant}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    for x in cant:\n        print(f\"CAN'T CHECK: {x}\", file=sys.stderr)\n    return 1 if bad else 2 if cant else 0\n\n\ndef _git(a, *args):\n    root = os.path.dirname(os.path.abspath(a.ledger))\n    r = subprocess.run([\"git\", \"-C\", root, *args], capture_output=True)\n    return r.stdout if r.returncode == 0 else None\n\n\ndef _code_changed(a, c1, c2):\n    \"\"\"True/False if record.py or the writer workflow differ between two commits; \"unknown\" without that history.\"\"\"\n    if _git(a, \"cat-file\", \"-e\", f\"{c1}^{{commit}}\") is None or _git(a, \"cat-file\", \"-e\", f\"{c2}^{{commit}}\") is None:\n        return \"unknown (commit not in this clone)\"\n    root = os.path.dirname(os.path.abspath(a.ledger))\n    r = subprocess.run([\"git\", \"-C\", root, \"diff\", \"--quiet\", c1, c2, \"--\", \"record/record.py\", a.workflow])\n    return {0: False, 1: True}.get(r.returncode, \"unknown\")\n\n\ndef _published_entry_hashes(a, rev):\n    \"\"\"sha256 of every version of every entry file ever committed in rev's history.\"\"\"\n    raw = _git(a, \"log\", rev, \"--format=\", \"--raw\", \"--no-abbrev\", \"--\", \"ledger/entries\")\n    if raw is None:\n        raise CantCheck(f\"no git history for {rev} next to the ledger (run monitor in a full clone)\")\n    blobs = {ln.split()[3] for ln in raw.decode().splitlines() if ln.startswith(\":\") and ln.split()[3].strip(\"0\")}\n    out = set()\n    for b in blobs:\n        data = _git(a, \"cat-file\", \"blob\", b)\n        if data is not None:\n            out.add(hashlib.sha256(data).hexdigest())\n    return out\n\n\ndef _pages(url):\n    \"\"\"Follow GitHub's Link: rel=\"next\" (works for page= and the cursor-paged activity API). The next link may name\n    the repo by numeric id; keep the original /repos/owner/name path and take only the query from it.\"\"\"\n    import urllib.parse\n    base = url.split(\"?\")[0]\n    out = []\n    while url:\n        body, hdrs = _get(url, headers=True)\n        if body is None:\n            raise CantCheck(f\"404 from {url}\")\n        out.extend(json.loads(body))\n        m = re.search(r'<([^>]+)>;\\s*rel=\"next\"', (hdrs.get(\"Link\") if hdrs else None) or \"\")\n        url = f\"{base}?{urllib.parse.urlsplit(m.group(1)).query}\" if m else None\n    return out\n\n\ndef _refs(repo):\n    \"\"\"Every ref GitHub will name for this repo: branches, tags, every pull request's merge and head refs,\n    and every ref in the activity log (which keeps deleted branches while the repo exists).\"\"\"\n    api = f\"https://api.github.com/repos/{repo}\"\n    refs = {\"refs/heads/main\"}\n    refs.update(\"refs/heads/\" + x[\"name\"] for x in _pages(f\"{api}/branches?per_page=100\"))\n    refs.update(\"refs/tags/\" + x[\"name\"] for x in _pages(f\"{api}/tags?per_page=100\"))\n    refs.update(f\"refs/pull/{x['number']}/{k}\" for x in _pages(f\"{api}/pulls?state=all&per_page=100\") for k in (\"merge\", \"head\"))\n    activity = _pages(f\"{api}/activity?per_page=100\")\n    refs.update(x[\"ref\"] for x in activity if x.get(\"ref\"))\n    return sorted(refs), activity\n\n\ndef cmd_monitor(a):\n    \"\"\"List every Rekor entry signed by the writer workflow on any ref GitHub names. Each must be an anchor in the\n    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were\n    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the\n    ledger branch is wrong. Entries are matched by Rekor log index, unique per attestation.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    current = {h for _, h in chain}\n    known, bad = {}, []\n    for path in _listdir(a.ledger, \"anchors\", ANCHOR_NAME, \"file in anchors\"):\n        if path.endswith(\".sigstore.json\"):\n            try:\n                known[int(json.load(open(path))[\"verificationMaterial\"][\"tlogEntries\"][0][\"logIndex\"])] = os.path.basename(path)\n            except (ValueError, KeyError, IndexError, TypeError) as ex:\n                raise Bad(f\"{os.path.basename(path)}: malformed bundle ({ex})\")\n    explained = {e[\"body\"][\"log_index\"]: e for e, _ in chain if e[\"kind\"] == \"orphan\"}\n    if a.only_ref:\n        refs, activity = [a.only_ref], []\n    else:\n        refs, activity = _refs(a.repo)\n        for x in activity:\n            if x.get(\"activity_type\") == \"force_push\" and x.get(\"ref\") == a.ledger_ref:\n                bad.append(f\"force push to {a.ledger_ref} at {x.get('timestamp')} (rewrites the ledger's history)\")\n    published = _published_entry_hashes(a, a.git_rev) if explained else set()\n    seen, unknown, orphans = set(), [], []\n    for ref in refs:\n        uuids = _get(\"https://rekor.sigstore.dev/api/v1/index/retrieve\", json.dumps({\"subject\": identity(a.repo, a.workflow, ref)}).encode())\n        if uuids is None:\n            raise CantCheck(\"Rekor's index returned 404\")\n        for u in json.loads(uuids):\n            got = _get(f\"https://rekor.sigstore.dev/api/v1/log/entries/{u}\")\n            if got is None:\n                raise CantCheck(f\"Rekor lists {u} but won't return it\")\n            v = next(iter(json.loads(got).values()))\n            idx = int(v[\"logIndex\"])\n            seen.add(idx)\n            row = {\"ref\": ref, \"log_index\": idx, \"integrated\": iso(v[\"integratedTime\"]), \"rekor_uuid\": u}\n            if idx in known:\n                continue\n            if idx not in explained:\n                unknown.append(row)\n                continue\n            o = explained[idx]\n            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):\n    chain, _ = load_chain(a.ledger)\n    if not 1 <= a.from_seq <= a.to_seq <= len(chain):\n        raise Bad(f\"no range {a.from_seq}-{a.to_seq} in a chain of {len(chain)}\")\n    print(json.dumps(range_predicate(chain, a.from_seq, a.to_seq), sort_keys=True, separators=(\",\", \":\")))\n    return 0\n\n\ndef main(argv=None):\n    here = os.path.dirname(os.path.abspath(__file__))\n    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)\n    ap.add_argument(\"--ledger\", default=os.path.join(here, \"..\", \"ledger\"))\n    sub = ap.add_subparsers(dest=\"cmd\", required=True)\n    sub.add_parser(\"ingest\")\n    sub.add_parser(\"verify\")\n    sub.add_parser(\"head\")\n    rp = sub.add_parser(\"range\", help=\"print the writer's predicate for entries FROM..TO (used by CI)\")\n    rp.add_argument(\"from_seq\", type=int)\n    rp.add_argument(\"to_seq\", type=int)\n    for name in (\"check-anchors\", \"monitor\"):\n        p = sub.add_parser(name)\n        p.add_argument(\"--repo\", default=\"5kasgard/exagium\")\n        p.add_argument(\"--workflow\", default=\".github/workflows/record.yml\")\n        if name == \"check-anchors\":\n            p.add_argument(\"--ref\", default=\"refs/heads/main\")\n            p.add_argument(\"--explorer\", action=\"append\", default=None,\n                           help=\"esplora API base; default blockstream.info and mempool.space\")\n        else:\n            p.add_argument(\"--only-ref\", help=\"check this ref only (default: every ref GitHub names)\")\n            p.add_argument(\"--ledger-ref\", default=\"refs/heads/main\", help=\"the ledger's branch; a force push to it is wrong\")\n            p.add_argument(\"--git-rev\", default=\"HEAD\", help=\"the ledger branch's history in this clone (for orphan checks)\")\n    a = ap.parse_args(argv)\n    if getattr(a, \"explorer\", \"x\") is None:\n        a.explorer = [\"https://blockstream.info/api\", \"https://mempool.space/api\"]\n    fn = {\"ingest\": cmd_ingest, \"verify\": cmd_verify, \"head\": cmd_head, \"range\": cmd_range,\n          \"check-anchors\": cmd_check_anchors, \"monitor\": cmd_monitor}[a.cmd]\n    try:\n        return fn(a)\n    except Bad as ex:\n        print(f\"BAD: {ex}\", file=sys.stderr)\n        return 1\n    except CantCheck as ex:\n        print(f\"CAN'T CHECK: {ex}\", file=sys.stderr)\n        return 2\n    except Exception as ex:  # a failure is never reported as a verdict\n        print(f\"FAILURE: {type(ex).__name__}: {ex}\", file=sys.stderr)\n        return 3\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "#!/usr/bin/env python3\n\"\"\"exagium record: an append-only, hash-chained ledger of plans and verdicts, with outside anchors.\n\nLayout (under --ledger, default ../ledger):\n  entries/000001.json ...   one entry per file; CI (.github/workflows/record.yml) is the only writer\n  anchors/NNNNNN.sigstore.json   Sigstore attestation by the writer of the range of entries it added, ending at NNNNNN\n  anchors/NNNNNN.ots             OpenTimestamps proof of entry NNNNNN's bytes\n  inbox/*.json                   proposals {\"kind\": ..., \"body\": ...}; CI moves them into entries/\n\nAn entry's identity is the sha256 of its stored bytes, which must be exactly its RFC 8785 (JCS) form\n(no trailing newline). The rules that make Python's json.dumps output equal JCS are enforced: ASCII\nkeys, no floats, integers within +-(2**53-1), no lone surrogates.\n\nCommands: ingest | verify | head | range | check-anchors | monitor.\nExit codes: 0 ok; 1 the ledger, an anchor or the monitor's finding is wrong; 2 can't check (missing\nlibrary or network); 3 unexpected failure. A failure is never reported as a verdict.\n\"\"\"\nimport argparse, base64, datetime, hashlib, json, os, re, subprocess, sys, urllib.error, urllib.request\n\nMAX_INT = 2**53 - 1\nKINDS = (\"plan\", \"verdict\", \"orphan\")\nOUTCOMES = (\"pass\", \"fail\", \"inconclusive\")\nHEX64 = re.compile(r\"[0-9a-f]{64}\")\nNAME = re.compile(r\"[a-z0-9][a-z0-9._-]{0,63}\")  # who: a plain ASCII handle, so \"same author\" can't hide behind look-alikes\nENTRY_NAME = re.compile(r\"([0-9]{6})\\.json\")\nANCHOR_NAME = re.compile(r\"([0-9]{6})\\.(sigstore\\.json|ots)\")\nISSUER = \"https://token.actions.githubusercontent.com\"\n\n\nclass Bad(Exception):\n    \"\"\"The data is wrong: exit 1.\"\"\"\n\n\nclass CantCheck(Exception):\n    \"\"\"A check couldn't run (missing library, network): exit 2.\"\"\"\n\n\n# ---------- canonical form ----------\ndef canonical(obj):\n    return json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(\",\", \":\"), allow_nan=False).encode(\"utf-8\")\n\n\ndef _check_value(v, where):\n    if isinstance(v, bool) or v is None:\n        return\n    if isinstance(v, str):\n        try:\n            v.encode(\"utf-8\")\n        except UnicodeEncodeError:\n            raise Bad(f\"{where}: string holds a lone surrogate\")\n        return\n    if isinstance(v, int):\n        if abs(v) > MAX_INT:\n            raise Bad(f\"{where}: integer outside +-(2**53-1)\")\n        return\n    if isinstance(v, float):\n        raise Bad(f\"{where}: floats aren't allowed; write numbers with a fraction as strings\")\n    if isinstance(v, list):\n        for i, x in enumerate(v):\n            _check_value(x, f\"{where}[{i}]\")\n        return\n    if isinstance(v, dict):\n        for k, x in v.items():\n            if not k.isascii():\n                raise Bad(f\"{where}: non-ASCII key {k!r}\")\n            _check_value(x, f\"{where}.{k}\")\n        return\n    raise Bad(f\"{where}: unsupported type {type(v).__name__}\")\n\n\ndef _no_dup_keys(pairs):\n    d = {}\n    for k, v in pairs:\n        if k in d:\n            raise Bad(f\"duplicate key {k!r}\")\n        d[k] = v\n    return d\n\n\ndef _no_constants(c):\n    raise Bad(f\"{c} isn't JSON\")\n\n\ndef parse_json(raw, where):\n    try:\n        return json.loads(raw.decode(\"utf-8\"), object_pairs_hook=_no_dup_keys, parse_constant=_no_constants)\n    except (UnicodeDecodeError, ValueError, RecursionError) as e:\n        raise Bad(f\"{where}: not valid UTF-8 JSON ({e})\")\n\n\ndef parse_canonical(raw, where):\n    \"\"\"Parse stored bytes; they must be exactly the canonical form of what they contain.\"\"\"\n    obj = parse_json(raw, where)\n    _check_value(obj, where)\n    if canonical(obj) != raw:\n        raise Bad(f\"{where}: bytes aren't in canonical form\")\n    return obj\n\n\n# ---------- schema ----------\ndef _need(d, key, typ, where):\n    if key not in d or not isinstance(d[key], typ) or (typ is int and isinstance(d[key], bool)):\n        raise Bad(f\"{where}: needs {key} ({typ.__name__})\")\n    return d[key]\n\n\ndef _name(d, where):\n    v = _need(d, \"by\", str, where)\n    if not NAME.fullmatch(v):\n        raise Bad(f\"{where}: by must be a lowercase ASCII handle matching {NAME.pattern}\")\n    return v\n\n\ndef _check_digests(lst, where):\n    if not isinstance(lst, list):\n        raise Bad(f\"{where}: must be a list\")\n    for i, x in enumerate(lst):\n        if not isinstance(x, dict) or set(x) != {\"name\", \"sha256\"} or not isinstance(x[\"name\"], str) \\\n                or not isinstance(x[\"sha256\"], str) or not HEX64.fullmatch(x[\"sha256\"]):\n            raise Bad(f\"{where}[{i}]: must be {{name, sha256}} with 64 lowercase hex\")\n\n\ndef check_body(kind, body, where):\n    if not isinstance(body, dict):\n        raise Bad(f\"{where}: body must be an object\")\n    _name(body, where)\n    if kind == \"plan\":\n        allowed = {\"by\", \"claim\", \"test\", \"decision_rule\", \"baseline\", \"inputs\", \"verdict_due\", \"notes\"}\n        for k in (\"claim\", \"test\", \"decision_rule\"):\n            if not _need(body, k, str, where).strip():\n                raise Bad(f\"{where}: {k} is empty\")\n        if \"inputs\" in body:\n            _check_digests(body[\"inputs\"], f\"{where}.inputs\")\n        if \"verdict_due\" in body:\n            try:\n                ok = isinstance(body[\"verdict_due\"], str) and len(body[\"verdict_due\"]) == 10 and \\\n                    datetime.date.fromisoformat(body[\"verdict_due\"]).isoformat() == body[\"verdict_due\"]\n            except ValueError:\n                ok = False\n            if not ok:\n                raise Bad(f\"{where}: verdict_due must be a real date, YYYY-MM-DD\")\n    elif kind == \"verdict\":\n        allowed = {\"by\", \"plan\", \"outcome\", \"evidence\", \"notes\"}\n        p = _need(body, \"plan\", dict, where)\n        if set(p) != {\"seq\", \"sha256\"} or not isinstance(p[\"seq\"], int) or isinstance(p[\"seq\"], bool) \\\n                or not isinstance(p[\"sha256\"], str) or not HEX64.fullmatch(p[\"sha256\"]):\n            raise Bad(f\"{where}: plan must be {{seq, sha256}}\")\n        if body.get(\"outcome\") not in OUTCOMES:\n            raise Bad(f\"{where}: outcome must be one of {OUTCOMES}\")\n        _check_digests(_need(body, \"evidence\", list, where), f\"{where}.evidence\")\n    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")\n    extra = set(body) - allowed\n    if extra:\n        raise Bad(f\"{where}: unknown body fields {sorted(extra)}\")\n\n\n# ---------- the chain ----------\ndef _listdir(ledger, sub, pattern, what):\n    d = os.path.join(ledger, sub)\n    if not os.path.exists(d):\n        return []\n    if os.path.islink(d) or not os.path.isdir(d):\n        raise Bad(f\"{sub}/ must be a plain directory\")\n    out = []\n    for n in sorted(os.listdir(d)):\n        p = os.path.join(d, n)\n        if not pattern.fullmatch(n) or os.path.islink(p) or not os.path.isfile(p):\n            raise Bad(f\"{sub}/{n!r}: unexpected {what}\")\n        out.append(p)\n    return out\n\n\ndef load_chain(ledger):\n    \"\"\"Check the whole chain; return ([(entry, sha256)], {plan seq: verdict seq}). Raises Bad on any fault.\"\"\"\n    chain, plans, verdict_of = [], {}, {}\n    for i, path in enumerate(_listdir(ledger, \"entries\", ENTRY_NAME, \"file in entries\"), start=1):\n        name = os.path.basename(path)\n        raw = open(path, \"rb\").read()\n        e = parse_canonical(raw, name)\n        if not isinstance(e, dict) or set(e) != {\"seq\", \"prev\", \"kind\", \"written_at\", \"body\"}:\n            raise Bad(f\"{name}: entry must have exactly seq, prev, kind, written_at, body\")\n        if e[\"seq\"] != i or name != f\"{i:06d}.json\":\n            raise Bad(f\"{name}: seq {e['seq']!r} out of order (expected {i})\")\n        if e[\"prev\"] != (chain[-1][1] if chain else None):\n            raise Bad(f\"{name}: prev doesn't match the previous entry's sha256\")\n        if e[\"kind\"] not in KINDS:\n            raise Bad(f\"{name}: kind must be one of {KINDS}\")\n        if not isinstance(e[\"written_at\"], str):\n            raise Bad(f\"{name}: written_at must be a string\")\n        check_body(e[\"kind\"], e[\"body\"], name)\n        h = hashlib.sha256(raw).hexdigest()\n        if e[\"kind\"] == \"plan\":\n            plans[i] = (h, e[\"body\"][\"by\"])\n        elif e[\"kind\"] == \"verdict\":\n            ref = e[\"body\"][\"plan\"]\n            if ref[\"seq\"] not in plans or plans[ref[\"seq\"]][0] != ref[\"sha256\"]:\n                raise Bad(f\"{name}: verdict refers to no earlier plan with that seq and sha256\")\n            if ref[\"seq\"] in verdict_of:\n                raise Bad(f\"{name}: plan {ref['seq']} already has a verdict (entry {verdict_of[ref['seq']]}); a re-run needs a new plan\")\n            if e[\"body\"][\"by\"] == plans[ref[\"seq\"]][1]:\n                raise Bad(f\"{name}: the verdict's author is the plan's author; a verdict must come from someone else\")\n            verdict_of[ref[\"seq\"]] = i\n        chain.append((e, h))\n    return chain, verdict_of\n\n\ndef make_entry(chain, kind, body, now=None):\n    check_body(kind, body, \"proposal\")\n    e = {\"seq\": len(chain) + 1, \"prev\": chain[-1][1] if chain else None, \"kind\": kind,\n         \"written_at\": now or datetime.datetime.now(datetime.timezone.utc).strftime(\"%Y-%m-%dT%H:%M:%SZ\"),\n         \"body\": body}\n    _check_value(e, \"proposal\")\n    return e\n\n\ndef cmd_ingest(a):\n    \"\"\"Move every inbox proposal (in file-name order) into the chain. Used by CI, the only writer.\n    Prints one line per entry as it's written; any bad proposal stops with exit 1 and nothing after it is written.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    os.makedirs(os.path.join(a.ledger, \"entries\"), exist_ok=True)\n    for p in _listdir(a.ledger, \"inbox\", re.compile(r\"[A-Za-z0-9._-]+\\.json\"), \"file in inbox (proposals are NAME.json)\"):\n        n = os.path.basename(p)\n        prop = parse_json(open(p, \"rb\").read(), f\"inbox/{n}\")\n        if not isinstance(prop, dict) or set(prop) != {\"kind\", \"body\"} or prop[\"kind\"] not in KINDS:\n            raise Bad(f\"inbox/{n}: must be {{kind, body}} with kind in {KINDS}\")\n        e = make_entry(chain, prop[\"kind\"], prop[\"body\"])\n        raw = canonical(e)\n        out = os.path.join(a.ledger, \"entries\", f\"{e['seq']:06d}.json\")\n        with open(out, \"xb\") as f:\n            f.write(raw)\n        try:\n            load_chain(a.ledger)  # the new entry must pass every rule, e.g. one verdict per plan\n        except Bad as ex:\n            os.remove(out)\n            raise Bad(f\"inbox/{n}: {ex}\")\n        chain.append((e, hashlib.sha256(raw).hexdigest()))\n        os.remove(p)\n        print(out, flush=True)\n    return 0\n\n\ndef cmd_verify(a):\n    chain, verdict_of = load_chain(a.ledger)\n    today = datetime.date.today().isoformat()\n    plans = [e for e, _ in chain if e[\"kind\"] == \"plan\"]\n    open_ = [e[\"seq\"] for e in plans if e[\"seq\"] not in verdict_of]\n    overdue = [e[\"seq\"] for e in plans if e[\"seq\"] not in verdict_of and e[\"body\"].get(\"verdict_due\", \"9999-12-31\") < today]\n    print(json.dumps({\"entries\": len(chain), \"head_seq\": len(chain), \"head_sha256\": chain[-1][1] if chain else None,\n                      \"plans\": len(plans), \"verdicts\": len(verdict_of),\n                      \"orphans_explained\": sum(e[\"kind\"] == \"orphan\" for e, _ in chain),\n                      \"open_plans\": open_, \"overdue_plans\": overdue}, indent=1))\n    return 0\n\n\ndef cmd_head(a):\n    chain, _ = load_chain(a.ledger)\n    print(f\"{len(chain)} {chain[-1][1] if chain else '-'}\")\n    return 0\n\n\n# ---------- anchors ----------\ndef _get(url, data=None, timeout=20, headers=False):\n    req = urllib.request.Request(url, data=data, headers={\"Content-Type\": \"application/json\", \"Accept\": \"application/json\",\n                                                          \"User-Agent\": \"exagium-record\"})\n    try:\n        with urllib.request.urlopen(req, timeout=timeout) as r:\n            body = r.read()\n            return (body, r.headers) if headers else body\n    except urllib.error.HTTPError as ex:\n        if ex.code == 404:\n            return (None, None) if headers else None\n        raise CantCheck(f\"network: {url}: HTTP {ex.code}\")\n    except OSError as ex:\n        raise CantCheck(f\"network: {url}: {ex}\")\n\n\ndef identity(repo, workflow, ref):\n    return f\"https://github.com/{repo}/{workflow}@{ref}\"\n\n\ndef range_predicate(chain, from_seq, to_seq):\n    \"\"\"What the writer attests: the range of entries one run added, tied to the chain on both ends.\"\"\"\n    return {\"from_seq\": from_seq, \"to_seq\": to_seq,\n            \"prev_sha256\": chain[from_seq - 2][1] if from_seq > 1 else None, \"head_sha256\": chain[to_seq - 1][1]}\n\n\ndef check_sigstore(bundle, digest, repo, workflow, ref):\n    \"\"\"Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.\n    Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck.\"\"\"\n    try:\n        from sigstore.models import Bundle\n        from sigstore.verify import Verifier, policy\n        from sigstore.errors import Error as SigstoreError\n    except ImportError as ex:\n        raise CantCheck(f\"sigstore-python isn't usable ({ex}); pip install sigstore==4.5.1 in a virtualenv\")\n    name = os.path.basename(bundle)\n    raw = open(bundle, \"rb\").read()\n    pol = policy.AllOf([policy.Identity(identity=identity(repo, workflow, ref), issuer=ISSUER),\n                        policy.GitHubWorkflowRepository(repo), policy.GitHubWorkflowRef(ref)])\n    try:\n        b = Bundle.from_json(raw)\n        ptype, payload = Verifier.production(offline=True).verify_dsse(b, pol)\n    except SigstoreError as ex:   # verification errors and malformed bundles alike: the anchor is wrong\n        raise Bad(f\"{name}: Sigstore verification failed: {ex}\")\n    except (ValueError, KeyError, TypeError) as ex:\n        raise Bad(f\"{name}: malformed bundle ({type(ex).__name__}: {ex})\")\n    st = parse_json(payload, f\"{name} payload\")\n    if ptype != \"application/vnd.in-toto+json\" or not isinstance(st, dict) or \\\n            [s.get(\"digest\", {}).get(\"sha256\") for s in st.get(\"subject\", [])] != [digest]:\n        raise Bad(f\"{name}: the attestation's subject isn't this entry\")\n    try:  # the same bytes the verifier just checked; their signed entry timestamp covers integratedTime\n        t = int(json.loads(raw)[\"verificationMaterial\"][\"tlogEntries\"][0][\"integratedTime\"])\n        from cryptography.x509 import ObjectIdentifier\n        commit = b.signing_certificate.extensions.get_extension_for_oid(\n            ObjectIdentifier(\"1.3.6.1.4.1.57264.1.3\")).value.value.decode(\"ascii\")  # the commit the run was given\n    except Exception as ex:\n        raise Bad(f\"{name}: malformed bundle or certificate ({type(ex).__name__}: {ex})\")\n    return t, st.get(\"predicate\"), commit\n\n\ndef check_ots(proof, entry_raw, explorers):\n    \"\"\"Returns the earliest Bitcoin block time the proof reaches, or None if it's still pending.\"\"\"\n    try:\n        from opentimestamps.core.timestamp import DetachedTimestampFile\n        from opentimestamps.core.notary import BitcoinBlockHeaderAttestation\n        from opentimestamps.core.serialize import StreamDeserializationContext, DeserializationError\n    except ImportError:\n        raise CantCheck(\"opentimestamps isn't installed (pip install opentimestamps-client==0.8.0)\")\n    name = os.path.basename(proof)\n    try:\n        with open(proof, \"rb\") as f:\n            dt = DetachedTimestampFile.deserialize(StreamDeserializationContext(f))\n        atts = list(dt.timestamp.all_attestations())\n    except (DeserializationError, ValueError, TypeError, EOFError) as ex:\n        raise Bad(f\"{name}: malformed proof ({ex})\")\n    if dt.file_digest != hashlib.sha256(entry_raw).digest():\n        raise Bad(f\"{name}: proof is for different bytes\")\n    times = []\n    for msg, att in atts:\n        if not isinstance(att, BitcoinBlockHeaderAttestation):\n            continue\n        headers = set()\n        for base in explorers:\n            bh = _get(f\"{base}/block-height/{att.height}\")\n            if bh is None:  # 404: either the block doesn't exist (a forged height) or the explorer is behind\n                tip = _get(f\"{base}/blocks/tip/height\")\n                if tip is not None and att.height > int(tip):\n                    raise Bad(f\"{name}: claims block {att.height}, beyond the chain tip {int(tip)}\")\n                raise CantCheck(f\"{base}: no block at height {att.height}\")\n            bh = bh.decode().strip()\n            hdr = _get(f\"{base}/block/{bh}/header\")\n            if hdr is None:\n                raise CantCheck(f\"{base}: no header for block {bh}\")\n            hdr = bytes.fromhex(hdr.decode().strip())\n            if hashlib.sha256(hashlib.sha256(hdr).digest()).digest()[::-1].hex() != bh:\n                raise CantCheck(f\"{base}: header doesn't hash to block {bh} (explorer fault)\")\n            headers.add(hdr)\n        if len(headers) != 1:\n            raise CantCheck(f\"explorers disagree about block {att.height}\")\n        hdr = headers.pop()\n        if hdr[36:68] != msg:\n            raise Bad(f\"{name}: path doesn't reach block {att.height}'s merkle root\")\n        times.append(int.from_bytes(hdr[68:72], \"little\"))\n    return min(times) if times else None\n\n\ndef iso(t):\n    return datetime.datetime.fromtimestamp(t, datetime.timezone.utc).strftime(\"%Y-%m-%dT%H:%M:%SZ\") if t else None\n\n\ndef cmd_check_anchors(a):\n    \"\"\"Every anchor must be right, and the writer's Sigstore ranges must cover entries 1..head with no gap or overlap.\n    Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    rows, bad, cant, ranges = [], [], [], []\n    for path in _listdir(a.ledger, \"anchors\", ANCHOR_NAME, \"file in anchors\"):\n        n = os.path.basename(path)\n        m = ANCHOR_NAME.fullmatch(n)\n        seq = int(m.group(1))\n        try:\n            if not 1 <= seq <= len(chain):\n                raise Bad(f\"anchors/{n}: no entry {seq}\")\n            raw = open(os.path.join(a.ledger, \"entries\", f\"{seq:06d}.json\"), \"rb\").read()\n            if m.group(2) == \"ots\":\n                t = check_ots(path, raw, a.explorer)\n                rows.append({\"anchor\": n, \"kind\": \"opentimestamps\", \"existed_by\": iso(t) or \"pending\"})\n            else:\n                t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)\n                if not isinstance(pred, dict) or not isinstance(pred.get(\"from_seq\"), int) or pred.get(\"to_seq\") != seq \\\n                        or not 1 <= pred[\"from_seq\"] <= seq or pred != range_predicate(chain, pred[\"from_seq\"], seq):\n                    raise Bad(f\"anchors/{n}: attested range {pred!r} doesn't match this chain\")\n                ranges.append((pred[\"from_seq\"], seq, commit))\n                rows.append({\"anchor\": n, \"kind\": \"sigstore\", \"entries\": f\"{pred['from_seq']}-{seq}\", \"existed_by\": iso(t),\n                             \"writer_commit\": commit})\n        except Bad as ex:\n            bad.append(str(ex))\n        except CantCheck as ex:\n            cant.append(f\"anchors/{n}: {ex}\")\n    covered, changes, prev_commit = 0, [], None\n    for lo, hi, commit in sorted(ranges):\n        if lo != covered + 1:\n            bad.append(f\"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}\")\n        covered = max(covered, hi)\n        if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)\n            changes.append({\"entries\": f\"{lo}-{hi}\", \"from_commit\": prev_commit, \"to_commit\": commit,\n                            \"writer_code_changed\": _code_changed(a, prev_commit, commit)})\n        prev_commit = commit\n    if covered < len(chain):\n        bad.append(f\"entries {covered + 1}-{len(chain)} were never attested by the writer\")\n    print(json.dumps({\"anchors\": rows, \"entries\": len(chain), \"writer_attested_through\": covered,\n                      \"writer_runs\": changes, \"wrong\": bad, \"could_not_check\": cant}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    for x in cant:\n        print(f\"CAN'T CHECK: {x}\", file=sys.stderr)\n    return 1 if bad else 2 if cant else 0\n\n\ndef _git(a, *args):\n    root = os.path.dirname(os.path.abspath(a.ledger))\n    r = subprocess.run([\"git\", \"-C\", root, *args], capture_output=True)\n    return r.stdout if r.returncode == 0 else None\n\n\ndef _code_changed(a, c1, c2):\n    \"\"\"True/False if record.py or the writer workflow differ between two commits; \"unknown\" without that history.\"\"\"\n    if _git(a, \"cat-file\", \"-e\", f\"{c1}^{{commit}}\") is None or _git(a, \"cat-file\", \"-e\", f\"{c2}^{{commit}}\") is None:\n        return \"unknown (commit not in this clone)\"\n    root = os.path.dirname(os.path.abspath(a.ledger))\n    r = subprocess.run([\"git\", \"-C\", root, \"diff\", \"--quiet\", c1, c2, \"--\", \"record/record.py\", a.workflow])\n    return {0: False, 1: True}.get(r.returncode, \"unknown\")\n\n\ndef _published_entry_hashes(a, rev):\n    \"\"\"sha256 of every version of every entry file ever committed in rev's history.\"\"\"\n    raw = _git(a, \"log\", rev, \"--format=\", \"--raw\", \"--no-abbrev\", \"--\", \"ledger/entries\")\n    if raw is None:\n        raise CantCheck(f\"no git history for {rev} next to the ledger (run monitor in a full clone)\")\n    blobs = {ln.split()[3] for ln in raw.decode().splitlines() if ln.startswith(\":\") and ln.split()[3].strip(\"0\")}\n    out = set()\n    for b in blobs:\n        data = _git(a, \"cat-file\", \"blob\", b)\n        if data is not None:\n            out.add(hashlib.sha256(data).hexdigest())\n    return out\n\n\ndef _pages(url):\n    \"\"\"Follow GitHub's Link: rel=\"next\" (works for page= and the cursor-paged activity API). The next link may name\n    the repo by numeric id; keep the original /repos/owner/name path and take only the query from it.\"\"\"\n    import urllib.parse\n    base = url.split(\"?\")[0]\n    out = []\n    while url:\n        body, hdrs = _get(url, headers=True)\n        if body is None:\n            raise CantCheck(f\"404 from {url}\")\n        out.extend(json.loads(body))\n        m = re.search(r'<([^>]+)>;\\s*rel=\"next\"', (hdrs.get(\"Link\") if hdrs else None) or \"\")\n        url = f\"{base}?{urllib.parse.urlsplit(m.group(1)).query}\" if m else None\n    return out\n\n\ndef _refs(repo):\n    \"\"\"Every ref GitHub will name for this repo: branches, tags, every pull request's merge and head refs,\n    and every ref in the activity log (which keeps deleted branches while the repo exists).\"\"\"\n    api = f\"https://api.github.com/repos/{repo}\"\n    refs = {\"refs/heads/main\"}\n    refs.update(\"refs/heads/\" + x[\"name\"] for x in _pages(f\"{api}/branches?per_page=100\"))\n    refs.update(\"refs/tags/\" + x[\"name\"] for x in _pages(f\"{api}/tags?per_page=100\"))\n    refs.update(f\"refs/pull/{x['number']}/{k}\" for x in _pages(f\"{api}/pulls?state=all&per_page=100\") for k in (\"merge\", \"head\"))\n    activity = _pages(f\"{api}/activity?per_page=100\")\n    refs.update(x[\"ref\"] for x in activity if x.get(\"ref\"))\n    return sorted(refs), activity\n\n\ndef cmd_monitor(a):\n    \"\"\"List every Rekor entry signed by the writer workflow on any ref GitHub names. Each must be an anchor in the\n    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were\n    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the\n    ledger branch is wrong. Entries are matched by Rekor log index, unique per attestation.\"\"\"\n    chain, _ = load_chain(a.ledger)\n    current = {h for _, h in chain}\n    known, bad = {}, []\n    for path in _listdir(a.ledger, \"anchors\", ANCHOR_NAME, \"file in anchors\"):\n        if path.endswith(\".sigstore.json\"):\n            try:\n                known[int(json.load(open(path))[\"verificationMaterial\"][\"tlogEntries\"][0][\"logIndex\"])] = os.path.basename(path)\n            except (ValueError, KeyError, IndexError, TypeError) as ex:\n                raise Bad(f\"{os.path.basename(path)}: malformed bundle ({ex})\")\n    explained = {e[\"body\"][\"log_index\"]: e for e, _ in chain if e[\"kind\"] == \"orphan\"}\n    if a.only_ref:\n        refs, activity = [a.only_ref], []\n    else:\n        refs, activity = _refs(a.repo)\n        for x in activity:\n            if x.get(\"activity_type\") == \"force_push\" and x.get(\"ref\") == a.ledger_ref:\n                bad.append(f\"force push to {a.ledger_ref} at {x.get('timestamp')} (rewrites the ledger's history)\")\n    published = _published_entry_hashes(a, a.git_rev) if explained else set()\n    seen, unknown, orphans = set(), [], []\n    for ref in refs:\n        uuids = _get(\"https://rekor.sigstore.dev/api/v1/index/retrieve\", json.dumps({\"subject\": identity(a.repo, a.workflow, ref)}).encode())\n        if uuids is None:\n            raise CantCheck(\"Rekor's index returned 404\")\n        for u in json.loads(uuids):\n            got = _get(f\"https://rekor.sigstore.dev/api/v1/log/entries/{u}\")\n            if got is None:\n                raise CantCheck(f\"Rekor lists {u} but won't return it\")\n            v = next(iter(json.loads(got).values()))\n            idx = int(v[\"logIndex\"])\n            seen.add(idx)\n            row = {\"ref\": ref, \"log_index\": idx, \"integrated\": iso(v[\"integratedTime\"]), \"rekor_uuid\": u}\n            if idx in known:\n                continue\n            if idx not in explained:\n                unknown.append(row)\n                continue\n            o = explained[idx]\n            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):\n    chain, _ = load_chain(a.ledger)\n    if not 1 <= a.from_seq <= a.to_seq <= len(chain):\n        raise Bad(f\"no range {a.from_seq}-{a.to_seq} in a chain of {len(chain)}\")\n    print(json.dumps(range_predicate(chain, a.from_seq, a.to_seq), sort_keys=True, separators=(\",\", \":\")))\n    return 0\n\n\ndef main(argv=None):\n    here = os.path.dirname(os.path.abspath(__file__))\n    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)\n    ap.add_argument(\"--ledger\", default=os.path.join(here, \"..\", \"ledger\"))\n    sub = ap.add_subparsers(dest=\"cmd\", required=True)\n    sub.add_parser(\"ingest\")\n    sub.add_parser(\"verify\")\n    sub.add_parser(\"head\")\n    rp = sub.add_parser(\"range\", help=\"print the writer's predicate for entries FROM..TO (used by CI)\")\n    rp.add_argument(\"from_seq\", type=int)\n    rp.add_argument(\"to_seq\", type=int)\n    for name in (\"check-anchors\", \"monitor\"):\n        p = sub.add_parser(name)\n        p.add_argument(\"--repo\", default=\"5kasgard/exagium\")\n        p.add_argument(\"--workflow\", default=\".github/workflows/record.yml\")\n        if name == \"check-anchors\":\n            p.add_argument(\"--ref\", default=\"refs/heads/main\")\n            p.add_argument(\"--explorer\", action=\"append\", default=None,\n                           help=\"esplora API base; default blockstream.info and mempool.space\")\n        else:\n            p.add_argument(\"--only-ref\", help=\"check this ref only (default: every ref GitHub names)\")\n            p.add_argument(\"--ledger-ref\", default=\"refs/heads/main\", help=\"the ledger's branch; a force push to it is wrong\")\n            p.add_argument(\"--git-rev\", default=\"HEAD\", help=\"the ledger branch's history in this clone (for orphan checks)\")\n    a = ap.parse_args(argv)\n    if getattr(a, \"explorer\", \"x\") is None:\n        a.explorer = [\"https://blockstream.info/api\", \"https://mempool.space/api\"]\n    fn = {\"ingest\": cmd_ingest, \"verify\": cmd_verify, \"head\": cmd_head, \"range\": cmd_range,\n          \"check-anchors\": cmd_check_anchors, \"monitor\": cmd_monitor}[a.cmd]\n    try:\n        return fn(a)\n    except Bad as ex:\n        print(f\"BAD: {ex}\", file=sys.stderr)\n        return 1\n    except CantCheck as ex:\n        print(f\"CAN'T CHECK: {ex}\", file=sys.stderr)\n        return 2\n    except Exception as ex:  # a failure is never reported as a verdict\n        print(f\"FAILURE: {type(ex).__name__}: {ex}\", file=sys.stderr)\n        return 3\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651748-7Mrl8pI1suertN2JzAZI",
+      "role": "assistant",
+      "created": 1794651749,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now let me look at the test file to understand what tests exist and what the expected behavior is.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-04f26d10-ba72-4759-a515-77441fad5df9",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cat /workspace/record/test_record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_61e5fbdd-c24f-4442-a197-cc0f62a65113",
+      "role": "user",
+      "created": 1794651749,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-04f26d10-ba72-4759-a515-77441fad5df9",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "\"\"\"Tests for record.py's ledger rules (offline; anchors are tested in CI).\"\"\"\nimport io, json, os, shutil, tempfile, unittest, contextlib, hashlib\nimport record as R\n\nPLAN = {\"by\": \"proposer-agent\", \"claim\": \"mlp beats linear\", \"test\": \"count.py ...\", \"decision_rule\": \"Ir lower by > 2 SE\"}\n\n\nclass Ledger(unittest.TestCase):\n    def setUp(self):\n        self.d = tempfile.mkdtemp()\n        os.makedirs(os.path.join(self.d, \"inbox\"))\n\n    def tearDown(self):\n        shutil.rmtree(self.d)\n\n    def run_cmd(self, *args):\n        out, err = io.StringIO(), io.StringIO()\n        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):\n            rc = R.main([\"--ledger\", self.d, *args])\n        return rc, out.getvalue(), err.getvalue()\n\n    def propose(self, name, kind, body):\n        with open(os.path.join(self.d, \"inbox\", name), \"w\") as f:\n            json.dump({\"kind\": kind, \"body\": body}, f)\n\n    def entry(self, n):\n        return os.path.join(self.d, \"entries\", f\"{n:06d}.json\")\n\n    def plan_ref(self, n):\n        return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\n\n    def verdict(self, n, by=\"verifier-agent\", outcome=\"pass\"):\n        return {\"by\": by, \"plan\": self.plan_ref(n), \"outcome\": outcome, \"evidence\": []}\n\n    def test_plan_then_verdict_chains_and_verifies(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        self.propose(\"b.json\", \"verdict\", self.verdict(1))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        rc, out, _ = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 0)\n        rep = json.loads(out)\n        self.assertEqual((rep[\"entries\"], rep[\"verdicts\"], rep[\"open_plans\"]), (2, 1, []))\n        e2 = json.load(open(self.entry(2)))\n        self.assertEqual(e2[\"prev\"], self.plan_ref(1)[\"sha256\"])\n        self.assertEqual(os.listdir(os.path.join(self.d, \"inbox\")), [])\n\n    def test_open_and_overdue_plans_are_reported(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, verdict_due=\"2000-01-01\"))\n        self.propose(\"b.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        rep = json.loads(self.run_cmd(\"verify\")[1])\n        self.assertEqual((rep[\"open_plans\"], rep[\"overdue_plans\"]), ([1, 2], [1]))\n\n    def _two_entries(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.propose(\"b.json\", \"plan\", dict(PLAN, claim=\"second\"))\n        self.run_cmd(\"ingest\")\n\n    def test_edited_entry_breaks_the_chain(self):\n        self._two_entries()\n        raw = open(self.entry(1), \"rb\").read().replace(b\"mlp beats linear\", b\"mlp beats linea!\")\n        open(self.entry(1), \"wb\").write(raw)\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"prev doesn't match\", err)\n\n    def test_dropped_entry_is_caught(self):\n        self._two_entries()\n        os.remove(self.entry(1))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n\n    def test_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors(self):\n        # Removing entry 1 and rebuilding entry 2 as a fresh first entry gives a valid chain:\n        # the chain alone can't show a missing record. That's what anchors and the monitor are for.\n        self._two_entries()\n        e2 = json.load(open(self.entry(2)))\n        os.remove(self.entry(1)); os.remove(self.entry(2))\n        e2.update(seq=1, prev=None)\n        open(self.entry(1), \"wb\").write(R.canonical(e2))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 0)\n\n    def test_non_canonical_bytes_are_refused(self):\n        self._two_entries()\n        e = json.load(open(self.entry(2)))\n        open(self.entry(2), \"w\").write(json.dumps(e, indent=1))\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"canonical\", err)\n\n    def test_duplicate_keys_are_refused(self):\n        self._two_entries()\n        raw = open(self.entry(2), \"rb\").read()\n        open(self.entry(2), \"wb\").write(raw.replace(b'{\"body\":{', b'{\"body\":{\"by\":\"x\",', 1))\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"duplicate key\", err)\n\n    def test_floats_are_refused(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, notes=1.5))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"float\", err)\n        self.assertFalse(os.path.exists(self.entry(1)))\n\n    def test_one_verdict_per_plan(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        self.propose(\"b.json\", \"verdict\", self.verdict(1, outcome=\"fail\"))\n        self.run_cmd(\"ingest\")\n        self.propose(\"c.json\", \"verdict\", self.verdict(1, outcome=\"pass\"))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"already has a verdict\", err)\n        self.assertFalse(os.path.exists(self.entry(3)))\n        self.assertTrue(os.path.exists(os.path.join(self.d, \"inbox\", \"c.json\")))\n\n    def test_verdict_must_come_from_someone_else(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        self.propose(\"b.json\", \"verdict\", self.verdict(1, by=\"proposer-agent\"))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"someone else\", err)\n        # look-alike names can't dodge the rule: names are plain lowercase ASCII handles\n        for alias in (\"Proposer-Agent\", \"proposer-agent\\u200b\", \"proposer-agent \"):\n            os.remove(os.path.join(self.d, \"inbox\", \"b.json\"))\n            self.propose(\"b.json\", \"verdict\", self.verdict(1, by=alias))\n            rc, _, err = self.run_cmd(\"ingest\")\n            self.assertEqual(rc, 1, alias)\n            self.assertIn(\"handle\", err)\n\n    def test_verdict_must_name_the_plan_by_hash(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        v = self.verdict(1)\n        v[\"plan\"][\"sha256\"] = \"0\" * 64\n        self.propose(\"b.json\", \"verdict\", v)\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n    def test_canonical_form_matches_jcs_rules(self):\n        # Sorted keys, no spaces, UTF-8 unescaped, control chars escaped: the JCS output for these values.\n        obj = {\"b\": \"é\\n\\u0001\", \"a\": [1, True, None], \"A\": -9007199254740991}\n        self.assertEqual(R.canonical(obj), b'{\"A\":-9007199254740991,\"a\":[1,true,null],\"b\":\"\\xc3\\xa9\\\\n\\\\u0001\"}')\n        with self.assertRaises(R.Bad):\n            R._check_value({\"x\": 2**53}, \"t\")\n        with self.assertRaises(R.Bad):\n            R._check_value({\"é\": 1}, \"t\")\n\n    def test_canonical_form_is_rfc8785(self):\n        try:\n            import rfc8785\n        except ImportError:\n            self.skipTest(\"rfc8785 not installed\")\n        import random\n        rnd = random.Random(7)\n        chars = 'aZ0 \"\\\\\\n\\t\\b\\f\\r\\x01\\x1f\\x7fé€\\U0001f600 /'\n        def s():\n            return \"\".join(rnd.choice(chars) for _ in range(rnd.randint(0, 6)))\n        def v(d=0):\n            t = rnd.randint(0, 5 if d < 3 else 2)\n            return [lambda: rnd.randint(-R.MAX_INT, R.MAX_INT), s, lambda: rnd.choice([True, False, None]),\n                    lambda: [v(d + 1) for _ in range(rnd.randint(0, 3))],\n                    lambda: {\"k\" + s().encode(\"ascii\", \"ignore\").decode(): v(d + 1) for _ in range(rnd.randint(0, 3))}, s][t]()\n        for _ in range(3000):\n            o = {\"x\": v(), \"y\": v()}\n            self.assertEqual(R.canonical(o), rfc8785.dumps(o))\n\n    def test_wrong_data_exits_1_not_3(self):\n        # review 1: these used to crash (exit 3) instead of being reported as wrong data\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\n        open(self.entry(1), \"wb\").write(raw)\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n        os.remove(self.entry(1))\n        os.makedirs(self.entry(1))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n\n    def test_bogus_due_date_and_stray_inbox_files_are_refused(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, verdict_due=\"2026-99-99\"))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n        os.remove(os.path.join(self.d, \"inbox\", \"a.json\"))\n        open(os.path.join(self.d, \"inbox\", \"a.txt\"), \"w\").write(\"{}\")\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n    def test_orphan_entries_explain_attestations(self):\n        self.propose(\"a.json\", \"orphan\", {\"by\": \"owner\", \"log_index\": 12345, \"reason\": \"run failed after attesting\",\n                                            \"statement_b64\": \"e30=\"})\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        self.assertEqual(json.loads(self.run_cmd(\"verify\")[1])[\"orphans_explained\"], 1)\n\n    def test_range_predicate_ties_both_ends(self):\n        self._two_entries()\n        rc, out, _ = self.run_cmd(\"range\", \"2\", \"2\")\n        p = json.loads(out)\n        self.assertEqual((p[\"from_seq\"], p[\"to_seq\"], p[\"prev_sha256\"]), (2, 2, self.plan_ref(1)[\"sha256\"]))\n        self.assertEqual(self.run_cmd(\"range\", \"1\", \"3\")[0], 1)\n\n    def test_check_anchors_requires_the_writer_to_cover_every_entry(self):\n        # review 1: a hand-written entry passed every check. Now an entry no writer attestation covers is wrong.\n        self._two_entries()\n        rc, out, err = self.run_cmd(\"check-anchors\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"never attested by the writer\", err)\n\n    def test_unknown_files_and_fields_are_refused(self):\n        self._two_entries()\n        open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n        os.remove(os.path.join(self.d, \"entries\", \"notes.txt\"))\n        self.propose(\"c.json\", \"plan\", dict(PLAN, secret=\"x\"))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "\"\"\"Tests for record.py's ledger rules (offline; anchors are tested in CI).\"\"\"\nimport io, json, os, shutil, tempfile, unittest, contextlib, hashlib\nimport record as R\n\nPLAN = {\"by\": \"proposer-agent\", \"claim\": \"mlp beats linear\", \"test\": \"count.py ...\", \"decision_rule\": \"Ir lower by > 2 SE\"}\n\n\nclass Ledger(unittest.TestCase):\n    def setUp(self):\n        self.d = tempfile.mkdtemp()\n        os.makedirs(os.path.join(self.d, \"inbox\"))\n\n    def tearDown(self):\n        shutil.rmtree(self.d)\n\n    def run_cmd(self, *args):\n        out, err = io.StringIO(), io.StringIO()\n        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):\n            rc = R.main([\"--ledger\", self.d, *args])\n        return rc, out.getvalue(), err.getvalue()\n\n    def propose(self, name, kind, body):\n        with open(os.path.join(self.d, \"inbox\", name), \"w\") as f:\n            json.dump({\"kind\": kind, \"body\": body}, f)\n\n    def entry(self, n):\n        return os.path.join(self.d, \"entries\", f\"{n:06d}.json\")\n\n    def plan_ref(self, n):\n        return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\n\n    def verdict(self, n, by=\"verifier-agent\", outcome=\"pass\"):\n        return {\"by\": by, \"plan\": self.plan_ref(n), \"outcome\": outcome, \"evidence\": []}\n\n    def test_plan_then_verdict_chains_and_verifies(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        self.propose(\"b.json\", \"verdict\", self.verdict(1))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        rc, out, _ = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 0)\n        rep = json.loads(out)\n        self.assertEqual((rep[\"entries\"], rep[\"verdicts\"], rep[\"open_plans\"]), (2, 1, []))\n        e2 = json.load(open(self.entry(2)))\n        self.assertEqual(e2[\"prev\"], self.plan_ref(1)[\"sha256\"])\n        self.assertEqual(os.listdir(os.path.join(self.d, \"inbox\")), [])\n\n    def test_open_and_overdue_plans_are_reported(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, verdict_due=\"2000-01-01\"))\n        self.propose(\"b.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        rep = json.loads(self.run_cmd(\"verify\")[1])\n        self.assertEqual((rep[\"open_plans\"], rep[\"overdue_plans\"]), ([1, 2], [1]))\n\n    def _two_entries(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.propose(\"b.json\", \"plan\", dict(PLAN, claim=\"second\"))\n        self.run_cmd(\"ingest\")\n\n    def test_edited_entry_breaks_the_chain(self):\n        self._two_entries()\n        raw = open(self.entry(1), \"rb\").read().replace(b\"mlp beats linear\", b\"mlp beats linea!\")\n        open(self.entry(1), \"wb\").write(raw)\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"prev doesn't match\", err)\n\n    def test_dropped_entry_is_caught(self):\n        self._two_entries()\n        os.remove(self.entry(1))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n\n    def test_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors(self):\n        # Removing entry 1 and rebuilding entry 2 as a fresh first entry gives a valid chain:\n        # the chain alone can't show a missing record. That's what anchors and the monitor are for.\n        self._two_entries()\n        e2 = json.load(open(self.entry(2)))\n        os.remove(self.entry(1)); os.remove(self.entry(2))\n        e2.update(seq=1, prev=None)\n        open(self.entry(1), \"wb\").write(R.canonical(e2))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 0)\n\n    def test_non_canonical_bytes_are_refused(self):\n        self._two_entries()\n        e = json.load(open(self.entry(2)))\n        open(self.entry(2), \"w\").write(json.dumps(e, indent=1))\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"canonical\", err)\n\n    def test_duplicate_keys_are_refused(self):\n        self._two_entries()\n        raw = open(self.entry(2), \"rb\").read()\n        open(self.entry(2), \"wb\").write(raw.replace(b'{\"body\":{', b'{\"body\":{\"by\":\"x\",', 1))\n        rc, _, err = self.run_cmd(\"verify\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"duplicate key\", err)\n\n    def test_floats_are_refused(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, notes=1.5))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"float\", err)\n        self.assertFalse(os.path.exists(self.entry(1)))\n\n    def test_one_verdict_per_plan(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        self.propose(\"b.json\", \"verdict\", self.verdict(1, outcome=\"fail\"))\n        self.run_cmd(\"ingest\")\n        self.propose(\"c.json\", \"verdict\", self.verdict(1, outcome=\"pass\"))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"already has a verdict\", err)\n        self.assertFalse(os.path.exists(self.entry(3)))\n        self.assertTrue(os.path.exists(os.path.join(self.d, \"inbox\", \"c.json\")))\n\n    def test_verdict_must_come_from_someone_else(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        self.propose(\"b.json\", \"verdict\", self.verdict(1, by=\"proposer-agent\"))\n        rc, _, err = self.run_cmd(\"ingest\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"someone else\", err)\n        # look-alike names can't dodge the rule: names are plain lowercase ASCII handles\n        for alias in (\"Proposer-Agent\", \"proposer-agent\\u200b\", \"proposer-agent \"):\n            os.remove(os.path.join(self.d, \"inbox\", \"b.json\"))\n            self.propose(\"b.json\", \"verdict\", self.verdict(1, by=alias))\n            rc, _, err = self.run_cmd(\"ingest\")\n            self.assertEqual(rc, 1, alias)\n            self.assertIn(\"handle\", err)\n\n    def test_verdict_must_name_the_plan_by_hash(self):\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        v = self.verdict(1)\n        v[\"plan\"][\"sha256\"] = \"0\" * 64\n        self.propose(\"b.json\", \"verdict\", v)\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n    def test_canonical_form_matches_jcs_rules(self):\n        # Sorted keys, no spaces, UTF-8 unescaped, control chars escaped: the JCS output for these values.\n        obj = {\"b\": \"é\\n\\u0001\", \"a\": [1, True, None], \"A\": -9007199254740991}\n        self.assertEqual(R.canonical(obj), b'{\"A\":-9007199254740991,\"a\":[1,true,null],\"b\":\"\\xc3\\xa9\\\\n\\\\u0001\"}')\n        with self.assertRaises(R.Bad):\n            R._check_value({\"x\": 2**53}, \"t\")\n        with self.assertRaises(R.Bad):\n            R._check_value({\"é\": 1}, \"t\")\n\n    def test_canonical_form_is_rfc8785(self):\n        try:\n            import rfc8785\n        except ImportError:\n            self.skipTest(\"rfc8785 not installed\")\n        import random\n        rnd = random.Random(7)\n        chars = 'aZ0 \"\\\\\\n\\t\\b\\f\\r\\x01\\x1f\\x7fé€\\U0001f600 /'\n        def s():\n            return \"\".join(rnd.choice(chars) for _ in range(rnd.randint(0, 6)))\n        def v(d=0):\n            t = rnd.randint(0, 5 if d < 3 else 2)\n            return [lambda: rnd.randint(-R.MAX_INT, R.MAX_INT), s, lambda: rnd.choice([True, False, None]),\n                    lambda: [v(d + 1) for _ in range(rnd.randint(0, 3))],\n                    lambda: {\"k\" + s().encode(\"ascii\", \"ignore\").decode(): v(d + 1) for _ in range(rnd.randint(0, 3))}, s][t]()\n        for _ in range(3000):\n            o = {\"x\": v(), \"y\": v()}\n            self.assertEqual(R.canonical(o), rfc8785.dumps(o))\n\n    def test_wrong_data_exits_1_not_3(self):\n        # review 1: these used to crash (exit 3) instead of being reported as wrong data\n        self.propose(\"a.json\", \"plan\", PLAN)\n        self.run_cmd(\"ingest\")\n        raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\n        open(self.entry(1), \"wb\").write(raw)\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n        os.remove(self.entry(1))\n        os.makedirs(self.entry(1))\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n\n    def test_bogus_due_date_and_stray_inbox_files_are_refused(self):\n        self.propose(\"a.json\", \"plan\", dict(PLAN, verdict_due=\"2026-99-99\"))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n        os.remove(os.path.join(self.d, \"inbox\", \"a.json\"))\n        open(os.path.join(self.d, \"inbox\", \"a.txt\"), \"w\").write(\"{}\")\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n    def test_orphan_entries_explain_attestations(self):\n        self.propose(\"a.json\", \"orphan\", {\"by\": \"owner\", \"log_index\": 12345, \"reason\": \"run failed after attesting\",\n                                            \"statement_b64\": \"e30=\"})\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 0)\n        self.assertEqual(json.loads(self.run_cmd(\"verify\")[1])[\"orphans_explained\"], 1)\n\n    def test_range_predicate_ties_both_ends(self):\n        self._two_entries()\n        rc, out, _ = self.run_cmd(\"range\", \"2\", \"2\")\n        p = json.loads(out)\n        self.assertEqual((p[\"from_seq\"], p[\"to_seq\"], p[\"prev_sha256\"]), (2, 2, self.plan_ref(1)[\"sha256\"]))\n        self.assertEqual(self.run_cmd(\"range\", \"1\", \"3\")[0], 1)\n\n    def test_check_anchors_requires_the_writer_to_cover_every_entry(self):\n        # review 1: a hand-written entry passed every check. Now an entry no writer attestation covers is wrong.\n        self._two_entries()\n        rc, out, err = self.run_cmd(\"check-anchors\")\n        self.assertEqual(rc, 1)\n        self.assertIn(\"never attested by the writer\", err)\n\n    def test_unknown_files_and_fields_are_refused(self):\n        self._two_entries()\n        open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\n        self.assertEqual(self.run_cmd(\"verify\")[0], 1)\n        os.remove(os.path.join(self.d, \"entries\", \"notes.txt\"))\n        self.propose(\"c.json\", \"plan\", dict(PLAN, secret=\"x\"))\n        self.assertEqual(self.run_cmd(\"ingest\")[0], 1)\n\n\nif __name__ == \"__main__\":\n    unittest.main()",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651749-fnSTrWPEwLehyfrYFwsP",
+      "role": "assistant",
+      "created": 1794651750,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now I have a good understanding of the codebase. Let me analyze what needs to be done:\n\n1. Add a function `_orphan_entries_problem(orphan: dict, pred: dict) -> str | None` to `record/record.py`\n2. The function should:\n   - Take `orphan[\"body\"][\"entries_b64\"]` - a list of base64-encoded canonical entry bytes\n   - Return `None` when the decoded entries exactly match the attested range:\n     - Count must be `to_seq - from_seq + 1`\n     - First entry's `prev` must chain from `pred[\"prev_sha256\"]`\n     - Each subsequent entry must chain from the previous one's sha256\n     - Last entry's sha256 must equal `pred[\"head_sha256\"]`\n   - Return a problem string:\n     - Containing \"range\" when count is wrong\n     - Containing \"chain\" when an entry's `prev` doesn't link\n     - Containing \"head\" when the last hash doesn't match `head_sha256`\n3. Wire it into wherever orphans are checked (in `cmd_monitor`)\n4. All existing tests must pass\n\nLet me look at the orphan structure more carefully. In `check_body`, an orphan has:\n- `by`\n- `log_index`\n- `reason`\n- `statement_b64`\n\nBut the task says `orphan[\"body\"][\"entries_b64\"]` is a list of base64-encoded canonical entry bytes. So I need to add this field to the orphan body validation and then use it in the monitor.\n\nLooking at `cmd_monitor`, it currently checks:\n1. The orphan's statement matches Rekor's payload hash\n2. The attested head wasn't published and later removed\n\nBut it doesn't check that the orphan actually contains the entries it claims to attest. That's what we need to add.\n\nLet me first add the `entries_b64` field to the orphan body validation, then add the `_orphan_entries_problem` function, and then wire it into `cmd_monitor`.\n\nLet me start by modifying the code.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "Now I understand the codebase. Let me implement the required changes:\n\n1. Add `entries_b64` field to orphan body validation\n2. Add `_orphan_entries_problem` function\n3. Wire it into `cmd_monitor` where orphans are checked\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-c1c27904-f138-4c2d-91c2-37a4aec981b7",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "edit",
+              "arguments": {
+                "path": "/workspace/record/record.py",
+                "before": "else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")",
+                "after": "else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\", \"entries_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")\n        # entries_b64: list of base64-encoded canonical entry bytes for the attested range\n        if \"entries_b64\" in body:\n            if not isinstance(body[\"entries_b64\"], list):\n                raise Bad(f\"{where}: entries_b64 must be a list\")\n            for i, x in enumerate(body[\"entries_b64\"]):\n                if not isinstance(x, str):\n                    raise Bad(f\"{where}: entries_b64[{i}] must be a string\")\n                try:\n                    base64.b64decode(x, validate=True)\n                except ValueError:\n                    raise Bad(f\"{where}: entries_b64[{i}] must be base64\")"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_a53d99e4-b132-4bdf-b78a-fb60d4d66516",
+      "role": "user",
+      "created": 1794651762,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-c1c27904-f138-4c2d-91c2-37a4aec981b7",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Edited /workspace/record/record.py (8 lines -> 19 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651762-HsVxFujQqIGMIWlTuAZV",
+      "role": "assistant",
+      "created": 1794651763,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now I need to add the `_orphan_entries_problem` function. Let me add it after the `range_predicate` function since it's related to the predicate logic.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "Now let me add the `_orphan_entries_problem` function:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-72ead518-b410-48cc-a32a-728150a2d5b3",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "edit",
+              "arguments": {
+                "path": "/workspace/record/record.py",
+                "before": "def check_sigstore(bundle, digest, repo, workflow, ref):",
+                "after": "def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:\n    \"\"\"Check that an orphan's entries_b64 matches the attested range.\n    Returns None if valid, otherwise a short problem string containing 'range', 'chain', or 'head'.\"\"\"\n    if \"entries_b64\" not in orphan[\"body\"]:\n        return \"orphan missing entries_b64\"\n    entries_b64 = orphan[\"body\"][\"entries_b64\"]\n    from_seq = pred[\"from_seq\"]\n    to_seq = pred[\"to_seq\"]\n    expected_count = to_seq - from_seq + 1\n    if len(entries_b64) != expected_count:\n        return f\"range count mismatch: expected {expected_count}, got {len(entries_b64)}\"\n\n    prev_sha256 = pred[\"prev_sha256\"]\n    head_sha256 = pred[\"head_sha256\"]\n    last_hash = None\n\n    for i, entry_b64 in enumerate(entries_b64):\n        try:\n            entry_raw = base64.b64decode(entry_b64, validate=True)\n        except ValueError:\n            return f\"entries_b64[{i}]: invalid base64\"\n        entry = parse_canonical(entry_raw, f\"orphan entry {i}\")\n        # Check entry structure\n        if not isinstance(entry, dict) or set(entry) != {\"seq\", \"prev\", \"kind\", \"written_at\", \"body\"}:\n            return f\"entries_b64[{i}]: invalid entry structure\"\n        # Check chain linkage\n        if entry[\"prev\"] != prev_sha256:\n            return f\"chain broken at index {i}: prev {entry['prev']!r} != expected {prev_sha256!r}\"\n        # Compute hash for next iteration\n        prev_sha256 = hashlib.sha256(entry_raw).hexdigest()\n        last_hash = prev_sha256\n\n    if last_hash != head_sha256:\n        return f\"head mismatch: last entry hash {last_hash!r} != attested head {head_sha256!r}\"\n\n    return None\n\n\ndef check_sigstore(bundle, digest, repo, workflow, ref):"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_a55c3c33-b759-41ea-b8c0-766d95efb8c4",
+      "role": "user",
+      "created": 1794651767,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-72ead518-b410-48cc-a32a-728150a2d5b3",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Edited /workspace/record/record.py (1 lines -> 39 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651767-EnEEUQJq22obnlHPjTxP",
+      "role": "assistant",
+      "created": 1794651768,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now I need to wire this into `cmd_monitor` where orphans are checked. Let me find the relevant section in `cmd_monitor`.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "Now let me wire it into `cmd_monitor` where orphans are checked:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-dfa20886-bc64-4eca-a5d4-40f3b979d5aa",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "grep -n \"orphan\" /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_82a49740-6733-4e4b-8e1c-d3209e73ea33",
+      "role": "user",
+      "created": 1794651770,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-dfa20886-bc64-4eca-a5d4-40f3b979d5aa",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "21:KINDS = (\"plan\", \"verdict\", \"orphan\")\n151:    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n154:            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n155:        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n268:                      \"orphans_explained\": sum(e[\"kind\"] == \"orphan\" for e, _ in chain),\n305:def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:\n306:    \"\"\"Check that an orphan's entries_b64 matches the attested range.\n308:    if \"entries_b64\" not in orphan[\"body\"]:\n309:        return \"orphan missing entries_b64\"\n310:    entries_b64 = orphan[\"body\"][\"entries_b64\"]\n326:        entry = parse_canonical(entry_raw, f\"orphan entry {i}\")\n535:    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were\n536:    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the\n547:    explained = {e[\"body\"][\"log_index\"]: e for e, _ in chain if e[\"kind\"] == \"orphan\"}\n556:    seen, unknown, orphans = set(), [], []\n578:                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n580:            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n583:                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n585:            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n588:                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n625:            p.add_argument(\"--git-rev\", default=\"HEAD\", help=\"the ledger branch's history in this clone (for orphan checks)\")",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "21:KINDS = (\"plan\", \"verdict\", \"orphan\")\n151:    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n154:            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n155:        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n268:                      \"orphans_explained\": sum(e[\"kind\"] == \"orphan\" for e, _ in chain),\n305:def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:\n306:    \"\"\"Check that an orphan's entries_b64 matches the attested range.\n308:    if \"entries_b64\" not in orphan[\"body\"]:\n309:        return \"orphan missing entries_b64\"\n310:    entries_b64 = orphan[\"body\"][\"entries_b64\"]\n326:        entry = parse_canonical(entry_raw, f\"orphan entry {i}\")\n535:    ledger, or be explained by an orphan entry whose statement matches Rekor's payload hash and whose entries were\n536:    never published on the ledger branch (so an orphan can't launder a deleted verdict). Any force push to the\n547:    explained = {e[\"body\"][\"log_index\"]: e for e, _ in chain if e[\"kind\"] == \"orphan\"}\n556:    seen, unknown, orphans = set(), [], []\n578:                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n580:            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n583:                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n585:            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n588:                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n625:            p.add_argument(\"--git-rev\", default=\"HEAD\", help=\"the ledger branch's history in this clone (for orphan checks)\")",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651770-xBG1TduBUNLb9Dnlqa3a",
+      "role": "assistant",
+      "created": 1794651771,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now I need to find the exact location in `cmd_monitor` where I should add the call to `_orphan_entries_problem`. Looking at line 580-585, that's where the predicate is extracted and checked. I should add the check right after extracting the predicate.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-d4571678-dee8-45aa-a617-9c171a648ccf",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "sed -n '575,595p' /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_aaf0ae17-33c7-4f76-a6b8-31a6e12ba1a9",
+      "role": "user",
+      "created": 1794651772,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-d4571678-dee8-45aa-a617-9c171a648ccf",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651772-TwwzVzwqYrtd8cwz5gpf",
+      "role": "assistant",
+      "created": 1794651773,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now I need to add the call to `_orphan_entries_problem` after extracting the predicate and before checking the head. Let me edit the code.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-51f6252b-8e1b-4ed0-aa25-f468c738c4d7",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "edit",
+              "arguments": {
+                "path": "/workspace/record/record.py",
+                "before": "pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:",
+                "after": "pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            prob = _orphan_entries_problem(o, pred)\n            if prob is not None:\n                bad.append(f\"orphan entry {o['seq']}: {prob}\")\n                continue\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_647ba71e-b3ee-401a-9f16-02e9a4d28ac0",
+      "role": "user",
+      "created": 1794651776,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-51f6252b-8e1b-4ed0-aa25-f468c738c4d7",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Edited /workspace/record/record.py (3 lines -> 7 lines)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651776-gWOrA7obXToJTQKsVOTH",
+      "role": "assistant",
+      "created": 1794651778,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "Now let's run the tests to see if everything works correctly.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "Now let's run the tests to verify everything works:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-6eed11fd-6ff2-4556-b933-548787d739ae",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cd /workspace/record && python3 -m unittest test_record -v"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_eb88abcb-169d-4924-a496-787a4677264a",
+      "role": "user",
+      "created": 1794651779,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-6eed11fd-6ff2-4556-b933-548787d739ae",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "test_bogus_due_date_and_stray_inbox_files_are_refused (test_record.Ledger.test_bogus_due_date_and_stray_inbox_files_are_refused) ... /workspace/record/test_record.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpapqqu10q/inbox/a.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"inbox\", \"a.txt\"), \"w\").write(\"{}\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_canonical_form_is_rfc8785 (test_record.Ledger.test_canonical_form_is_rfc8785) ... skipped 'rfc8785 not installed'\ntest_canonical_form_matches_jcs_rules (test_record.Ledger.test_canonical_form_matches_jcs_rules) ... ok\ntest_check_anchors_requires_the_writer_to_cover_every_entry (test_record.Ledger.test_check_anchors_requires_the_writer_to_cover_every_entry) ... ok\ntest_dropped_entry_is_caught (test_record.Ledger.test_dropped_entry_is_caught) ... ok\ntest_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors (test_record.Ledger.test_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors) ... /workspace/record/test_record.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpc926q2ol/entries/000002.json' mode='r' encoding='utf-8'>\n  e2 = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:80: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpc926q2ol/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(R.canonical(e2))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_duplicate_keys_are_refused (test_record.Ledger.test_duplicate_keys_are_refused) ... /workspace/record/test_record.py:93: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpz83bpao_/entries/000002.json'>\n  raw = open(self.entry(2), \"rb\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:94: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpz83bpao_/entries/000002.json'>\n  open(self.entry(2), \"wb\").write(raw.replace(b'{\"body\":{', b'{\"body\":{\"by\":\"x\",', 1))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_edited_entry_breaks_the_chain (test_record.Ledger.test_edited_entry_breaks_the_chain) ... /workspace/record/test_record.py:62: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpgaxlobq0/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b\"mlp beats linear\", b\"mlp beats linea!\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:63: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpgaxlobq0/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_floats_are_refused (test_record.Ledger.test_floats_are_refused) ... ok\ntest_non_canonical_bytes_are_refused (test_record.Ledger.test_non_canonical_bytes_are_refused) ... /workspace/record/test_record.py:85: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpj6jskhhy/entries/000002.json' mode='r' encoding='utf-8'>\n  e = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:86: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpj6jskhhy/entries/000002.json' mode='w' encoding='utf-8'>\n  open(self.entry(2), \"w\").write(json.dumps(e, indent=1))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_one_verdict_per_plan (test_record.Ledger.test_one_verdict_per_plan) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpl_t2u_sl/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_open_and_overdue_plans_are_reported (test_record.Ledger.test_open_and_overdue_plans_are_reported) ... ok\ntest_orphan_entries_explain_attestations (test_record.Ledger.test_orphan_entries_explain_attestations) ... ok\ntest_plan_then_verdict_chains_and_verifies (test_record.Ledger.test_plan_then_verdict_chains_and_verifies) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpt6tkfecf/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpt6tkfecf/entries/000002.json' mode='r' encoding='utf-8'>\n  e2 = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_range_predicate_ties_both_ends (test_record.Ledger.test_range_predicate_ties_both_ends) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpv0zwzjxj/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_unknown_files_and_fields_are_refused (test_record.Ledger.test_unknown_files_and_fields_are_refused) ... /workspace/record/test_record.py:209: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz6qo5isp/entries/notes.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_come_from_someone_else (test_record.Ledger.test_verdict_must_come_from_someone_else) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp3n6u6cb4/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_name_the_plan_by_hash (test_record.Ledger.test_verdict_must_name_the_plan_by_hash) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp9jzigaks/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_wrong_data_exits_1_not_3 (test_record.Ledger.test_wrong_data_exits_1_not_3) ... /workspace/record/test_record.py:173: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpbl2lyncr/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:174: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpbl2lyncr/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.066s\n\nOK (skipped=1)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "",
+                "stderr": "test_bogus_due_date_and_stray_inbox_files_are_refused (test_record.Ledger.test_bogus_due_date_and_stray_inbox_files_are_refused) ... /workspace/record/test_record.py:184: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpapqqu10q/inbox/a.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"inbox\", \"a.txt\"), \"w\").write(\"{}\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_canonical_form_is_rfc8785 (test_record.Ledger.test_canonical_form_is_rfc8785) ... skipped 'rfc8785 not installed'\ntest_canonical_form_matches_jcs_rules (test_record.Ledger.test_canonical_form_matches_jcs_rules) ... ok\ntest_check_anchors_requires_the_writer_to_cover_every_entry (test_record.Ledger.test_check_anchors_requires_the_writer_to_cover_every_entry) ... ok\ntest_dropped_entry_is_caught (test_record.Ledger.test_dropped_entry_is_caught) ... ok\ntest_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors (test_record.Ledger.test_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors) ... /workspace/record/test_record.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpc926q2ol/entries/000002.json' mode='r' encoding='utf-8'>\n  e2 = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:80: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpc926q2ol/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(R.canonical(e2))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_duplicate_keys_are_refused (test_record.Ledger.test_duplicate_keys_are_refused) ... /workspace/record/test_record.py:93: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpz83bpao_/entries/000002.json'>\n  raw = open(self.entry(2), \"rb\").read()\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:94: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpz83bpao_/entries/000002.json'>\n  open(self.entry(2), \"wb\").write(raw.replace(b'{\"body\":{', b'{\"body\":{\"by\":\"x\",', 1))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_edited_entry_breaks_the_chain (test_record.Ledger.test_edited_entry_breaks_the_chain) ... /workspace/record/test_record.py:62: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpgaxlobq0/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b\"mlp beats linear\", b\"mlp beats linea!\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:63: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpgaxlobq0/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_floats_are_refused (test_record.Ledger.test_floats_are_refused) ... ok\ntest_non_canonical_bytes_are_refused (test_record.Ledger.test_non_canonical_bytes_are_refused) ... /workspace/record/test_record.py:85: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpj6jskhhy/entries/000002.json' mode='r' encoding='utf-8'>\n  e = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:86: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpj6jskhhy/entries/000002.json' mode='w' encoding='utf-8'>\n  open(self.entry(2), \"w\").write(json.dumps(e, indent=1))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_one_verdict_per_plan (test_record.Ledger.test_one_verdict_per_plan) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpl_t2u_sl/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_open_and_overdue_plans_are_reported (test_record.Ledger.test_open_and_overdue_plans_are_reported) ... ok\ntest_orphan_entries_explain_attestations (test_record.Ledger.test_orphan_entries_explain_attestations) ... ok\ntest_plan_then_verdict_chains_and_verifies (test_record.Ledger.test_plan_then_verdict_chains_and_verifies) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpt6tkfecf/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:44: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpt6tkfecf/entries/000002.json' mode='r' encoding='utf-8'>\n  e2 = json.load(open(self.entry(2)))\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_range_predicate_ties_both_ends (test_record.Ledger.test_range_predicate_ties_both_ends) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpv0zwzjxj/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_unknown_files_and_fields_are_refused (test_record.Ledger.test_unknown_files_and_fields_are_refused) ... /workspace/record/test_record.py:209: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz6qo5isp/entries/notes.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_come_from_someone_else (test_record.Ledger.test_verdict_must_come_from_someone_else) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp3n6u6cb4/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_name_the_plan_by_hash (test_record.Ledger.test_verdict_must_name_the_plan_by_hash) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp9jzigaks/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_wrong_data_exits_1_not_3 (test_record.Ledger.test_wrong_data_exits_1_not_3) ... /workspace/record/test_record.py:173: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpbl2lyncr/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:174: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmpbl2lyncr/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.066s\n\nOK (skipped=1)",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651779-ScVwIA6zSH7EYlpCMNvB",
+      "role": "assistant",
+      "created": 1794651780,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "All tests pass. Let me also verify the implementation by looking at the current state of the code and ensuring everything is correct. Let me also check if there are any edge cases I might have missed.\n\nThe function should:\n1. Return `None` when the decoded entries are exactly the attested range\n2. Return a string with \"range\" when count is wrong\n3. Return a string with \"chain\" when an entry's `prev` doesn't link\n4. Return a string with \"head\" when the last hash doesn't match `head_sha256`\n\nLet me also check that the function handles the case where `entries_b64` is not present (it should return a problem string).\n\nLet me also run a quick test to make sure the function works correctly with a simple test case.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "All tests pass. Let me verify the implementation is complete by checking the function and its usage:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-cd0195d3-10a0-41f4-ad40-28fbe5b06a02",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "sed -n '305,350p' /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_046afb21-ffbf-48ad-b0de-e2f9aee45e7c",
+      "role": "user",
+      "created": 1794651781,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-cd0195d3-10a0-41f4-ad40-28fbe5b06a02",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:\n    \"\"\"Check that an orphan's entries_b64 matches the attested range.\n    Returns None if valid, otherwise a short problem string containing 'range', 'chain', or 'head'.\"\"\"\n    if \"entries_b64\" not in orphan[\"body\"]:\n        return \"orphan missing entries_b64\"\n    entries_b64 = orphan[\"body\"][\"entries_b64\"]\n    from_seq = pred[\"from_seq\"]\n    to_seq = pred[\"to_seq\"]\n    expected_count = to_seq - from_seq + 1\n    if len(entries_b64) != expected_count:\n        return f\"range count mismatch: expected {expected_count}, got {len(entries_b64)}\"\n\n    prev_sha256 = pred[\"prev_sha256\"]\n    head_sha256 = pred[\"head_sha256\"]\n    last_hash = None\n\n    for i, entry_b64 in enumerate(entries_b64):\n        try:\n            entry_raw = base64.b64decode(entry_b64, validate=True)\n        except ValueError:\n            return f\"entries_b64[{i}]: invalid base64\"\n        entry = parse_canonical(entry_raw, f\"orphan entry {i}\")\n        # Check entry structure\n        if not isinstance(entry, dict) or set(entry) != {\"seq\", \"prev\", \"kind\", \"written_at\", \"body\"}:\n            return f\"entries_b64[{i}]: invalid entry structure\"\n        # Check chain linkage\n        if entry[\"prev\"] != prev_sha256:\n            return f\"chain broken at index {i}: prev {entry['prev']!r} != expected {prev_sha256!r}\"\n        # Compute hash for next iteration\n        prev_sha256 = hashlib.sha256(entry_raw).hexdigest()\n        last_hash = prev_sha256\n\n    if last_hash != head_sha256:\n        return f\"head mismatch: last entry hash {last_hash!r} != attested head {head_sha256!r}\"\n\n    return None\n\n\ndef check_sigstore(bundle, digest, repo, workflow, ref):\n    \"\"\"Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.\n    Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck.\"\"\"\n    try:\n        from sigstore.models import Bundle\n        from sigstore.verify import Verifier, policy\n        from sigstore.errors import Error as SigstoreError\n    except ImportError as ex:",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:\n    \"\"\"Check that an orphan's entries_b64 matches the attested range.\n    Returns None if valid, otherwise a short problem string containing 'range', 'chain', or 'head'.\"\"\"\n    if \"entries_b64\" not in orphan[\"body\"]:\n        return \"orphan missing entries_b64\"\n    entries_b64 = orphan[\"body\"][\"entries_b64\"]\n    from_seq = pred[\"from_seq\"]\n    to_seq = pred[\"to_seq\"]\n    expected_count = to_seq - from_seq + 1\n    if len(entries_b64) != expected_count:\n        return f\"range count mismatch: expected {expected_count}, got {len(entries_b64)}\"\n\n    prev_sha256 = pred[\"prev_sha256\"]\n    head_sha256 = pred[\"head_sha256\"]\n    last_hash = None\n\n    for i, entry_b64 in enumerate(entries_b64):\n        try:\n            entry_raw = base64.b64decode(entry_b64, validate=True)\n        except ValueError:\n            return f\"entries_b64[{i}]: invalid base64\"\n        entry = parse_canonical(entry_raw, f\"orphan entry {i}\")\n        # Check entry structure\n        if not isinstance(entry, dict) or set(entry) != {\"seq\", \"prev\", \"kind\", \"written_at\", \"body\"}:\n            return f\"entries_b64[{i}]: invalid entry structure\"\n        # Check chain linkage\n        if entry[\"prev\"] != prev_sha256:\n            return f\"chain broken at index {i}: prev {entry['prev']!r} != expected {prev_sha256!r}\"\n        # Compute hash for next iteration\n        prev_sha256 = hashlib.sha256(entry_raw).hexdigest()\n        last_hash = prev_sha256\n\n    if last_hash != head_sha256:\n        return f\"head mismatch: last entry hash {last_hash!r} != attested head {head_sha256!r}\"\n\n    return None\n\n\ndef check_sigstore(bundle, digest, repo, workflow, ref):\n    \"\"\"Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.\n    Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck.\"\"\"\n    try:\n        from sigstore.models import Bundle\n        from sigstore.verify import Verifier, policy\n        from sigstore.errors import Error as SigstoreError\n    except ImportError as ex:",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651781-lfFJv2NsUUr7gTUUkinc",
+      "role": "assistant",
+      "created": 1794651784,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The function looks good. Let me also check the wiring in cmd_monitor to make sure it's correct.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-8ff1e5b5-fe79-4652-9a19-fc51bc1189f3",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "sed -n '575,600p' /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_2cf32077-0a20-4f65-82bc-bb380f76a271",
+      "role": "user",
+      "created": 1794651786,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-8ff1e5b5-fe79-4652-9a19-fc51bc1189f3",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            prob = _orphan_entries_problem(o, pred)\n            if prob is not None:\n                bad.append(f\"orphan entry {o['seq']}: {prob}\")\n                continue\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):\n    chain, _ = load_chain(a.ledger)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "            body = json.loads(base64.b64decode(v[\"body\"]))\n            stmt = base64.b64decode(o[\"body\"][\"statement_b64\"])\n            if body.get(\"kind\") != \"dsse\" or body[\"spec\"][\"payloadHash\"][\"value\"] != hashlib.sha256(stmt).hexdigest():\n                bad.append(f\"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}\")\n                continue\n            pred = (parse_json(stmt, f\"orphan entry {o['seq']} statement\") or {}).get(\"predicate\") or {}\n            prob = _orphan_entries_problem(o, pred)\n            if prob is not None:\n                bad.append(f\"orphan entry {o['seq']}: {prob}\")\n                continue\n            head = pred.get(\"head_sha256\")\n            if head in published and head not in current:\n                bad.append(f\"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed\")\n                continue\n            orphans.append(dict(row, explained_by_entry=o[\"seq\"], attested_range=f\"{pred.get('from_seq')}-{pred.get('to_seq')}\"))\n    missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []\n    print(json.dumps({\"refs_checked\": refs, \"rekor_entries\": len(seen), \"ledger_anchors\": len(known),\n                      \"explained_orphans\": orphans, \"unexplained\": unknown, \"wrong\": bad,\n                      \"ledger_anchors_not_found_in_rekor\": missing if not a.only_ref else \"not checked with --only-ref\"}, indent=1))\n    for x in bad:\n        print(f\"BAD: {x}\", file=sys.stderr)\n    return 1 if unknown or missing or bad else 0\n\n\ndef cmd_range(a):\n    chain, _ = load_chain(a.ledger)",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651786-TYorHVSS2Jix7uFHYlnd",
+      "role": "assistant",
+      "created": 1794651787,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The implementation looks correct. Let me also verify the orphan body validation was updated correctly.",
+          "signature": ""
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-f0f8ac74-3106-4fdb-a66c-5ded93ec9793",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "sed -n '150,175p' /workspace/record/record.py"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_de20c2d2-0d64-46ac-8ab2-e06b7e5c3789",
+      "role": "user",
+      "created": 1794651789,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-f0f8ac74-3106-4fdb-a66c-5ded93ec9793",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "        _check_digests(_need(body, \"evidence\", list, where), f\"{where}.evidence\")\n    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\", \"entries_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")\n        # entries_b64: list of base64-encoded canonical entry bytes for the attested range\n        if \"entries_b64\" in body:\n            if not isinstance(body[\"entries_b64\"], list):\n                raise Bad(f\"{where}: entries_b64 must be a list\")\n            for i, x in enumerate(body[\"entries_b64\"]):\n                if not isinstance(x, str):\n                    raise Bad(f\"{where}: entries_b64[{i}] must be a string\")\n                try:\n                    base64.b64decode(x, validate=True)\n                except ValueError:\n                    raise Bad(f\"{where}: entries_b64[{i}] must be base64\")\n    extra = set(body) - allowed\n    if extra:\n        raise Bad(f\"{where}: unknown body fields {sorted(extra)}\")\n\n\n# ---------- the chain ----------",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "        _check_digests(_need(body, \"evidence\", list, where), f\"{where}.evidence\")\n    else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold\n        allowed = {\"by\", \"log_index\", \"reason\", \"statement_b64\", \"entries_b64\"}\n        if _need(body, \"log_index\", int, where) < 0 or not _need(body, \"reason\", str, where).strip():\n            raise Bad(f\"{where}: orphan needs log_index >= 0 and a reason\")\n        try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash\n            base64.b64decode(_need(body, \"statement_b64\", str, where), validate=True)\n        except ValueError:\n            raise Bad(f\"{where}: statement_b64 must be base64\")\n        # entries_b64: list of base64-encoded canonical entry bytes for the attested range\n        if \"entries_b64\" in body:\n            if not isinstance(body[\"entries_b64\"], list):\n                raise Bad(f\"{where}: entries_b64 must be a list\")\n            for i, x in enumerate(body[\"entries_b64\"]):\n                if not isinstance(x, str):\n                    raise Bad(f\"{where}: entries_b64[{i}] must be a string\")\n                try:\n                    base64.b64decode(x, validate=True)\n                except ValueError:\n                    raise Bad(f\"{where}: entries_b64[{i}] must be base64\")\n    extra = set(body) - allowed\n    if extra:\n        raise Bad(f\"{where}: unknown body fields {sorted(extra)}\")\n\n\n# ---------- the chain ----------",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651789-swPFtVbAmI6IWzAZtDLf",
+      "role": "assistant",
+      "created": 1794651791,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The implementation looks complete. Let me run the tests again to make sure everything works correctly.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "The implementation is complete. Let me run the tests one more time to confirm everything passes:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-cabf8501-65cd-49cc-9cde-e286659a9d6d",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cd /workspace/record && python3 -m unittest test_record -v 2>&1 | tail -30"
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_b06f7ab9-5749-4140-8cfe-d2389f32e0aa",
+      "role": "user",
+      "created": 1794651792,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-cabf8501-65cd-49cc-9cde-e286659a9d6d",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "ResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_range_predicate_ties_both_ends (test_record.Ledger.test_range_predicate_ties_both_ends) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp6myxpogl/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_unknown_files_and_fields_are_refused (test_record.Ledger.test_unknown_files_and_fields_are_refused) ... /workspace/record/test_record.py:209: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpyq7ibd8h/entries/notes.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_come_from_someone_else (test_record.Ledger.test_verdict_must_come_from_someone_else) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpzd109z4n/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_name_the_plan_by_hash (test_record.Ledger.test_verdict_must_name_the_plan_by_hash) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpqd72cwg8/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_wrong_data_exits_1_not_3 (test_record.Ledger.test_wrong_data_exits_1_not_3) ... /workspace/record/test_record.py:173: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp0dhvpd2o/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:174: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmp0dhvpd2o/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.064s\n\nOK (skipped=1)",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "ResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_range_predicate_ties_both_ends (test_record.Ledger.test_range_predicate_ties_both_ends) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp6myxpogl/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_unknown_files_and_fields_are_refused (test_record.Ledger.test_unknown_files_and_fields_are_refused) ... /workspace/record/test_record.py:209: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpyq7ibd8h/entries/notes.txt' mode='w' encoding='utf-8'>\n  open(os.path.join(self.d, \"entries\", \"notes.txt\"), \"w\").write(\"x\")\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_come_from_someone_else (test_record.Ledger.test_verdict_must_come_from_someone_else) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpzd109z4n/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_verdict_must_name_the_plan_by_hash (test_record.Ledger.test_verdict_must_name_the_plan_by_hash) ... /workspace/record/test_record.py:30: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmpqd72cwg8/entries/000001.json'>\n  return {\"seq\": n, \"sha256\": hashlib.sha256(open(self.entry(n), \"rb\").read()).hexdigest()}\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\ntest_wrong_data_exits_1_not_3 (test_record.Ledger.test_wrong_data_exits_1_not_3) ... /workspace/record/test_record.py:173: ResourceWarning: unclosed file <_io.BufferedReader name='/tmp/tmp0dhvpd2o/entries/000001.json'>\n  raw = open(self.entry(1), \"rb\").read().replace(b'\"claim\":\"mlp beats linear\"', b'\"claim\":\"\\\\ud800\"')\nResourceWarning: Enable tracemalloc to get the object allocation traceback\n/workspace/record/test_record.py:174: ResourceWarning: unclosed file <_io.BufferedWriter name='/tmp/tmp0dhvpd2o/entries/000001.json'>\n  open(self.entry(1), \"wb\").write(raw)\nResourceWarning: Enable tracemalloc to get the object allocation traceback\nok\n\n----------------------------------------------------------------------\nRan 19 tests in 0.064s\n\nOK (skipped=1)",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651792-bY11iOzZVFhelfPYarhl",
+      "role": "assistant",
+      "created": 1794651793,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "All tests pass. Let me also write a quick manual test to verify the function works as expected.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "All 19 tests pass. Let me also write a quick verification to ensure the new function works correctly:\n"
+        },
+        {
+          "type": "toolRequest",
+          "id": "call-2bcd7457-7ab1-4176-b18f-81a5b079fb6b",
+          "toolCall": {
+            "status": "success",
+            "value": {
+              "name": "shell",
+              "arguments": {
+                "command": "cd /workspace/record && python3 -c \"\nimport record as R\nimport base64, hashlib, json\n\n# Create a simple chain with 2 entries\nchain = []\ne1 = {'seq': 1, 'prev': None, 'kind': 'plan', 'written_at': '2024-01-01T00:00:00Z', 'body': {'by': 'a', 'claim': 'c', 'test': 't', 'decision_rule': 'd'}}\nraw1 = R.canonical(e1)\nh1 = hashlib.sha256(raw1).hexdigest()\nchain.append((e1, h1))\n\ne2 = {'seq': 2, 'prev': h1, 'kind': 'verdict', 'written_at': '2024-01-01T00:00:01Z', 'body': {'by': 'b', 'plan': {'seq': 1, 'sha256': h1}, 'outcome': 'pass', 'evidence': []}}\nraw2 = R.canonical(e2)\nh2 = hashlib.sha256(raw2).hexdigest()\nchain.append((e2, h2))\n\n# Test predicate for range 1-2\npred = {'from_seq': 1, 'to_seq': 2, 'prev_sha256': None, 'head_sha256': h2}\n\n# Create orphan with correct entries_b64\norphan = {'body': {'entries_b64': [base64.b64encode(raw1).decode(), base64.b64encode(raw2).decode()]}}\nresult = R._orphan_entries_problem(orphan, pred)\nprint(f'Valid orphan: {result}')\n\n# Test wrong count\norphan2 = {'body': {'entries_b64': [base64.b64encode(raw1).decode()]}}\nresult2 = R._orphan_entries_problem(orphan2, pred)\nprint(f'Wrong count: {result2}')\n\n# Test broken chain\ne2_bad = {'seq': 2, 'prev': '0'*64, 'kind': 'verdict', 'written_at': '2024-01-01T00:00:01Z', 'body': {'by': 'b', 'plan': {'seq': 1, 'sha256': h1}, 'outcome': 'pass', 'evidence': []}}\nraw2_bad = R.canonical(e2_bad)\norphan3 = {'body': {'entries_b64': [base64.b64encode(raw1).decode(), base64.b64encode(raw2_bad).decode()]}}\nresult3 = R._orphan_entries_problem(orphan3, pred)\nprint(f'Broken chain: {result3}')\n\n# Test wrong head\npred_bad = {'from_seq': 1, 'to_seq': 2, 'prev_sha256': None, 'head_sha256': '0'*64}\nresult4 = R._orphan_entries_problem(orphan, pred_bad)\nprint(f'Wrong head: {result4}')\n\n# Test missing entries_b64\norphan5 = {'body': {}}\nresult5 = R._orphan_entries_problem(orphan5, pred)\nprint(f'Missing entries_b64: {result5}')\n\""
+              }
+            }
+          },
+          "_meta": {
+            "goose.toolCall.providerIndex": 0,
+            "goose_extension": "developer"
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "msg_45208bbd-7678-4407-b59a-8033b2747573",
+      "role": "user",
+      "created": 1794651803,
+      "content": [
+        {
+          "type": "toolResponse",
+          "id": "call-2bcd7457-7ab1-4176-b18f-81a5b079fb6b",
+          "toolResult": {
+            "status": "success",
+            "value": {
+              "resultType": "complete",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Valid orphan: None\nWrong count: range count mismatch: expected 2, got 1\nBroken chain: chain broken at index 1: prev '0000000000000000000000000000000000000000000000000000000000000000' != expected 'db05e04e373277cf3d0044c3bbad51e381f19384f25f30a7d7eba67899856be6'\nWrong head: head mismatch: last entry hash 'ef3f76bb203c04e7374aeb23cc149ddc21fac35419f8627cf5486d9893c157f4' != attested head '0000000000000000000000000000000000000000000000000000000000000000'\nMissing entries_b64: orphan missing entries_b64",
+                  "annotations": {
+                    "priority": 0.0
+                  }
+                }
+              ],
+              "structuredContent": {
+                "stdout": "Valid orphan: None\nWrong count: range count mismatch: expected 2, got 1\nBroken chain: chain broken at index 1: prev '0000000000000000000000000000000000000000000000000000000000000000' != expected 'db05e04e373277cf3d0044c3bbad51e381f19384f25f30a7d7eba67899856be6'\nWrong head: head mismatch: last entry hash 'ef3f76bb203c04e7374aeb23cc149ddc21fac35419f8627cf5486d9893c157f4' != attested head '0000000000000000000000000000000000000000000000000000000000000000'\nMissing entries_b64: orphan missing entries_b64",
+                "stderr": "",
+                "exit_code": 0
+              },
+              "isError": false
+            }
+          }
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true
+      }
+    },
+    {
+      "id": "gen-1794651803-IwZuvvfB7uVJZjHFLVrT",
+      "role": "assistant",
+      "created": 1794651804,
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "The function works correctly:\n- Returns `None` for valid entries\n- Returns a string containing \"range\" when count is wrong\n- Returns a string containing \"chain\" when chain is broken\n- Returns a string containing \"head\" when head hash doesn't match\n- Returns a string for missing entries_b64\n\nAll tests pass and the implementation is complete.",
+          "signature": ""
+        },
+        {
+          "type": "text",
+          "text": "The function works correctly:\n- Returns `None` for valid entries\n- Returns error with \"range\" when count is wrong\n- Returns error with \"chain\" when chain linkage is broken\n- Returns error with \"head\" when final hash doesn't match\n- Handles missing `entries_b64`\n\nAll existing tests pass. The implementation is complete."
+        }
+      ],
+      "metadata": {
+        "userVisible": true,
+        "agentVisible": true,
+        "inference": {
+          "provider": "openrouter",
+          "requestedModel": "nvidia/nemotron-3-ultra-550b-a55b:free"
+        },
+        "operations": {
+          "llm": {
+            "advertised_tools": [
+              "edit",
+              "load_skill",
+              "read_image",
+              "shell",
+              "tree",
+              "write"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "total_tokens": 240191,
+    "input_tokens": 236488,
+    "output_tokens": 3703,
+    "cache_read_input_tokens": 179744,
+    "cache_write_input_tokens": 0,
+    "cost_usd": 0.0,
+    "status": "completed"
+  }
+}
