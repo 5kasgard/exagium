@@ -15,11 +15,20 @@ Steady state means 95,600 images per run, startup subtracted. The data is in `re
 
 mlp16 does about 1/6 of linear's instructions, yet it is only 2.4× faster. Each MLP instruction costs about 2.4× a linear one. **Why?**
 
+**In cycles.** The nominal clock (2.30 GHz) is not the running clock. `bin/clock` (`src/clock.c`, a chain of dependent 1-cycle adds) measured 3.85 GHz and 3.80 GHz in two runs, pinned. At about 3.8 GHz:
+- linear ≈ 670 cycles/img, about 5.7 instructions per cycle: high, but possible on a wide modern core;
+- **mlp16 ≈ 275 cycles/img, about 2.3 instructions per cycle.**
+
+The question is what fills those ~275 cycles. Calibrate your own host the same way: `taskset -c 1 ./bin/clock`.
+
 The programs are in `../../loop/baselines/{linear,thermo}/infer.c` and `../../loop/candidates/mlp{16,32,64}/infer.c`, each about 60–90 lines of C.
 
 ## Already established (don't redo; you may challenge it with evidence)
-- **Not dependency chains.** `src/mlp_interleave.c` classifies NB images side by side, giving bit-identical predictions. NB = 1, 2, 4 and 8 run at 74–84 ns/img against 76.5, so overlapping the chains doesn't help.
-- **Not a branchless fix.** Removing the skip of zero hidden units (`-DBRANCHLESS=1`) is exact, and not faster.
+- **Not dependency chains.** `src/mlp_interleave.c` classifies NB images side by side, giving bit-identical predictions.
+  - In `results/reference-xeon-nb-sweep.json` (15 rounds), NB = 1, 2, 4 and 8 run at 73–86 ns/img against mlp16's 79, with overlapping IQRs.
+  - An earlier 21-round run outside this kit gave 74–84 against 76.5.
+  - So overlapping the chains doesn't help measurably. Interleaving also adds 0–33% instructions.
+- **The branchless layer 2 isn't faster.** Removing the skip of zero hidden units (`-DBRANCHLESS=1`, the `_bl1` programs) is exact, and not faster in the same file. Mispredicts in the argmax and in layer 1's loop remain (see H9).
 - **No FP16, no `pmaddwd`, no horizontal adds.**
   - mlp16's layer 1 is int16 table adds (`paddw`). Layer 2 is float32 `mulps`/`addps`.
   - `pxor` already breaks `cvtsi2ss`'s false dependency.
@@ -28,7 +37,9 @@ The programs are in `../../loop/baselines/{linear,thermo}/infer.c` and `../../lo
   - mlp16's layer-1 table is 34,816 B and fits the 48 KB L1d. mlp64's table is 139 KB and doesn't, yet both run at about 8–9 instructions/ns.
   - Simulated L1d misses are 2.1 per image for mlp16 (`reference/mlp16.cachegrind-summary.txt`), mostly the input stream.
   - On 32 KB-L1d hosts (AMD EPYC 7763, many cloud x86), mlp16's table does *not* fit. **That is a live cross-host question.**
-- **Instruction counts** come from valgrind/cachegrind. They are deterministic and equal the native instruction stream for these programs (no CPU dispatch in the hot loops).
+- **Instruction counts** come from valgrind/cachegrind. They are deterministic, and in the hot loops they are the native instruction stream, since the hot code has no CPU dispatch.
+  - Outside the hot loops, glibc's `fread`/`memcpy` pick their code path at run time, so their native counts can differ.
+  - In linear and thermo that library code is about 3% of instructions (`reference/linear.cachegrind-lines.txt`). In mlp16 it is under 2%.
 
 ## Hypotheses still open (test any; add your own)
 - **H1 Load-port throughput.**
@@ -45,6 +56,9 @@ The programs are in `../../loop/baselines/{linear,thermo}/infer.c` and `../../lo
 - **H6 Linear is the outlier, not mlp16.** linear and thermo are simple scalar float loops, perhaps unusually friendly to this CPU at 21 instructions/ns. Test: what instructions/ns does a trivially parallel loop reach on your host? That gives a ceiling for comparison.
 - **H7 From the outside suggestion: VM noise and frequency scaling.** Test: repeat the bench at different times. Include a CPU-bound control such as linear in every run; the bench interleaves programs, so shared noise largely cancels.
 - **H8 32 KB L1.** On a 32 KB-L1d host, does mlp16's instructions/ns drop relative to mlp32 and mlp64? Test: run the bench there and report `lscpu`.
+- **H9 Branch mispredictions.** Cachegrind's simple predictor model gives mlp16 about 3.2 mispredicts/img (8.8% of its branches, `reference/mlp16.cachegrind-summary.txt`) against linear's about 0.002 conditional.
+  - At roughly 15–20 cycles each, that would be 50–60 of the ~275 cycles.
+  - The model is not the real predictor. Test: make the argmax branchless (for example with compare-and-select), on top of `-DBRANCHLESS=1`, and time it.
 
 ## How to run (Linux, gcc, python3; valgrind optional but wanted)
 ```
@@ -54,8 +68,11 @@ sh build.sh                   # compiles every program with the project's flags 
 python3 bench.py programs.json --rounds 21 --tag <yourname>-<host>
 ```
 To test a hypothesis:
-1. Copy a program into `src/`, change one thing, and add a line to `build.sh` and an entry to a spec JSON.
-2. Run `bench.py` with the original in the same run. Programs are timed interleaved, so only compare within one run.
+1. Copy a program into `src/` and change one thing.
+2. Add a `gcc $F -o bin/<name> src/<file>.c` line to `build.sh`, **above** the `# add your own variants above this line` marker.
+3. Add `"<name>": ["bin/<name>", "<weights>"]` to a spec JSON. Use the weights of the program you started from, for example `../../loop/candidates/mlp16/weights.bin`.
+4. Run `bench.py` with the original in the same spec, since only programs timed in one run compare. Valgrind instruction counts take most of the time; use `--no-valgrind` while iterating.
+5. To check by hand that an ablation kept its work, count instructions: `valgrind --tool=cachegrind --cache-sim=no --cachegrind-out-file=/dev/null bin/<name> <weights> data/big.bin 95600`.
 
 ## Rules
 1. **Change one thing per variant**, and say what it is.
@@ -63,7 +80,7 @@ To test a hypothesis:
    - An ablation must keep its work observable, or gcc may delete it. Prove it didn't: show `Ir/img` from valgrind, or the hot loop in `objdump`.
 2. **Report medians with IQR** over at least 15 rounds, with the original program in the same run. Don't call a difference real if the IQRs overlap.
 3. **Report your host:** `lscpu` (or equivalent), kernel, compiler version, whether you have hardware counters, and whether you're in a VM.
-4. **If you do have hardware counters** (`perf stat -e cycles,instructions,...` works), say so and use them. That alone settles a lot. Report cycles, instructions and, if available, frequency.
+4. **If you do have hardware counters,** say so and use them; that alone settles a lot. Check: `perf stat -e cycles,instructions true`. If it prints real numbers rather than `<not supported>`, you have them. Report cycles, instructions and, if available, frequency, branch misses and L1 misses. Either way, report `bin/clock`'s GHz.
 5. **Don't use `../../loop/task/optdigits.tes`** (the test file). Nothing here needs it.
 6. **No claim without evidence.** "Probably X" is allowed only as a labelled hypothesis, with the test that would decide it.
 
@@ -77,7 +94,7 @@ Write `reports/<yourname>-<date>.md` containing:
 Put your `results/*.json` and variant sources next to the report. If you can't push, return the report text and the JSON files to the owner.
 
 ## Chat-only track (no code execution)
-Read `reference/`:
+Read `reference/` (paths inside point at the machine that made them, which doesn't matter):
 - `*.objdump.txt` and `*.s`: the compiled code;
 - `*.cachegrind-lines.txt`: instructions per source line at N = 95,600;
 - `*.cachegrind-summary.txt`: totals with simulated cache and branch counts;
