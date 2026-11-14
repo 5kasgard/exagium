@@ -5,8 +5,8 @@
 - Control fails all tasks, as required: **False**
 - Seal: **holds**; blocked outbound connections: 0
 - Harness (no crash): 0/1, **inconclusive**
-- Endings: {'harness_crash': 1}; provider errors (not counted, retried): 0; instrument faults: 0
-- **C, capacity: inconclusive.** no registered agent attempt yet. Batch None: None attempts, None calls, None refused, UTC days None, parallel None
+- Endings: {'harness_crash': 1}; provider errors (not counted, retried): 0; instrument faults: 0; setup or seal failures before any model call (not counted, retried): 0
+- **C, capacity: inconclusive.** no registered agent attempt yet. Batch None: None attempts, None calls, None refused, None blind, UTC days None, parallel None
 - **P, pass rate vs arm A: inconclusive.** N 0/1 clean (0–98%); A 6/6; Fisher p = 0.1429
 - **Second agent pool: undecided**
 - Provider-cut cells: none; instrument-cut cells: none
