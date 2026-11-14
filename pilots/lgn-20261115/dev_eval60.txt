@@ -1,0 +1,21 @@
+split dev-in-sample (n=956), 60 rounds, host Intel(R) Xeon(R) Processor @ 2.30GHz
+  linear         acc 0.9770 ±0.0048  Ir/img     3,955  Ir/correct     4,048  ns/img   1213.9 ±26.2
+                 marginal (informational): Ir/img 3,813  ns/img 192.8 ±28.5
+  thermo         acc 0.9749 ±0.0051  Ir/img     3,695  Ir/correct     3,790  ns/img   1242.8 ±19.8
+                 marginal (informational): Ir/img 3,556  ns/img 204.2 ±18.1
+  mlp16          acc 0.9801 ±0.0045  Ir/img       788  Ir/correct       804  ns/img   1134.4 ±15.8
+                 marginal (informational): Ir/img 646  ns/img 102.9 ±16.8
+  lgn_a          acc 0.9780 ±0.0047  Ir/img       876  Ir/correct       896  ns/img   1278.8 ±17.9
+                 marginal (informational): Ir/img 731  ns/img 237.8 ±16.6
+  lgn_b          acc 0.9707 ±0.0055  Ir/img       669  Ir/correct       689  ns/img   1206.7 ±21.1
+                 marginal (informational): Ir/img 524  ns/img 156.0 ±25.0
+  lgn_a_kv2      acc 0.9780 ±0.0047  Ir/img     1,416  Ir/correct     1,448  ns/img   1177.7 ±14.7
+                 marginal (informational): Ir/img 1,271  ns/img 130.1 ±15.7
+  lgn_b_kv2      acc 0.9707 ±0.0055  Ir/img     1,003  Ir/correct     1,033  ns/img   1140.2 ±17.0
+                 marginal (informational): Ir/img 858  ns/img 114.8 ±13.1
+  METERS DISAGREE: lgn_a uses 0.22x linear's instructions but is 65.0 ±30.9 ns/img slower
+  METERS DISAGREE: lgn_a uses 0.62x lgn_a_kv2's instructions but is 101.1 ±15.6 ns/img slower
+  METERS DISAGREE: lgn_a uses 0.87x lgn_b_kv2's instructions but is 138.6 ±23.3 ns/img slower
+  METERS DISAGREE: lgn_b uses 0.85x mlp16's instructions but is 72.3 ±25.1 ns/img slower
+  METERS DISAGREE: lgn_b uses 0.67x lgn_b_kv2's instructions but is 66.5 ±20.2 ns/img slower
+wrote /home/claude/pilot/scoreboard-dev.json sha256 cbc44362071687d57a888572be6c446640bcbb8dc427f440609b01f9efb10987

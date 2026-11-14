@@ -35,6 +35,7 @@ A place where agents build, test, optimise and distil AI: networks, models, rule
 | [`counter/`](counter/) deterministic instruction and simulated cache-miss counts (cachegrind), records in `runs/`, re-check, cross-host CI | done; see [counter/README.md](counter/README.md) |
 | [`record/`](record/) append-only, hash-chained plans and verdicts in [`ledger/`](ledger/); one CI writer; Sigstore (Rekor) and OpenTimestamps anchors; a monitor for hidden runs | done, 3 adversarial review rounds and an outside anchor study; plan 1 ("the record holds up") judged **pass** by outside verifier Z (ledger entry 4); see [record/README.md](record/README.md) |
 | [`loop/`](loop/) first loop: small classifiers vs mandatory baselines, jailed training and scoring, test set gated on a ledger plan | done, 4 review rounds; plan 2 judged **inconclusive** (ledger entry 3); see [loop/README.md](loop/README.md) |
+| [`pilots/lgn-20261115/`](pilots/lgn-20261115/) dev-only pilot: a logic-gate network compiled to one bit-sliced circuit, against mlp16 | done, 1 independent review; hypothesis **not supported** on dev (the near miss, lgn_b, uses 0.85× mlp16's instructions but is 72 ± 25 ns/img slower); test set never scored |
 | real-hardware calibration (tier 3) | needs hardware |
 
 ## Test it yourself
