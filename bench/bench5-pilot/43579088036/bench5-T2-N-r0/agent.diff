@@ -1,0 +1,85 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..dc63c11 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -149,7 +149,7 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+@@ -291,6 +291,60 @@ def range_predicate(chain, from_seq, to_seq):
+             "prev_sha256": chain[from_seq - 2][1] if from_seq > 1 else None, "head_sha256": chain[to_seq - 1][1]}
+ 
+ 
++def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:
++    """Check that an orphan's entries_b64 matches the attested range.
++    
++    Returns None if the entries are exactly the attested range, otherwise
++    returns a short problem string containing 'range', 'chain', or 'head'.
++    """
++    entries_b64 = orphan["body"].get("entries_b64")
++    if not entries_b64:
++        return "range: missing entries_b64"
++    
++    from_seq = pred.get("from_seq")
++    to_seq = pred.get("to_seq")
++    prev_sha256 = pred.get("prev_sha256")
++    head_sha256 = pred.get("head_sha256")
++    
++    if from_seq is None or to_seq is None:
++        return "range: missing from_seq or to_seq in predicate"
++    
++    expected_count = to_seq - from_seq + 1
++    if len(entries_b64) != expected_count:
++        return f"range: expected {expected_count} entries, got {len(entries_b64)}"
++    
++    # Decode and verify chain
++    prev_hash = prev_sha256
++    for i, entry_b64 in enumerate(entries_b64):
++        try:
++            entry_raw = base64.b64decode(entry_b64, validate=True)
++        except ValueError:
++            return f"chain: entry {i} is not valid base64"
++        
++        # Verify it's canonical
++        try:
++            entry = parse_json(entry_raw, f"orphan entry {i}")
++        except Bad as e:
++            return f"chain: entry {i} invalid ({e})"
++        
++        # Check seq matches expected
++        if entry.get("seq") != from_seq + i:
++            return f"chain: entry {i} seq {entry.get('seq')} != expected {from_seq + i}"
++        
++        # Check prev matches expected
++        if entry.get("prev") != prev_hash:
++            return f"chain: entry {i} prev {entry.get('prev')} != expected {prev_hash}"
++        
++        # Update prev_hash to this entry's hash
++        prev_hash = hashlib.sha256(entry_raw).hexdigest()
++    
++    # Check final hash matches head_sha256
++    if prev_hash != head_sha256:
++        return f"head: last entry hash {prev_hash} != attested head {head_sha256}"
++    
++    return None
++
++
+ def check_sigstore(bundle, digest, repo, workflow, ref):
+     """Verify offline that a bundle is an attestation of this digest, signed by exactly this workflow on this ref.
+     Returns (integrated_time, predicate). Wrong data is Bad; a missing library is CantCheck."""
+@@ -533,6 +587,10 @@ def cmd_monitor(a):
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
+                 continue
++            problem = _orphan_entries_problem(o, pred)
++            if problem:
++                bad.append(f"orphan entry {o['seq']}: hidden entries {problem}")
++                continue
+             orphans.append(dict(row, explained_by_entry=o["seq"], attested_range=f"{pred.get('from_seq')}-{pred.get('to_seq')}"))
+     missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []
+     print(json.dumps({"refs_checked": refs, "rekor_entries": len(seen), "ledger_anchors": len(known),
