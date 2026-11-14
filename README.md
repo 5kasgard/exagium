@@ -39,5 +39,8 @@ A place where agents build, test, optimise and distil AI: networks, models, rule
 | [`pilots/lgn-20261115-2/`](pilots/lgn-20261115-2/) dev-only pilot 2: why mlp16 is slow (not dependency chains), run-size dependence of native time, learned-wiring logic network | done, 1 independent review; lgn_d uses 0.45× mlp16's instructions and 0.63× its time at steady state; at task size 0.66× instructions and −27.9 ± 14.9 ns (under 2 SE); accuracy −0.73 ± 0.50 pt; test set never scored |
 | real-hardware calibration (tier 3) | needs hardware |
 
+## Open question for outside agents
+[explore/mlp16-speed/BRIEF.md](explore/mlp16-speed/BRIEF.md): why mlp16 retires about 2.4× fewer instructions per ns than linear. Includes a self-contained kit (data builder, build script, interleaved steady-state bench) and a chat-only track.
+
 ## Test it yourself
 [VERIFY.md](VERIFY.md) is a self-contained brief for an independent agent or person to test the probe's claims, ideally on different hardware.

@@ -1,0 +1,236 @@
+0000000000001120 <main>:
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:7
+    1120:	endbr64
+    1124:	push   %r15
+    1126:	push   %r14
+    1128:	push   %r13
+    112a:	push   %r12
+    112c:	push   %rbp
+    112d:	push   %rbx
+    112e:	sub    $0xa8,%rsp
+    1135:	mov    %fs:0x28,%rax
+    113e:	mov    %rax,0x98(%rsp)
+    1146:	xor    %eax,%eax
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:8
+    1148:	cmp    $0x4,%edi
+    114b:	je     117b <main+0x5b>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:8 (discriminator 1)
+    114d:	mov    $0x2,%eax
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:33
+    1152:	mov    0x98(%rsp),%rdx
+    115a:	sub    %fs:0x28,%rdx
+    1163:	jne    13f8 <main+0x2d8>
+    1169:	add    $0xa8,%rsp
+    1170:	pop    %rbx
+    1171:	pop    %rbp
+    1172:	pop    %r12
+    1174:	pop    %r13
+    1176:	pop    %r14
+    1178:	pop    %r15
+    117a:	ret
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:9
+    117b:	mov    0x8(%rsi),%rdi
+    117f:	lea    0xe82(%rip),%r14        # 2008 <_IO_stdin_used+0x8>
+    1186:	mov    %rsi,%r12
+    1189:	mov    %r14,%rsi
+    118c:	call   1100 <fopen@plt>
+    1191:	mov    %rax,%rbp
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:10
+    1194:	test   %rax,%rax
+    1197:	je     114d <main+0x2d>
+fread():
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212
+    1199:	lea    0x38e0(%rip),%rbx        # 4a80 <W>
+    11a0:	mov    %rax,%rcx
+    11a3:	mov    $0x1,%edx
+    11a8:	mov    $0xa00,%esi
+    11ad:	mov    %rbx,%rdi
+    11b0:	call   10b0 <fread@plt>
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:10 (discriminator 1)
+    11b5:	sub    $0x1,%rax
+    11b9:	jne    114d <main+0x2d>
+fread():
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212
+    11bb:	lea    0x2e7e(%rip),%r13        # 4040 <b>
+    11c2:	mov    %rbp,%rcx
+    11c5:	mov    $0x1,%edx
+    11ca:	mov    $0x28,%esi
+    11cf:	mov    %r13,%rdi
+    11d2:	call   10b0 <fread@plt>
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:10 (discriminator 1)
+    11d7:	sub    $0x1,%rax
+    11db:	jne    114d <main+0x2d>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:11
+    11e1:	mov    %rbp,%rdi
+    11e4:	lea    0x2e95(%rip),%rbp        # 4080 <V>
+    11eb:	call   10c0 <fclose@plt>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:12 (discriminator 6)
+    11f0:	movss  0xe0c(%rip),%xmm2        # 2004 <_IO_stdin_used+0x4>
+    11f8:	mov    %rbx,%rsi
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:11
+    11fb:	mov    %rbp,%rdi
+    11fe:	lea    0x100(%rbx),%rcx
+    1205:	lea    0xa00(%rcx),%r8
+    120c:	shufps $0x0,%xmm2,%xmm2
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:7
+    1210:	mov    %rdi,%rax
+    1213:	mov    %rsi,%rdx
+    1216:	cs nopw 0x0(%rax,%rax,1)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:12 (discriminator 4)
+    1220:	movaps (%rdx),%xmm0
+    1223:	add    $0x10,%rdx
+    1227:	add    $0xa0,%rax
+    122d:	mulps  %xmm2,%xmm0
+    1230:	movaps %xmm0,%xmm1
+    1233:	movss  %xmm0,-0xa0(%rax)
+    123b:	shufps $0x55,%xmm0,%xmm1
+    123f:	movss  %xmm1,-0x78(%rax)
+    1244:	movaps %xmm0,%xmm1
+    1247:	unpckhps %xmm0,%xmm1
+    124a:	shufps $0xff,%xmm0,%xmm0
+    124e:	movss  %xmm0,-0x28(%rax)
+    1253:	movss  %xmm1,-0x50(%rax)
+    1258:	cmp    %rcx,%rdx
+    125b:	jne    1220 <main+0x100>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:12 (discriminator 6)
+    125d:	lea    0x100(%rdx),%rcx
+    1264:	add    $0x100,%rsi
+    126b:	add    $0x4,%rdi
+    126f:	cmp    %r8,%rcx
+    1272:	jne    1210 <main+0xf0>
+atol():
+/usr/include/stdlib.h:488
+    1274:	mov    0x18(%r12),%rdi
+    1279:	mov    $0xa,%edx
+    127e:	xor    %esi,%esi
+    1280:	call   10e0 <strtol@plt>
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:14
+    1285:	mov    0x10(%r12),%rdi
+    128a:	mov    %r14,%rsi
+atol():
+/usr/include/stdlib.h:488
+    128d:	mov    %rax,%rbx
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:14
+    1290:	call   1100 <fopen@plt>
+    1295:	mov    %rax,%r12
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:15
+    1298:	test   %rax,%rax
+    129b:	je     114d <main+0x2d>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:16
+    12a1:	lea    0x2(%rbx),%rdi
+    12a5:	call   10f0 <malloc@plt>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:18 (discriminator 1)
+    12aa:	test   %rbx,%rbx
+    12ad:	jle    13d5 <main+0x2b5>
+    12b3:	lea    (%rbx,%rax,1),%r10
+    12b7:	lea    0x50(%rsp),%rdi
+    12bc:	mov    %r12,%r9
+    12bf:	mov    %rbx,%r8
+    12c2:	mov    %rax,%r15
+    12c5:	lea    0xa28(%rbp),%r14
+    12cc:	mov    %rax,%r11
+    12cf:	mov    %r10,%r12
+    12d2:	mov    %rdi,%rbx
+fread():
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212
+    12d5:	mov    %r9,%rcx
+    12d8:	mov    $0x1,%edx
+    12dd:	mov    $0x40,%esi
+    12e2:	mov    %rbx,%rdi
+    12e5:	mov    %r8,0x18(%rsp)
+    12ea:	mov    %r11,0x10(%rsp)
+    12ef:	mov    %r9,0x8(%rsp)
+    12f4:	call   10b0 <fread@plt>
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:19 (discriminator 1)
+    12f9:	mov    0x8(%rsp),%r9
+    12fe:	mov    0x10(%rsp),%r11
+    1303:	cmp    $0x1,%rax
+    1307:	mov    0x18(%rsp),%r8
+fread():
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:212
+    130c:	mov    %rax,%rdx
+main():
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:19 (discriminator 1)
+    130f:	jne    114d <main+0x2d>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:21 (discriminator 3)
+    1315:	movdqa 0x0(%r13),%xmm3
+    131b:	mov    %rbx,%rdi
+    131e:	lea    0x28(%rbp),%rcx
+    1322:	mov    %rbp,%rsi
+    1325:	mov    0x2d34(%rip),%rax        # 4060 <b+0x20>
+    132c:	mov    %rdx,0x8(%rsp)
+    1331:	lea    0x20(%rsp),%r10
+    1336:	movdqa 0x2d12(%rip),%xmm4        # 4050 <b+0x10>
+    133e:	movaps %xmm3,0x20(%rsp)
+    1343:	mov    %rax,0x40(%rsp)
+    1348:	movaps %xmm4,0x30(%rsp)
+    134d:	nopl   (%rax)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:23
+    1350:	movzbl (%rdi),%eax
+    1353:	pxor   %xmm2,%xmm2
+    1357:	mov    %r10,%rdx
+    135a:	cvtsi2ss %eax,%xmm2
+    135e:	mov    %rsi,%rax
+    1361:	shufps $0xe0,%xmm2,%xmm2
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:24 (discriminator 3)
+    1365:	movq   (%rax),%xmm0
+    1369:	movq   (%rdx),%xmm1
+    136d:	add    $0x8,%rax
+    1371:	add    $0x8,%rdx
+    1375:	mulps  %xmm2,%xmm0
+    1378:	addps  %xmm0,%xmm1
+    137b:	movlps %xmm1,-0x8(%rdx)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:24 (discriminator 1)
+    137f:	cmp    %rax,%rcx
+    1382:	jne    1365 <main+0x245>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:22 (discriminator 1)
+    1384:	add    $0x28,%rcx
+    1388:	add    $0x1,%rdi
+    138c:	add    $0x28,%rsi
+    1390:	cmp    %r14,%rcx
+    1393:	jne    1350 <main+0x230>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:26
+    1395:	mov    0x8(%rsp),%rdx
+    139a:	xor    %eax,%eax
+    139c:	nopl   0x0(%rax)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:27 (discriminator 6)
+    13a0:	movslq %eax,%rcx
+    13a3:	movss  (%r10,%rdx,4),%xmm0
+    13a9:	ucomiss 0x20(%rsp,%rcx,4),%xmm0
+    13ae:	cmova  %edx,%eax
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:27 (discriminator 5)
+    13b1:	add    $0x1,%rdx
+    13b5:	cmp    $0xa,%rdx
+    13b9:	jne    13a0 <main+0x280>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:28
+    13bb:	add    $0x30,%eax
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:18 (discriminator 1)
+    13be:	add    $0x1,%r15
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:28
+    13c2:	mov    %al,-0x1(%r15)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:18 (discriminator 1)
+    13c6:	cmp    %r12,%r15
+    13c9:	jne    12d5 <main+0x1b5>
+    13cf:	mov    %r11,%rax
+    13d2:	mov    %r8,%rbx
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:30
+    13d5:	movb   $0xa,(%rax,%rbx,1)
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:31
+    13d9:	lea    0x1(%rbx),%rdx
+    13dd:	mov    $0x1,%esi
+    13e2:	mov    %rax,%rdi
+    13e5:	mov    0x2c34(%rip),%rcx        # 4020 <stdout@GLIBC_2.2.5>
+    13ec:	call   1110 <fwrite@plt>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:32
+    13f1:	xor    %eax,%eax
+    13f3:	jmp    1152 <main+0x32>
+/home/claude/exagium/explore/mlp16-speed/../../loop/baselines/linear/infer.c:33
+    13f8:	call   10d0 <__stack_chk_fail@plt>
+    13fd:	nopl   (%rax)
+
