@@ -1,0 +1,407 @@
+Warning: Input is not a terminal (fd=0).
+19:55:50 - LiteLLM:WARNING: get_model_cost_map.py:397 - LiteLLM: model cost map fetch attempt 1/3 failed (ConnectError fetching https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: [Errno -3] Temporary failure in name resolution); retrying in 2.8s
+19:55:50 - LiteLLM:WARNING: get_model_cost_map.py:775 - LiteLLM: Failed to fetch remote model cost map from https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: ConnectError fetching https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: [Errno -3] Temporary failure in name resolution. Falling back to local backup.
+Retrying <unknown> in 4 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 4 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+19:55:58 - LiteLLM:WARNING: get_model_cost_map.py:397 - LiteLLM: model cost map fetch attempt 2/3 failed (ConnectError fetching https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json: [Errno -3] Temporary failure in name resolution); retrying in 4.1s
+Retrying <unknown> in 4 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 8 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+19:56:07 - LiteLLM:WARNING: get_model_cost_map.py:696 - LiteLLM: Failed to fetch remote model cost map from https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json after 3 attempts; keeping local backup
+Retrying <unknown> in 16 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 32 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 60 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 60 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+Retrying <unknown> in 60 seconds as it raised ServiceUnavailableError: litellm.ServiceUnavailableError: ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}.
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/llm_http_ha │
+│ ndler.py:738 in _make_common_sync_call                                       │
+│                                                                              │
+│     735 │   │                                                                │
+│     736 │   │   for i in range(max(max_retry_on_unprocessable_entity_error,  │
+│         1)):                                                                 │
+│     737 │   │   │   try:                                                     │
+│ ❱   738 │   │   │   │   response = sync_httpx_client.post(                   │
+│     739 │   │   │   │   │   url=api_base,                                    │
+│     740 │   │   │   │   │   headers=headers,                                 │
+│     741 │   │   │   │   │   data=(signed_json_body if signed_json_body is    │
+│         not None else json.dumps(data)),                                     │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/http_handle │
+│ r.py:1721 in post                                                            │
+│                                                                              │
+│   1718 │   │   except httpx.TimeoutException as e:                           │
+│   1719 │   │   │   _raise_timeout(e, start_time)                             │
+│   1720 │   │   except httpx.HTTPStatusError as e:                            │
+│ ❱ 1721 │   │   │   _raise_masked_sync_error(e, stream)                       │
+│   1722 │   │   except Exception as e:                                        │
+│   1723 │   │   │   raise e                                                   │
+│   1724                                                                       │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/http_handle │
+│ r.py:586 in _raise_masked_sync_error                                         │
+│                                                                              │
+│    583 │   │   │   except Exception:                                         │
+│    584 │   │   │   │   pass                                                  │
+│    585 │   _text: Final =                                                    │
+│        mask_sensitive_info(_safe_get_response_text(e.response))              │
+│ ❱  586 │   raise MaskedHTTPStatusError(e, message=_text, text=_text) from    │
+│        None                                                                  │
+│    587                                                                       │
+│    588                                                                       │
+│    589 async def _raise_masked_async_error(e: httpx.HTTPStatusError, stream: │
+│        bool) -> NoReturn:                                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+MaskedHTTPStatusError: Server error '503 Service Unavailable' for url 
+'http://172.17.0.1:8088/api/v1/chat/completions'
+For more information check: 
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503
+
+During handling of the above exception, another exception occurred:
+
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/mini/lib/python3.12/site-packages/litellm/main.py:6585 in completion    │
+│                                                                              │
+│   6582 │   │   elif custom_llm_provider == "datarobot":                      │
+│   6583 │   │   │   response = _complete_datarobot(_dispatch_ctx)             │
+│   6584 │   │   elif custom_llm_provider == "openrouter":                     │
+│ ❱ 6585 │   │   │   response = _complete_openrouter(_dispatch_ctx)            │
+│   6586 │   │   elif custom_llm_provider == "nadir":                          │
+│   6587 │   │   │   response = _complete_nadir(_dispatch_ctx)  # rebind-ok:   │
+│        mirrors sibling provider branches                                     │
+│   6588 │   │   elif custom_llm_provider == "vercel_ai_gateway":              │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/main.py:3748 in               │
+│ _complete_openrouter                                                         │
+│                                                                              │
+│   3745 │   │   │   optional_params[k] = v                                    │
+│   3746 │                                                                     │
+│   3747 │   ## COMPLETION CALL                                                │
+│ ❱ 3748 │   response: Final = base_llm_http_handler.completion(               │
+│   3749 │   │   model=model,                                                  │
+│   3750 │   │   stream=stream,                                                │
+│   3751 │   │   messages=messages,                                            │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/llm_http_ha │
+│ ndler.py:1080 in completion                                                  │
+│                                                                              │
+│    1077 │   │   else:                                                        │
+│    1078 │   │   │   sync_httpx_client = client                               │
+│    1079 │   │                                                                │
+│ ❱  1080 │   │   response: Final = self._make_common_sync_call(               │
+│    1081 │   │   │   sync_httpx_client=sync_httpx_client,                     │
+│    1082 │   │   │   provider_config=provider_config,                         │
+│    1083 │   │   │   api_base=api_base,                                       │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/llm_http_ha │
+│ ndler.py:755 in _make_common_sync_call                                       │
+│                                                                              │
+│     752 │   │   │   │   │   data =                                           │
+│         provider_config.transform_request_on_unprocessable_entity_error(e=e, │
+│         request_data=data)                                                   │
+│     753 │   │   │   │   │   continue                                         │
+│     754 │   │   │   │   else:                                                │
+│ ❱   755 │   │   │   │   │   raise self._handle_error(e=e,                    │
+│         provider_config=provider_config)                                     │
+│     756 │   │   │   except Exception as e:                                   │
+│     757 │   │   │   │   raise self._handle_error(e=e,                        │
+│         provider_config=provider_config)                                     │
+│     758 │   │   │   break                                                    │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/llms/custom_httpx/llm_http_ha │
+│ ndler.py:6849 in _handle_error                                               │
+│                                                                              │
+│    6846 │   │   )                                                            │
+│    6847 │   │   if not isinstance(received_status_code, int):                │
+│    6848 │   │   │   provider_error.status_code_is_synthesized = True         │
+│ ❱  6849 │   │   raise provider_error                                         │
+│    6850 │                                                                    │
+│    6851 │   def handle_error(                                                │
+│    6852 │   │   self,                                                        │
+╰──────────────────────────────────────────────────────────────────────────────╯
+OpenRouterException: {"error":{"message":"Provider returned 
+error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily 
+overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is
+_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}
+
+During handling of the above exception, another exception occurred:
+
+╭───────────────────── Traceback (most recent call last) ──────────────────────╮
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/run/mini.py:102 in main  │
+│                                                                              │
+│    99 │   model = get_model(config=config.get("model", {}))                  │
+│   100 │   env = get_environment(config.get("environment", {}),               │
+│       default_type="local")                                                  │
+│   101 │   agent = get_agent(model, env, config.get("agent", {}),             │
+│       default_type="interactive")                                            │
+│ ❱ 102 │   agent.run(run_task)                                                │
+│   103 │   if (output_path := config.get("agent", {}).get("output_path")):    │
+│   104 │   │   console.print(f"Saved trajectory to [bold                      │
+│       green]'{output_path}'[/bold green]")                                   │
+│   105 │   return agent                                                       │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/agents/default.py:98 in  │
+│ run                                                                          │
+│                                                                              │
+│    95 │   │   )                                                              │
+│    96 │   │   while True:                                                    │
+│    97 │   │   │   try:                                                       │
+│ ❱  98 │   │   │   │   self.step()                                            │
+│    99 │   │   │   │   self.n_consecutive_format_errors = 0  # reset on any   │
+│       clean step                                                             │
+│   100 │   │   │   except FormatError as e:                                   │
+│   101 │   │   │   │   # The call was billed before parsing failed, so        │
+│       query() never got to charge it.                                        │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/agents/interactive.py:11 │
+│ 3 in step                                                                    │
+│                                                                              │
+│   110 │   │   # Override the step method to handle user interruption         │
+│   111 │   │   try:                                                           │
+│   112 │   │   │   console.print(Rule())                                      │
+│ ❱ 113 │   │   │   return super().step()                                      │
+│   114 │   │   except KeyboardInterrupt:                                      │
+│   115 │   │   │   interruption_message =                                     │
+│       self._prompt_and_handle_slash_commands(                                │
+│   116 │   │   │   │   "\n\n[bold yellow]Interrupted.[/bold yellow] "         │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/agents/default.py:128 in │
+│ step                                                                         │
+│                                                                              │
+│   125 │                                                                      │
+│   126 │   def step(self) -> list[dict]:                                      │
+│   127 │   │   """Query the LM, execute actions."""                           │
+│ ❱ 128 │   │   return self.execute_actions(self.query())                      │
+│   129 │                                                                      │
+│   130 │   def query(self) -> dict:                                           │
+│   131 │   │   """Query the model and return model messages. Override to add  │
+│       hooks."""                                                              │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/agents/interactive.py:74 │
+│ in query                                                                     │
+│                                                                              │
+│    71 │   │   │   │   │   return msg                                         │
+│    72 │   │   try:                                                           │
+│    73 │   │   │   with console.status("Waiting for the LM to respond..."):   │
+│ ❱  74 │   │   │   │   return super().query()                                 │
+│    75 │   │   except TimeExceeded:                                           │
+│    76 │   │   │   # A wall-clock limit can't be lifted by raising the        │
+│       step/cost limits                                                       │
+│    77 │   │   │   # (the next query re-checks the clock and raises again),   │
+│       so prompting                                                           │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/agents/default.py:149 in │
+│ query                                                                        │
+│                                                                              │
+│   146 │   │   │   │   }                                                      │
+│   147 │   │   │   )                                                          │
+│   148 │   │   self.n_calls += 1                                              │
+│ ❱ 149 │   │   message = self.model.query(self.messages)                      │
+│   150 │   │   self.cost += message.get("extra", {}).get("cost", 0.0)         │
+│   151 │   │   self.add_messages(message)                                     │
+│   152 │   │   return message                                                 │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/models/litellm_model.py: │
+│ 82 in query                                                                  │
+│                                                                              │
+│    79 │   │   return set_cache_control(prepared,                             │
+│       mode=self.config.set_cache_control)                                    │
+│    80 │                                                                      │
+│    81 │   def query(self, messages: list[dict[str, str]], **kwargs) -> dict: │
+│ ❱  82 │   │   for attempt in retry(logger=logger,                            │
+│       abort_exceptions=self.abort_exceptions):                               │
+│    83 │   │   │   with attempt:                                              │
+│    84 │   │   │   │   response =                                             │
+│       self._query(self._prepare_messages_for_api(messages), **kwargs)        │
+│    85 │   │   cost_output = self._calculate_cost(response)                   │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/tenacity/__init__.py:514 in __iter__  │
+│                                                                              │
+│   511 │   │                                                                  │
+│   512 │   │   retry_state = RetryCallState(self, fn=None, args=(),           │
+│       kwargs={})                                                             │
+│   513 │   │   while True:                                                    │
+│ ❱ 514 │   │   │   do = self.iter(retry_state=retry_state)                    │
+│   515 │   │   │   if isinstance(do, DoAttempt):                              │
+│   516 │   │   │   │   yield AttemptManager(retry_state=retry_state)          │
+│   517 │   │   │   elif isinstance(do, DoSleep):                              │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/tenacity/__init__.py:440 in iter      │
+│                                                                              │
+│   437 │   │   self._begin_iter(retry_state)                                  │
+│   438 │   │   result = None                                                  │
+│   439 │   │   for action in self.iter_state.actions:                         │
+│ ❱ 440 │   │   │   result = action(retry_state)                               │
+│   441 │   │   return result                                                  │
+│   442 │                                                                      │
+│   443 │   def _begin_iter(self, retry_state: "RetryCallState") -> None:      │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/tenacity/__init__.py:482 in exc_check │
+│                                                                              │
+│   479 │   │   │   │   fut = t.cast("Future", rs.outcome)                     │
+│   480 │   │   │   │   retry_exc = self.retry_error_cls(fut)                  │
+│   481 │   │   │   │   if self.reraise:                                       │
+│ ❱ 482 │   │   │   │   │   retry_exc.reraise()                                │
+│   483 │   │   │   │   raise retry_exc from fut.exception()                   │
+│   484 │   │   │                                                              │
+│   485 │   │   │   self._add_action_func(exc_check)                           │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/tenacity/__init__.py:216 in reraise   │
+│                                                                              │
+│   213 │   │   │   │   cause = exc.__cause__ or exc.__context__               │
+│   214 │   │   │   │   if cause is not None:                                  │
+│   215 │   │   │   │   │   raise cause.with_traceback(cause.__traceback__)    │
+│       from None                                                              │
+│ ❱ 216 │   │   │   raise self.last_attempt.result()                           │
+│   217 │   │   raise self                                                     │
+│   218 │                                                                      │
+│   219 │   @override                                                          │
+│                                                                              │
+│ /root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12 │
+│ /concurrent/futures/_base.py:449 in result                                   │
+│                                                                              │
+│   446 │   │   │   │   if self._state in [CANCELLED, CANCELLED_AND_NOTIFIED]: │
+│   447 │   │   │   │   │   raise CancelledError()                             │
+│   448 │   │   │   │   elif self._state == FINISHED:                          │
+│ ❱ 449 │   │   │   │   │   return self.__get_result()                         │
+│   450 │   │   │   │                                                          │
+│   451 │   │   │   │   self._condition.wait(timeout)                          │
+│   452                                                                        │
+│                                                                              │
+│ /root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12 │
+│ /concurrent/futures/_base.py:401 in __get_result                             │
+│                                                                              │
+│   398 │   def __get_result(self):                                            │
+│   399 │   │   if self._exception:                                            │
+│   400 │   │   │   try:                                                       │
+│ ❱ 401 │   │   │   │   raise self._exception                                  │
+│   402 │   │   │   finally:                                                   │
+│   403 │   │   │   │   # Break a reference cycle with the exception in        │
+│       self._exception                                                        │
+│   404 │   │   │   │   self = None                                            │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/models/litellm_model.py: │
+│ 84 in query                                                                  │
+│                                                                              │
+│    81 │   def query(self, messages: list[dict[str, str]], **kwargs) -> dict: │
+│    82 │   │   for attempt in retry(logger=logger,                            │
+│       abort_exceptions=self.abort_exceptions):                               │
+│    83 │   │   │   with attempt:                                              │
+│ ❱  84 │   │   │   │   response =                                             │
+│       self._query(self._prepare_messages_for_api(messages), **kwargs)        │
+│    85 │   │   cost_output = self._calculate_cost(response)                   │
+│    86 │   │   GLOBAL_MODEL_STATS.add(cost_output["cost"])                    │
+│    87 │   │   # Note: all model.query() implementations must persist the     │
+│       response and cost on FormatError.                                      │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/minisweagent/models/litellm_model.py: │
+│ 66 in _query                                                                 │
+│                                                                              │
+│    63 │                                                                      │
+│    64 │   def _query(self, messages: list[dict[str, str]], **kwargs):        │
+│    65 │   │   try:                                                           │
+│ ❱  66 │   │   │   return litellm.completion(                                 │
+│    67 │   │   │   │   model=self.config.model_name,                          │
+│    68 │   │   │   │   messages=messages,                                     │
+│    69 │   │   │   │   tools=[BASH_TOOL],                                     │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/chat_completions/dispatch.py: │
+│ 118 in completion                                                            │
+│                                                                              │
+│   115 │   python: Final = _PYTHON_COMPLETION                                 │
+│   116 │   if _FLAG.requested(kwargs):                                        │
+│   117 │   │   return acompletion(**_FLAG.keywords(args, kwargs))             │
+│ ❱ 118 │   return _DISPATCH.run(                                              │
+│   119 │   │   args,                                                          │
+│   120 │   │   _FLAG.dropped(kwargs),                                         │
+│   121 │   │   python=python,                                                 │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/rust_bridge/dispatch.py:72 in │
+│ run                                                                          │
+│                                                                              │
+│    69 │   │   │   │   rules=selected_rules,                                  │
+│    70 │   │   │   )                                                          │
+│    71 │   │   if not catalog.rust_might_handle(self.route, selected_rules):  │
+│ ❱  72 │   │   │   return python(*args, **kwargs)                             │
+│    73 │   │   request: Final = self.request(args, kwargs)                    │
+│    74 │   │   if request is None:                                            │
+│    75 │   │   │   return python(*args, **kwargs)                             │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/utils.py:2296 in wrapper      │
+│                                                                              │
+│    2293 │   │   │   │   logging_obj.failure_handler(                         │
+│    2294 │   │   │   │   │   e, traceback_exception, start_time, end_time     │
+│    2295 │   │   │   │   )  # DO NOT MAKE THREADED - router retry fallback    │
+│         relies on this!                                                      │
+│ ❱  2296 │   │   │   raise e                                                  │
+│    2297 │                                                                    │
+│    2298 │   @wraps(original_function)                                        │
+│    2299 │   async def wrapper_async(*args, **kwargs):                        │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/utils.py:2147 in wrapper      │
+│                                                                              │
+│    2144 │   │   │   │   except Exception as e:                               │
+│    2145 │   │   │   │   │   print_verbose(f"Error while checking max token   │
+│         limit: {e}")                                                         │
+│    2146 │   │   │   # MODEL CALL                                             │
+│ ❱  2147 │   │   │   result = original_function(*args, **kwargs)              │
+│    2148 │   │   │   end_time = datetime.datetime.now()                       │
+│    2149 │   │   │   if _is_streaming_request(kwargs=kwargs,                  │
+│         call_type=call_type) or _is_converted_stream_result(result):         │
+│    2150 │   │   │   │   if "complete_response" in kwargs and                 │
+│         kwargs["complete_response"] is True:                                 │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/main.py:6676 in completion    │
+│                                                                              │
+│   6673 │   │   return response                                               │
+│   6674 │   except Exception as e:                                            │
+│   6675 │   │   ## Map to OpenAI Exception                                    │
+│ ❱ 6676 │   │   raise exception_type(                                         │
+│   6677 │   │   │   model=model,                                              │
+│   6678 │   │   │   custom_llm_provider=custom_llm_provider,                  │
+│   6679 │   │   │   original_exception=e,                                     │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/litellm_core_utils/exception_ │
+│ mapping_utils.py:2915 in exception_type                                      │
+│                                                                              │
+│   2912 │   │   │   for error_type in litellm.LITELLM_EXCEPTION_TYPES:        │
+│   2913 │   │   │   │   if isinstance(e, error_type):                         │
+│   2914 │   │   │   │   │   setattr(e, "litellm_response_headers",            │
+│        litellm_response_headers)                                             │
+│ ❱ 2915 │   │   │   │   │   raise e  # it's already mapped                    │
+│   2916 │   │   │   raised_exc: Final = APIConnectionError(                   │
+│   2917 │   │   │   │                                                         │
+│        message=f"{original_exception}\n{redact_string(traceback.format_exc() │
+│        )}",                                                                  │
+│   2918 │   │   │   │   llm_provider="",                                      │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/litellm_core_utils/exception_ │
+│ mapping_utils.py:2836 in exception_type                                      │
+│                                                                              │
+│   2833 │   │   │   if custom_llm_provider == "bigmodel":                     │
+│   2834 │   │   │   │   raise_bigmodel_business_error(model,                  │
+│        f"{exception_provider} - {error_str}", original_exception)  #         │
+│        pyright: ignore[reportUnknownArgumentType]  # exception_type takes    │
+│        untyped parameters                                                    │
+│   2835 │   │   │   if custom_llm_provider == "openrouter":                   │
+│ ❱ 2836 │   │   │   │   _map_openrouter_exception(                            │
+│   2837 │   │   │   │   │   model=model,                                      │
+│   2838 │   │   │   │   │   original_exception=mappable_exception,            │
+│   2839 │   │   │   │   │   custom_llm_provider=custom_llm_provider,          │
+│                                                                              │
+│ /opt/mini/lib/python3.12/site-packages/litellm/litellm_core_utils/exception_ │
+│ mapping_utils.py:2336 in _map_openrouter_exception                           │
+│                                                                              │
+│   2333 │   │   │   │   litellm_debug_info=extra_information,                 │
+│   2334 │   │   │   )                                                         │
+│   2335 │   │   elif original_exception.status_code == 503:                   │
+│ ❱ 2336 │   │   │   raise ServiceUnavailableError(                            │
+│   2337 │   │   │   │   message=f"ServiceUnavailableError:                    │
+│        {exception_provider} - {error_str}",                                  │
+│   2338 │   │   │   │   model=model,                                          │
+│   2339 │   │   │   │   llm_provider=custom_llm_provider,                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ServiceUnavailableError: litellm.ServiceUnavailableError: 
+ServiceUnavailableError: OpenrouterException - {"error":{"message":"Provider 
+returned error","code":503,"metadata":{"raw":"{\"message\":\"Service temporarily
+overloaded\",\"type\":\"Overloaded\",\"code\":503}","provider_name":"Nvidia","is
+_byok":false}},"user_id":"user_3LMi5KhQIeLxTODTzoXg54gXlVN"}
