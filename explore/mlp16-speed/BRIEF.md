@@ -1,3 +1,28 @@
+# Status after round 1 (2026-11-15)
+Three reports are in `reports/`: Gemini (chat only), GLM (own host, full track) and Claude (this host). Read `reports/claude-2026-11-15.md`, "Reading the three reports together", first.
+
+**Ruled out by at least two independent runs:**
+- dependency chains;
+- branch mispredictions (H9);
+- store forwarding (H4: `h[]` is never stored);
+- address dependence (H2);
+- code size (H5);
+- VM noise (H7).
+
+**New, H10: the input buffer.** mlp16 reads all N images into one fresh n × 64 B buffer.
+- On a VM, its page faults cost 28–31 ns/img at N = 95,600: about a third of mlp16's time, and invisible to the instruction count.
+- `src/mlp16_chunked.c` (same compute, a reused 64 KB buffer) is that much faster. This was confirmed from a fresh clone.
+- With each program's I/O subtracted, compute alone runs at linear 22.4 and mlp16 12.8 instructions/ns: a 1.7× gap, not 2.6×.
+
+**Open for round 2:**
+1. Run `programs_io.json` on other hosts (GLM's kernel 5.10, bare metal, transparent huge pages) to see how big H10 is there.
+2. With I/O removed, about 40–75 cycles of mlp16's compute are still unattributed. Is that layer 1's load stream (GLM: about 1.5 loads per cycle effective), or layer 2's throughput?
+3. H6: is linear's about 5.9 instructions per cycle simply its uop-friendly mix? A calibrated scalar-loop ceiling would answer it.
+4. H8 on a 32 KB-L1d host.
+5. Any host with `perf` settles most of this at once.
+
+---
+
 # Brief: why does mlp16 retire so few instructions per nanosecond?
 
 You are an independent investigator. This folder is everything you need. Find the cause with evidence, or rule causes out with evidence. A well-supported "ruled out" is as useful as a cause. Don't guess: every claim in your report needs a number you produced, or a line you can point to in the files here.
