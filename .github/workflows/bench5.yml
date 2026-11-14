@@ -1,0 +1,211 @@
+# bench-5: NVIDIA NIM as a second agent pool. bench-3's harness, prompt, tasks, grader and snapshot code,
+# unchanged (checked by hash), with the provider swapped: Nemotron 3 Ultra served by NIM instead of OpenRouter.
+# See router/bench5/PREREG.md; every rule is code in router/bench5/decide.py.
+# mode=pilot runs one unregistered attempt plus one control through the same steps; it counts for nothing.
+name: bench5
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run (registered batch) or pilot (instrument check, not counted)"
+        default: "run"
+  schedule:
+    - cron: "20 5 * * *"   # retries open cells once a day; the plan is empty once every cell is done
+concurrency:
+  group: bench5   # NIM is its own allowance, so bench-5 need not queue behind bench-3 and bench-4
+  cancel-in-progress: false
+permissions:
+  contents: read   # every job reads; only `record` writes, and asks for it itself
+defaults:
+  run:
+    shell: bash
+env:
+  SDK_REF: v1.61.0
+  IMAGE: ghcr.io/openhands/agent-server:1.61.0-python
+  MAX_ITERATIONS: "80"
+  MODE: ${{ github.event.inputs.mode || 'run' }}
+  NIM_HOST: integrate.api.nvidia.com
+  # the instrument is bench-3's; these are its files' sha256 at registration. An attempt with any other file stops.
+  SHA_RUN_AGENT: 7a5f5e7617be78bd757bff6b0afe7a209b3eb79ed7b3e82244e367af461e473e
+  SHA_MEASURE: 3fe4e1c4e6d4d6ea8132297dc06cbf74d3b5c3617342fc877d28c0ca8ca78edf
+  SHA_GRADE: 6e3c5fc9934cc44924ca6da2bdc5a22e0d43244ebb2e7c8a8dcbe173958ba9e1
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      n: ${{ steps.plan.outputs.n }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {persist-credentials: false}
+      - name: the rules must pass their own test
+        run: python3 -I router/bench5/decide.py selftest; echo "exit $?"
+      - name: the plan
+        id: plan
+        run: |
+          git fetch -q origin router-runs && git worktree add -q "$RUNNER_TEMP/rr" FETCH_HEAD
+          mkdir -p "$RUNNER_TEMP/rr/bench/bench5"
+          if [ "$MODE" != pilot ] && [ ! -f router/bench5/REGISTERED ]; then
+            p='{"n": 0, "open": -1, "include": []}'; echo "not registered yet: nothing runs"
+          elif [ "$MODE" = pilot ]; then
+            p='{"n": 2, "open": -1, "include": [{"task":"T2","arm":"N","model":"nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b","rep":0},{"task":"T2","arm":"Z","model":"none","rep":0}]}'
+          else
+            p=$(python3 -I router/bench5/decide.py plan "$RUNNER_TEMP/rr/bench/bench5")
+            first=$(find "$RUNNER_TEMP/rr/bench/bench5" -name result.json | head -1)
+            hour=$(date -u +%H)
+            # capacity C reads the first batch, which must fit inside one UTC day (a batch takes about 2-3 hours)
+            if [ -z "$first" ] && [ "$((10#$hour))" -ge 18 ]; then
+              p='{"n": 0, "open": -1, "include": []}'; echo "first batch refused at $hour:00 UTC: it could cross midnight"
+            fi
+          fi
+          echo "$p" | python3 -c "import json,sys;p=json.load(sys.stdin);print('planned',p['n'],'of',p['open'],'open:',[(c['task'],c['arm'],c['rep']) for c in p['include']])"
+          echo "n=$(echo "$p" | python3 -c "import json,sys;print(json.load(sys.stdin)['n'])")" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(echo "$p" | python3 -c "import json,sys;print(json.dumps({'include':json.load(sys.stdin)['include']}))")" >> "$GITHUB_OUTPUT"
+          echo "exit 0"
+  attempt:
+    needs: plan
+    if: needs.plan.outputs.n != '0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      B_TASK: ${{ matrix.task }}
+      B_ARM: ${{ matrix.arm }}
+      B_REP: ${{ matrix.rep }}
+      B_MODEL: ${{ matrix.model }}
+      B_PARALLEL: "4"
+    strategy:
+      fail-fast: false
+      max-parallel: 4   # NIM free tier: about 40 requests/min per key; 4 agents stay well under it
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with: {fetch-depth: 0, path: src, persist-credentials: false}
+      - name: only the registered model, and only bench-3's instrument files
+        run: |
+          if [[ "$B_MODEL" != none && "$B_MODEL" != "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b" ]]; then echo "model refused: $B_MODEL"; exit 1; fi
+          echo "$SHA_RUN_AGENT  src/router/bench3/run_agent.py" | sha256sum -c
+          echo "$SHA_MEASURE  src/router/bench3/measure.py" | sha256sum -c
+          echo "$SHA_GRADE  src/router/bench/grade.py" | sha256sum -c
+          echo "exit 0"
+      - name: private grader copy, pre-fix workspace, then delete the full checkout
+        run: |
+          P="$RUNNER_TEMP/private"; mkdir -p "$P" "$RUNNER_TEMP/out/snaps"
+          read base fix hidden < <(python3 -c "import json;t=[x for x in json.load(open('src/router/bench/tasks.json')) if x['id']=='$B_TASK'][0];print(t['base'],t['fix'],t['hidden_test'])")
+          echo "FIX=$fix" >> "$GITHUB_ENV"; echo "HIDDEN=$hidden" >> "$GITHUB_ENV"; echo "P=$P" >> "$GITHUB_ENV"
+          cp src/router/bench/grade.py src/router/bench3/run_agent.py src/router/bench3/measure.py "src/router/bench/p2p-$fix.json" "src/router/bench/tasks/$B_TASK.md" "$P/"
+          # measure.py imports `decide` for its labels: here that is bench-5's, which imports bench-3's as bench3_rules
+          cp src/router/bench5/decide.py "$P/decide.py"; cp src/router/bench3/decide.py "$P/bench3_rules.py"
+          git -C src show "$fix:record/test_record.py" > "$P/fix_test.py"
+          WS="$RUNNER_TEMP/ws"; mkdir -p "$WS"; echo "WS=$WS" >> "$GITHUB_ENV"
+          git -C src archive "$base" | tar -x -C "$WS"
+          rm -rf src   # nothing post-fix is left on the runner's disk outside $P
+          cd "$WS" && git init -q && git config core.fileMode false && git add -A && git -c user.name=bench -c user.email=bench@example.invalid commit -qm base
+          chmod -R a+rwX "$WS"   # the agent server runs as a non-root user inside its container
+          echo "STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+          echo "exit 0"
+      - name: install the pinned SDK and pull the matching Agent Server image
+        if: matrix.arm != 'Z'
+        run: |
+          pip install -q uv && uv venv -q -p 3.12 "$RUNNER_TEMP/venv"
+          for p in openhands-sdk openhands-tools openhands-workspace; do
+            uv pip install -q -p "$RUNNER_TEMP/venv" "$p @ git+https://github.com/OpenHands/software-agent-sdk@$SDK_REF#subdirectory=$p"
+          done
+          docker pull -q "$IMAGE"
+          echo "exit 0"
+      - name: network seal (containers may reach DNS and NIM's own addresses only)
+        if: matrix.arm != 'Z'
+        run: |
+          ips=$(getent ahostsv4 "$NIM_HOST" | awk '{print $1}' | sort -u | tr '\n' ' '); echo "$NIM_HOST -> $ips"
+          n=$(echo $ips | wc -w); if [ "$n" -lt 1 ] || [ "$n" -gt 4 ]; then echo "unexpected address count: $n"; exit 1; fi
+          echo "NIM_IPS=$ips" >> "$GITHUB_ENV"
+          sudo iptables -N B5
+          sudo iptables -A B5 -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
+          sudo iptables -A B5 -p udp --dport 53 -j RETURN
+          sudo iptables -A B5 -p tcp --dport 53 -j RETURN
+          for ip in $ips; do sudo iptables -A B5 -d "$ip/32" -p tcp --dport 443 -j RETURN; done
+          sudo iptables -A B5 -j LOG --log-prefix "B5DROP "
+          sudo iptables -A B5 -j REJECT
+          sudo iptables -I DOCKER-USER -i docker0 ! -o docker0 -j B5
+          t='import sys,urllib.request,urllib.error
+          try:
+              urllib.request.urlopen(sys.argv[1], timeout=15); print("reached")
+          except urllib.error.HTTPError:
+              print("reached")
+          except Exception as e:
+              print("refused" if "refused" in str(e).lower() or "unreachable" in str(e).lower() else "error: "+str(e)[:200])'
+          ok=$(docker run --rm --entrypoint python3 "$IMAGE" -c "$t" "https://$NIM_HOST/v1/models" | tail -1)
+          no=$(docker run --rm --entrypoint python3 "$IMAGE" -c "$t" https://github.com/5kasgard/exagium | tail -1)
+          cf=$(docker run --rm --entrypoint python3 "$IMAGE" -c "$t" https://openrouter.ai/api/v1/models | tail -1)
+          echo "provider: $ok; github: $no; openrouter (other provider): $cf"
+          echo "SEAL_OK=$ok" >> "$GITHUB_ENV"; echo "SEAL_NO=$no" >> "$GITHUB_ENV"
+          echo "CHECK_DROPS=$(sudo dmesg | grep -c 'B5DROP ' || true)" >> "$GITHUB_ENV"
+          if [ "$ok" != reached ] || [ "$no" != refused ] || [ "$cf" != refused ]; then echo "network seal check failed"; exit 1; fi
+          echo "exit 0"
+      - name: agent attempt (sealed container)
+        if: matrix.arm != 'Z'
+        env:
+          LLM_MODEL: ${{ env.B_MODEL }}   # env: values are not shell-expanded; use ${{ }} here (bench-3 fault, 2026-11-14)
+          LLM_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENHANDS_SUPPRESS_BANNER: "1"
+        run: |
+          rc=0; timeout 2100 "$RUNNER_TEMP/venv/bin/python" "$P/run_agent.py" "$P/$B_TASK.md" "$WS" "$RUNNER_TEMP/out" "$IMAGE" "$MAX_ITERATIONS" || rc=$?
+          echo "AGENT_RC=$rc" >> "$GITHUB_ENV"; echo "exit $rc"
+      - name: grade and measure
+        if: always()
+        run: |
+          O="$RUNNER_TEMP/out"; mkdir -p "$O/snaps"
+          if [ "$B_ARM" = Z ]; then echo '{"control": true}' > "$O/run.json"; fi
+          [ -f "$O/run.json" ] || echo '{"error": "harness: no run.json (agent step rc='"${AGENT_RC:-none}"')"}' > "$O/run.json"
+          [ -f "$O/events.jsonl" ] || : > "$O/events.jsonl"
+          sudo chown -R "$(id -u)" "$WS" 2>/dev/null || true
+          G="git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c safe.directory=*"
+          $G -C "$WS" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true
+          $G -C "$WS" diff --cached HEAD > "$O/agent.diff" 2>/dev/null || true
+          all=$(sudo dmesg | grep -c 'B5DROP ' || true)
+          sudo dmesg | grep 'B5DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SPT=[0-9]*//' | sort | uniq -c | sort -rn | head -20 > "$O/egress.txt" || true
+          python3 -c "import json,os;json.dump({'check_provider':os.environ.get('SEAL_OK'),'check_github':os.environ.get('SEAL_NO'),'nim_ips':os.environ.get('NIM_IPS'),'drops':max(0,int('$all' or 0)-int(os.environ.get('CHECK_DROPS') or 0)),'top':open('$O/egress.txt').read().splitlines()[:20]},open('$O/egress.json','w'))"
+          meta=$(python3 -c "import json;print(json.dumps({'task':'$B_TASK','arm':'$B_ARM','model':'$B_MODEL','rep':int('$B_REP'),'commit':'$GITHUB_SHA','run_id':'$GITHUB_RUN_ID','pilot':'$MODE'=='pilot','control':'$B_ARM'=='Z','started_utc':'${STARTED:-}','parallel':int('$B_PARALLEL')}))")
+          # grading imports the agent's code: it runs in a container with no network, no key and no token (as bench-3)
+          docker pull -q "$IMAGE" > /dev/null
+          docker run --rm --network none --user 0 --entrypoint python3 -v "$WS":/ws -v "$O":/o:ro -v "$P":/p:ro "$IMAGE" \
+            -I /p/measure.py /o /ws /p/fix_test.py "$HIDDEN" "/p/p2p-$FIX.json" "$meta" > "$O/result.json.tmp"
+          python3 -c "import json,sys;json.load(open(sys.argv[1]))" "$O/result.json.tmp" && mv "$O/result.json.tmp" "$O/result.json"
+          python3 -c "import json;r=json.load(open('$O/result.json'));print({k:r.get(k) for k in ('task','arm','rep','end','passed','clean','calls','actions','wall_s','diff_files','n_snaps','green_actions','green_kept','first_hidden_pass_actions','egress_drops','snapshot_errors','started_utc')})"
+          gzip -9 "$O/events.jsonl"; rm -f "$O/egress.txt"
+          find "$O" -type l -print -delete | head -20   # links are never uploaded (an uploader may follow them)
+          echo "exit 0"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: always()
+        with:
+          name: bench5-${{ matrix.task }}-${{ matrix.arm }}-r${{ matrix.rep }}
+          path: ${{ runner.temp }}/out/
+  record:
+    needs: [plan, attempt]
+    permissions:
+      contents: write   # pushes results and the status table to the router-runs branch
+    if: always() && needs.plan.outputs.n != '0'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes to router-runs and uploads no artifact
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with: {path: art, pattern: bench5-*}
+      - name: commit results and the generated status to router-runs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp router/bench5/decide.py /tmp/decide.py; cp router/bench3/decide.py /tmp/bench3_rules.py
+          sub=bench5; [ "$MODE" = pilot ] && sub=bench5-pilot
+          mkdir -p "/tmp/new/$GITHUB_RUN_ID"; cp -r art/* "/tmp/new/$GITHUB_RUN_ID/"
+          find /tmp/new -type d -name snaps -prune -exec rm -rf {} +
+          find /tmp/new -type l -delete   # snapshots stay in the run's artifacts
+          # bench-3 and bench-4 push to the same branch from another concurrency group: rebuild on the newest tip and retry
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+            mkdir -p "bench/$sub" && rm -rf "bench/$sub/$GITHUB_RUN_ID" && cp -r "/tmp/new/$GITHUB_RUN_ID" "bench/$sub/"
+            python3 -I /tmp/decide.py status "bench/$sub" bench/bench3 > "bench/$sub/STATUS.md"
+            git add bench && git commit -qm "bench-5 $MODE batch $GITHUB_RUN_ID"
+            if git push -q origin router-runs; then echo "pushed on try $i"; break; fi
+            [ "$i" = 6 ] && exit 1; sleep $((i * 7))
+          done
+          cat "bench/$sub/STATUS.md" >> "$GITHUB_STEP_SUMMARY"; cat "bench/$sub/STATUS.md"
+          echo "exit 0"
