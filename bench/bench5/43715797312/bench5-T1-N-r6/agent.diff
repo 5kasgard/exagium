@@ -1,0 +1,47 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..b6e03bf 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,6 +385,8 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    # Track sigstore range heads (to_seq values) to check for missing .ots proofs
++    sigstore_range_heads = set()
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -404,10 +406,24 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                # Remember this sigstore range head to check for its .ots proof
++                sigstore_range_heads.add(seq)
+         except Bad as ex:
+             bad.append(str(ex))
++            # Even if sigstore verification fails, if this is a sigstore anchor we still need to check for .ots
++            if m.group(2) == "sigstore.json":
++                sigstore_range_heads.add(seq)
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++            # Even if sigstore verification can't run, if this is a sigstore anchor we still need to check for .ots
++            if m.group(2) == "sigstore.json":
++                sigstore_range_heads.add(seq)
++    # Check for missing .ots proofs for sigstore-attested range heads
++    for seq in sigstore_range_heads:
++        ots_name = f"{seq:06d}.ots"
++        ots_path = os.path.join(a.ledger, "anchors", ots_name)
++        if not os.path.exists(ots_path):
++            bad.append(f"{ots_name} is missing")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:

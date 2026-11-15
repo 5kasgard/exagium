@@ -1,0 +1,50 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..ddfc4e1 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -408,15 +408,36 @@ def cmd_check_anchors(a):
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++    # Collect range heads from all .sigstore.json files (even if we can't verify them)
++    # so we can check that the corresponding .ots proof exists
++    sigstore_heads = set()
++    for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
++        n = os.path.basename(path)
++        m = ANCHOR_NAME.fullmatch(n)
++        if m and m.group(2) == "sigstore.json":
++            # The filename contains the range head sequence number
++            seq = int(m.group(1))
++            sigstore_heads.add(seq)
++
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+             bad.append(f"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}")
+         covered = max(covered, hi)
++        # Check that the .ots proof for this range head exists
++        ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{hi:06d}.ots is missing")
+         if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)
+             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
+                             "writer_code_changed": _code_changed(a, prev_commit, commit)})
+         prev_commit = commit
++    # Also check .ots for sigstore heads that we couldn't verify
++    for hi in sigstore_heads:
++        if hi > covered:  # only check heads that weren't covered by verified ranges
++            ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++            if not os.path.exists(ots_path):
++                bad.append(f"{hi:06d}.ots is missing")
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
