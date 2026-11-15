@@ -1,0 +1,99 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..76fd0a3 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -289,6 +289,80 @@ def range_predicate(chain, from_seq, to_seq):
+     """What the writer attests: the range of entries one run added, tied to the chain on both ends."""
+     return {"from_seq": from_seq, "to_seq": to_seq,
+             "prev_sha256": chain[from_seq - 2][1] if from_seq > 1 else None, "head_sha256": chain[to_seq - 1][1]}
++def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:
++    """Check if an orphan's entries match the attested range in pred.
++    
++    Returns None if the decoded entries are exactly the attested range:
++    - There are to_seq - from_seq + 1 of them
++    - The first chains from pred["prev_sha256"] (its prev field)
++    - Each next one chains from the previous one's sha256
++    - The sha256 of the last one's canonical bytes equals pred["head_sha256"]
++    
++    Otherwise returns a short problem string:
++    - one containing the word "range" when the count is wrong
++    - one containing "chain" when an entry's prev doesn't link
++    - one containing "head" when the last hash doesn't match head_sha256
++    """
++    # Get entries from orphan body
++    entries_b64 = orphan.get("body", {}).get("entries_b64", [])
++    
++    # If there are no entries, check if the predicate is empty (no attested range)
++    if not entries_b64:
++        return None if not pred else "range"
++    
++    # Decode all entries
++    decoded_entries = []
++    for entry_b64 in entries_b64:
++        try:
++            # Decode base64 and parse canonical JSON
++            raw = base64.b64decode(entry_b64)
++            entry = parse_canonical(raw, f"orphan entries_b64[{len(decoded_entries)}]")
++            decoded_entries.append(entry)
++        except Exception:
++            # If there's any error, we have a problem
++            return "chain"
++    
++    # Check count matches expected range
++    from_seq = pred.get("from_seq")
++    to_seq = pred.get("to_seq")
++    if from_seq is None or to_seq is None:
++        # If pred doesn't have the expected range, we can't check
++        return "range"
++    
++    expected_count = to_seq - from_seq + 1
++    if len(decoded_entries) != expected_count:
++        return "range"
++    
++    # Check first entry chains from pred["prev_sha256"]
++    prev_expected = pred.get("prev_sha256")
++    if prev_expected is not None:
++        # Compute sha256 of first entry
++        first_raw = canonical(decoded_entries[0])
++        first_sha256 = hashlib.sha256(first_raw).hexdigest()
++        if first_sha256 != prev_expected:
++            return "chain"
++    
++    # Check chain consistency
++    for i, entry in enumerate(decoded_entries):
++        # Check prev field
++        if "prev" not in entry:
++            return "chain"
++        
++        # For entries after first, check it chains from previous entry's sha256
++        if i > 0:
++            prev_entry_raw = canonical(decoded_entries[i-1])
++            prev_entry_sha256 = hashlib.sha256(prev_entry_raw).hexdigest()
++            if entry["prev"] != prev_entry_sha256:
++                return "chain"
++    
++    # Check last entry's sha256 matches pred["head_sha256"]
++    last_raw = canonical(decoded_entries[-1])
++    last_sha256 = hashlib.sha256(last_raw).hexdigest()
++    if last_sha256 != pred.get("head_sha256"):
++        return "head"
++    
++    # All checks passed
++    return None
+ 
+ 
+ def check_sigstore(bundle, digest, repo, workflow, ref):
+@@ -533,6 +607,13 @@ def cmd_monitor(a):
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")
+                 continue
++            
++            # Check if the orphan entries match the attested range
++            problem = _orphan_entries_problem(o, pred)
++            if problem:
++                bad.append(f"orphan entry {o['seq']}: hidden entries {problem}")
++                continue
++            
+             orphans.append(dict(row, explained_by_entry=o["seq"], attested_range=f"{pred.get('from_seq')}-{pred.get('to_seq')}"))
+     missing = sorted(n for idx, n in known.items() if idx not in seen) if not a.only_ref else []
+     print(json.dumps({"refs_checked": refs, "rekor_entries": len(seen), "ledger_anchors": len(known),
