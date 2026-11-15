@@ -1,0 +1,24 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..0aed3e6 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -413,6 +413,10 @@ def cmd_check_anchors(a):
+         if lo != covered + 1:
+             bad.append(f"the writer's ranges {'overlap' if lo <= covered else 'leave a gap'} at entry {min(lo, covered + 1)}")
+         covered = max(covered, hi)
++        # Check that the .ots proof exists for this range head
++        ots_path = os.path.join(a.ledger, "anchors", f"{hi:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{hi:06d}.ots is missing")
+         if prev_commit:  # did the writer's code change between these two runs? (information: a stranger reads the diff)
+             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
+                             "writer_code_changed": _code_changed(a, prev_commit, commit)})

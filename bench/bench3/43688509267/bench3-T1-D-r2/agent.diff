@@ -1,0 +1,35 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..d3eb1af 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,6 +385,9 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    
++    # Check for missing .ots proofs for any .sigstore.json anchors
++    # For each .sigstore.json anchor, the corresponding .ots file should exist
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -404,6 +407,11 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                
++                # Check if the corresponding .ots file exists
++                ots_path = os.path.join(a.ledger, "anchors", f"{seq:06d}.ots")
++                if not os.path.exists(ots_path):
++                    bad.append(f"{os.path.basename(ots_path)} is missing")
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:

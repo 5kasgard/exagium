@@ -1,0 +1,22 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..c8e9478 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -394,6 +394,8 @@ def cmd_check_anchors(a):
+                 raise Bad(f"anchors/{n}: no entry {seq}")
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
++                if not os.path.exists(path):
++                    raise Bad(f"{n} is missing")
+                 t = check_ots(path, raw, a.explorer)
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:

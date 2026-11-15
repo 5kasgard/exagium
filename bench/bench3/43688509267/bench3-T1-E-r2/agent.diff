@@ -1,0 +1,52 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..c61ae09 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -384,8 +384,14 @@ def cmd_check_anchors(a):
+     """Every anchor must be right, and the writer's Sigstore ranges must cover entries 1..head with no gap or overlap.
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
++    paths = _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors")
++    sigstore_seqs = {int(ANCHOR_NAME.fullmatch(os.path.basename(p)).group(1)) for p in paths
++                     if os.path.basename(p).endswith(".sigstore.json")}
+     rows, bad, cant, ranges = [], [], [], []
+-    for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
++    for seq in sorted(sigstore_seqs):
++        if not os.path.isfile(os.path.join(a.ledger, "anchors", f"{seq:06d}.ots")):
++            bad.append(f"anchors/{seq:06d}.ots is missing (a Sigstore range attests through entry {seq})")
++    for path in paths:
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+         seq = int(m.group(1))
+diff --git a/record/test_record.py b/record/test_record.py
+index 9e3084a..c2d8f50 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -222,6 +222,18 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(rc, 1)
+         self.assertIn("never attested by the writer", err)
+ 
++    def test_check_anchors_reports_a_deleted_ots_proof(self):
++        # the .sigstore.json file survives, but the range head's .ots proof was deleted
++        self._two_entries()
++        anchors = os.path.join(self.d, "anchors")
++        os.makedirs(anchors)
++        open(os.path.join(anchors, "000001.sigstore.json"), "w").write("{}")
++        open(os.path.join(anchors, "000002.sigstore.json"), "w").write("{}")
++        open(os.path.join(anchors, "000002.ots"), "w").write("x")
++        rc, _, err = self.run_cmd("check-anchors")
++        self.assertEqual(rc, 1)
++        self.assertIn("000001.ots is missing", err)
++
+     def test_unknown_files_and_fields_are_refused(self):
+         self._two_entries()
+         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")

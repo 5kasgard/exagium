@@ -1,0 +1,114 @@
+diff --git a/record/record.py b/record/record.py
+index b2e508c..0ea2471 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -149,18 +149,96 @@ def check_body(kind, body, where):
+             raise Bad(f"{where}: outcome must be one of {OUTCOMES}")
+         _check_digests(_need(body, "evidence", list, where), f"{where}.evidence")
+     else:  # orphan: explains a Rekor attestation by the writer that the ledger doesn't hold
+-        allowed = {"by", "log_index", "reason", "statement_b64"}
++        allowed = {"by", "log_index", "reason", "statement_b64", "entries_b64"}
+         if _need(body, "log_index", int, where) < 0 or not _need(body, "reason", str, where).strip():
+             raise Bad(f"{where}: orphan needs log_index >= 0 and a reason")
+         try:  # the orphaned attestation's exact signed statement; monitor checks it against Rekor's payload hash
+             base64.b64decode(_need(body, "statement_b64", str, where), validate=True)
+         except ValueError:
+             raise Bad(f"{where}: statement_b64 must be base64")
++        # entries_b64 is optional (may be present if the orphan includes the entries it hid)
++        if "entries_b64" in body:
++            lst = body["entries_b64"]
++            if not isinstance(lst, list):
++                raise Bad(f"{where}: entries_b64 must be a list")
++            for i, enc in enumerate(lst):
++                if not isinstance(enc, str):
++                    raise Bad(f"{where}.entries_b64[{i}]: must be a string")
++                try:
++                    base64.b64decode(enc, validate=True)
++                except ValueError:
++                    raise Bad(f"{where}.entries_b64[{i}]: must be base64")
+     extra = set(body) - allowed
+     if extra:
+         raise Bad(f"{where}: unknown body fields {sorted(extra)}")
+ 
+ 
++# ---------- orphan entry validation ----------
++def _orphan_entries_problem(orphan: dict, pred: dict) -> str | None:
++    """Check if an orphan hides exactly the entries it attested to be hidden.
++    
++    Returns None if the orphan is valid (the hidden entries match the attested range),
++    otherwise returns a problem string containing 'range', 'chain', or 'head'.
++    """
++    from_seq = pred.get("from_seq")
++    to_seq = pred.get("to_seq")
++    prev_sha256 = pred.get("prev_sha256")
++    head_sha256 = pred.get("head_sha256")
++    
++    if from_seq is None or to_seq is None or prev_sha256 is None or head_sha256 is None:
++        return "range"  # predicate missing required fields
++    
++    # Get the entries from the orphan
++    entries_b64 = orphan.get("body", {}).get("entries_b64", [])
++    if not isinstance(entries_b64, list):
++        return "range"
++    
++    # Check count
++    expected_count = to_seq - from_seq + 1
++    if len(entries_b64) != expected_count:
++        return "range"
++    
++    # Decode all entries
++    decoded_entries = []
++    for enc in entries_b64:
++        try:
++            decoded_entries.append(base64.b64decode(enc, validate=True))
++        except (ValueError, TypeError):
++            return "range"
++    
++    # Parse first entry
++    try:
++        first_entry = json.loads(decoded_entries[0].decode("utf-8"))
++    except (json.JSONDecodeError, UnicodeDecodeError):
++        return "range"
++    
++    # Check first entry's prev matches pred["prev_sha256"]
++    if first_entry.get("prev") != prev_sha256:
++        return "chain"
++    
++    # Check chain links and head hash
++    current_prev = first_entry.get("prev")
++    for i, entry_bytes in enumerate(decoded_entries):
++        try:
++            entry = json.loads(entry_bytes.decode("utf-8"))
++        except (json.JSONDecodeError, UnicodeDecodeError):
++            return "range"
++        
++        if i == 0:
++            # Already checked first entry
++            pass
++        else:
++            # Check that each entry chains from the previous one's sha256
++            if entry.get("prev") != hashlib.sha256(decoded_entries[i-1]).hexdigest():
++                return "chain"
++        
++        # Check last entry's sha256 matches pred["head_sha256"]
++        if i == len(decoded_entries) - 1:
++            if hashlib.sha256(entry_bytes).hexdigest() != head_sha256:
++                return "head"
++    
++    # All checks passed
++    return None
+ # ---------- the chain ----------
+ def _listdir(ledger, sub, pattern, what):
+     d = os.path.join(ledger, sub)
+@@ -529,6 +607,11 @@ def cmd_monitor(a):
+                 bad.append(f"orphan entry {o['seq']}: its statement isn't the one Rekor holds for log index {idx}")
+                 continue
+             pred = (parse_json(stmt, f"orphan entry {o['seq']} statement") or {}).get("predicate") or {}
++            # Check if the orphan hides exactly the entries it attested to be hidden
++            problem = _orphan_entries_problem(o, pred)
++            if problem is not None:
++                bad.append(f"orphan entry {o['seq']}: {problem} problem with hidden entries")
++                continue
+             head = pred.get("head_sha256")
+             if head in published and head not in current:
+                 bad.append(f"orphan entry {o['seq']}: the attested head {head} was published on {a.git_rev} and later removed")

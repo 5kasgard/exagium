@@ -1,0 +1,115 @@
+diff --git a/record/README.md b/record/README.md
+index 1731b76..9b1edb0 100644
+--- a/record/README.md
++++ b/record/README.md
+@@ -4,6 +4,7 @@
+ - **One writer.** Only `.github/workflows/record.yml` writes to it. Each run attests the exact range of entries it added: a Sigstore attestation in the public Rekor log, plus an OpenTimestamps proof in Bitcoin.
+ - **A stranger's checks:**
+   - every entry is covered by the writer's attestations, with no gap;
++  - every range head has its OpenTimestamps proof;
+   - every anchor is genuine;
+   - every attestation the writer ever made, on any ref GitHub names, is in the ledger, or is explained by an orphan entry that publishes what it attested.
+ - **Why these anchors:** `experiments/anchors/RESULTS.md`, attacked by an outside verifier (`experiments/anchors/verifier1/`).
+@@ -14,7 +15,7 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
+ python3 record.py head            # head seq and sha256
+ python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
+ python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
+-python3 -m unittest -v test_record   # 20 tests, <1 s
++python3 -m unittest -v test_record   # 21 tests, <1 s
+ ```
+ - `verify` and `head` need only Python 3 (stdlib).
+ - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
+@@ -26,6 +27,7 @@ python3 -m unittest -v test_record   # 20 tests, <1 s
+   - a ledger rule is broken;
+   - an anchor is wrong;
+   - the writer's ranges leave a gap or overlap, or don't reach the head;
++  - a range head is missing its OpenTimestamps proof;
+   - an attestation is unexplained, or an orphan explanation is refused;
+   - the ledger branch was force-pushed, or deleted (and recreated).
+ - **2:** can't check (missing library, network). `check-anchors` checks every anchor before deciding, so a problem in one doesn't hide a problem in another.
+@@ -76,6 +78,7 @@ So hiding an attested verdict means publishing it inside the orphan entry. The `
+ |---|---|
+ | Entry unchanged since anchored? | `check-anchors`: Sigstore subject and OTS proof match its bytes |
+ | Every entry vouched for by the writer? | `check-anchors`: ranges cover 1..head, no gap or overlap |
++| Every range head timestamped? | `check-anchors`: the `.ots` proof for each attested range head is present |
+ | Existed by when? | Rekor `integratedTime`; Bitcoin block time (existence only) |
+ | Which code wrote each range? | `check-anchors`: each run's certified commit, and whether anything under `record/` or `.github/` changed since the last run |
+ | Runs held back, forked or deleted? | `monitor`: every writer attestation on any ref is in the ledger or published by an orphan entry; no force push or deletion of the ledger branch |
+@@ -160,7 +163,7 @@ It also found that an explorer outage blocked the writer (now tolerated), and th
+ - **Orphans.** A failed push after attesting leaves an orphan that stays red until explained. That's intended: the failure is part of the record.
+ - **The monitor is a command, not a service.** Someone has to run it. A scheduled run from outside the owner's control (Z, or another account) is the next step.
+ - **OpenTimestamps** proofs are pending for hours. Verifying through the explorers trusts that two operators serve the real chain.
+-- **Size:** `record.py` is 630 lines, the tests 235, `record.yml` 127. Most of it is defences, as with the counter.
++- **Size:** `record.py` is 635 lines, the tests 253, `record.yml` 127. Most of it is defences, as with the counter.
+ 
+ ## Files
+ - `record.py`: the ledger, anchor checks and monitor.
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..5a0aa03 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -382,9 +382,10 @@ def iso(t):
+ 
+ def cmd_check_anchors(a):
+     """Every anchor must be right, and the writer's Sigstore ranges must cover entries 1..head with no gap or overlap.
++    Every range head must also have an OpenTimestamps proof, and each proof must be for the head's bytes.
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+-    rows, bad, cant, ranges = [], [], [], []
++    rows, bad, cant, ranges, proofs = [], [], [], [], set()
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -394,6 +395,7 @@ def cmd_check_anchors(a):
+                 raise Bad(f"anchors/{n}: no entry {seq}")
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
++                proofs.add(seq)  # present: whether it checks out is a separate question
+                 t = check_ots(path, raw, a.explorer)
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:
+@@ -417,6 +419,9 @@ def cmd_check_anchors(a):
+             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
+                             "writer_code_changed": _code_changed(a, prev_commit, commit)})
+         prev_commit = commit
++    for _, hi, _ in sorted(ranges):  # the writer stamps every range head; a missing proof hides its timestamp
++        if hi not in proofs:
++            bad.append(f"{hi:06d}.ots is missing")
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
+diff --git a/record/test_record.py b/record/test_record.py
+index 9e3084a..efa486d 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -1,5 +1,6 @@
+ """Tests for record.py's ledger rules (offline; anchors are tested in CI)."""
+ import io, json, os, shutil, tempfile, unittest, contextlib, hashlib
++from unittest import mock
+ import record as R
+ 
+ PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
+@@ -222,6 +223,23 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(rc, 1)
+         self.assertIn("never attested by the writer", err)
+ 
++    def test_check_anchors_requires_a_proof_for_every_range_head(self):
++        # a bundle whose range ends at 2 without anchors/000002.ots hid entry 2's timestamp from check-anchors.
++        # The real anchor libraries and Bitcoin explorers aren't available offline, so the two checks are stand-ins.
++        self._two_entries()
++        os.makedirs(os.path.join(self.d, "anchors"))
++        open(os.path.join(self.d, "anchors", "000002.sigstore.json"), "w").write("{}")
++        pred = R.range_predicate(R.load_chain(self.d)[0], 1, 2)
++        sig, ots = (lambda b, d, r, w, f: (0, pred, "deadbeef")), lambda p, e, x: 0
++        with mock.patch.object(R, "check_sigstore", sig), mock.patch.object(R, "check_ots", ots):
++            rc, out, err = self.run_cmd("check-anchors")
++            self.assertEqual(rc, 1)
++            self.assertIn("000002.ots is missing", err)
++            self.assertEqual(json.loads(out)["wrong"], ["000002.ots is missing"])
++            open(os.path.join(self.d, "anchors", "000002.ots"), "w").write("x")
++            rc, out, err = self.run_cmd("check-anchors")
++            self.assertEqual((rc, json.loads(out)["wrong"]), (0, []))
++
+     def test_unknown_files_and_fields_are_refused(self):
+         self._two_entries()
+         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")
