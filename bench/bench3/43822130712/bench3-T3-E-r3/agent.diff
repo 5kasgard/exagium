@@ -1,0 +1,162 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/README.md b/record/README.md
+index d344839..e59e99f 100644
+--- a/record/README.md
++++ b/record/README.md
+@@ -13,11 +13,13 @@
+ python3 record.py verify          # chain intact? also lists open and overdue plans
+ python3 record.py head            # head seq and sha256
+ python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
++python3 record.py check-anchors --max-pending-hours 24   # also fails if a range head's OTS proof is still pending
+ python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
+-python3 -m unittest -v test_record   # 21 tests, <1 s
++python3 -m unittest -v test_record   # 24 tests, <1 s
+ ```
+ - `verify` and `head` need only Python 3 (stdlib).
+ - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
++  - A pending OpenTimestamps proof is accepted by default (it can take hours). `--max-pending-hours H` makes one that's still pending more than H whole hours after its Sigstore attestation exit 1 instead, so a stuck proof-upgrading run can't stay invisible.
+ - `monitor` needs network access to the GitHub API and Rekor. To judge orphan entries it needs a full (not shallow) git clone of the ledger branch; a shallow clone exits 2.
+ 
+ **Exit codes:**
+diff --git a/record/record.py b/record/record.py
+index 231ebea..4844c7e 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -383,9 +383,12 @@ def iso(t):
+ def cmd_check_anchors(a):
+     """Every anchor must be right, the writer's Sigstore ranges must cover entries 1..head with no gap or overlap,
+     and every range head must have its OpenTimestamps proof.
++    With --max-pending-hours, a range head whose proof is still pending longer than that after its Sigstore
++    attestation is wrong too, so a stuck upgrade run can't stay invisible.
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    attested, pending = {}, set()  # seq -> Rekor integratedTime; range heads whose proof is still pending
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -398,6 +401,8 @@ def cmd_check_anchors(a):
+             raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
+             if m.group(2) == "ots":
+                 t = check_ots(path, raw, a.explorer)
++                if t is None:
++                    pending.add(seq)
+                 rows.append({"anchor": n, "kind": "opentimestamps", "existed_by": iso(t) or "pending"})
+             else:
+                 t, pred, commit = check_sigstore(path, chain[seq - 1][1], a.repo, a.workflow, a.ref)
+@@ -405,6 +410,7 @@ def cmd_check_anchors(a):
+                         or not 1 <= pred["from_seq"] <= seq or pred != range_predicate(chain, pred["from_seq"], seq):
+                     raise Bad(f"anchors/{n}: attested range {pred!r} doesn't match this chain")
+                 ranges.append((pred["from_seq"], seq, commit))
++                attested[seq] = t
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
+         except Bad as ex:
+@@ -416,6 +422,16 @@ def cmd_check_anchors(a):
+         # was removed (found by Z, 2026-11-06)
+         if hi not in stamped:
+             bad.append(f"anchors/{hi:06d}.ots is missing, though the writer stamps every range head before attesting")
++    if a.max_pending_hours is not None:
++        # a pending proof is normal for a few hours; stuck proof-upgrading (the daily run that completes pending
++        # proofs failing silently) is only visible as one that's older than this many hours
++        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
++        for lo, hi, commit in sorted(ranges):
++            if hi in pending and hi in attested:
++                h = int((now - attested[hi]) // 3600)
++                if h > a.max_pending_hours:
++                    bad.append(f"anchors/{hi:06d}.ots: proof of entry {hi} is still pending {h} h after its Sigstore "
++                               f"attestation {iso(attested[hi])} (allowed: {a.max_pending_hours:g} h)")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:
+@@ -612,6 +628,9 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=float, default=None, metavar="H",
++                           help="treat a range head's OpenTimestamps proof that's still pending more than H hours "
++                                "after its Sigstore attestation as wrong (default: pending is accepted)")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")
+diff --git a/record/test_record.py b/record/test_record.py
+index 96975c5..21f73d5 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -1,5 +1,5 @@
+ """Tests for record.py's ledger rules (offline; anchors are tested in CI)."""
+-import io, json, os, shutil, tempfile, unittest, contextlib, hashlib
++import datetime, io, json, os, shutil, tempfile, unittest, contextlib, hashlib
+ import record as R
+ 
+ PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
+@@ -243,6 +243,61 @@ class Ledger(unittest.TestCase):
+             for k, f in saved.items():
+                 setattr(R, k, f)
+ 
++    def _anchored(self):
++        """A two-entry chain with the range-head (entry 2) anchor pair, checked with stubbed anchor checks."""
++        self._two_entries()
++        chain, _ = R.load_chain(self.d)
++        os.makedirs(os.path.join(self.d, "anchors"))
++        open(os.path.join(self.d, "anchors", "000002.sigstore.json"), "w").write("{}")
++        open(os.path.join(self.d, "anchors", "000002.ots"), "wb").write(b"stub")
++        return chain
++
++    def _stub_anchors(self, chain, attested_hours_ago, confirmed):
++        now = datetime.datetime.now(datetime.timezone.utc).timestamp()
++        stubs = {"check_sigstore": lambda *a: (int(now - attested_hours_ago * 3600),
++                                               R.range_predicate(chain, 1, 2), "c0ffee"),
++                 "check_ots": lambda *a: None if not confirmed else int(now - 60)}
++        self._patch(stubs)
++
++    def _patch(self, stubs):
++        saved = {k: getattr(R, k) for k in stubs}
++        self.addCleanup(lambda: [setattr(R, k, f) for k, f in saved.items()])
++        for k, f in stubs.items():
++            setattr(R, k, f)
++
++    def test_a_stuck_pending_proof_is_caught_with_max_pending_hours(self):
++        # a pending proof is normal for hours; the daily run that completes them can fail silently for days,
++        # and nothing noticed because check-anchors accepted a pending proof. Now --max-pending-hours names a limit.
++        chain = self._anchored()
++        self._stub_anchors(chain, 72, confirmed=False)
++        self.assertEqual(self.run_cmd("check-anchors")[0], 0)  # opt-in: unchanged by default
++        rc, _, err = self.run_cmd("check-anchors", "--max-pending-hours", "24")
++        self.assertEqual(rc, 1)
++        self.assertIn("still pending 72 h", err)
++
++    def test_a_young_pending_proof_and_a_confirmed_proof_pass_with_max_pending_hours(self):
++        chain = self._anchored()
++        self._stub_anchors(chain, 1, confirmed=False)
++        self.assertEqual(self.run_cmd("check-anchors", "--max-pending-hours", "24")[0], 0)
++        self._stub_anchors(chain, 1000, confirmed=True)
++        self.assertEqual(self.run_cmd("check-anchors", "--max-pending-hours", "24")[0], 0)
++
++    def test_only_a_stale_pending_range_head_is_wrong(self):
++        # a pending proof for an entry the writer never attested isn't the writer's promise; only a range head's is
++        self._two_entries()
++        chain, _ = R.load_chain(self.d)
++        os.makedirs(os.path.join(self.d, "anchors"))
++        for n in ("000001.ots", "000002.ots"):
++            open(os.path.join(self.d, "anchors", n), "wb").write(b"stub")
++        open(os.path.join(self.d, "anchors", "000002.sigstore.json"), "w").write("{}")
++        old = int(datetime.datetime.now(datetime.timezone.utc).timestamp() - 1000 * 3600)
++        # entry 1's Sigstore attestation is ancient and its proof pending, but the head's is fresh
++        self._patch({"check_sigstore": lambda *a: (old if len(a) and "000001" in str(a) else int(
++            datetime.datetime.now(datetime.timezone.utc).timestamp() - 3600), R.range_predicate(chain, 1, 2), "c0ffee"),
++            "check_ots": lambda *a: None})
++        rc, _, err = self.run_cmd("check-anchors", "--max-pending-hours", "24")
++        self.assertEqual(rc, 0, err)
++
+     def test_unknown_files_and_fields_are_refused(self):
+         self._two_entries()
+         open(os.path.join(self.d, "entries", "notes.txt"), "w").write("x")

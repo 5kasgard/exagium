@@ -1,0 +1,66 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 231ebea..561d0c8 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -386,6 +386,8 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    # Track attestation time for each range head (from sigstore)
++    head_attestation_time = {}
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -407,6 +409,8 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                # Track attestation time for this range head
++                head_attestation_time[seq] = t
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
+@@ -427,6 +431,25 @@ def cmd_check_anchors(a):
+         prev_commit = commit
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
++    
++    # Check for pending OTS proofs older than max-pending-hours
++    if a.max_pending_hours is not None:
++        now = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
++        max_age = a.max_pending_hours * 3600
++        for lo, hi, commit in sorted(ranges):
++            if hi in stamped:
++                # Check if this range head's OTS proof is pending
++                # Find the OTS row
++                for row in rows:
++                    if row.get("anchor") == f"{hi:06d}.ots" and row.get("existed_by") == "pending":
++                        attest_time = head_attestation_time.get(hi)
++                        if attest_time is not None:
++                            age = now - attest_time
++                            if age > max_age:
++                                hours = age // 3600
++                                bad.append(f"anchors/{hi:06d}.ots: still pending {hours} h")
++                        break
++    
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
+                       "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
+     for x in bad:
+@@ -612,6 +635,8 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=int, metavar="H",
++                           help="exit 1 if any range head's proof is still pending and its attestation is older than H hours")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")

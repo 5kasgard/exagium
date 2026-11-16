@@ -1,0 +1,42 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 98d5a13..ba38280 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -385,6 +385,7 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges = [], [], [], []
++    sigstore_seq = set()  # sequence numbers that have sigstore attestations (range heads)
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -404,10 +405,20 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                sigstore_seq.add(seq)
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
+             cant.append(f"anchors/{n}: {ex}")
++            # Even if we can't check the sigstore anchor, if it's a .sigstore.json file,
++            # we still need to check for the corresponding .ots proof
++            if m.group(2) == "sigstore.json":
++                sigstore_seq.add(seq)
++    # Every sigstore range head must have a corresponding .ots proof
++    for seq in sorted(sigstore_seq):
++        ots_path = os.path.join(a.ledger, "anchors", f"{seq:06d}.ots")
++        if not os.path.exists(ots_path):
++            bad.append(f"{seq:06d}.ots is missing")
+     covered, changes, prev_commit = 0, [], None
+     for lo, hi, commit in sorted(ranges):
+         if lo != covered + 1:

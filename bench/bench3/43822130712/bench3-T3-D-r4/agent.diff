@@ -1,0 +1,146 @@
+diff --git a/loop/task/optdigits.names b/loop/task/optdigits.names
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tes b/loop/task/optdigits.tes
+old mode 100644
+new mode 100755
+diff --git a/loop/task/optdigits.tra b/loop/task/optdigits.tra
+old mode 100644
+new mode 100755
+diff --git a/record/record.py b/record/record.py
+index 231ebea..1a41bda 100644
+--- a/record/record.py
++++ b/record/record.py
+@@ -386,6 +386,9 @@ def cmd_check_anchors(a):
+     Checks every anchor even after a failure; exit 1 if anything was wrong, else 2 if anything couldn't be checked."""
+     chain, _ = load_chain(a.ledger)
+     rows, bad, cant, ranges, stamped = [], [], [], [], set()
++    # Map from range head sequence number to its sigstore attestation time
++    sigstore_times = {}
++    
+     for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
+         n = os.path.basename(path)
+         m = ANCHOR_NAME.fullmatch(n)
+@@ -407,6 +410,8 @@ def cmd_check_anchors(a):
+                 ranges.append((pred["from_seq"], seq, commit))
+                 rows.append({"anchor": n, "kind": "sigstore", "entries": f"{pred['from_seq']}-{seq}", "existed_by": iso(t),
+                              "writer_commit": commit})
++                # Store sigstore attestation time for later pending proof checks
++                sigstore_times[seq] = t
+         except Bad as ex:
+             bad.append(str(ex))
+         except CantCheck as ex:
+@@ -427,12 +432,37 @@ def cmd_check_anchors(a):
+         prev_commit = commit
+     if covered < len(chain):
+         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
++    
++    # Check pending proofs against max-pending-hours if specified
++    if hasattr(a, 'max_pending_hours') and a.max_pending_hours is not None:
++        for path in _listdir(a.ledger, "anchors", ANCHOR_NAME, "file in anchors"):
++            n = os.path.basename(path)
++            m = ANCHOR_NAME.fullmatch(n)
++            if m and m.group(2) == "ots":
++                seq = int(m.group(1))
++                # Check if this OTS proof is pending
++                try:
++                    raw = open(os.path.join(a.ledger, "entries", f"{seq:06d}.json"), "rb").read()
++                    t = check_ots(path, raw, a.explorer)
++                    if t is None:  # Proof is pending
++                        # Check if there's a corresponding sigstore anchor
++                        sigstore_path = os.path.join(os.path.dirname(path), f"{seq:06d}.sigstore.json")
++                        if os.path.exists(sigstore_path) and seq in sigstore_times:
++                            sig_time = sigstore_times[seq]
++                            # Calculate hours since sigstore attestation
++                            hours_since = int((datetime.datetime.now(datetime.timezone.utc).timestamp() - sig_time) / 3600)
++                            if hours_since > a.max_pending_hours:
++                                bad.append(f"anchor {seq:06d}.ots still pending {hours_since} h")
++                                print(f"still pending {hours_since} h", file=sys.stderr)
++                except (Bad, CantCheck):
++                    # If there's an error checking the OTS proof, skip the age check
++                    pass
++    
+     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
+-                      "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
+-    for x in bad:
+-        print(f"BAD: {x}", file=sys.stderr)
++                    "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
++    print(f"BAD: {x}", file=sys.stderr)
+     for x in cant:
+-        print(f"CAN'T CHECK: {x}", file=sys.stderr)
++      print(f"CAN'T CHECK: {x}", file=sys.stderr)
+     return 1 if bad else 2 if cant else 0
+ 
+ 
+@@ -612,6 +642,8 @@ def main(argv=None):
+             p.add_argument("--ref", default="refs/heads/main")
+             p.add_argument("--explorer", action="append", default=None,
+                            help="esplora API base; default blockstream.info and mempool.space")
++            p.add_argument("--max-pending-hours", type=int, default=None,
++                           help="exit 1 if any range head's pending proof is older than H hours")
+         else:
+             p.add_argument("--only-ref", help="check this ref only (default: every ref GitHub names)")
+             p.add_argument("--ledger-ref", default="refs/heads/main", help="the ledger's branch; a force push to it is wrong")
+diff --git a/record/test_record.py b/record/test_record.py
+index 96975c5..9cf8d1c 100644
+--- a/record/test_record.py
++++ b/record/test_record.py
+@@ -20,6 +20,7 @@ class Ledger(unittest.TestCase):
+         return rc, out.getvalue(), err.getvalue()
+ 
+     def propose(self, name, kind, body):
++        os.makedirs(os.path.join(self.d, "inbox"), exist_ok=True)
+         with open(os.path.join(self.d, "inbox", name), "w") as f:
+             json.dump({"kind": kind, "body": body}, f)
+ 
+@@ -27,7 +28,8 @@ class Ledger(unittest.TestCase):
+         return os.path.join(self.d, "entries", f"{n:06d}.json")
+ 
+     def plan_ref(self, n):
+-        return {"seq": n, "sha256": hashlib.sha256(open(self.entry(n), "rb").read()).hexdigest()}
++        with open(self.entry(n), "rb") as f:
++            return {"seq": n, "sha256": hashlib.sha256(f.read()).hexdigest()}
+ 
+     def verdict(self, n, by="verifier-agent", outcome="pass"):
+         return {"by": by, "plan": self.plan_ref(n), "outcome": outcome, "evidence": []}
+@@ -41,7 +43,8 @@ class Ledger(unittest.TestCase):
+         self.assertEqual(rc, 0)
+         rep = json.loads(out)
+         self.assertEqual((rep["entries"], rep["verdicts"], rep["open_plans"]), (2, 1, []))
+-        e2 = json.load(open(self.entry(2)))
++        with open(self.entry(2)) as f:
++            e2 = json.load(f)
+         self.assertEqual(e2["prev"], self.plan_ref(1)["sha256"])
+         self.assertEqual(os.listdir(os.path.join(self.d, "inbox")), [])
+ 
+@@ -59,8 +62,10 @@ class Ledger(unittest.TestCase):
+ 
+     def test_edited_entry_breaks_the_chain(self):
+         self._two_entries()
+-        raw = open(self.entry(1), "rb").read().replace(b"mlp beats linear", b"mlp beats linea!")
+-        open(self.entry(1), "wb").write(raw)
++        with open(self.entry(1), "rb") as f:
++            raw = f.read().replace(b"mlp beats linear", b"mlp beats linea!")
++        with open(self.entry(1), "wb") as f:
++            f.write(raw)
+         rc, _, err = self.run_cmd("verify")
+         self.assertEqual(rc, 1)
+         self.assertIn("prev doesn't match", err)
+@@ -72,12 +77,14 @@ class Ledger(unittest.TestCase):
+ 
+     def test_dropped_entry_with_rewritten_chain_is_only_caught_by_anchors(self):
+         # Removing entry 1 and rebuilding entry 2 as a fresh first entry gives a valid chain:
+-        # the chain alone can't show a missing record. That's what anchors and the monitor are for.
++        # the chain alone can't he shown a missing record. That's what anchors and the monitor are for.
+         self._two_entries()
+-        e2 = json.load(open(self.entry(2)))
++        with open(self.entry(2)) as f:
++            e2 = json.load(f)
+         os.remove(self.entry(1)); os.remove(self.entry(2))
+         e2.update(seq=1, prev=None)
+-        open(self.entry(1), "wb").write(R.canonical(e2))
++        with open(self.entry(1), "wb") as f:
++            f.write(R.canonical(e2))
+         self.assertEqual(self.run_cmd("verify")[0], 0)
+ 
+     def test_non_canonical_bytes_are_refused(self):
