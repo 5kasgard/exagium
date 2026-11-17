@@ -59,6 +59,23 @@ class Verdict(unittest.TestCase):
             self.assertFalse(probe.required(r), r)
 
 
+class Transport(unittest.TestCase):
+    def test_every_request_names_its_agent(self):
+        # Groq's Cloudflare front refuses the default Python-urllib agent with 403 / 1010 (2026-11-18)
+        import urllib.request
+        seen = []
+        def fake(req, timeout=None):
+            seen.append(req.get_header("User-agent"))
+            raise OSError("offline")
+        with mock.patch.object(urllib.request, "urlopen", fake), mock.patch.dict(os.environ, {"GROQ_API_KEY": "k"}):
+            engines._get("https://example.invalid/", {})
+            engines.compat_models("groq")
+        self.assertEqual(seen, [engines.UA, engines.UA])
+
+    def test_xai_key_is_scrubbed(self):
+        self.assertIn("XAI_API_KEY", engines.SECRET_ENVS)
+
+
 class Scrub(unittest.TestCase):
     NAMES = ("CLOUDFLARE_ACCOUNT_ID", "NARA_BASE_URL", "CROWLLM_BASE_URL", "OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN")
 

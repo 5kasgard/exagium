@@ -6,6 +6,15 @@ Every call returns a record: engine, model, ok, status, latency_s, usage, text, 
 import json, os, re, time, urllib.request, urllib.error
 
 TIMEOUT = 180
+# Groq sits behind Cloudflare, which refuses Python's default "Python-urllib/3.x" User-Agent with 403 "error
+# code: 1010" before any key is checked (reproduced 2026-11-18: same URL, named agent -> 401 without a key).
+UA = "exagium-router/1.0 (+https://github.com/5kasgard/exagium)"
+
+
+def _ua(req):
+    if not req.has_header("User-agent"):
+        req.add_header("User-Agent", UA)
+    return req
 
 
 def _post(url, body, headers):
@@ -20,7 +29,7 @@ def _get(url, headers):
 
 def _send(req):
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        with urllib.request.urlopen(_ua(req), timeout=TIMEOUT) as r:
             return r.status, json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
         raw = e.read().decode(errors="replace")[:600]
@@ -41,6 +50,7 @@ OPENAI_COMPAT = {
     "cohere": ("https://api.cohere.ai/compatibility/v1", "COHERE_API_KEY"),
     "inferbase": ("https://api.inferbase.ai/v1", "INFERBASE_API_KEY"),
     "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
+    "xai": ("https://api.x.ai/v1", "XAI_API_KEY"),   # added 2026-11-18: owner's xAI key, paid credit
     "crowllm": ("env:CROWLLM_BASE_URL", "CROWLLM_API_KEY"),
 }
 # Also scrubbed: values that are not keys but are secrets in Actions and could appear in error text that is
@@ -59,7 +69,7 @@ def _send_h(req):
     def pick(h):
         return {k.lower(): v for k, v in (h or {}).items() if "ratelimit" in k.lower() or "retry" in k.lower()}
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        with urllib.request.urlopen(_ua(req), timeout=TIMEOUT) as r:
             return r.status, json.loads(r.read().decode()), pick(r.headers)
     except urllib.error.HTTPError as e:
         return e.code, {"_error": e.read().decode(errors="replace")[:600]}, pick(e.headers)

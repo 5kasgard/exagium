@@ -68,7 +68,7 @@ def verdict(recs):
 
 SKIP = ("embed", "rerank", "whisper", "tts", "speech", "image", "vision-embed", "guard", "safety", "reward", "ocr", "audio", "moderation")
 HINTS = {"llm7": ["gpt-4o-mini"], "nvidia": ["nemotron"], "mistral": ["mistral-small", "devstral"], "cerebras": ["gpt-oss"],
-         "sambanova": ["DeepSeek"], "cohere": ["command"], "groq": ["gpt-oss"]}
+         "sambanova": ["DeepSeek"], "cohere": ["command"], "groq": ["gpt-oss"], "xai": ["mini", "fast"]}
 
 
 # Measured 2026-11-14 (run 43519222584): listed is not the same as callable (nemotron-51b listed, 404 on call).
