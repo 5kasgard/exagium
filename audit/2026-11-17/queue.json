@@ -7,11 +7,11 @@
    "title": "bench2/3/5 grade steps run host git in the agent workspace: a planted filter runs on the runner (bench3/5 dormant: empty plans; bench2 dispatch-only, no hardening)",
    "kind": "fix",
    "severity": "major",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Crons removed (Q20 done). Before any new bench run: build the diff without the agent .git, or run git inside the no-network container; bench-3/5 are registered, so amend or re-register; retire bench2 (Q48). Severity: A rated it CRITICAL; lowered to major only because S2 found the plans empty, and that lowering depends on Q20.",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: build the diff without the agent's .git, or run git inside the no-network container (A reproduced C1; S2 judged exposure). No effect today: every bench is dispatch-only and complete.",
    "refs": [
     "A-security C1",
     "S2 (orchestrator reproduction)",
@@ -19,35 +19,39 @@
     "A C1 bench2.yml:79,83",
     "S4 finding 2"
    ],
-   "blocked_by": []
+   "blocked_by": [
+    "Q24"
+   ]
   },
   {
    "id": "Q02",
    "title": "Grader trusts the first @@RESULTS@@ line from a process that imports agent code: a print forges passes",
    "kind": "fix",
    "severity": "major",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Have the test runner write results to a file the agent process cannot predict (per-run nonce) or run tests in a separate process from the import; registered benches need an amendment",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: either a per-run nonce result file or a separate test process (A M1 gives both; S2 reproduced the forged line).",
    "refs": [
     "A-security M1",
     "S2 A-M1 confirmed",
     "main:router/bench/grade.py:14-38"
    ],
-   "blocked_by": []
+   "blocked_by": [
+    "Q24"
+   ]
   },
   {
    "id": "Q03",
    "title": "bench3/5 give the real API key to the agent container; seal allows all Cloudflare ranges and DNS anywhere (dormant)",
    "kind": "fix",
    "severity": "major",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Adopt bench-4 design (host-side meter holds the key) for any future bench",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: every future bench uses bench-4's design, where only the host-side meter holds the key (A: bench-4 clean for C1/M2).",
    "refs": [
     "A-security M2",
     "S2 A-M2 confirmed",
@@ -55,18 +59,20 @@
     "bench5.yml:131-133",
     "router/bench3/run_agent.py:63,66"
    ],
-   "blocked_by": []
+   "blocked_by": [
+    "Q24"
+   ]
   },
   {
    "id": "Q04",
    "title": "Ledger writer installs 35 unpinned transitive packages in a job that can sign attestations",
    "kind": "fix",
    "severity": "major",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Hash-pinned lock (pip --require-hashes) for record.yml; record.yml is the trust root, so the owner approves the change",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: hash-pinned lock for all three installs in record.yml (lines 51, 137, 148) and the same in record-e2e.yml; a 37-package lock with hashes resolves for cp312 manylinux x86_64 (checked). Test on e2e-main first; note each test writes permanent public Rekor entries (harmless).",
    "refs": [
     "A-security M3",
     "S2 confirmed (37 resolved, 2 pinned)",
@@ -79,26 +85,28 @@
    "title": "Third-party code by mutable reference in key-holding steps (OpenHands SDK tag, agent-server image tag, uv)",
    "kind": "fix",
    "severity": "major",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Pin by commit/digest before the next bench run",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: pin the SDK, agent-server image and uv by commit/digest in the next bench (A M4).",
    "refs": [
     "A-security M4"
    ],
-   "blocked_by": []
+   "blocked_by": [
+    "Q24"
+   ]
   },
   {
    "id": "Q06",
    "title": "Verdict independence is a free-text `by` string (minor while only the owner can push)",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Either bind verdicts to the pushing GitHub actor, or state the limit in README:3 and record/README",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Doc: record/README:61 already says handles are claims; fix record/README:3 ('given by someone other than the claimant') to state independence rests on who can push (only the owner today). Bind to the GitHub actor when anyone else can push.",
    "refs": [
     "A-security M5",
     "S2 confirmed; severity lowered"
@@ -142,11 +150,11 @@
    "title": "Stale branches still hold privileged, push-triggered workflows",
    "kind": "infra",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Decide with Q28: tag and delete the stale branches, or strip their workflows",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first.",
    "refs": [
     "A-security m4",
     "C-structure F4"
@@ -276,11 +284,11 @@
    "title": "bench3/4 MODE free text: a typo falls through to a counted run",
    "kind": "fix",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Validate MODE as bench5 does (registered benches: amendment)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry MODE validation into the next bench design.",
    "refs": [
     "B F6"
    ],
@@ -371,11 +379,11 @@
    "title": "Stalled bench4 attempts run to the 35-min cap with <=25 calls",
    "kind": "fix",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Add an idle timeout (registered bench: amendment)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry an idle timeout into the next bench design.",
    "refs": [
     "E E-09"
    ],
@@ -433,11 +441,11 @@
    "title": "\"router\" has no routing and the free pools have no work queue after bench-4 (the 24/7 goal)",
    "kind": "decision",
    "severity": "none",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Pick one task kind to route first (taste-and-adjust), with a held-out judge set (Q25)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Data supports the order of work, not idling the pools: Actions CPU is measured (loop 23/24 runs ok, counter 21/21 on 8 runners); the per-image meter (chosen 2026-11-15, HANDOFF-lgn-pilot2) is next but is a one-off build. LLM supply: OpenRouter's 1,000/day tier is active (guard read 292 and 346 left, about 25 agent attempts/day), NIM passes agent tasks (11/15), Cloudflare fits reviews. Next: design one recurring free-pool job (taste-and-adjust) after the meter; owner-only action: keys for Groq, Cerebras, Mistral (E E-20).",
    "refs": [
     "E E-03",
     "C F7"
@@ -449,11 +457,11 @@
    "title": "No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks",
    "kind": "test",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Build a held-out task set before any routing claim",
+   "next": "Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs.",
    "refs": [
     "E E-04"
    ],
@@ -466,11 +474,11 @@
    "title": "Copy-by-directory duplication: 5.6% of function lines on main, 29% on the pilot branch (controls ~0%)",
    "kind": "decision",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Option: parameterised candidates (one train.py + config) vs frozen copies; keep frozen for registered plans",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Hypothesis for the next plan: new candidates as one train.py + config; registered plans keep frozen copies (C F1, F16). Test it in that plan.",
    "refs": [
     "C F1, F16",
     "S2 confirmed"
@@ -483,7 +491,7 @@
    "kind": "decision",
    "severity": "none",
    "status": "parked",
-   "needs": "the owner",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
    "next": "Revisit only with a shared, versioned rules module",
@@ -498,11 +506,11 @@
    "title": "Stale test branches (anchor-test, q2-main, q2-shadow, e2e-main) and drifting record test copies (record-q2 lacks 5 security steps)",
    "kind": "decision",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Tag each, then delete; first test that the monitor still sees deleted refs (on a throwaway repo)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Keep e2e-main (record-e2e.yml uses it; record/README:114 cites it). Step 1 (reversible): disable stale workflows rather than delete. Step 2: on a throwaway repo, test whether a deleted branch's ref stays in GitHub's /activity log, which record.py monitor reads (record.py:541-552). Only then tag and delete anchor-test (fix VERIFY-anchors.md:27, RESULTS.md cites), q2-main, q2-shadow. Deletion leaves a branch_deletion entry, so it is not fully undoable: confirm with the owner if step 2 shows any loss. Also rule on record-e2e drift (C F3): keep its append job byte-identical to record.yml (done 05328a4).",
    "refs": [
     "C F3, F4",
     "A m4"
@@ -514,11 +522,11 @@
    "title": "Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored",
    "kind": "decision",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Keep summaries + hashes on main, move raw outputs to release assets or prune; protect the branches",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do the reversible half: branch protection (no force-push, no deletion) on main, router-runs and ci-runs (no writer force-pushes; checked). The token reports admin but whether it can write protection is unproven: one write test, else this is a settings click for the owner. Raw outputs move to release assets only if size starts to cost.",
    "refs": [
     "C F14",
     "S2 partly right (93.7%)"
@@ -530,11 +538,11 @@
    "title": "probe/ is an unconsumed leaf (nothing reads profile.json; no workflow runs it)",
    "kind": "decision",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Wire it into the per-image meter work or park it",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Wire probe/ into the per-image meter work (README: done, 7 reviews; VERIFY claims 1-9 test it), not delete.",
    "refs": [
     "C F8"
    ],
@@ -545,11 +553,11 @@
    "title": "Frozen digests fork history: a fix to record.py/count.py forces old-commit re-measurement",
    "kind": "decision",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Version the frozen tools separately from their fixes (e.g. a tools tag per plan)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided for the next plan: version frozen tools separately, a tools tag per plan (C F12).",
    "refs": [
     "C F12"
    ],
@@ -561,7 +569,7 @@
    "kind": "decision",
    "severity": "none",
    "status": "parked",
-   "needs": "the owner",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
    "next": "Cross-module equality test, or one module",
@@ -576,11 +584,11 @@
    "title": "Free-tier facts: OpenRouter 1,000/day needs >=10 credits bought; Cloudflare 10k neurons/day fits reviews, not agent runs; 7 pools unkeyed; Gemini 2/9 probe successes",
    "kind": "decision",
    "severity": "none",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "done",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Use as input to Q24",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Folded into Q24's ruling (OpenRouter 1,000/day tier active per guard readings; Cloudflare reviews; 7 pools unkeyed).",
    "refs": [
     "E local-llm-fit section (limits dated 2026-11-17; OpenRouter source is a mirror)",
     "E E-11",
@@ -594,7 +602,7 @@
    "kind": "decision",
    "severity": "none",
    "status": "parked",
-   "needs": "the owner",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
    "next": "Register the next bench plan in the ledger",
@@ -673,11 +681,11 @@
    "title": "Scaffold Effect (arXiv 2607.22585) is a workshop preprint, called published; its direction differs from bench-4",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Erratum file next to the registered bench-4 plan",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: erratum next to the registered bench-4 plan: arXiv 2607.22585 is under review at the 5th DL4C Workshop @ ICML 2026 (not published), and its direction differs from bench-4's.",
    "refs": [
     "D-claims citations"
    ],
@@ -688,11 +696,11 @@
    "title": "README \"Results can't be lied about\" reads as a guarantee (known 11-13)",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Owner wording, e.g. \"results can't be changed after the fact without detection\"",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Retarget: README:22 is already hedged. Fix the guarantee wording at record/experiments/anchors/VERIFY-anchors.md:10 ('results can never be lied about') and record/README:3.",
    "refs": [
     "repo-audit-2026-11-13 (known)",
     "A M5"
@@ -704,11 +712,11 @@
    "title": "Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "BRIEF part done on pilot branch; VERIFY.md (main) numbering, word cap and test count need owner sign-off",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites.",
    "refs": [
     "E E-13, E-14",
     "E ASD-STE100 table"
@@ -720,11 +728,11 @@
    "title": "README leads with word history, omits router/ and benches from the status table",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "open",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Owner taste; propose a status-first README",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do the factual half: add router/ and the benches to the README status table. Ordering is taste with no data either way, so it stays.",
    "refs": [
     "E E-16",
     "C F7"
@@ -751,11 +759,11 @@
    "title": "linear/thermo infer.c do not validate N: negative N writes out of bounds, huge N crashes (frozen by plan 2)",
    "kind": "fix",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Fix in the next plan's baselines (harness supplies N, so not exploitable today)",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix in the next plan's baselines (frozen by plan 2; harness supplies N; F finding 2, ASan).",
    "refs": [
     "F finding 2"
    ],
@@ -766,11 +774,11 @@
    "title": "linear accepts pixels >16; linear/thermo/lgn accept trailing bytes in weights.bin",
    "kind": "fix",
    "severity": "minor",
-   "status": "waiting on the owner",
-   "needs": "the owner",
+   "status": "parked",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Same as Q42",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q42 in the next plan (F finding 3).",
    "refs": [
     "F finding 3"
    ],
@@ -831,7 +839,7 @@
    "kind": "decision",
    "severity": "minor",
    "status": "parked",
-   "needs": "the owner",
+   "needs": "subscription usage",
    "cost": 0,
    "value": "low",
    "next": "Revisit when the per-image meter work touches counter/loop",

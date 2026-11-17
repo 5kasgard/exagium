@@ -81,6 +81,25 @@ On the owner's "follow the data now to fix", 13 items were fixed in one commit o
   - Q13: a refused proposal stays in ledger/inbox/ instead of moving to ledger/rejected/, because the writer commits only attested entries. The run stays red until someone removes the file.
   - Q19 is parked: it has no live effect while every bench is complete and no cron runs. Its guard belongs with Q01-Q03, before any new bench run.
 
+## Owner items ruled by data (2026-11-18)
+The owner said his own decisions also follow the data. Claude drafted a ruling for each of the 23 items waiting on him (`owner-rulings-draft.md`), and a separate agent checked each one against the evidence.
+- **What the check found:** 7 factual errors in the draft, all corrected before the queue was updated.
+  - Q38 targeted a README sentence that no longer exists.
+  - S2 did not reproduce C1; A did.
+  - counter runs on 8 runners, not 6.
+  - One loop run failed (2026-11-05), so "every run green" was wrong.
+  - OpenRouter's 1,000/day tier is active, not 50/day.
+  - record.yml has 3 install sites, not 2.
+  - e2e-main is in use, so it must not be deleted.
+- **Result:** no item waits on the owner now.
+  - The bench security items (Q01-Q03, Q05) are blocked by Q24, because they must be fixed before the next bench.
+  - The frozen-plan items are parked until the next plan.
+  - The rest can run now.
+- **Still owner-only:**
+  - Creating keys for Groq, Cerebras and Mistral (an account action).
+  - Branch protection, if the session token cannot write it.
+  - Deleting stale branches, if the activity-log test shows the monitor would lose anything.
+
 ## Limits
 - **One verification pass,** on 16 items. The other findings are each auditor's own check: several agents could not start their own reviewers, and their reports say which.
 - **Same model family.** The reviewers were Claude models (Opus and Sonnet). By the adversarial-review skill, that makes their verdicts direction, not independent evidence; GLM or Gemini could give the other-family check.
