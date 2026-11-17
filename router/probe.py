@@ -26,7 +26,7 @@ def main(out):
         st, models = gemini_models()
         recs.append({"engine": "gemini", "model": "models.list", "ok": st == 200, "status": st,
                      "text": json.dumps(models) if st == 200 else None, "error": None if st == 200 else models})
-        want = os.environ.get("PROBE_GEMINI_MODELS", "gemini-3.8-flash,gemini-3.5-flash-lite,gemini-4-argon,gemini-4-carbon").split(",")
+        want = os.environ.get("PROBE_GEMINI_MODELS", "gemini-3.8-flash,gemini-3.6-flash,gemini-3.5-flash,gemini-3.5-flash-lite").split(",")
         for m in want:  # one request each; listed is not the same as allowed on the free tier
             if st == 200 and "models/" + m in models:
                 plan.append(("gemini", "models/" + m))
@@ -75,7 +75,9 @@ HINTS = {"llm7": ["gpt-4o-mini"], "nvidia": ["nemotron"], "mistral": ["mistral-s
 # LLM7 also lists closed frontier models (Claude, GPT, Gemini) for free; a free proxy cannot be verified to serve
 # them, so only open-weight models are probed there.
 CANDIDATES = {
-    "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3-super-120b-a12b", "moonshotai/kimi-k2.6"],
+    # 2026-11-18: gemini-4-argon/carbon dropped (0 of 9 answered, audit E-01); NIM list follows freellms.org's
+    # top-scored verified NIM models (owner's PDF, same day). The probe, not the directory, decides what works.
+    "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.2", "deepseek-ai/deepseek-v4-flash", "minimaxai/minimax-m3"],
     # 2026-11-14 run 43522346396: llm7 open-weight models return 402 (paid balance); the 0731 Flash answered on the free key.
     "llm7": ["DeepSeek-V4-Flash-0731"],
     # nara lists closed frontier and "abliterated" (safety-removed) models; only plain open-weight ones are probed.
@@ -112,7 +114,7 @@ def probe_compat():
         recs.append({"engine": name, "model": "models.list", "ok": listed, "status": st, "limits": lim,
                      "n_models": len(ids) if listed else None, "text": json.dumps(ids[:300]) if listed else None,
                      "error": None if listed else ids})
-        cands = [c for c in CANDIDATES.get(name, []) if listed and c in ids][:3] or [pick_model(name, ids if listed else [])]
+        cands = [c for c in CANDIDATES.get(name, []) if listed and c in ids][:4] or [pick_model(name, ids if listed else [])]
         for m in cands:
             if m is None:
                 recs.append({"engine": name, "model": "none", "ok": False, "error": "no chat model chosen; set PROBE_%s_MODEL" % name.upper()})
