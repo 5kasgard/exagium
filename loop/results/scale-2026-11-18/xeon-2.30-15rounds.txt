@@ -1,0 +1,46 @@
+sizes [0, 956, 4096, 16384, 65536], 15 rounds, jail confine, Intel(R) Xeon(R) Processor @ 2.30GHz
+lgn_blockread    large-N    37.9 ±  3.5 ns/img   t(0)  1.556 ms   N=956 minus t(0) -354.4 ±523.1   acc 0.990/0.994
+                 segments ns/img: 0-956: -354, 956-4096: 13, 4096-16384: 43, 16384-65536: 38
+lgn_d            large-N    73.0 ±  6.3 ns/img   t(0)  1.032 ms   N=956 minus t(0)  184.5 ± 50.0   acc 0.990/0.994
+                 segments ns/img: 0-956: 185, 956-4096: 68, 4096-16384: 58, 16384-65536: 73
+mlp16_chunked    large-N    91.1 ±  8.3 ns/img   t(0)  1.085 ms   N=956 minus t(0)  135.6 ± 30.5   acc 0.985/0.990
+                 segments ns/img: 0-956: 136, 956-4096: 110, 4096-16384: 77, 16384-65536: 91
+mlp16            large-N   115.6 ±  2.5 ns/img   t(0)  1.127 ms   N=956 minus t(0)  115.6 ± 29.1   acc 0.985/0.990
+                 segments ns/img: 0-956: 116, 956-4096: 86, 4096-16384: 121, 16384-65536: 116
+mlp32            large-N   164.5 ± 10.4 ns/img   t(0)  1.132 ms   N=956 minus t(0)  151.9 ± 35.8   acc 1.000/1.000
+                 segments ns/img: 0-956: 152, 956-4096: 162, 4096-16384: 174, 16384-65536: 165
+thermo           large-N   191.1 ±  9.1 ns/img   t(0)  1.045 ms   N=956 minus t(0)  320.2 ± 72.3   acc 1.000/1.000
+                 segments ns/img: 0-956: 320, 956-4096: 174, 4096-16384: 245, 16384-65536: 191
+linear           large-N   209.9 ± 29.5 ns/img   t(0)  1.127 ms   N=956 minus t(0)  185.5 ± 56.9   acc 0.984/0.986
+                 segments ns/img: 0-956: 185, 956-4096: 176, 4096-16384: 232, 16384-65536: 210
+mlp64            large-N   250.4 ±  4.5 ns/img   t(0)  1.161 ms   N=956 minus t(0)  288.4 ± 71.8   acc 0.996/0.996
+                 segments ns/img: 0-956: 288, 956-4096: 267, 4096-16384: 239, 16384-65536: 250
+  lgn_blockread - lgn_d: large-N -35.1 ±6.0 ns/img (ratio 0.52)
+  lgn_blockread - linear: large-N -172.0 ±30.1 ns/img (ratio 0.18)
+  lgn_blockread - mlp16: large-N -77.8 ±4.2 ns/img (ratio 0.33)
+  lgn_blockread - mlp16_chunked: large-N -53.2 ±9.2 ns/img (ratio 0.42)
+  lgn_blockread - mlp32: large-N -126.7 ±11.7 ns/img (ratio 0.23)
+  lgn_blockread - mlp64: large-N -212.5 ±6.2 ns/img (ratio 0.15)
+  lgn_blockread - thermo: large-N -153.2 ±10.1 ns/img (ratio 0.20)
+  lgn_d - linear: large-N -136.9 ±29.3 ns/img (ratio 0.35)
+  lgn_d - mlp16: large-N -42.6 ±6.0 ns/img (ratio 0.63)
+  lgn_d - mlp16_chunked: large-N -18.1 ±10.8 ns/img (ratio 0.80)
+  lgn_d - mlp32: large-N -91.5 ±12.2 ns/img (ratio 0.44)
+  lgn_d - mlp64: large-N -177.4 ±8.7 ns/img (ratio 0.29)
+  lgn_d - thermo: large-N -118.1 ±11.7 ns/img (ratio 0.38)
+  linear - mlp16: large-N +94.3 ±29.4 ns/img (ratio 1.82)
+  linear - mlp16_chunked: large-N +118.9 ±28.7 ns/img (ratio 2.31)
+  linear - mlp32: large-N +45.4 ±24.8 ns/img (ratio 1.28)
+  linear - mlp64: large-N -40.5 ±28.7 ns/img (ratio 0.84)
+  linear - thermo: large-N +18.9 ±27.6 ns/img (ratio 1.10)
+  mlp16 - mlp16_chunked: large-N +24.6 ±7.9 ns/img (ratio 1.27)
+  mlp16 - mlp32: large-N -48.9 ±10.9 ns/img (ratio 0.70)
+  mlp16 - mlp64: large-N -134.7 ±4.7 ns/img (ratio 0.46)
+  mlp16 - thermo: large-N -75.4 ±9.7 ns/img (ratio 0.61)
+  mlp16_chunked - mlp32: large-N -73.5 ±14.4 ns/img (ratio 0.55)
+  mlp16_chunked - mlp64: large-N -159.3 ±4.3 ns/img (ratio 0.36)
+  mlp16_chunked - thermo: large-N -100.0 ±7.8 ns/img (ratio 0.48)
+  mlp32 - mlp64: large-N -85.8 ±11.7 ns/img (ratio 0.66)
+  mlp32 - thermo: large-N -26.5 ±13.2 ns/img (ratio 0.86)
+  mlp64 - thermo: large-N +59.3 ±6.6 ns/img (ratio 1.31)
+wrote /tmp/scale-final.json sha256 18f9fb723262c791a5eedb740701a6694be8a9a56ee1637446bb7acccbbd2711

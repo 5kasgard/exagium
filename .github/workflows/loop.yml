@@ -109,7 +109,7 @@ jobs:
           done 2>&1 | tee out/valgrind-confine.txt || true
       - name: loop tests
         run: |
-          set +e; (cd loop && /opt/venv/bin/python -m unittest test_loop) > out/tests.txt 2>&1; rc=$?; set -e
+          set +e; (cd loop && /opt/venv/bin/python -m unittest test_loop test_scale) > out/tests.txt 2>&1; rc=$?; set -e
           cat out/tests.txt; echo "exit $rc" | tee -a out/tests.txt; exit $rc
       - name: reproduce and score on the dev split
         if: ${{ !cancelled() }}
