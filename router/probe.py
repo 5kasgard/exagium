@@ -76,8 +76,9 @@ HINTS = {"llm7": ["gpt-4o-mini"], "nvidia": ["nemotron"], "mistral": ["mistral-s
 # them, so only open-weight models are probed there.
 CANDIDATES = {
     # 2026-11-18: gemini-4-argon/carbon dropped (0 of 9 answered, audit E-01); NIM list follows freellms.org's
-    # top-scored verified NIM models (owner's PDF, same day). The probe, not the directory, decides what works.
-    "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.2", "deepseek-ai/deepseek-v4-flash", "minimaxai/minimax-m3"],
+    # top-scored verified NIM models (owner's PDF, same day). None of those three is in this key's list of 32
+    # (run 44197900439), so the newer ids the key does list are tried instead. The probe decides what works.
+    "nvidia": ["nvidia/nemotron-3-ultra-550b-a55b", "z-ai/glm-5.3-flash", "minimaxai/minimax-m3.1-flash", "stepfun-ai/step-5-preview"],
     # 2026-11-14 run 43522346396: llm7 open-weight models return 402 (paid balance); the 0731 Flash answered on the free key.
     "llm7": ["DeepSeek-V4-Flash-0731"],
     # nara lists closed frontier and "abliterated" (safety-removed) models; only plain open-weight ones are probed.
