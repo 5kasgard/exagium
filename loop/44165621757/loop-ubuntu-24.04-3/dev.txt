@@ -1,0 +1,16 @@
+split dev-in-sample (n=956), 30 rounds, host Intel(R) Xeon(R) 6975P-C
+  linear         acc 0.9854 ±0.0039  Ir/img     3,955  Ir/correct     4,013  ns/img    588.0 ±8.2
+                 marginal (informational): Ir/img 3,813  ns/img 174.4 ±10.8
+  thermo         acc 1.0000 ±0.0000  Ir/img     3,695  Ir/correct     3,695  ns/img    621.9 ±6.9
+                 marginal (informational): Ir/img 3,556  ns/img 199.8 ±9.0
+  mlp16          acc 0.9895 ±0.0033  Ir/img       788  Ir/correct       797  ns/img    512.4 ±5.8
+                 marginal (informational): Ir/img 646  ns/img 84.5 ±8.7
+  mlp32          acc 1.0000 ±0.0000  Ir/img     1,092  Ir/correct     1,092  ns/img    601.2 ±8.9
+                 marginal (informational): Ir/img 950  ns/img 161.9 ±9.9
+  mlp64          acc 0.9958 ±0.0021  Ir/img     1,754  Ir/correct     1,761  ns/img    709.2 ±7.1
+                 marginal (informational): Ir/img 1,612  ns/img 242.5 ±9.1
+  METERS DISAGREE: thermo uses 0.93x linear's instructions but is 33.8 ±9.9 ns/img slower
+  METERS DISAGREE: mlp64 uses 0.44x linear's instructions but is 121.1 ±9.5 ns/img slower
+  METERS DISAGREE: mlp64 uses 0.47x thermo's instructions but is 87.3 ±10.5 ns/img slower
+wrote out/dev.json sha256 d7d63e3f792e204be7ff51d518e83025b8cc54bc514cab991467774693aadeb9
+exit 0
