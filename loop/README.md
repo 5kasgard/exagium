@@ -94,6 +94,31 @@ If one meter passes and the other doesn't, the claim is inconclusive; `cost_disa
 
 **A phantom meter.** This workspace's VM offers a `power/energy-psys` counter, which opens without error but reads exactly 0 J idle and under load. A meter that is present but dead must be reported as unavailable, never as zero joules.
 
+## Cost per image at scale (`scale.py`, added 2026-11-18)
+Both meters above work at the task's 956 images, where a run is about 1 ms of process start-up plus about 0.1 ms of classifying. `scale.py` times each candidate, with this file's jail and timer, at several run sizes (default 0, 956, 1,024, 1,025, 4,096, 16,384 and 65,536 images). Within each round it fits `t(N) = fixed + per_image × N`. Rounds are paired: every candidate runs at every size, in a shuffled order. The images are 65,536 distinct shifted copies of training rows, never dev or test. Every run's predictions must match the same images' predictions in a reference run.
+
+**What the per-image figure includes:** everything the candidate does per image, including how it stages its input, because that is part of the candidate. The harness hands every candidate the same file.
+
+First run (one host, Xeon @ 2.30 GHz, confine jail, 9 rounds, 2026-11-18). `lgn_d`, `lgn_blockread` and `mlp16_chunked` are pilot-branch candidates, not in this directory.
+
+| | per image (ns) | task meter at N = 956, t(0) removed (ns) |
+|---|---|---|
+| lgn_blockread | 31.7 ± 0.7 | 76.8 ± 97.5 |
+| lgn_d | 53.9 ± 1.3 | 308.9 ± 90.2 |
+| mlp16_chunked | 87.7 ± 2.4 | 193.4 ± 72.5 |
+| mlp16 | 106.7 ± 1.6 | 202.7 ± 38.1 |
+| mlp32 | 171.6 ± 5.9 | 224.8 ± 98.2 |
+| linear | 187.3 ± 3.4 | 208.4 ± 68.9 |
+| thermo | 212.2 ± 12.7 | 128.1 ± 46.3 |
+| mlp64 | 286.2 ± 19.0 | 419.2 ± 106.8 |
+
+- **The task-size meter can't rank these candidates;** its SEs are as large as the gaps. The per-image fit can.
+- **The fixed cost per run** is 1.0–1.1 ms for every candidate, mostly process start-up.
+- **Block steps** (one image past 1,024): not resolved. The paired SE of `t(1025) − t(1024)` is 30–90 µs against steps of about 30 µs.
+- **linear is slow per image, for a known reason:** 3,813 instructions per image (plan 2's counter) at about 20 per ns. mlp16 runs 645 at about 6 per ns.
+
+This is one host and one session: direction, not a claim. A cost claim still needs the two-meter rule above on every host that scores it.
+
 ## Trust model and limits
 A verifier must cover these by reading the candidates' code:
 - **The test labels are public.** scikit-learn's `load_digits()` is the test file. A `train.py` can carry the labels in as data and still reproduce byte for byte.
@@ -132,7 +157,7 @@ The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 ho
 **So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.8–2.6× faster on the six CI hosts (2.3× on the EPYC cited), not the 3.5–5.4× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
 
 ## Files
-- `loop.py`: freeze, reproduce, evaluate; `timer.c`: the trusted timer; `confine.c` and `seccomp_filter.h`: the fallback jail; `test_loop.py`: the tests.
+- `loop.py`: freeze, reproduce, evaluate; `scale.py` and `test_scale.py`: the per-image meter and its tests; `timer.c`: the trusted timer; `confine.c` and `seccomp_filter.h`: the fallback jail; `test_loop.py`: the tests.
 - `task/`: the dataset and its source. `baselines/`, `candidates/`: the five entries of plan 2.
 - `verify/`: CI requests to score a plan on the test set, removed once the plan has a verdict (empty now). `results/plan2/`: the verifier's evidence.
 - `../.github/workflows/loop.yml`: reproduce and score on 3 x86-64 and 3 arm64 runners, plus the fallback jail in stock Docker on both; results to the `ci-runs` branch.
