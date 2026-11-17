@@ -110,7 +110,7 @@ mlp16's in-jail time also moved by about 51 ns between two runs of this pilot (`
 - **Steady state tiles dev 100×.** A candidate that memoised repeated images would gain from that. These candidates don't, as their `infer.c` shows, but a meter built on this idea needs distinct inputs.
 - **One seed.** lgn_c and lgn_d were trained with seed 1 only. Under random wiring, seed changed lgn_a's inner accuracy by 0.28 points.
 - **Determinism.** lgn_d was retrained on the full training file (4,327 gates, 4 min 18 s), then `loop.py reproduce` retrained it in the jail: identical weights (`reproduce_d.log`). That was on one host; arm64 is untested. An earlier draft of this README stated the result before the run had finished. The independent reviewer caught it, and it is now true.
-- **The thresholds evidence is weaker than first written.** LILogicNet's 7-vs-4 comparison is on CIFAR-10, and 7 thresholds beat 4 in every pair there, by 0.1–1.1 points. Here, 4 thresholds cost nothing measurable on the inner split.
+- **The thresholds evidence is weaker than first written.** LILogicNet's 7-vs-4 comparison is on CIFAR-10, and 7 thresholds beat 4 in 13 of 14 pairs there, by 0.02–1.12 points (corrected in the 2026-11-17 audit; an earlier version said every pair, by 0.1–1.1). Here, 4 thresholds cost nothing measurable on the inner split.
 - **Gate counts aren't comparable with the literature's.** LILogicNet's gate counts (98.45% on MNIST with 8k) cover learned gates only. Ours include the popcount, argmax and threshold circuitry.
 - **The gradients were checked.** The reviewer matched `train_topk`'s gradients against finite differences on a tiny network: largest absolute error 4e-9.
 

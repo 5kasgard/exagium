@@ -4,17 +4,20 @@ Three reports are in `reports/`: Gemini (chat only), GLM (own host, full track) 
 **Ruled out by at least two independent runs:**
 - dependency chains;
 - branch mispredictions (H9);
-- store forwarding (H4: `h[]` is never stored);
-- address dependence (H2);
-- code size (H5);
-- VM noise (H7).
+- store forwarding (H4: `h[]` is never stored).
+
+**Ruled out by one run:** code size (H5) and VM noise (H7), both by GLM only.
+
+**Not ruled out: address dependence (H2).** Corrected in the 2026-11-17 audit; an earlier version listed it as ruled out. Paired per round, layer 1 with the address dependence removed is 3.8 ns/img faster, in 18 of 21 rounds (sign test p = 0.0015). That is small (about 5% of mlp16) but consistent, so it is unresolved. The variants also differ in instruction count. GLM's two-phase variant (h2_pre) is not a clean test either: it added 395 instructions.
+
+**This status section supersedes the hypothesis list below,** which is kept as originally written.
 
 **New, H10: the input buffer.** mlp16 reads all N images into one fresh n × 64 B buffer.
 - On a VM, its page faults cost 28–31 ns/img at N = 95,600: about a third of mlp16's time, and invisible to the instruction count.
 - `src/mlp16_chunked.c` (same compute, a reused 64 KB buffer) is that much faster. This was confirmed from a fresh clone.
 - With each program's I/O subtracted, compute alone runs at linear 22.4 and mlp16 12.8 instructions/ns: a 1.7× gap, not 2.6×.
 
-**H10 follow-up (2026-11-17), `reports/staging-2026-11-17.md`.** Staging only the needed images, through a reused buffer of 256–4,096 images or an `mmap` of exactly the needed bytes:
+**H10 follow-up (2026-11-17), `reports/staging-2026-11-17.md`; measured on a different host (2.10 GHz nominal, about 2.7–2.8 GHz) from the puzzle table below.** Staging only the needed images, through a reused buffer of 256–4,096 images or an `mmap` of exactly the needed bytes:
 - removes 32 ns/img from mlp16 at N = 95,600;
 - `mmap` and chunking tie within about 3 ns;
 - reading one block at a time cuts lgn_d's per-image time by 46%, making it 2.0× faster than chunked mlp16;
@@ -87,7 +90,7 @@ The programs are in `../../loop/baselines/{linear,thermo}/infer.c` and `../../lo
 - **H6 Linear is the outlier, not mlp16.** linear and thermo are simple scalar float loops, perhaps unusually friendly to this CPU at 21 instructions/ns. Test: what instructions/ns does a trivially parallel loop reach on your host? That gives a ceiling for comparison.
 - **H7 From the outside suggestion: VM noise and frequency scaling.** Test: repeat the bench at different times. Include a CPU-bound control such as linear in every run; the bench interleaves programs, so shared noise largely cancels.
 - **H8 32 KB L1.** On a 32 KB-L1d host, does mlp16's instructions/ns drop relative to mlp32 and mlp64? Test: run the bench there and report `lscpu`.
-- **H9 Branch mispredictions.** Cachegrind's simple predictor model gives mlp16 about 3.2 mispredicts/img (8.8% of its branches, `reference/mlp16.cachegrind-summary.txt`) against linear's about 0.002 conditional.
+- **H9 Branch mispredictions.** Cachegrind's simple predictor model gives mlp16 about 3.2 mispredicts/img (8.8% of its branches, `reference/mlp16.cachegrind-summary.txt`) against linear's 2.08 conditional plus 2.00 indirect per image, so in this model linear has *more* mispredicts than mlp16 (corrected in the 2026-11-17 audit; an earlier version said about 0.002, misreading the summary file, and read it as support for H9).
   - At roughly 15–20 cycles each, that would be 50–60 of the ~275 cycles.
   - The model is not the real predictor. Test: make the argmax branchless (for example with compare-and-select), on top of `-DBRANCHLESS=1`, and time it.
 

@@ -3,7 +3,7 @@
 python3 train.py TRAIN_CSV OUT_WEIGHTS
 
 Inputs: each pixel v in 0..16 becomes 4 bits [v >= t, t = 2, 6, 10, 14] (256 bits; LILogicNet, arXiv
-2511.12340, lost 0.1-1.1 points going from 7 thresholds to 4 on CIFAR-10; on this task's inner split, 4
+2511.12340, CIFAR-10: 7 thresholds beat 4 in 13 of 14 pairs, by 0.02-1.12 points; on this task's inner split, 4
 cost nothing measurable).
 Model: layers of 2-input gates. Wiring is learned (Top-K, after LILogicNet): each gate input softly chooses among
 K = 8 fixed random candidates from the previous layer (a softmax over K logits), and keeps the most likely one

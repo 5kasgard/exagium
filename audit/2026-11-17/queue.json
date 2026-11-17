@@ -1,0 +1,844 @@
+{
+ "title": "exagium: one queue after the whole-project audit (2026-11-17)",
+ "intro": "Built from six skill-group audits (A security, B tests/bugs/state, C structure, D claims, E agents/free compute, F ML/binaries), a separate verification pass (S2: 15 of 16 high-impact items confirmed by reproduction, 1 partly right), and the 2026-11-13 audit and handoffs. Severity is after S2 corrections. Source of truth: queue.json; render with render.py.",
+ "items": [
+  {
+   "id": "Q01",
+   "title": "bench2/3/5 grade steps run host git in the agent workspace: a planted filter runs on the runner (bench3/5 dormant: empty plans; bench2 dispatch-only, no hardening)",
+   "kind": "fix",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Disable the bench3/5 crons first (Q20). Then, before any new bench run: build the diff without the agent .git, or run git inside the no-network container; bench-3/5 are registered, so amend or re-register; retire bench2 (Q48). Severity: A rated it CRITICAL; lowered to major only because S2 found the plans empty, and that lowering depends on Q20.",
+   "refs": [
+    "A-security C1",
+    "S2 (orchestrator reproduction)",
+    "main:.github/workflows/bench3.yml:159-161, bench5.yml:174-176",
+    "A C1 bench2.yml:79,83",
+    "S4 finding 2"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q02",
+   "title": "Grader trusts the first @@RESULTS@@ line from a process that imports agent code: a print forges passes",
+   "kind": "fix",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Have the test runner write results to a file the agent process cannot predict (per-run nonce) or run tests in a separate process from the import; registered benches need an amendment",
+   "refs": [
+    "A-security M1",
+    "S2 A-M1 confirmed",
+    "main:router/bench/grade.py:14-38"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q03",
+   "title": "bench3/5 give the real API key to the agent container; seal allows all Cloudflare ranges and DNS anywhere (dormant)",
+   "kind": "fix",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Adopt bench-4 design (host-side meter holds the key) for any future bench",
+   "refs": [
+    "A-security M2",
+    "S2 A-M2 confirmed",
+    "bench3.yml:119-126",
+    "bench5.yml:131-133",
+    "router/bench3/run_agent.py:63,66"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q04",
+   "title": "Ledger writer installs 35 unpinned transitive packages in a job that can sign attestations",
+   "kind": "fix",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Hash-pinned lock (pip --require-hashes) for record.yml; record.yml is the trust root, so the owner approves the change",
+   "refs": [
+    "A-security M3",
+    "S2 confirmed (37 resolved, 2 pinned)",
+    "main:.github/workflows/record.yml:49"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q05",
+   "title": "Third-party code by mutable reference in key-holding steps (OpenHands SDK tag, agent-server image tag, uv)",
+   "kind": "fix",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Pin by commit/digest before the next bench run",
+   "refs": [
+    "A-security M4"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q06",
+   "title": "Verdict independence is a free-text `by` string (minor while only the owner can push)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Either bind verdicts to the pushing GitHub actor, or state the limit in README:3 and record/README",
+   "refs": [
+    "A-security M5",
+    "S2 confirmed; severity lowered"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q07",
+   "title": "Older workflows: excessive permissions, persisted tokens, unpinned actions@vN (known since 11-13 zizmor)",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Pin actions by SHA, set least permissions, persist-credentials: false; non-registered workflows only",
+   "refs": [
+    "A-security m1,m2",
+    "project doc repo-audit-2026-11-13 (known)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q08",
+   "title": "review.yml copies a dispatcher-chosen path onto a public branch",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Restrict the prompt path to router/review/**",
+   "refs": [
+    "A-security m3",
+    "main:.github/workflows/review.yml:33-34"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q09",
+   "title": "Stale branches still hold privileged, push-triggered workflows",
+   "kind": "infra",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Decide with Q28: tag and delete the stale branches, or strip their workflows",
+   "refs": [
+    "A-security m4",
+    "C-structure F4"
+   ],
+   "blocked_by": [
+    "Q28"
+   ]
+  },
+  {
+   "id": "Q10",
+   "title": "Jail modes differ: bwrap mode has no seccomp filter and allows nested user namespaces; neither mode limits memory or disk",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Add the seccomp filter and --disable-userns to bwrap mode; rlimits for memory/disk in both; test in CI",
+   "refs": [
+    "A-security m5",
+    "main:loop/loop.py:212-227"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q11",
+   "title": "Committed unused ELF loop/confine (20,712 B)",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Delete it (loop.py builds its own copy)",
+   "refs": [
+    "A-security m6",
+    "C-structure F10",
+    "S2 confirmed"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q12",
+   "title": "loop.yml steps end in `|| true`: CI cannot fail (22 of 23 runs green)",
+   "kind": "fix",
+   "severity": "major",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "next": "Remove `|| true` from tests/reproduce/evaluate; keep artefact upload with if: always()",
+   "refs": [
+    "B F4",
+    "C F5",
+    "S2 reproduced"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q13",
+   "title": "One bad proposal in ledger/inbox blocks every proposal and skips the 48 h upgrade check",
+   "kind": "fix",
+   "severity": "major",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "next": "Quarantine invalid proposals to ledger/rejected/ with the reason, ingest the rest; add a test",
+   "refs": [
+    "B F5",
+    "S2 reproduced (worse than reported)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q14",
+   "title": "Router probe can never pass: exit predicate counts dead or quota-limited models (12 of 12 runs red)",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Mark speculative models optional; fail only when an engine that answered last time stops",
+   "refs": [
+    "B F1",
+    "E E-01, E-02",
+    "C F6",
+    "S2 confirmed; severity medium",
+    "E E-12 (failure kinds lumped together)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q15",
+   "title": "record (22) and probe (40) tests run in no workflow",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Add a test job to record.yml (read-only) and a small probe CI job",
+   "refs": [
+    "B",
+    "C F5"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q16",
+   "title": "Untested boundaries: record overdue < vs <=; loop require_plan ignores verify/check-anchors result",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Add tests that kill mutants M5 and M9",
+   "refs": [
+    "B mutation table"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q17",
+   "title": "bench3/4 MODE free text: a typo falls through to a counted run",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Validate MODE as bench5 does (registered benches: amendment)",
+   "refs": [
+    "B F6"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q18",
+   "title": "Single unretried pushes to router-runs / ci-runs",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Retry with pull --rebase up to 3 times",
+   "refs": [
+    "B F8",
+    "E E-08"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q19",
+   "title": "Bench jobs are green on instrument faults (21 bench3 attempts sent literal $B_MODEL, 0 calls, success)",
+   "kind": "fix",
+   "severity": "major",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "next": "Fail the job when run.json shows 0 model calls or a provider error; already fixed for that cause (2026-11-14), add the guard",
+   "refs": [
+    "E E-06",
+    "S2 confirmed"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q20",
+   "title": "bench3/5 crons still fire on complete benches: the one-line mitigation for Q01-Q03 (any reopened cell on the unprotected router-runs branch would start unattended attempts that reach the vulnerable grade step)",
+   "kind": "infra",
+   "severity": "major",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Owner: approve removing the schedule: lines from bench3.yml and bench5.yml on main (keep workflow_dispatch); then regenerate bench5 STATUS (Q35)",
+   "refs": [
+    "E E-05",
+    "S2 confirmed",
+    "S4 finding 2"
+   ],
+   "blocked_by": [],
+   "priority": 1
+  },
+  {
+   "id": "Q21",
+   "title": "OpenRouter allowance guard fails open when the allowance cannot be read",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Fail closed (skip the batch) when the allowance read fails",
+   "refs": [
+    "E E-10"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q22",
+   "title": "No neuron/request log for Cloudflare and Gemini calls; conflicting neuron-cap evidence",
+   "kind": "infra",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Log usage per call like OpenRouter; resolve the 2,876-neuron vs 11-12 conflict from logs",
+   "refs": [
+    "E E-07"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q23",
+   "title": "Stalled bench4 attempts run to the 35-min cap with <=25 calls",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Add an idle timeout (registered bench: amendment)",
+   "refs": [
+    "E E-09"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q46",
+   "title": "rfc8785 oracle test skipped everywhere (package never installed)",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Install rfc8785 in the test job from Q15",
+   "refs": [
+    "B"
+   ],
+   "blocked_by": [
+    "Q15"
+   ]
+  },
+  {
+   "id": "Q47",
+   "title": "loop.yml:106 unguarded empty-glob line (same cause as the 11-05 failure)",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Guard with nullglob or a test",
+   "refs": [
+    "B"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q48",
+   "title": "bench2.yml keeps the unfixed git-maintenance / chmod race",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Apply the f76f2da fix or retire bench2",
+   "refs": [
+    "B"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q24",
+   "title": "\"router\" has no routing and the free pools have no work queue after bench-4 (the 24/7 goal)",
+   "kind": "decision",
+   "severity": "none",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Pick one task kind to route first (taste-and-adjust), with a held-out judge set (Q25)",
+   "refs": [
+    "E E-03",
+    "C F7"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q25",
+   "title": "No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks",
+   "kind": "test",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "high",
+   "next": "Build a held-out task set before any routing claim",
+   "refs": [
+    "E E-04"
+   ],
+   "blocked_by": [
+    "Q24"
+   ]
+  },
+  {
+   "id": "Q26",
+   "title": "Copy-by-directory duplication: 5.6% of function lines on main, 29% on the pilot branch (controls ~0%)",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Option: parameterised candidates (one train.py + config) vs frozen copies; keep frozen for registered plans",
+   "refs": [
+    "C F1, F16",
+    "S2 confirmed"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q27",
+   "title": "Three decide.py copies (deliberate: frozen per registration; known 11-13)",
+   "kind": "decision",
+   "severity": "none",
+   "status": "parked",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Revisit only with a shared, versioned rules module",
+   "refs": [
+    "C F2",
+    "repo-audit-2026-11-13 (known)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q28",
+   "title": "Stale test branches (anchor-test, q2-main, q2-shadow, e2e-main) and drifting record test copies (record-q2 lacks 5 security steps)",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Tag each, then delete; first test that the monitor still sees deleted refs (on a throwaway repo)",
+   "refs": [
+    "C F3, F4",
+    "A m4"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q29",
+   "title": "Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Keep summaries + hashes on main, move raw outputs to release assets or prune; protect the branches",
+   "refs": [
+    "C F14",
+    "S2 partly right (93.7%)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q30",
+   "title": "probe/ is an unconsumed leaf (nothing reads profile.json; no workflow runs it)",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Wire it into the per-image meter work or park it",
+   "refs": [
+    "C F8"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q31",
+   "title": "Frozen digests fork history: a fix to record.py/count.py forces old-commit re-measurement",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Version the frozen tools separately from their fixes (e.g. a tools tag per plan)",
+   "refs": [
+    "C F12"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q32",
+   "title": "canonical() and sha256_file triplicated (known 11-13; byte-equal today)",
+   "kind": "decision",
+   "severity": "none",
+   "status": "parked",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Cross-module equality test, or one module",
+   "refs": [
+    "C F11",
+    "repo-audit-2026-11-13 (known)"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q49",
+   "title": "Free-tier facts: OpenRouter 1,000/day needs >=10 credits bought; Cloudflare 10k neurons/day fits reviews, not agent runs; 7 pools unkeyed; Gemini 2/9 probe successes",
+   "kind": "decision",
+   "severity": "none",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Use as input to Q24",
+   "refs": [
+    "E local-llm-fit section (limits dated 2026-11-17; OpenRouter source is a mirror)",
+    "E E-11",
+    "E E-20"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q50",
+   "title": "Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it",
+   "kind": "decision",
+   "severity": "none",
+   "status": "parked",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Register the next bench plan in the ledger",
+   "refs": [
+    "C F15"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q33",
+   "title": "loop/README numbers: \"17-31% faster\" is 14.5-33.1%; \"3.5-5.4x\" mixes startup; two-meters host range 1.7-2.8x on CI; \"dependency chains\" hypothesis now stale",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "done",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Done on pilot branch: loop/README.md corrected (14.5-33.1%; 3.7-5.9x like for like; mlp16 1.8-2.5x per instruction recomputed; stale hypothesis marked).",
+   "refs": [
+    "D-claims",
+    "S2 confirmed"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q34",
+   "title": "My own pilot/explore claims: H2 \"ruled out\" (paired +3.8 ns, 18/21), LILogicNet thresholds wording (13 of 14 pairs), BRIEF linear mispredicts 0.002 (2.08), H5/H7 attributed to two runs (only GLM), unlabelled host change, page-fault rounding",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "done",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Done on pilot branch: BRIEF status, reports/claude-2026-11-15.md, lgn_c/lgn_d docstrings, pilot 2 README, each correction saying what the first version got wrong. Staging report fault counts also corrected to the evidence JSON (S4 finding 1).",
+   "refs": [
+    "D-claims",
+    "S2 confirmed"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q35",
+   "title": "bench-5 STATUS.md stale: arm A 11/15, p=0.694, final (page says 9/11, p=1.0)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Regenerate once with decide.py (needs a write to router-runs; with Q20)",
+   "refs": [
+    "D-claims",
+    "S2 confirmed"
+   ],
+   "blocked_by": [
+    "Q20"
+   ]
+  },
+  {
+   "id": "Q36",
+   "title": "Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Label each as unrecorded or commit the raw output",
+   "refs": [
+    "D-claims missing-evidence list"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q37",
+   "title": "Scaffold Effect (arXiv 2607.22585) is a workshop preprint, called published; its direction differs from bench-4",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Erratum file next to the registered bench-4 plan",
+   "refs": [
+    "D-claims citations"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q38",
+   "title": "README \"Results can't be lied about\" reads as a guarantee (known 11-13)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Owner wording, e.g. \"results can't be changed after the fact without detection\"",
+   "refs": [
+    "repo-audit-2026-11-13 (known)",
+    "A M5"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q39",
+   "title": "Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "BRIEF part done on pilot branch; VERIFY.md (main) numbering, word cap and test count need owner sign-off",
+   "refs": [
+    "E E-13, E-14",
+    "E ASD-STE100 table"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q40",
+   "title": "README leads with word history, omits router/ and benches from the status table",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Owner taste; propose a status-first README",
+   "refs": [
+    "E E-16",
+    "C F7"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q41",
+   "title": "Pilot LGN weights were trained on the first 2,867 rows; train.py docstrings and dirs do not say so (reproduce would fail on them)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "done",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Done on pilot branch: README.md in lgn_a/b/c/d stating the 75% training rows and how to reproduce.",
+   "refs": [
+    "F finding 1"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q42",
+   "title": "linear/thermo infer.c do not validate N: negative N writes out of bounds, huge N crashes (frozen by plan 2)",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "medium",
+   "next": "Fix in the next plan's baselines (harness supplies N, so not exploitable today)",
+   "refs": [
+    "F finding 2"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q43",
+   "title": "linear accepts pixels >16; linear/thermo/lgn accept trailing bytes in weights.bin",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "waiting on the owner",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Same as Q42",
+   "refs": [
+    "F finding 3"
+   ],
+   "blocked_by": [
+    "Q42"
+   ]
+  },
+  {
+   "id": "Q44",
+   "title": "mlp infer.c \"no overflow is possible\" holds only for training-bounded weights; docstrings say \"only elementwise ops\" but use .sum/np.round",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "low",
+   "next": "Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now)",
+   "refs": [
+    "F findings 4, 5"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q51",
+   "title": "My own headline lines without caveats: root README \"2.4x\" (no host/compiler/I-O caveat) and lgn_d 0.45x/0.63x (no one-session, I/O-sensitive note)",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "done",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Done on pilot branch: both README lines now carry the caveats (S4 finding 1; D M9, M12)",
+   "refs": [
+    "D-claims M9, M12",
+    "S4 finding 1"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q52",
+   "title": "Secret scrub list misses CLOUDFLARE_ACCOUNT_ID, NARA_BASE_URL and CROWLLM_BASE_URL, which could reach public logs",
+   "kind": "fix",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "medium",
+   "next": "Add the three names to SECRET_ENVS in router code (1 line) and a test",
+   "refs": [
+    "E E-18",
+    "S4 finding 3"
+   ],
+   "blocked_by": []
+  },
+  {
+   "id": "Q53",
+   "title": "Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/)",
+   "kind": "decision",
+   "severity": "minor",
+   "status": "parked",
+   "needs": "the owner",
+   "cost": 0,
+   "value": "low",
+   "next": "Revisit when the per-image meter work touches counter/loop",
+   "refs": [
+    "C F9, F13"
+   ],
+   "blocked_by": []
+  }
+ ]
+}
