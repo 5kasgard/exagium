@@ -1,0 +1,129 @@
+{
+ "clock_ghz": [
+  "2.727 GHz (median of 9; min 2.669 max 2.800) x=27000000001",
+  "2.832 GHz (median of 9; min 2.765 max 2.862) x=27000000001",
+  "2.800 GHz (median of 9; min 2.762 max 2.848) x=27000000001"
+ ],
+ "page_faults_per_run_N95600": {
+  "st_bigbuf": 1662,
+  "st_mmap": 262,
+  "st_mmap_pop": 262,
+  "st_huge": 174,
+  "st_chunk16": 168,
+  "st_chunk64": 169,
+  "st_chunk256": 172,
+  "st_chunk1024": 184,
+  "st_chunk4096": 232,
+  "st_chunk16384": 425,
+  "st_read16": 168,
+  "st_read64": 169,
+  "st_read256": 172,
+  "st_read1024": 184,
+  "st_read4096": 232,
+  "st_read16384": 425,
+  "mlp16": 1669,
+  "mlp16_chunked": 192,
+  "mlp16_mmap": 270,
+  "lgn_d": 1709,
+  "lgn_d_blockread": 221
+ },
+ "output_identical_vs_original_at_N": {
+  "N": [
+   0,
+   1,
+   63,
+   64,
+   65,
+   956,
+   1023,
+   1024,
+   1025,
+   2047,
+   2049,
+   50000,
+   95600
+  ],
+  "result": {
+   "stage": {
+    "st_mmap": true,
+    "st_mmap_pop": true,
+    "st_huge": true,
+    "st_chunk16": true,
+    "st_chunk64": true,
+    "st_chunk256": true,
+    "st_chunk1024": true,
+    "st_chunk4096": true,
+    "st_chunk16384": true,
+    "st_read16": true,
+    "st_read64": true,
+    "st_read256": true,
+    "st_read1024": true,
+    "st_read4096": true,
+    "st_read16384": true
+   },
+   "mlp16": {
+    "mlp16_chunked": true,
+    "mlp16_mmap": true
+   },
+   "lgn_d": {
+    "lgn_d_blockread": true
+   }
+  }
+ },
+ "paired": {
+  "staging: st_bigbuf - st_chunk1024": {
+   "median": 41.79,
+   "iqr": [
+    34.75,
+    53.45
+   ],
+   "positive_rounds": 21,
+   "rounds": 21
+  },
+  "staging: st_mmap - st_chunk1024": {
+   "median": 1.88,
+   "iqr": [
+    -1.16,
+    6.64
+   ],
+   "positive_rounds": 14,
+   "rounds": 21
+  },
+  "staging: st_mmap_pop - st_chunk1024": {
+   "median": 2.45,
+   "iqr": [
+    -6.41,
+    4.42
+   ],
+   "positive_rounds": 11,
+   "rounds": 21
+  },
+  "staging: st_read1024 - st_chunk1024": {
+   "median": -0.14,
+   "iqr": [
+    -7.25,
+    3.59
+   ],
+   "positive_rounds": 8,
+   "rounds": 21
+  },
+  "staging: st_read16 - st_chunk1024": {
+   "median": 19.75,
+   "iqr": [
+    12.07,
+    22.0
+   ],
+   "positive_rounds": 21,
+   "rounds": 21
+  },
+  "full: mlp16_mmap - mlp16_chunked": {
+   "median": -1.12,
+   "iqr": [
+    -3.3,
+    3.19
+   ],
+   "positive_rounds": 9,
+   "rounds": 21
+  }
+ }
+}

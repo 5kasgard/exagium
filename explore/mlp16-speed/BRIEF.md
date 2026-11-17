@@ -14,6 +14,12 @@ Three reports are in `reports/`: Gemini (chat only), GLM (own host, full track) 
 - `src/mlp16_chunked.c` (same compute, a reused 64 KB buffer) is that much faster. This was confirmed from a fresh clone.
 - With each program's I/O subtracted, compute alone runs at linear 22.4 and mlp16 12.8 instructions/ns: a 1.7× gap, not 2.6×.
 
+**H10 follow-up (2026-11-17), `reports/staging-2026-11-17.md`.** Staging only the needed images, through a reused buffer of 256–4,096 images or an `mmap` of exactly the needed bytes:
+- removes 32 ns/img from mlp16 at N = 95,600;
+- `mmap` and chunking tie within about 3 ns;
+- reading one block at a time cuts lgn_d's per-image time by 46%, making it 2.0× faster than chunked mlp16;
+- identical instructions and predictions throughout.
+
 **Open for round 2:**
 1. Run `programs_io.json` on other hosts (GLM's kernel 5.10, bare metal, transparent huge pages) to see how big H10 is there.
 2. With I/O removed, about 40–75 cycles of mlp16's compute are still unattributed. Is that layer 1's load stream (GLM: about 1.5 loads per cycle effective), or layer 2's throughput?

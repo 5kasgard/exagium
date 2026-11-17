@@ -20,6 +20,14 @@ gcc $F -o bin/mlp16_l1_fixrow_indep src/mlp16_l1_fixrow_indep.c
 gcc $F -o bin/mlp16_chunked src/mlp16_chunked.c
 gcc $F -o bin/mlp16_null_chunked src/mlp16_null_chunked.c
 gcc $F -o bin/linear_null src/linear_null.c
+gcc $F -DSTRAT=1 -o bin/st_bigbuf src/stage_null.c
+gcc $F -DSTRAT=3 -o bin/st_mmap src/stage_null.c
+gcc $F -DSTRAT=4 -o bin/st_mmap_pop src/stage_null.c
+gcc $F -DSTRAT=5 -o bin/st_huge src/stage_null.c
+for c in 16 64 256 1024 4096 16384; do gcc $F -DSTRAT=2 -DCH=$c -o bin/st_chunk$c src/stage_null.c; gcc $F -DSTRAT=6 -DCH=$c -o bin/st_read$c src/stage_null.c 2>/dev/null; done
+gcc $F -o bin/mlp16_mmap src/mlp16_mmap.c
+gcc $F -o bin/lgn_orig src/lgn_orig.c
+gcc $F -o bin/lgn_blockread src/lgn_blockread.c
 # add your own variants above this line
 gcc --version | head -1
 echo "built: $(ls bin | tr '\n' ' ')"
