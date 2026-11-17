@@ -64,7 +64,22 @@
 **Already known before this audit** (the 2026-11-13 audit and handoffs, so not new): the older workflows' zizmor findings, the README's "can't be lied about" wording, the triplicated helpers, and the OpenTimestamps failure from Nov 6 to Nov 10 (fixed in bdd7ec5).
 
 ## Done in this audit (pilot branch)
-Q33, Q34, Q41 and Q51 were documentation fixes, recomputed or checked before writing, and rechecked by S4. Code and workflow fixes on `main` wait for the owner, per careful-live-changes, since several touch registered benches or the ledger's trust root.
+Q33, Q34, Q41 and Q51 were documentation fixes, recomputed or checked before writing, and rechecked by S4. Code and workflow fixes on `main` waited for the owner's go-ahead (given 2026-11-18; see Fix wave 1).
+
+## Fix wave 1 (2026-11-18, `main` 05328a4)
+On the owner's "follow the data now to fix", 13 items were fixed in one commit on `main`: Q08, Q11, Q12, Q13, Q14, Q15, Q16, Q18, Q20, Q46, Q47, Q52, plus Q35 on router-runs (356a9ee). Each item's `next` field in queue.json says what was done and where.
+- **Review.** A separate agent reviewed the change before merge and returned "merge after fixes". Its one major finding was fixed: a partial ingest would have filed a false orphaned attestation. A second fresh agent re-checked the follow-up and returned "merge". Both reviewers were Claude, the same family as the author.
+- **Tests.** loop 23, record 22 -> 26 with no skip, probe 40, router 11 (new), counter: all pass. Five mutants were killed (M5, M9, and 3 in the router) and the second reviewer killed 10 more. actionlint is clean. zizmor finds nothing new in any file.
+- **Live probes on 05328a4, all green:**
+  - tests 44165621869: record 26, probe 40, router 11.
+  - router 44165621738: the first green probe; both required engines answered exactly.
+  - record 44165855411: dispatched by hand with an empty inbox; the 48-hour check passed.
+  - counter 44165621741.
+  - loop 44165621757: every step that can now fail exited 0; only the diagnostic steps exited 1.
+- **Rulings (each reversible):**
+  - Q20: the bench4 schedule was also removed, because it is in the same complete state as bench3 and bench5.
+  - Q13: a refused proposal stays in ledger/inbox/ instead of moving to ledger/rejected/, because the writer commits only attested entries. The run stays red until someone removes the file.
+  - Q19 is parked: it has no live effect while every bench is complete and no cron runs. Its guard belongs with Q01-Q03, before any new bench run.
 
 ## Limits
 - **One verification pass,** on 16 items. The other findings are each auditor's own check: several agents could not start their own reviewers, and their reports say which.
