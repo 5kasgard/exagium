@@ -10,8 +10,8 @@ on:
       mode:
         description: "run (registered batch) or pilot (instrument check, not counted)"
         default: "run"
-  schedule:
-    - cron: "10 3,15 * * *"
+  # schedule removed 2026-11-18 (audit Q20): bench4 is complete (STATUS on router-runs: 0 cells open), and the
+  # schedule kept firing empty batches.
 concurrency:
   group: bench
   cancel-in-progress: false

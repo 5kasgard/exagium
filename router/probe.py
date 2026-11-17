@@ -1,8 +1,8 @@
 """One exact-answer call per engine: are the keys in place, and who answers?
 
-Writes one JSON line per call to the file given as argv[1]. Exit 0 if every engine answered
-exactly, 1 otherwise (the log says which). Costs: 1 OpenRouter request (of 50/day),
-~2 Cloudflare neurons, 1 Gemini request plus a model list.
+Writes one JSON line per call to the file given as argv[1]. Exit 0 if every required engine
+(see verdict()) answered exactly, 1 otherwise; optional engines are logged but never fail the run.
+Costs: 1 OpenRouter request (of 50/day), ~2 Cloudflare neurons, 1 Gemini request plus a model list.
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I drops the script dir
@@ -37,12 +37,33 @@ def main(out):
         r["exact"] = (r["text"] or "").strip() == WANT
         recs.append(r)
     recs += probe_compat()
+    for r in recs:
+        r["required"] = required(r)
     with open(out, "a") as f:
         for r in recs:
             f.write(json.dumps(r) + "\n")
     for r in recs:
-        print(f"{r['engine']:10} {r['model'][:50]:50} ok={r['ok']} exact={r.get('exact')} {(r.get('error') or '')[:160]}")
-    return 0 if all(r.get("exact") or r.get("model") == "models.list" and r["ok"] or r.get("optional") for r in recs) else 1
+        print(f"{r['engine']:10} {r['model'][:50]:50} ok={r['ok']} exact={r.get('exact')} required={r['required']} {(r.get('error') or '')[:160]}")
+    return verdict(recs)
+
+
+# The run fails only if an engine the project relies on fails (audit Q14, 2026-11-18): OpenRouter's Nemotron is
+# the agent model (bench-3/4) and Cloudflare's Llama-4-Scout is a review engine. Each answered 11 of 11 probe
+# runs from 2026-11-11 to 11-13; every red run came from exploratory models (gemini-4-argon/carbon 0/9,
+# nvidia kimi-k2.6 0/6) or pools with no key. Everything else is still probed and logged, marked optional.
+REQUIRED_ENGINES = ("openrouter", "cloudflare")
+REQUIRED_SECRETS = ("OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID")
+
+
+def required(r):
+    return r["engine"] in REQUIRED_ENGINES or (r["engine"] == "env" and r["model"] in REQUIRED_SECRETS)
+
+
+def verdict(recs):
+    """0 if every required record answered exactly (and at least one required call ran), else 1."""
+    req = [r for r in recs if required(r)]
+    calls = [r for r in req if r["engine"] != "env"]
+    return 0 if calls and all(r.get("exact") for r in req) else 1
 
 
 SKIP = ("embed", "rerank", "whisper", "tts", "speech", "image", "vision-embed", "guard", "safety", "reward", "ocr", "audio", "moderation")

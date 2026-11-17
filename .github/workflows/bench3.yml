@@ -9,8 +9,8 @@ on:
       mode:
         description: "run (registered batch) or pilot (instrument check, not counted)"
         default: "run"
-  schedule:
-    - cron: "40 0,12 * * *"   # two batches a day until every cell is done; then the plan is empty
+  # schedule removed 2026-11-18 (audit Q20): bench3 is complete (STATUS on router-runs: 0 cells open), and the
+  # schedule kept firing empty batches. Its grade step must not run unattended before the Q01-Q03 fixes.
 concurrency:
   group: bench
   cancel-in-progress: false

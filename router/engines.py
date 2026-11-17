@@ -43,7 +43,10 @@ OPENAI_COMPAT = {
     "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
     "crowllm": ("env:CROWLLM_BASE_URL", "CROWLLM_API_KEY"),
 }
-SECRET_ENVS = ("OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "GEMINI_API_KEY") + tuple(v[1] for v in OPENAI_COMPAT.values())
+# Also scrubbed: values that are not keys but are secrets in Actions and could appear in error text that is
+# committed to the public router-runs branch (account ID in Cloudflare URLs, private base URLs; audit Q52).
+SECRET_ENVS = ("OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "GEMINI_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "NARA_BASE_URL",
+               "CROWLLM_BASE_URL") + tuple(v[1] for v in OPENAI_COMPAT.values())
 
 
 def compat_base(name):

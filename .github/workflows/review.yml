@@ -30,6 +30,11 @@ jobs:
           PROMPT: ${{ github.event.inputs.prompt }}
           ENGINES: ${{ github.event.inputs.engines }}
         run: |
+          # allowlist (audit Q08): only a regular, tracked file under router/review/; this step holds the keys in its
+          # environment, so a path like /proc/self/environ must never be copied to the public branch
+          case "$PROMPT" in router/review/*) ;; *) echo "prompt must be under router/review/"; exit 1 ;; esac
+          case "$PROMPT" in *..*) echo "prompt path must not contain .."; exit 1 ;; esac
+          [ -f "$PROMPT" ] && [ ! -L "$PROMPT" ] && git ls-files --error-unmatch -- "$PROMPT" > /dev/null || { echo "prompt must be a tracked regular file"; exit 1; }
           rc=0; python3 -I router/review.py "$PROMPT" "$RUNNER_TEMP/rev" $ENGINES || rc=$?
           cp "$PROMPT" "$RUNNER_TEMP/rev/prompt.txt"; echo "$GITHUB_SHA $PROMPT" > "$RUNNER_TEMP/rev/source.txt"
           echo "exit $rc"

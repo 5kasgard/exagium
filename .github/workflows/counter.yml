@@ -62,4 +62,9 @@ jobs:
           git add runs
           git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "counter cross-host run ${{ github.run_id }} at ${{ github.sha }}"
-          git push -q origin ci-runs
+          # retry: another run may have pushed to ci-runs meanwhile; each run writes its own folder, so a rebase is clean (audit Q18)
+          for i in 1 2 3 4 5; do
+            if git push -q origin ci-runs; then echo "pushed on try $i"; break; fi
+            [ $i -lt 5 ] || { echo "push to ci-runs failed 5 times"; exit 1; }
+            sleep $((i * 7)); git fetch -q origin ci-runs && git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' rebase -q FETCH_HEAD
+          done

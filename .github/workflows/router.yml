@@ -46,11 +46,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git fetch -q origin router-runs; then git checkout -q -B router-runs FETCH_HEAD; else git checkout -q --orphan router-runs && git rm -rqf . ; fi
-          mkdir -p router/log && touch router/log/calls.jsonl
-          [ -f "$RUNNER_TEMP/probe.jsonl" ] && sed "s/^{/{\"run\": \"$GITHUB_RUN_ID\", /" "$RUNNER_TEMP/probe.jsonl" >> router/log/calls.jsonl
-          git add router/log/calls.jsonl
-          git commit -qm "router probe, run $GITHUB_RUN_ID" && git push -q origin router-runs
-          echo "exit 0"
+          # rebuild on the newest router-runs and retry: other workflows push there too (audit Q18)
+          for i in 1 2 3 4 5; do
+            if git fetch -q origin router-runs; then git checkout -q -B router-runs FETCH_HEAD; else git checkout -q --orphan router-runs && git rm -rqf . ; fi
+            mkdir -p router/log && touch router/log/calls.jsonl
+            [ -f "$RUNNER_TEMP/probe.jsonl" ] && sed "s/^{/{\"run\": \"$GITHUB_RUN_ID\", /" "$RUNNER_TEMP/probe.jsonl" >> router/log/calls.jsonl
+            git add router/log/calls.jsonl
+            git commit -qm "router probe, run $GITHUB_RUN_ID" && git push -q origin router-runs && { echo "pushed on try $i"; exit 0; }
+            sleep $((i * 7))
+          done
+          exit 1
       - name: fail if the probe failed
         run: exit "$rc"

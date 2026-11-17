@@ -5,8 +5,10 @@
 #      (so an entry written by hand is never vouched for later);
 #   3. ingest the proposals; stamp the new head with OpenTimestamps; refuse to attest if the branch moved;
 #   4. attest the exact range of entries it added (Sigstore, public Rekor); check every anchor; commit.
-#   If the run fails or is cancelled after attesting, the bundle and entries go to the ci-runs branch, so the
-#   orphaned attestation can be explained with its real statement and entries.
+#   If the run fails or is cancelled after attesting but before the ledger commit succeeds, the bundle and
+#   entries go to the ci-runs branch, so the orphaned attestation can be explained with its real statement
+#   and entries (a cancel landing mid-push can file a committed one there too: a harmless duplicate).
+#   A refused proposal stays in ledger/inbox/ and fails the run after the good ones are committed.
 # The daily run also ingests any proposals a stepped-aside run left behind. Actions are pinned by commit;
 # record.py runs with python3 -I so nothing next to it can shadow the standard library.
 # A daily job completes pending OpenTimestamps proofs.
@@ -57,7 +59,11 @@ jobs:
         id: ingest
         run: |
           read before _ < <(python3 -I record/record.py head)
-          python3 -I record/record.py ingest | tee "$RUNNER_TEMP/written.txt"
+          # exit 0: all written; 1: something refused, nothing written; 4: some written, some refused. A refused
+          # proposal stays in the inbox and fails the run at the end, after the good ones are committed (audit Q13).
+          rc=0; python3 -I record/record.py ingest > "$RUNNER_TEMP/written.txt" || rc=$?
+          cat "$RUNNER_TEMP/written.txt"
+          case $rc in 0) echo "refused=no" >> "$GITHUB_OUTPUT" ;; 1|4) echo "refused=yes" >> "$GITHUB_OUTPUT" ;; *) exit $rc ;; esac
           read seq sha < <(python3 -I record/record.py head)
           echo "from=$((before + 1))" >> "$GITHUB_OUTPUT"; echo "seq=$seq" >> "$GITHUB_OUTPUT"; echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "file=ledger/entries/$(printf %06d $seq).json" >> "$GITHUB_OUTPUT"
@@ -83,6 +89,7 @@ jobs:
           predicate: ${{ steps.ingest.outputs.predicate }}
       - name: check every anchor and commit
         if: steps.current.outputs.go == 'yes' && steps.ingest.outputs.n != '0'
+        id: commit
         run: |
           s=$(printf %06d ${{ steps.ingest.outputs.seq }})
           cp "${{ steps.att.outputs.bundle-path }}" ledger/anchors/$s.sigstore.json
@@ -95,7 +102,8 @@ jobs:
           git commit -q -m "ledger: entries ${{ steps.ingest.outputs.from }}-${{ steps.ingest.outputs.seq }}, head sha256 ${{ steps.ingest.outputs.sha }} (run ${{ github.run_id }})"
           git push -q origin "HEAD:$LEDGER_REF"
       - name: after a failure past attesting, keep the orphaned attestation's bundle and entries on ci-runs
-        if: (failure() || cancelled()) && steps.att.outcome == 'success'
+        # not after a committed attestation: a refused proposal fails the run later, and that is no orphan
+        if: (failure() || cancelled()) && steps.att.outcome == 'success' && steps.commit.outcome != 'success'
         run: |
           d="$RUNNER_TEMP/ci"; git init -q "$d"
           cp -r ledger "$RUNNER_TEMP/ledger-orphan"; cp "${{ steps.att.outputs.bundle-path }}" "$RUNNER_TEMP/ledger-orphan/bundle.sigstore.json"
@@ -103,7 +111,16 @@ jobs:
           git fetch -q origin ci-runs && git checkout -q ci-runs
           mkdir -p orphans && cp -r "$RUNNER_TEMP/ledger-orphan" "orphans/${{ github.run_id }}" && git add orphans
           git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' commit -q -m "orphaned writer attestation, run ${{ github.run_id }}"
-          git push -q origin ci-runs
+          # retry: another run may have pushed to ci-runs meanwhile; each run writes its own folder, so a rebase is clean (audit Q18)
+          for i in 1 2 3 4 5; do
+            if git push -q origin ci-runs; then echo "pushed on try $i"; break; fi
+            [ $i -lt 5 ] || { echo "push to ci-runs failed 5 times"; exit 1; }
+            sleep $((i * 7)); git fetch -q origin ci-runs && git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' rebase -q FETCH_HEAD
+          done
+      - name: fail if any proposal was refused (it stays in ledger/inbox/; see this run's ingest log)
+        if: steps.current.outputs.go == 'yes' && steps.ingest.outputs.refused == 'yes'
+        run: |
+          echo "one or more proposals were refused and left in ledger/inbox/; the rest were committed"; exit 1
   gh-verify:
     # Can `gh attestation verify` accept a genuine anchor when pinned to this writer and ref? (review 1, finding 10)
     needs: append

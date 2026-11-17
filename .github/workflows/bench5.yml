@@ -11,8 +11,8 @@ on:
         type: choice
         options: [run, pilot]
         default: run
-  schedule:
-    - cron: "20 5 * * *"   # retries open cells once a day; the plan is empty once every cell is done
+  # schedule removed 2026-11-18 (audit Q20): bench5 is complete (STATUS on router-runs: 0 cells open), and the
+  # schedule kept firing empty batches. Its grade step must not run unattended before the Q01-Q03 fixes.
 concurrency:
   group: bench5   # NIM is its own allowance, so bench-5 need not queue behind bench-3 and bench-4
   cancel-in-progress: false

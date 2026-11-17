@@ -327,5 +327,49 @@ int main(int c, char **v){ long n = atol(v[3]); char *out = malloc(n + 1); int p
         self.assertIn("unique", msg)
 
 
+class RequirePlan(unittest.TestCase):
+    """audit Q16 (mutant M9): require_plan must refuse when record.py verify or check-anchors fails, even if the
+    plan freezes every file. The test points loop at a stand-in record.py; loop.py itself is not changed."""
+
+    def setUp(self):
+        self.repo = tempfile.mkdtemp()
+        self.cand = os.path.join(self.repo, "cand")
+        os.makedirs(self.cand)
+        for n in ("train.py", "infer.c", "weights.bin"):
+            with open(os.path.join(self.cand, n), "w") as f:
+                f.write(n)
+        os.makedirs(os.path.join(self.repo, "ledger", "entries"))
+        self.saved = (loop.REPO, loop.RECORD)
+        loop.REPO = self.repo
+
+    def tearDown(self):
+        loop.REPO, loop.RECORD = self.saved
+        shutil.rmtree(self.repo)
+
+    def stand_in(self, code_for):
+        p = os.path.join(self.repo, "record_stub.py")
+        with open(p, "w") as f:
+            f.write("import sys\ncodes = %r\nsys.exit(codes.get(sys.argv[1], 0))\n" % code_for)
+        loop.RECORD = p
+        # the plan freezes every file as it is now (tools included), so only the ledger checks can refuse
+        inputs = [{"name": x["name"], "sha256": x["sha256"]} for x in loop.digests([self.cand])]
+        with open(os.path.join(self.repo, "ledger", "entries", "000001.json"), "w") as f:
+            json.dump({"kind": "plan", "body": {"inputs": inputs}}, f)
+
+    def test_passes_when_ledger_checks_pass(self):
+        self.stand_in({})
+        self.assertEqual(loop.require_plan(1, [self.cand])["seq"], 1)
+
+    def test_refuses_when_verify_fails(self):
+        self.stand_in({"verify": 1})
+        with self.assertRaisesRegex(loop.Failed, "record.py verify exit 1"):
+            loop.require_plan(1, [self.cand])
+
+    def test_refuses_when_check_anchors_cant_check(self):
+        self.stand_in({"check-anchors": 2})
+        with self.assertRaisesRegex(loop.Failed, "record.py check-anchors exit 2"):
+            loop.require_plan(1, [self.cand])
+
+
 if __name__ == "__main__":
     unittest.main()

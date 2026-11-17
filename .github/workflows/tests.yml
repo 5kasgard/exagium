@@ -1,0 +1,42 @@
+# Unit tests that ran in no workflow until 2026-11-18 (audit Q15, Q46): record/ (the ledger writer's rules) and
+# probe/ and router/ (the probe pass rule and secret scrub; audit Q14, Q52). Read-only: no secrets, no writes.
+# counter/ and loop/ tests already run in counter.yml and loop.yml.
+# rfc8785 is the independent canonical-JSON oracle for record's test_canonical_form_is_rfc8785, which was always
+# skipped because nothing installed it; it is pinned by hash.
+name: tests
+on:
+  push:
+    branches: [main]
+    paths: ["record/**", "probe/**", "router/*.py", ".github/workflows/tests.yml"]
+  pull_request:
+    paths: ["record/**", "probe/**", "router/*.py", ".github/workflows/tests.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: tools
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv"
+          printf 'rfc8785==0.1.4 --hash=sha256:520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48\n' > "$RUNNER_TEMP/req.txt"
+          "$RUNNER_TEMP/venv/bin/pip" install -q --require-hashes -r "$RUNNER_TEMP/req.txt"
+      - name: record tests (no test may be skipped)
+        run: |
+          cd record && "$RUNNER_TEMP/venv/bin/python" -m unittest -v test_record 2>&1 | tee "$RUNNER_TEMP/record.txt"
+          ! grep -q "skipped" "$RUNNER_TEMP/record.txt"
+      - name: probe tests
+        if: ${{ !cancelled() }}
+        run: |
+          cd probe && "$RUNNER_TEMP/venv/bin/python" -m unittest test_probe
+      - name: router tests (offline, no keys, no network)
+        if: ${{ !cancelled() }}
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" -m unittest -v router/test_router.py

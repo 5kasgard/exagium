@@ -227,28 +227,49 @@ def make_entry(chain, kind, body, now=None):
 
 def cmd_ingest(a):
     """Move every inbox proposal (in file-name order) into the chain. Used by CI, the only writer.
-    Prints one line per entry as it's written; any bad proposal stops with exit 1 and nothing after it is written."""
+    Each proposal is checked on its own: a good one is written (one printed line per entry); a bad one is left
+    in the inbox, untouched, and reported on stderr. A later proposal that depended on a refused one fails the
+    chain rules and is refused too. Exit 0: all written; 1: something refused and nothing written; 4: some
+    written, some refused. (Until 2026-11-18 the first bad proposal stopped the run, so one bad file blocked
+    every later proposal forever: audit Q13.)"""
     chain, _ = load_chain(a.ledger)
     os.makedirs(os.path.join(a.ledger, "entries"), exist_ok=True)
-    for p in _listdir(a.ledger, "inbox", re.compile(r"[A-Za-z0-9._-]+\.json"), "file in inbox (proposals are NAME.json)"):
-        n = os.path.basename(p)
-        prop = parse_json(open(p, "rb").read(), f"inbox/{n}")
-        if not isinstance(prop, dict) or set(prop) != {"kind", "body"} or prop["kind"] not in KINDS:
-            raise Bad(f"inbox/{n}: must be {{kind, body}} with kind in {KINDS}")
-        e = make_entry(chain, prop["kind"], prop["body"])
-        raw = canonical(e)
-        out = os.path.join(a.ledger, "entries", f"{e['seq']:06d}.json")
-        with open(out, "xb") as f:
-            f.write(raw)
+    d = os.path.join(a.ledger, "inbox")
+    if not os.path.exists(d):
+        return 0
+    if os.path.islink(d) or not os.path.isdir(d):
+        raise Bad("inbox/ must be a plain directory")
+    name_ok = re.compile(r"[A-Za-z0-9._-]+\.json")
+    written, refused = 0, []
+    for n in sorted(os.listdir(d)):
+        p = os.path.join(d, n)
         try:
-            load_chain(a.ledger)  # the new entry must pass every rule, e.g. one verdict per plan
+            if not name_ok.fullmatch(n) or os.path.islink(p) or not os.path.isfile(p):
+                raise Bad(f"inbox/{n!r}: unexpected file in inbox (proposals are NAME.json)")
+            prop = parse_json(open(p, "rb").read(), f"inbox/{n}")
+            if not isinstance(prop, dict) or set(prop) != {"kind", "body"} or prop["kind"] not in KINDS:
+                raise Bad(f"inbox/{n}: must be {{kind, body}} with kind in {KINDS}")
+            e = make_entry(chain, prop["kind"], prop["body"])
+            raw = canonical(e)
+            out = os.path.join(a.ledger, "entries", f"{e['seq']:06d}.json")
+            with open(out, "xb") as f:
+                f.write(raw)
+            try:
+                load_chain(a.ledger)  # the new entry must pass every rule, e.g. one verdict per plan
+            except Bad as ex:
+                os.remove(out)
+                raise Bad(f"inbox/{n}: {ex}")
         except Bad as ex:
-            os.remove(out)
-            raise Bad(f"inbox/{n}: {ex}")
+            refused.append(str(ex))
+            print(f"BAD: {ex} (left in the inbox)", file=sys.stderr)
+            continue
         chain.append((e, hashlib.sha256(raw).hexdigest()))
         os.remove(p)
+        written += 1
         print(out, flush=True)
-    return 0
+    if not refused:
+        return 0
+    return 4 if written else 1
 
 
 def cmd_verify(a):

@@ -96,6 +96,56 @@ class Ledger(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("duplicate key", err)
 
+    def test_one_bad_proposal_does_not_block_the_others(self):
+        # audit Q13: [good, bad, good] used to stop at the bad one and leave the inbox blocked forever
+        self.propose("a.json", "plan", PLAN)
+        self.propose("b.json", "plan", dict(PLAN, notes=1.5))   # floats are refused
+        self.propose("c.json", "plan", dict(PLAN, claim="third"))
+        rc, out, err = self.run_cmd("ingest")
+        self.assertEqual(rc, 4)
+        self.assertEqual(len(out.splitlines()), 2)
+        self.assertIn("inbox/b.json", err)
+        self.assertTrue(os.path.exists(self.entry(1)) and os.path.exists(self.entry(2)))
+        self.assertFalse(os.path.exists(self.entry(3)))
+        self.assertEqual(os.listdir(os.path.join(self.d, "inbox")), ["b.json"])
+        self.assertEqual(json.load(open(self.entry(2)))["body"]["claim"], "third")
+        self.assertEqual(self.run_cmd("verify")[0], 0)
+        # the refused file stays refused on the next run, and nothing else is written
+        rc, out, _ = self.run_cmd("ingest")
+        self.assertEqual((rc, out), (1, ""))
+
+    def test_symlinks_and_bad_names_are_refused_not_followed(self):
+        target = os.path.join(self.d, "outside.json")
+        with open(target, "w") as f:
+            json.dump({"kind": "plan", "body": PLAN}, f)
+        os.symlink(target, os.path.join(self.d, "inbox", "link.json"))
+        with open(os.path.join(self.d, "inbox", "bad name.json"), "w") as f:
+            json.dump({"kind": "plan", "body": PLAN}, f)
+        self.propose("ok.json", "plan", PLAN)
+        rc, out, err = self.run_cmd("ingest")
+        self.assertEqual(rc, 4)
+        self.assertEqual(len(out.splitlines()), 1)
+        self.assertIn("link.json", err)
+        self.assertIn("bad name.json", err)
+        self.assertTrue(os.path.islink(os.path.join(self.d, "inbox", "link.json")))   # left untouched
+        self.assertTrue(os.path.exists(target))
+        self.assertFalse(os.path.exists(self.entry(2)))
+
+    def test_inbox_must_be_a_plain_directory(self):
+        shutil.rmtree(os.path.join(self.d, "inbox"))
+        os.symlink(tempfile.mkdtemp(), os.path.join(self.d, "inbox"))
+        self.assertEqual(self.run_cmd("ingest")[0], 1)
+
+    def test_overdue_boundary(self):
+        # audit Q16 (mutant M5): a plan due today is not yet overdue; one due yesterday is
+        import datetime
+        today = datetime.date.today()
+        self.propose("a.json", "plan", dict(PLAN, verdict_due=today.isoformat()))
+        self.propose("b.json", "plan", dict(PLAN, claim="second", verdict_due=(today - datetime.timedelta(days=1)).isoformat()))
+        self.assertEqual(self.run_cmd("ingest")[0], 0)
+        rep = json.loads(self.run_cmd("verify")[1])
+        self.assertEqual((rep["open_plans"], rep["overdue_plans"]), ([1, 2], [2]))
+
     def test_floats_are_refused(self):
         self.propose("a.json", "plan", dict(PLAN, notes=1.5))
         rc, _, err = self.run_cmd("ingest")

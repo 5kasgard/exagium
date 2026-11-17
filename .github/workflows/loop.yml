@@ -4,7 +4,8 @@
 #   2. scores them on the dev split (the last 25% of the training file);
 #   3. for each request in loop/verify/, scores the named candidates on the test set, which loop.py only
 #      does when the ledger holds a plan that froze exactly those files. A request is removed once its plan has a
-#      verdict. Each step's output ends with its exit code.
+#      verdict. Each step's output ends with its exit code, and a non-zero code fails the job (the later steps
+#      and the upload still run). Until 2026-11-18 every step ended in `|| true`, so CI could not fail.
 # A final job commits every job's output to the ci-runs branch (loop/<run id>/), so results stay in git.
 name: loop
 on:
@@ -41,23 +42,31 @@ jobs:
           grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true
       - name: reproduce training (in the jail)
         run: |
-          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
-          { "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1; echo "exit $?"; } | tee out/reproduce.txt || true
+          shopt -s nullglob; dirs=(loop/baselines/*/ loop/candidates/*/); [ ${#dirs[@]} -gt 0 ] || { echo "no candidate directories"; exit 1; }
+          set +e; "$RUNNER_TEMP/venv/bin/python" loop/loop.py reproduce "${dirs[@]}" --out out/reproduce.json > out/reproduce.txt 2>&1; rc=$?; set -e
+          cat out/reproduce.txt; echo "exit $rc" | tee -a out/reproduce.txt; exit $rc
       - name: score on the dev split
+        if: ${{ !cancelled() }}
         run: |
-          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/ 2>/dev/null || true)
-          { "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate $dirs --test dev --records out/records --out out/dev.json 2>&1; echo "exit $?"; } | tee out/dev.txt || true
+          shopt -s nullglob; dirs=(loop/baselines/*/ loop/candidates/*/); [ ${#dirs[@]} -gt 0 ] || { echo "no candidate directories"; exit 1; }
+          set +e; "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test dev --records out/records --out out/dev.json > out/dev.txt 2>&1; rc=$?; set -e
+          cat out/dev.txt; echo "exit $rc" | tee -a out/dev.txt; exit $rc
       - name: score requested plans on the test set
+        if: ${{ !cancelled() }}
         run: |
+          fail=0
           for req in loop/verify/*.json; do
             [ -e "$req" ] || continue
             plan=$(python3 -c "import json,sys; print(int(json.load(open(sys.argv[1]))['plan']))" "$req")
             mapfile -t dirs < <(python3 -c "import json,sys; [print(d) for d in json.load(open(sys.argv[1]))['candidates']]" "$req")
             mapfile -t opts < <(python3 -c "import json,sys; r=json.load(open(sys.argv[1])); [print(x) for k in ('rounds','seed') if k in r for x in ('--'+k, int(r[k]))]" "$req")
-            { "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" "${opts[@]}" --records out/records \
-              --out "out/test-plan$plan.json" 2>&1; echo "exit $?"; } | tee "out/test-plan$plan.txt" || true
+            set +e; "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test test --plan "$plan" "${opts[@]}" --records out/records \
+              --out "out/test-plan$plan.json" > "out/test-plan$plan.txt" 2>&1; rc=$?; set -e
+            cat "out/test-plan$plan.txt"; echo "exit $rc" | tee -a "out/test-plan$plan.txt"; [ $rc -eq 0 ] || fail=1
           done
+          exit $fail
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: loop-${{ matrix.runner }}-${{ matrix.slot }}
           path: out
@@ -100,13 +109,19 @@ jobs:
           done 2>&1 | tee out/valgrind-confine.txt || true
       - name: loop tests
         run: |
-          { cd loop && /opt/venv/bin/python -m unittest test_loop 2>&1; echo "exit $?"; } | tee out/tests.txt || true
+          set +e; (cd loop && /opt/venv/bin/python -m unittest test_loop) > out/tests.txt 2>&1; rc=$?; set -e
+          cat out/tests.txt; echo "exit $rc" | tee -a out/tests.txt; exit $rc
       - name: reproduce and score on the dev split
+        if: ${{ !cancelled() }}
         run: |
-          dirs=$(ls -d loop/baselines/*/ loop/candidates/*/)
-          { /opt/venv/bin/python loop/loop.py reproduce $dirs --out out/reproduce.json 2>&1; echo "exit $?"; } | tee out/reproduce.txt || true
-          { /opt/venv/bin/python loop/loop.py evaluate $dirs --test dev --rounds 10 --records out/records --out out/dev.json 2>&1; echo "exit $?"; } | tee out/dev.txt || true
+          shopt -s nullglob; dirs=(loop/baselines/*/ loop/candidates/*/); [ ${#dirs[@]} -gt 0 ] || { echo "no candidate directories"; exit 1; }
+          set +e; /opt/venv/bin/python loop/loop.py reproduce "${dirs[@]}" --out out/reproduce.json > out/reproduce.txt 2>&1; r1=$?
+          /opt/venv/bin/python loop/loop.py evaluate "${dirs[@]}" --test dev --rounds 10 --records out/records --out out/dev.json > out/dev.txt 2>&1; r2=$?; set -e
+          cat out/reproduce.txt; echo "exit $r1" | tee -a out/reproduce.txt
+          cat out/dev.txt; echo "exit $r2" | tee -a out/dev.txt
+          [ $r1 -eq 0 ] && [ $r2 -eq 0 ]
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
           name: loop-docker-${{ matrix.runner }}
           path: out
@@ -130,4 +145,9 @@ jobs:
           git add loop
           git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' \
             commit -q -m "loop run ${{ github.run_id }} at ${{ github.sha }}"
-          for i in 1 2 3; do git push -q origin ci-runs && break; git pull -q --rebase origin ci-runs; done
+          # retry: another run may have pushed to ci-runs meanwhile; each run writes its own folder, so a rebase is clean (audit Q18)
+          for i in 1 2 3 4 5; do
+            if git push -q origin ci-runs; then echo "pushed on try $i"; break; fi
+            [ $i -lt 5 ] || { echo "push to ci-runs failed 5 times"; exit 1; }
+            sleep $((i * 7)); git fetch -q origin ci-runs && git -c user.name=github-actions -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' rebase -q FETCH_HEAD
+          done
