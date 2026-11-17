@@ -68,11 +68,11 @@
    "title": "Ledger writer installs 35 unpinned transitive packages in a job that can sign attestations",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: hash-pinned lock for all three installs in record.yml (lines 51, 137, 148) and the same in record-e2e.yml; a 37-package lock with hashes resolves for cp312 manylinux x86_64 (checked). Test on e2e-main first; note each test writes permanent public Rekor entries (harmless).",
+   "next": "Done (main 3089926): record/requirements-writer.txt pins 37 packages by sha256; all three record.yml installs and the record-e2e append job use --require-hashes --only-binary=:all:. Separate review: merge (lock recompiled identically, all 37 cp312/abi3 wheels verified, OSV clean). Live: record run 44184453334 green, entries 1-4 attested, nothing unverifiable. Left as minor follow-ups: no refresh process (add a Renovate/Dependabot rule or a scheduled recompile diff); VERIFY.md:70, record/README.md:20 and record.py hints still suggest unpinned installs; e2e-main keeps its old install until updated.",
    "refs": [
     "A-security M3",
     "S2 confirmed (37 resolved, 2 pinned)",
@@ -445,7 +445,7 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Data supports the order of work, not idling the pools: Actions CPU is measured (loop 23/24 runs ok, counter 21/21 on 8 runners); the per-image meter (chosen 2026-11-15, HANDOFF-lgn-pilot2) is next but is a one-off build. LLM supply: OpenRouter's 1,000/day tier is active (guard read 292 and 346 left, about 25 agent attempts/day), NIM passes agent tasks (11/15), Cloudflare fits reviews. Next: design one recurring free-pool job (taste-and-adjust) after the meter; owner-only action: keys for Groq, Cerebras, Mistral (E E-20).",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Data supports the order of work, not idling the pools: Actions CPU is measured (loop 23/24 runs ok, counter 21/21 on 8 runners); the per-image meter (chosen 2026-11-15, HANDOFF-lgn-pilot2) is next but is a one-off build. LLM supply: OpenRouter's 1,000/day tier is active (guard read 292 and 346 left, about 25 agent attempts/day), NIM passes agent tasks (11/15), Cloudflare fits reviews. Next: design one recurring free-pool job (taste-and-adjust) after the meter; owner-only action: keys for Groq, Cerebras, Mistral (E E-20). Update 2026-11-18: owner added a Cerebras key ($10 credit): Developer tier (1,000 req/min, no daily cap), models gpt-oss-120b and qwen-3.8-27b; gpt-oss-120b answered exactly (run 44182646783). Paid per token ($0.35 in / $0.75 out per M for gpt-oss-120b, Oct 2026 rate cards), so any job using it needs a spend cap at the call site first. Groq: key added by the owner but GROQ_API_KEY was not set in that run (secret name to confirm).",
    "refs": [
     "E E-03",
     "C F7"
