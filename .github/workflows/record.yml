@@ -47,8 +47,9 @@ jobs:
       - name: tools
         if: steps.current.outputs.go == 'yes'
         run: |
-          # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography
-          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1 opentimestamps-client==0.8.0
+          # an isolated virtualenv: the runner's system pyOpenSSL breaks under a newer cryptography;
+          # every package pinned by sha256 (audit Q04): this job can sign attestations
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q --require-hashes --only-binary=:all: -r record/requirements-writer.txt
           echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: the existing chain must be fully attested by this writer before anything is added
         if: steps.current.outputs.go == 'yes'
@@ -134,7 +135,7 @@ jobs:
           ref: ${{ env.LEDGER_REF }}
       - name: complete pending OpenTimestamps proofs
         run: |
-          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q opentimestamps-client==0.8.0
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q --require-hashes --only-binary=:all: -r record/requirements-writer.txt
           export PATH="$RUNNER_TEMP/venv/bin:$PATH"
           shopt -s nullglob
           for f in ledger/anchors/*.ots; do ots upgrade "$f" || true; done
@@ -145,6 +146,5 @@ jobs:
           git diff --cached --quiet || { git commit -q -m "ledger: upgrade OpenTimestamps proofs (run ${{ github.run_id }})"; git push -q origin "HEAD:$LEDGER_REF"; }
       - name: no proof may stay pending more than 48 hours after its attestation (the upgrade failed silently for 5 days)
         run: |
-          "$RUNNER_TEMP/venv/bin/pip" install -q sigstore==4.5.1
           "$RUNNER_TEMP/venv/bin/python" -I record/record.py check-anchors --ref "refs/heads/$LEDGER_REF" --workflow "$WRITER" \
             --max-pending-hours 48
