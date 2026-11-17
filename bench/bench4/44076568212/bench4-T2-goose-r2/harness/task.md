@@ -1,0 +1,20 @@
+# Task: an orphaned attestation must publish the entries it hid
+
+You are working in `record/` of this repository, which is in /workspace (`record/record.py` and its tests in `record/test_record.py`).
+
+**Background:** the ledger writer attests ranges of entries with a predicate `{"from_seq", "to_seq", "prev_sha256", "head_sha256"}`. If a run attests a range and then fails, an "orphan" record explains that attestation. A reviewer found that an orphan explained only by its statement could hide an attested entry, such as a failing verdict.
+
+**Required:** add a function to `record/record.py`:
+
+    _orphan_entries_problem(orphan: dict, pred: dict) -> str | None
+
+- `orphan["body"]["entries_b64"]` is a list of base64-encoded canonical entry bytes (as produced by `R.canonical(entry)`).
+- Return `None` when the decoded entries are exactly the attested range: there are `to_seq - from_seq + 1` of them, the first chains from `pred["prev_sha256"]` (its `prev` field), each next one chains from the previous one's sha256, and the sha256 of the last one's canonical bytes equals `pred["head_sha256"]`.
+- Otherwise return a short problem string:
+  - one containing the word `range` when the count is wrong;
+  - one containing `chain` when an entry's `prev` doesn't link;
+  - one containing `head` when the last hash doesn't match `head_sha256`.
+- Wire it into wherever orphans are checked, so an orphan without valid hidden entries is reported.
+- All existing tests in `record/test_record.py` must still pass.
+
+Run the tests with `cd record && python3 -m unittest test_record`.
