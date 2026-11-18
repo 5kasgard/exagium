@@ -7,21 +7,21 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 - A separate verifier and a meter decide.
 - Every claim is recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable.
 
-**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Small digit classifiers are built and scored on it. The first architecture found by following the data, a logic-gate network, is about 2–3.4× cheaper per image than the best small MLP at scale, at 0.7 percentage points lower dev accuracy. The next step is a fresh task with a pre-registered plan, and then free models proposing candidates around the clock.
+**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Small digit classifiers are built and scored on it. The first architecture found by following the data, a logic-gate network, is about 1.9–3.3× cheaper per image than the best small MLP at scale, at 0.7 percentage points lower dev accuracy. The next step is a fresh task with a pre-registered plan, and then free models proposing candidates around the clock.
 
 ## How it works
 1. **A candidate** is a folder: `train.py` (deterministic numpy) writes `weights.bin`, and `infer.c` classifies images. Anyone, human or agent, can propose one.
-2. **[`loop/`](loop/)** retrains it in a jail and checks that the weights come out byte for byte the same. It then scores it on dev data against mandatory baselines. The test set opens only for a plan registered in the ledger beforehand.
-3. **Two meters price every candidate:**
+2. **[`loop/`](loop/)** retrains it in a jail and checks that the weights come out byte for byte the same. It then scores it on dev data against mandatory baselines. The test set opens only for a plan registered in the ledger beforehand: the plan fixes the claim and its pass rule before anyone sees a test score.
+3. **Two meters measure every candidate's cost:**
    - instructions and simulated cache misses, deterministic in any VM ([`counter/`](counter/));
    - native time from a trusted timer.
 
    [`loop/scale.py`](loop/README.md#cost-per-image-at-scale-scalepy-added-2026-11-18) adds the cost per image at large run sizes, because rankings flip with N.
 4. **[`probe/`](probe/)** measures the machine itself: memory levels, bandwidth, compute ceilings, noise and which meter tiers it has.
 5. **[`record/`](record/)** keeps plans and verdicts in an append-only, hash-chained [`ledger/`](ledger/). One CI job writes it, and Sigstore and OpenTimestamps anchor it. A verdict is given by someone other than the claimant.
-6. **[`router/`](router/)** connects free model pools, measures which ones work, and runs pre-registered agent benches (the `router-runs` branch holds the raw data).
+6. **[`router/`](router/)** connects free model pools, measures which ones work, and runs pre-registered agent benches: sealed, timed coding tasks that test which free model and agent harness can do real work on this repo (the `router-runs` branch holds the raw data).
 
-Everything runs on free compute: GitHub Actions runners across 6–8 runner types, plus free model tiers.
+Everything runs on free compute: GitHub Actions runners (loop on 6 runner types, counter on 8), plus free model tiers.
 
 ## Progress
 | Date (2026) | Step | Evidence |
@@ -47,7 +47,7 @@ Each kind of work goes to the cheapest worker that measurably does it well. The 
 
 | Work | Worker | Evidence |
 |---|---|---|
-| Measuring, scoring, training, recording | GitHub Actions CPU (free, 6–8 runner types) | loop 23 of 24 runs ok; counter 21 of 21 |
+| Measuring, scoring, training, recording | GitHub Actions CPU (free; loop on 6 runner types, counter on 8) | loop 23 of 24 runs ok; counter 21 of 21 |
 | Agent coding (fixes, candidates) | Nemotron 3 Ultra (OpenRouter free, about 1,000 requests/day); NIM-hosted agents | bench-2 3/3; bench-5 11/15 |
 | Outside review of code and claims | gpt-oss-120b (Cloudflare free) | found a real bug in `scale.py` on Nov 18; 3 of 8 points applied in bench-5 |
 | Short checks | Groq gpt-oss-120b (free, 8,000 tokens/min) | probe answers exactly |
