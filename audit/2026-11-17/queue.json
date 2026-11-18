@@ -1106,6 +1106,30 @@
     "runner/candidates/label-linear/",
     "runner/candidates/label-mlp16/"
    ]
+  },
+  {
+   "id": "P7",
+   "title": "Research worker: the world's evidence, not only our own data (literature card per part, hypothesis or task)",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "Q07"
+   ],
+   "touches": [
+    "research/",
+    ".github/workflows/research.yml"
+   ],
+   "batch": "B7",
+   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it.",
+   "refs": [
+    "project doc claude/HANDOFF-transfer-step1.md (P1 verdict: rankings differ; LGN lead did not carry over)",
+    "Q37 (citation error found by audit)",
+    "skills: paper-research, tiered-source-research, adversarial-review D2/D3"
+   ]
   }
  ],
  "batches": [
@@ -1177,6 +1201,15 @@
    ],
    "why": "Needs per-item data from B1's suite and B3's proposals.",
    "worker": "Analysis code runs on CI; free models describe the clusters; Claude checks the claims."
+  },
+  {
+   "id": "B7",
+   "name": "Research worker",
+   "items": [
+    "P7"
+   ],
+   "why": "New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing.",
+   "worker": "API scripts and free models on CI; a script checks every quote; Claude only judges the final card."
   }
  ]
 }
