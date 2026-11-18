@@ -1,0 +1,59 @@
+# The general runner (runner/CONTRACT.md, queue P2): build each task, reproduce its candidates' training in the jail,
+# and score them on the dev split. Manual only. No secrets; read-only token. Results are artifacts.
+name: runner
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  task:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - task: optdigits
+            cands: majority label-linear label-mlp16
+          - task: text
+            cands: majority label-linear label-mlp16
+          - task: adult
+            cands: majority label-linear label-mlp16
+          - task: sat
+            cands: sat-zeros sat-walksat
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      TASK: ${{ matrix.task }}
+      CANDS: ${{ matrix.cands }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind bubblewrap
+          sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
+          mkdir -p out
+      - name: unit tests
+        run: '"$RUNNER_TEMP/venv/bin/python" -m unittest runner/test_runner.py'
+      - name: build the task
+        run: '"$RUNNER_TEMP/venv/bin/python" -I tasks/build.py "$RUNNER_TEMP/built" --cache "$RUNNER_TEMP/dl" --only "$TASK"'
+      - name: reproduce training (twice, in the jail)
+        run: |
+          set +e; "$RUNNER_TEMP/venv/bin/python" runner/run.py reproduce --data "$RUNNER_TEMP/built" --task "$TASK" \
+            --cand $CANDS --out "out/reproduce-$TASK.json" 2>&1 | tee "out/reproduce-$TASK.txt"; rc=${PIPESTATUS[0]}; set -e
+          echo "exit $rc"; exit $rc
+      - name: score on dev
+        if: ${{ !cancelled() }}
+        run: |
+          set +e; "$RUNNER_TEMP/venv/bin/python" runner/run.py evaluate --data "$RUNNER_TEMP/built" --task "$TASK" \
+            --cand $CANDS --split dev --rounds 5 --records out/records --out "out/dev-$TASK.json" 2>&1 | tee "out/dev-$TASK.txt"
+          rc=${PIPESTATUS[0]}; set -e; echo "exit $rc"; exit $rc
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: runner-${{ matrix.task }}
+          path: out/

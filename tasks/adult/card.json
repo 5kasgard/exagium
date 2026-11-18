@@ -1,0 +1,59 @@
+{
+ "task": "adult",
+ "kind": "tabular",
+ "description": "UCI Adult income >50K; numeric columns as 255 training-quantile bins, categorical columns as category index (255 = unseen)",
+ "input": {
+  "bytes": 14,
+  "meaning": "14 columns",
+  "types": [
+   "ordinal",
+   "categorical",
+   "ordinal",
+   "categorical",
+   "ordinal",
+   "categorical",
+   "categorical",
+   "categorical",
+   "categorical",
+   "categorical",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "categorical"
+  ]
+ },
+ "output": {
+  "max_len": 1,
+  "meaning": "0 = <=50K, 1 = >50K"
+ },
+ "classes": 2,
+ "checker": "label",
+ "metric": "accuracy",
+ "baselines": [
+  "majority",
+  "label-linear"
+ ],
+ "floor": "majority",
+ "sources": [
+  "transfer/tasks.py: adult.data, adult.test (pinned)"
+ ],
+ "splits": {
+  "train": "train.in + train.key, seen by train.py",
+  "dev": "scored by the runner, never trained on",
+  "test": "scored only under a ledger plan (test_gate)"
+ },
+ "test_gate": "plan",
+ "items": {
+  "dev": 6513,
+  "test": 16281,
+  "train": 26048
+ },
+ "data": {
+  "dev.in": "1d82cc126651f33e9cbad4b966ffa976ed06a35e211c810f8d59bdc3b4c6271e",
+  "dev.key": "7fe6acdac35eab249bfa9db27449b2bbe09fa406fdbc54dae0dce88f2cd818ec",
+  "test.in": "b6c5b6c329201b6b3e7297155f235f6db08cda5478bec7cb7902b27089021bdc",
+  "test.key": "25888a17a7e41a3806f3ddb8f41c4d3a5c9c3c9610755d8b8e8f5328f5c144ed",
+  "train.in": "eea3037cb6c5af1b1f4c166654eef231bc09c1967de0efbb79d8d174dddfc0f5",
+  "train.key": "660578a83db569ecb9d4bbdf8326c67be3719aa74caff7fd99b5bd6ddf4b474e"
+ }
+}
