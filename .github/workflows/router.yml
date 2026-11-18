@@ -20,8 +20,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no workspace artifact
+      - name: "today's paid calls so far (queue P4): the daily cap counts router-runs' call log, not just this run"
+        run: |
+          git fetch -q origin router-runs && git show FETCH_HEAD:router/log/calls.jsonl > "$RUNNER_TEMP/usage.jsonl" 2>/dev/null || : > "$RUNNER_TEMP/usage.jsonl"
+          wc -l < "$RUNNER_TEMP/usage.jsonl"
       - name: probe every engine
         env:
+          # queue P4: paid pools this workflow may call, under engines.PAID's per-call and daily caps. Two probe runs at
+          # once can each see the same count, so a day can exceed a cap by one run's calls (at most 4 per pool).
+          ROUTER_PAID_POOLS: cerebras,xai,gemini
+          ROUTER_USAGE_LOG: ${{ runner.temp }}/usage.jsonl
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

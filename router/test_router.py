@@ -101,3 +101,90 @@ class Scrub(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpendCaps(unittest.TestCase):
+    """Queue P4: a paid pool is refused before any request unless listed, within per-call caps, logged and under the daily cap."""
+
+    def setUp(self):
+        import tempfile, urllib.request
+        self.d = tempfile.mkdtemp()
+        self.log = os.path.join(self.d, "usage.jsonl")
+        self.sent = []
+        def fake(req, timeout=None):
+            self.sent.append(req.full_url)
+            raise OSError("offline")
+        self.p = mock.patch.object(urllib.request, "urlopen", fake)
+        self.p.start()
+
+    def tearDown(self):
+        self.p.stop()
+
+    def env(self, **kw):
+        base = {"CEREBRAS_API_KEY": "k", "XAI_API_KEY": "k", "GEMINI_API_KEY": "k"}
+        base.update(kw)
+        return mock.patch.dict(os.environ, base, clear=False)
+
+    def test_unlisted_pool_is_refused_before_sending(self):
+        with self.env(ROUTER_PAID_POOLS="", ROUTER_USAGE_LOG=self.log):
+            for e, m in (("cerebras", "gpt-oss-120b"), ("xai", "grok-mini")):
+                with self.assertRaises(engines.Refused):
+                    engines.compat_call(e, m, "hi")
+            with self.assertRaises(engines.Refused):
+                engines.call("gemini", "models/gemini-3.5-flash", "hi")
+        self.assertEqual(self.sent, [])
+
+    def test_over_per_call_cap_is_refused(self):
+        with self.env(ROUTER_PAID_POOLS="cerebras", ROUTER_USAGE_LOG=self.log):
+            with self.assertRaises(engines.Refused):
+                engines.compat_call("cerebras", "m", "hi", max_tokens=engines.PAID["cerebras"]["max_tokens"] + 1)
+            with self.assertRaises(engines.Refused):
+                engines.compat_call("cerebras", "m", "x" * (engines.PAID["cerebras"]["prompt_chars"] + 1))
+        self.assertEqual(self.sent, [])
+
+    def test_no_log_means_refused(self):
+        with self.env(ROUTER_PAID_POOLS="cerebras"):
+            os.environ.pop("ROUTER_USAGE_LOG", None)
+            with self.assertRaises(engines.Refused):
+                engines.compat_call("cerebras", "m", "hi")
+        self.assertEqual(self.sent, [])
+
+    def test_daily_cap_counts_logged_calls_and_refuses_at_the_cap(self):
+        import json, time
+        day = time.strftime("%Y-%m-%dT00:00:01Z", time.gmtime())
+        cap = engines.PAID["xai"]["calls_per_day"]
+        with open(self.log, "w") as f:
+            for _ in range(cap - 1):
+                f.write(json.dumps({"t": day, "engine": "xai"}) + "\n")
+            f.write(json.dumps({"t": "2000-01-01T00:00:00Z", "engine": "xai"}) + "\n")   # another day: not counted
+            f.write(json.dumps({"t": day, "engine": "cerebras"}) + "\n")                 # another pool: not counted
+        with self.env(ROUTER_PAID_POOLS="xai", ROUTER_USAGE_LOG=self.log):
+            engines.compat_call("xai", "m", "hi")          # call number cap: allowed, sent, logged
+            self.assertEqual(len(self.sent), 1)
+            with self.assertRaises(engines.Refused):       # call number cap + 1: refused before sending
+                engines.compat_call("xai", "m", "hi")
+        self.assertEqual(len(self.sent), 1)
+        last = json.loads(open(self.log).read().splitlines()[-1])
+        self.assertEqual((last["engine"], last["ok"]), ("xai", False))
+        self.assertNotIn("text", last)                     # the log keeps no prompt or reply text
+
+    def test_free_pools_are_not_capped_and_are_logged(self):
+        with self.env(ROUTER_PAID_POOLS="", ROUTER_USAGE_LOG=self.log, NVIDIA_API_KEY="k"):
+            engines.compat_call("nvidia", "m", "x" * 100000, max_tokens=16000)
+        self.assertEqual(len(self.sent), 1)
+        self.assertEqual(len(open(self.log).read().splitlines()), 1)
+
+
+class ProbeUnderCaps(unittest.TestCase):
+    def test_a_refused_paid_pool_is_a_record_not_a_crash(self):
+        import urllib.request
+        def fake(req, timeout=None):
+            raise OSError("offline")
+        env = {"XAI_API_KEY": "k", "ROUTER_PAID_POOLS": ""}
+        with mock.patch.object(urllib.request, "urlopen", fake), mock.patch.dict(os.environ, env), \
+             mock.patch.object(probe, "compat_models", lambda n: (200, ["grok-mini"], {})), \
+             mock.patch.object(probe, "OPENAI_COMPAT", {"xai": engines.OPENAI_COMPAT["xai"]}):
+            recs = probe.probe_compat()
+        calls = [r for r in recs if r["model"] != "models.list"]
+        self.assertTrue(calls and all(not r["ok"] for r in calls), recs)
+        self.assertTrue(any("refused by spend cap" in (r.get("error") or "") for r in recs), recs)

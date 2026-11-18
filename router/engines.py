@@ -59,6 +59,62 @@ SECRET_ENVS = ("OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "GEMINI_API_KEY", "
                "CROWLLM_BASE_URL") + tuple(v[1] for v in OPENAI_COMPAT.values())
 
 
+# Queue P4: spend caps at the call site. These pools hold the owner's money (Cerebras $10, xAI $5, Gemini credit), so a
+# call to one is refused before any network traffic unless (1) the workflow lists the pool in ROUTER_PAID_POOLS, (2) the
+# call fits the per-call caps, and (3) ROUTER_USAGE_LOG names a log file and today's (UTC) calls to that pool in it are
+# under the daily cap. Worst case per pool per day is calls_per_day x (prompt_chars/4 + max_tokens) tokens; prices change,
+# so the caps are in calls and tokens and the log keeps each call's reported usage for the real figure.
+PAID = {"cerebras": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50),
+        "xai": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=30),
+        "gemini": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50)}
+
+
+class Refused(ValueError):
+    """A paid call the caps don't allow; raised before any request is sent."""
+
+
+def _today_calls(log, engine):
+    day, n = time.strftime("%Y-%m-%d", time.gmtime()), 0
+    try:
+        with open(log) as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                n += r.get("engine") == engine and str(r.get("t", "")).startswith(day)
+    except FileNotFoundError:
+        pass
+    return n
+
+
+def paid_guard(engine, prompt_chars, max_tokens):
+    cap = PAID.get(engine)
+    if cap is None:
+        return
+    allowed = {x.strip() for x in os.environ.get("ROUTER_PAID_POOLS", "").split(",") if x.strip()}
+    if engine not in allowed:
+        raise Refused(f"{engine} is a paid pool; this workflow does not list it in ROUTER_PAID_POOLS")
+    if max_tokens > cap["max_tokens"] or prompt_chars > cap["prompt_chars"]:
+        raise Refused(f"{engine}: call over the per-call cap ({max_tokens} > {cap['max_tokens']} tokens or "
+                      f"{prompt_chars} > {cap['prompt_chars']} prompt chars)")
+    log = os.environ.get("ROUTER_USAGE_LOG")
+    if not log:
+        raise Refused(f"{engine}: no ROUTER_USAGE_LOG, so the daily cap can't be enforced")
+    if _today_calls(log, engine) >= cap["calls_per_day"]:
+        raise Refused(f"{engine}: daily cap of {cap['calls_per_day']} calls reached (UTC day)")
+
+
+def log_usage(rec):
+    """Queue Q22: one JSON line per call (no prompt, no reply text) when ROUTER_USAGE_LOG is set."""
+    log = os.environ.get("ROUTER_USAGE_LOG")
+    if log:
+        keep = {k: rec.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage")}
+        with open(log, "a") as f:
+            f.write(json.dumps(keep, sort_keys=True) + "\n")
+    return rec
+
+
 def compat_base(name):
     base = OPENAI_COMPAT[name][0]
     return os.environ.get(base[4:], "").rstrip("/") if base.startswith("env:") else base
@@ -87,6 +143,7 @@ def compat_models(name):
 
 
 def compat_call(name, model, prompt, max_tokens=64):
+    paid_guard(name, len(prompt), max_tokens)
     t0 = time.time()
     base, key = compat_base(name), os.environ[OPENAI_COMPAT[name][1]]
     req = urllib.request.Request(base + "/chat/completions", method="POST",
@@ -95,9 +152,9 @@ def compat_call(name, model, prompt, max_tokens=64):
                                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
     st, j, h = _send_h(req)
     text = (j.get("choices") or [{}])[0].get("message", {}).get("content") if st == 200 else None
-    return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": name, "model": model,
+    return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": name, "model": model,
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": j.get("usage"),
-            "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])}
+            "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
 
 
 def _scrub(s):
@@ -110,6 +167,7 @@ def _scrub(s):
 
 
 def call(engine, model, prompt, system=None, max_tokens=2000):
+    paid_guard(engine, len(prompt) + len(system or ""), max_tokens)
     t0 = time.time()
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     text, usage = None, None
@@ -142,9 +200,9 @@ def call(engine, model, prompt, system=None, max_tokens=2000):
             text, usage = "".join(p.get("text", "") for p in parts if not p.get("thought")), j.get("usageMetadata")
     else:
         raise ValueError(engine)
-    return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": engine, "model": model,
+    return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": engine, "model": model,
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": usage,
-            "text": text, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])}
+            "text": text, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
 
 
 def gemini_models():

@@ -6,7 +6,7 @@ Costs: 1 OpenRouter request (of 50/day), ~2 Cloudflare neurons, 1 Gemini request
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I drops the script dir
-from engines import call, gemini_models, OPENAI_COMPAT, compat_base, compat_models, compat_call
+from engines import call, gemini_models, OPENAI_COMPAT, compat_base, compat_models, compat_call, Refused
 
 PROMPT, WANT = "Reply with exactly this text and nothing else: PROBE-OK 7*6=42", "PROBE-OK 7*6=42"
 
@@ -33,7 +33,10 @@ def main(out):
             else:
                 recs.append({"engine": "gemini", "model": m, "ok": False, "error": "not in this key's model list"})
     for engine, model in plan:
-        r = call(engine, model, PROMPT, max_tokens=1500)
+        try:
+            r = call(engine, model, PROMPT, max_tokens=1500)
+        except Refused as e:   # queue P4: a capped paid pool is recorded, not fatal
+            recs.append({"engine": engine, "model": model, "ok": False, "error": f"refused by spend cap: {e}"}); continue
         r["exact"] = (r["text"] or "").strip() == WANT
         recs.append(r)
     recs += probe_compat()
@@ -120,7 +123,10 @@ def probe_compat():
             if m is None:
                 recs.append({"engine": name, "model": "none", "ok": False, "error": "no chat model chosen; set PROBE_%s_MODEL" % name.upper()})
                 continue
-            r = compat_call(name, m, PROMPT, max_tokens=400)   # reasoning models spend tokens before answering
+            try:
+                r = compat_call(name, m, PROMPT, max_tokens=400)   # reasoning models spend tokens before answering
+            except Refused as e:   # queue P4: a capped paid pool is recorded, not fatal
+                recs.append({"engine": name, "model": m, "ok": False, "error": f"refused by spend cap: {e}"}); continue
             r["exact"] = (r["text"] or "").strip() == WANT
             recs.append(r)
     return recs
