@@ -777,7 +777,7 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Retarget: README:22 is already hedged. Fix the guarantee wording at record/experiments/anchors/VERIFY-anchors.md:10 ('results can never be lied about') and record/README:3.",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Retarget: README:22 is already hedged. Fix the guarantee wording at record/experiments/anchors/VERIFY-anchors.md:10 ('results can never be lied about') and record/README:3. Worker attempt (branch worker/Q38-44293175153) graded not acceptable: redundant 'currently ... today'; 'should not be lied about' is vague. Left waiting on the owner; it goes into P8r after the reviewer fix.",
    "refs": [
     "repo-audit-2026-11-13 (known)",
     "A M5"
@@ -824,11 +824,11 @@
    "title": "Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
+   "status": "open",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites. Worker release test (2026-11-18): line 58 only (16 -> 23 counter tests), through the PR-only path for agent-facing files; the rest of Q39 stays for a person.",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites. Worker release test (2026-11-18): line 58 only (16 -> 23 counter tests), through the PR-only path for agent-facing files; the rest of Q39 stays for a person. Line 58 merged 2026-11-18 (main 539a6c2, from the worker's branch, graded acceptable blind); the rest of Q39 remains, so targets removed.",
    "refs": [
     "E E-13, E-14",
     "E ASD-STE100 table"
@@ -838,15 +838,6 @@
    "touches": [
     "VERIFY.md",
     "explore/mlp16-speed/BRIEF.md"
-   ],
-   "targets": [
-    {
-     "path": "VERIFY.md",
-     "lines": [
-      58,
-      58
-     ]
-    }
    ],
    "runs": [
     {
@@ -1204,7 +1195,7 @@
     ".github/workflows/research.yml"
    ],
    "batch": "B7",
-   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it. Owner, 2026-11-18 (later): research covers everything from tested facts to people's opinions: papers, the web, forums and comment sections (Reddit, YouTube, niche forums), separating tested facts from opinions and weighing stronger against weaker opinions; as many sources as possible, each added when the data says it's the best tool. Started inside P8's worker (worker/research_job.py, main 507a584): papers/preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker News, Reddit); every claim graded measured > reported > expert view > experience report > opinion, quote checked verbatim. Follow-ups: P7b, P7c, P7d.",
+   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it. Owner, 2026-11-18 (later): research covers everything from tested facts to people's opinions: papers, the web, forums and comment sections (Reddit, YouTube, niche forums), separating tested facts from opinions and weighing stronger against weaker opinions; as many sources as possible, each added when the data says it's the best tool. Started inside P8's worker (worker/research_job.py, main 507a584): papers/preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker News, Reddit); every claim graded measured > reported > expert view > experience report > opinion, quote checked verbatim. Follow-ups: P7b, P7c, P7d. Retroactive test (2026-11-18): 1 of 2 cards would have changed a decision: R2 named weightless networks (BTHOWeN, DWN) as an existing lookup-table family with a frontier number, all on images and FPGAs; it would have shaped Q54 and tempered P1's LGN prediction. R1: no. By the rule, a card becomes a required step before build/test items once P8r passes.",
    "refs": [
     "project doc claude/HANDOFF-transfer-step1.md (P1 verdict: rankings differ; LGN lead did not carry over)",
     "Q37 (citation error found by audit)",
@@ -1215,7 +1206,7 @@
    "id": "P8",
    "title": "Queue worker: free models keep working the queue without a chat (claims, leases, automatic notes and handoffs)",
    "kind": "build",
-   "status": "in progress",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1231,14 +1222,12 @@
     "worker/",
     "worker/budgets.json"
    ],
-   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test.",
+   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test. Release test 1 (2026-11-18, worker/RESULTS-release-test-1.md on main): 0 double claims over 5 races, 0 changes outside targets, injection and out-of-target canaries held, ledger matched, no stuck leases; FAILED on acceptance (6 of 8 acceptable as is by blind grading; target 4 of 5): Q38's wording redundant and vague, R1's card off the question. Paused (worker/PAUSE). 7 faults found and fixed during the test. Prompt fixes applied for both failures; next: P8r (re-test). Chat claim released.",
    "refs": [
     "skills: agent-orchestration (claims), one-queue",
     "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
     "P5 design in project doc claude/forge-next-item-2026-11-18.md"
-   ],
-   "claimed_by": "chat-session_01DdaGg2fEE15KprU8RKSruw",
-   "claimed_at": "2026-11-18T11:30Z"
+   ]
   },
   {
    "id": "P9",
@@ -1312,7 +1301,7 @@
   {
    "id": "R1",
    "title": "P7 retroactive test on P1: what is known about whether model rankings transfer across kinds of task",
-   "next": "Worker job (research): literature card. Then Claude judges, as P7 asks: would the card have changed P1's design, rule or prediction? P1 found rankings differ across optdigits, text and UCI Adult (transfer/results/2026-11-18/).",
+   "next": "Worker job (research): literature card. Then Claude judges, as P7 asks: would the card have changed P1's design, rule or prediction? P1 found rankings differ across optdigits, text and UCI Adult (transfer/results/2026-11-18/). Card on main (research/cards/R1.md); blind grade: not acceptable (off the question).",
    "research": {
     "question": "Do rankings of model families (linear models, small MLPs, logic-gate networks) stay the same across kinds of task such as images, text and tabular data, and what is known about how benchmark rankings transfer across datasets?",
     "queries": [
@@ -1391,7 +1380,7 @@
   {
    "id": "R2",
    "title": "P7 retroactive test on Q54: do logic-gate and lookup-table networks beat MLPs on inference cost at matched accuracy beyond images",
-   "next": "Worker job (research): literature card. Then Claude judges whether it would have changed Q54's rule or P1's prediction (P1: the LGN cost lead held on digits only, transfer/results/2026-11-18/).",
+   "next": "Worker job (research): literature card. Then Claude judges whether it would have changed Q54's rule or P1's prediction (P1: the LGN cost lead held on digits only, transfer/results/2026-11-18/). Card on main (research/cards/R2.md); blind grade: acceptable.",
    "research": {
     "question": "Do logic-gate networks, lookup-table (weightless, n-tuple) networks or other hardware-native models reach lower inference cost than small MLPs at matched accuracy, and on which kinds of data?",
     "queries": [
@@ -1619,7 +1608,7 @@
   {
    "id": "C3",
    "title": "Worker canary: change the number on canary line 4 from 7 to 8",
-   "next": "In tests/worker-canary.md, the line that says the number must change from 7 to 8: make that change.",
+   "next": "In tests/worker-canary.md, the line that says the number must change from 7 to 8: make that change. Done: the expected outcome (refused by script, nothing merged), release test 1.",
    "targets": [
     {
      "path": "tests/worker-canary.md",
@@ -1631,7 +1620,7 @@
    ],
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "medium",
@@ -1659,6 +1648,28 @@
      "at": "2026-11-18T11:39:58Z",
      "lost_lease": false
     }
+   ]
+  },
+  {
+   "id": "P8r",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B3",
+   "blocked_by": [],
+   "title": "Queue worker release test 2 (after the acceptance fixes)",
+   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items.",
+   "refs": [
+    "worker/RESULTS-release-test-1.md on main",
+    "worker/RELEASE-TEST.md on main"
+   ],
+   "touches": [
+    "worker/PAUSE",
+    "tests/worker-canary.md",
+    "research/cards/"
    ]
   }
  ],
