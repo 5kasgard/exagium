@@ -1,0 +1,36 @@
+
+adult (AMD EPYC 9V74 80-Core Processor)
+  mlp16   acc 0.8577 [0.8543, 0.8601, 0.8587]  Ir/item    1974.9  ns/item    150.4
+  mlp64   acc 0.8575 [0.8582, 0.8568, 0.8576]  Ir/item    7208.8  ns/item    502.8
+  mlp32   acc 0.8573 [0.8591, 0.8563, 0.8566]  Ir/item    3720.7  ns/item    274.1
+  linear  acc 0.8529 [0.8529, 0.8533, 0.8525]  Ir/item     397.3  ns/item     33.7
+  lgn     acc 0.8165 [0.8022, 0.8286, 0.8187]  Ir/item    2525.7  ns/item    470.3
+
+optdigits (AMD EPYC 9V45 96-Core Processor)
+  mlp64   acc 0.9833 [0.9843, 0.9801, 0.9854]  Ir/item   30620.4  ns/item   1543.1
+  mlp32   acc 0.9822 [0.9791, 0.9843, 0.9833]  Ir/item   15765.6  ns/item    822.1
+  mlp16   acc 0.9725 [0.977, 0.9686, 0.9718]  Ir/item    8332.2  ns/item    479.4
+  lgn     acc 0.9693 [0.9697, 0.9749, 0.9634]  Ir/item    3939.4  ns/item    483.0
+  linear  acc 0.9613 [0.9613, 0.9613, 0.9613]  Ir/item    4728.8  ns/item    281.7
+
+text (AMD EPYC 9V45 96-Core Processor)
+  linear  acc 0.3335 [0.334, 0.3326, 0.3338]  Ir/item    6974.9  ns/item    519.6
+  mlp16   acc 0.3327 [0.334, 0.325, 0.3392]  Ir/item    9709.6  ns/item    626.7
+  mlp32   acc 0.3313 [0.32, 0.3346, 0.3394]  Ir/item   18692.0  ns/item   1012.4
+  mlp64   acc 0.3174 [0.317, 0.3168, 0.3184]  Ir/item   36652.0  ns/item   1794.3
+  lgn     acc 0.3149 [0.3166, 0.3144, 0.3138]  Ir/item   20059.5  ns/item   1607.9
+  majority class on adult: 0.7638
+  majority class on optdigits: 0.0931
+  majority class on text: 0.1494
+
+flips: {'acc': 3, 'ir': 4, 'ns': 2}
+   {"measure": "ir", "pair": ["lgn", "linear"], "better_on": "optdigits", "worse_on": "adult", "optdigits_ir_ratio": 0.8330707663975669, "adult_ir_ratio": 6.357262573834066}
+   {"measure": "ir", "pair": ["lgn", "linear"], "better_on": "optdigits", "worse_on": "text", "optdigits_ir_ratio": 0.8330707663975669, "text_ir_ratio": 2.8759542081407936}
+   {"measure": "ir", "pair": ["lgn", "mlp16"], "better_on": "optdigits", "worse_on": "adult", "optdigits_ir_ratio": 0.4727979381938558, "adult_ir_ratio": 1.278923790850859}
+   {"measure": "ir", "pair": ["lgn", "mlp16"], "better_on": "optdigits", "worse_on": "text", "optdigits_ir_ratio": 0.4727979381938558, "text_ir_ratio": 2.0659391252920676}
+   {"measure": "ns", "pair": ["lgn", "mlp32"], "better_on": "optdigits", "worse_on": "adult", "optdigits_ns_diff": -339.11753571428574, "optdigits_ns_se": 0.6281901349752811, "adult_ns_diff": 196.1935357142857, "adult_ns_se": 2.293730789500243}
+   {"measure": "ns", "pair": ["lgn", "mlp32"], "better_on": "optdigits", "worse_on": "text", "optdigits_ns_diff": -339.11753571428574, "optdigits_ns_se": 0.6281901349752811, "text_ns_diff": 595.5621, "text_ns_se": 17.401869011863994}
+   {"measure": "acc", "pair": ["linear", "mlp64"], "better_on": "text", "worse_on": "adult", "text_acc_diff": 0.016066666666666677, "text_acc_se": 0.004492102627882193, "adult_acc_diff": -0.004668017935016275, "adult_acc_se": 0.0017635066576207768}
+   {"measure": "acc", "pair": ["linear", "mlp64"], "better_on": "text", "worse_on": "optdigits", "text_acc_diff": 0.016066666666666677, "text_acc_se": 0.004492102627882193, "optdigits_acc_diff": -0.021966527196652718, "optdigits_acc_se": 0.0054250023748083}
+   {"measure": "acc", "pair": ["mlp16", "mlp64"], "better_on": "text", "worse_on": "optdigits", "text_acc_diff": 0.015333333333333338, "text_acc_se": 0.00575890685049981, "optdigits_acc_diff": -0.010808926080892609, "optdigits_acc_se": 0.00429989451905506}
+VERDICT: rankings differ 

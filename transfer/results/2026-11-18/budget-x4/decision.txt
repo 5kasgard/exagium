@@ -1,0 +1,23 @@
+
+adult (AMD EPYC 7763 64-Core Processor)
+  mlp16   acc 0.8563 [0.8553, 0.8567, 0.857]  Ir/item    1976.1  ns/item    197.9
+  mlp64   acc 0.8527 [0.8544, 0.8536, 0.8499]  Ir/item    7216.3  ns/item    732.7
+  linear  acc 0.8525 [0.852, 0.8524, 0.8531]  Ir/item     397.3  ns/item     33.3
+
+optdigits (Intel(R) Xeon(R) 6975P-C)
+  mlp64   acc 0.9864 [0.9843, 0.9874, 0.9874]  Ir/item   30617.2  ns/item   2222.2
+  mlp16   acc 0.9784 [0.9812, 0.977, 0.977]  Ir/item    8330.3  ns/item    630.3
+  linear  acc 0.9630 [0.9623, 0.9634, 0.9634]  Ir/item    4728.8  ns/item    285.7
+
+text (Intel(R) Xeon(R) 6975P-C)
+  linear  acc 0.3357 [0.3352, 0.3378, 0.334]  Ir/item    6974.9  ns/item    577.9
+  mlp16   acc 0.3348 [0.3366, 0.3326, 0.3352]  Ir/item    9711.7  ns/item    790.6
+  mlp64   acc 0.2945 [0.29, 0.3014, 0.2922]  Ir/item   36659.3  ns/item   2681.2
+  majority class on adult: 0.7638
+  majority class on optdigits: 0.0931
+  majority class on text: 0.1494
+
+flips: {'acc': 2, 'ir': 0, 'ns': 0}
+   {"measure": "acc", "pair": ["linear", "mlp64"], "better_on": "text", "worse_on": "optdigits", "text_acc_diff": 0.04113333333333335, "text_acc_se": 0.00603835804744447, "optdigits_acc_diff": -0.023361227336122736, "optdigits_acc_se": 0.0052710276994103545}
+   {"measure": "acc", "pair": ["mlp16", "mlp64"], "better_on": "text", "worse_on": "optdigits", "text_acc_diff": 0.040266666666666666, "text_acc_se": 0.005543287897922584, "optdigits_acc_diff": -0.00801952580195258, "optdigits_acc_se": 0.0030695598462491583}
+VERDICT: rankings differ 
