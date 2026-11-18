@@ -403,11 +403,11 @@
    "title": "No neuron/request log for Cloudflare and Gemini calls; conflicting neuron-cap evidence",
    "kind": "infra",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Half done 2026-11-19 (main 6579aed): engines.call and compat_call write one JSON line per call (time, engine, model, ok, status, latency, reported usage; no prompt or reply) when ROUTER_USAGE_LOG is set; router.yml sets it. Remaining: set it in the worker and review workflows, then resolve the 2,876-neuron vs 11-12 conflict from logged Cloudflare usage.",
+   "next": "Done 2026-11-19 (main 6579aed, then review.yml and review.py on main): every router call writes one JSON line (time, engine, model, status, latency, reported usage incl. Cloudflare neurons; no prompt or reply) when ROUTER_USAGE_LOG is set; router.yml keeps it on router-runs (router/log/calls.jsonl), review.yml saves it with each review (reviews/<run>/usage.jsonl, live run 44397281606), the worker already logs neurons in worker-runs/ledger/calls.jsonl. Conflict settled by data: Cloudflare's reported neurons equal the published gpt-oss-120b rates exactly (fit over the worker's 12 calls: 31,827 in / 68,174 out per million tokens vs 31,818 / 68,182 published; max error 0.05 neurons), so a call's cost is predictable from its tokens. The 2,876-neuron refusal of 2026-10-29 is not the current cap: 2026-11-12 had about 6,700 to 8,000 neurons of 200 replies in one UTC day (E-07). Treat 10,000/day as the cap, with the worker's 9,900 reservation as the guard.",
    "refs": [
     "E E-07"
    ],
