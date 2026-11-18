@@ -6,8 +6,8 @@
     python3 runner/run.py reproduce --data BUILT --task NAME --cand NAME...
 
 BUILT is tasks/build.py's output. Nothing here knows any task: the card names the checker, the output bound, the
-floor and the baselines. Reuses loop.py by import (not edited): its jail (bwrap, else confine), its trusted timer
-and its counter call pattern.
+floor and the baselines. Reuses loop.py by import (not edited): its jail (bwrap, else confine) through runner/jail.py, which adds Q10's
+limits and seccomp filter, its trusted timer and its counter call pattern.
   - train: the candidate's train.py, jailed, sees only train.py, card.json, train.in and train.key.
   - outputs: one jailed run of infer on the split, under loop's timer, pinned to one CPU; the bytes it writes must be
     exactly one record per item, each within the card's bound; the checker scores each item (0..1).
@@ -23,6 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(REPO, "loop"))
 sys.path.insert(0, HERE)
+import jail as J  # noqa: E402  (loop's jail plus Q10's limits)
 import loop as L  # noqa: E402
 import records  # noqa: E402
 
@@ -65,7 +66,8 @@ def cand(name):
 
 
 def digests(t, cands):
-    tools = [os.path.abspath(__file__), os.path.join(HERE, "records.py"), t["checker"], t["card_path"],
+    tools = [os.path.abspath(__file__), os.path.join(HERE, "records.py"), os.path.join(HERE, "jail.py"),
+             os.path.join(HERE, "limits.c"), t["checker"], t["card_path"],
              os.path.join(REPO, "loop", "loop.py"), L.TIMER, L.CONFINE, L.SECCOMP, L.COUNT, L.RECORD]
     out = [{"name": rel(p), "sha256": sha_file(p)} for p in tools]
     out += [{"name": f"built/{t['name']}/{f}", "sha256": h} for f, h in sorted(t["card"]["data"].items())]
@@ -98,7 +100,7 @@ def train(c, t):
         shutil.copyfile(t["card_path"], os.path.join(sb, "card.json"))
         for f in ("train.in", "train.key"):
             shutil.copyfile(os.path.join(t["dir"], f), os.path.join(sb, f))
-        r = L.jail([sys.executable, "-s", "-P", "train.py", "card.json", "train.in", "train.key", "weights.bin"],
+        r = J.jail([sys.executable, "-s", "-P", "train.py", "card.json", "train.in", "train.key", "weights.bin"],
                    [(sb, "/w", True)], L.TRAIN_TIMEOUT)
         if r.returncode:
             raise Failed(f"{c['name']} on {t['name']}: train.py exited {r.returncode}:\n{r.stderr.decode(errors='replace')[-2000:]}")
@@ -115,9 +117,9 @@ def timed(c, inp, n, timer, cpu):
         shutil.copy2(c["weights_path"], os.path.join(w, "weights.bin"))
         shutil.copy2(timer, os.path.join(w, "timer"))
         shutil.copy2(inp, os.path.join(w, "in.rec"))
-        sc = ["--seccomp"] if L.JAIL["mode"] == "confine" else []
-        r = L.jail(["./timer", *sc, str(cpu), "./infer", "weights.bin", "in.rec", str(n)], [(w, "/w", False)], 1800,
-                   seccomp=not sc)
+        # the timer forks, so it runs without the filter and adds it to its child, in both jail modes (Q10)
+        r = J.jail(["./timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)], [(w, "/w", False)],
+                   1800, seccomp=False)
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")
     f = tail.split()
     if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \
@@ -126,8 +128,8 @@ def timed(c, inp, n, timer, cpu):
     ns, status, cpu_ns, pids = (int(x) for x in f)
     if status:
         raise Failed(f"{c['name']}: infer exited {status}")
-    if pids != 1 and L.JAIL["mode"] == "bwrap":
-        raise Failed(f"{c['name']}: the jail handed out {pids} pid(s); candidates must be one single-threaded process")
+    if pids != -1:   # -1: the child ran under the seccomp filter, which refuses every new process or thread
+        raise Failed(f"{c['name']}: the timer did not filter its child (pids {pids})")
     if cpu_ns > L.CPU_SLACK[0] * ns + L.CPU_SLACK[1]:
         raise Failed(f"{c['name']}: used more than one CPU ({cpu_ns} ns CPU in {ns} ns wall)")
     return out, ns
@@ -148,8 +150,9 @@ def count(c, inp, n, outdir):
                                     "--confine", L.JAIL["confine"], *ro, *[x.replace("/tool", tool, 1) for x in tail]],
                                    capture_output=True, timeout=3600, cwd=cwd, env=dict(L.ENV, HOME=cwd, TMPDIR=cwd))
         else:
-            r = L.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", *tail],
-                       [(tool, "/tool", False)], 3600, cwd="/tmp")
+            # count.py forks valgrind, so no filter here: rlimits only (runner/jail.py, "Gaps")
+            r = J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", *tail],
+                       [(tool, "/tool", False)], 3600, cwd="/tmp", seccomp=False)
     if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1:
         raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")
     rec = json.loads(r.stdout)
@@ -195,13 +198,13 @@ def prepare(a):
 
 
 def cmd_reproduce(a):
-    L.check_jail()
+    jail = J.check()
     t, cs = prepare(a)
     out = []
     for c in cs:
         w1, w2 = train(c, t), train(c, t)
         out.append(dict(candidate=c["name"], task=t["name"], sha256=[hashlib.sha256(w).hexdigest() for w in (w1, w2)],
-                        identical=w1 == w2, jail=L.JAIL["mode"]))
+                        identical=w1 == w2, jail=jail))
         print(f"{c['name']:14s} {t['name']:10s} identical={w1 == w2}")
     if a.out:
         json.dump(out, open(a.out, "w"), indent=1)
@@ -210,7 +213,7 @@ def cmd_reproduce(a):
 
 
 def cmd_evaluate(a):
-    L.check_jail()
+    jail = J.check()
     t, cs = prepare(a)
     card = t["card"]
     missing = [b for b in card["baselines"] if b not in a.cand]
@@ -268,7 +271,7 @@ def cmd_evaluate(a):
         r["above_floor"] = r["mean"] > floor if name != card["floor"] else None
         r["ns_per_item"] = statistics.fmean((x - y) / n for x, y in zip(r["ns_n"], r["ns_0"]))
     out = dict(task=t["name"], split=a.split, n=n, metric=card["metric"], floor=dict(baseline=card["floor"], mean=floor),
-               plan=plan, jail=L.JAIL["mode"], host=L.versions(), rounds=a.rounds, seed=a.seed,
+               plan=plan, jail=jail, host=L.versions(), rounds=a.rounds, seed=a.seed,
                run_id=os.environ.get("GITHUB_RUN_ID", ""), digests=digests(t, cs), candidates=res)
     json.dump(out, open(a.out, "w"), indent=1, sort_keys=True)
     shutil.rmtree(work, ignore_errors=True)
