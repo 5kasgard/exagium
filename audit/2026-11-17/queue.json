@@ -951,7 +951,7 @@
    "value": "high",
    "severity": "none",
    "blocked_by": [],
-   "next": "Done 2026-11-18 (main 0844200 and d6b2fa5, transfer/): rule fixed at c5949a5 before running, reviewed first by gpt-oss-120b (router-runs reviews/44237547673; 1 of 9 points applied, 1 partly, rest rejected with evidence in transfer/PLAN.md). Verdict: rankings differ. 3 accuracy flips (larger MLP wins on digits, loses on text; 2 survive a 4x training budget, run 44238804472), 4 instruction-count flips and 2 native-time flips (LGN cheaper than linear and mlp16 on digits only: 0.47x mlp16 instructions on digits, 2.1x on text, 1.3x on adult). Built in transfer/, not tasks/ or runner/; loop/scale.py untouched. Differences from this item's wording: text scored by accuracy, not bits/char (gate networks and the C programs output a class); no separate lookup-table family for Q54 (linear and MLPs run as per-feature lookups, which is not the native-primitive family Q54 means). Per-item outcomes kept in result-*.json.",
+   "next": "Done 2026-11-18 (main 0844200 and d6b2fa5, transfer/): rule fixed at c5949a5 before running, reviewed first by gpt-oss-120b (router-runs reviews/44237547673; 1 of 9 points applied, 1 partly, rest rejected with evidence in transfer/PLAN.md). Verdict: rankings differ. 3 accuracy flips over 2 family pairs (larger MLP wins on digits, loses on text; one per pair survives a 4x training budget, run 44238804472), 4 instruction-count flips and 2 native-time flips (LGN cheaper than linear and mlp16 on digits only: 0.47x mlp16 instructions on digits, 2.1x on text, 1.3x on adult). Built in transfer/, not tasks/ or runner/; loop/scale.py untouched. Differences from this item's wording: text scored by accuracy, not bits/char (gate networks and the C programs output a class); no separate lookup-table family for Q54 (linear and MLPs run as per-feature lookups, which is not the native-primitive family Q54 means). Per-item outcomes kept in result-*.json.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main",
@@ -968,7 +968,7 @@
    "id": "P2",
    "title": "General task contract: bytes in, bytes out, a checker; per-item outcomes recorded",
    "kind": "build",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -976,16 +976,18 @@
    "blocked_by": [
     "P1"
    ],
-   "next": "Task card (data, I/O schema, checker program, floor, baselines, split, ledger gate) and a new runner reusing loop's jail, meters, scale.py and the ledger; loop.py stays frozen. From P1 (2026-11-18): reuse transfer/tasks.py's byte records and sha256 pins, meter.py's per-item outcomes and C-equals-reference check, and decide.py's flip rule; every task card also needs a tuning budget on a split inside training, or capacity effects look structural (P1's surviving flips were mlp64 overfitting text under a fixed L2).",
+   "next": "Done 2026-11-18 (main, runner/ and tasks/): record files in and out, a checker per task, cards with pinned data, baselines and a floor, candidates as code only (weights made by jailed training), test gate on a ledger plan; loop.py reused by import, not edited. Held on optdigits, text, UCI Adult and planted 3-SAT (checked with no key; WalkSAT 200/200, all-false 0/200) with no task code in run.py; 11/11 trainings reproduce byte for byte per host; outputs equal a direct run on the same host. Not held: weights across hosts (text mlp16: 59/6000 dev outputs differ CI vs local). Actions run 44253054973; runner/results/2026-11-18/. Free review (router-runs reviews/44253058538): no point held after checking. Not done here: scale.py reuse (marginal Ir at N and 0 instead) and a tuning split in the cards (moved to P3).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
-    "README.md (Next) on main"
+    "README.md (Next) on main",
+    "runner/results/2026-11-18/ on main",
+    "Actions run 44253054973"
    ],
    "batch": "B1",
    "touches": [
     "runner/",
     "tasks/",
-    "loop/jail (reused, not edited: loop.py is frozen)"
+    ".github/workflows/runner.yml"
    ]
   },
   {
@@ -1000,7 +1002,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code.",
+   "next": "vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1081,6 +1083,28 @@
    "batch": "B6",
    "touches": [
     "analysis/"
+   ]
+  },
+  {
+   "id": "Q55",
+   "title": "Trained weights differ across hosts for numpy float trainers (P2: text mlp16 59/6000 dev outputs differ, CI vs local)",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "Test the hypothesis that BLAS kernel choice per CPU causes it: train label-linear and label-mlp16 on two CI CPU types with OPENBLAS_CORETYPE fixed to one value, and with a pure-numpy deterministic matmul as lgn_d did; supported if weights match across hosts in either case. Until then, an artifact's identity is its code plus training host, and cross-host claims compare outputs, not weights.",
+   "refs": [
+    "runner/results/2026-11-18/README.md on main",
+    "Actions run 44253054973",
+    "pilots/lgn-20261115-2/lgn_d (deterministic ops)"
+   ],
+   "blocked_by": [],
+   "batch": "B1",
+   "touches": [
+    "runner/candidates/label-linear/",
+    "runner/candidates/label-mlp16/"
    ]
   }
  ],
