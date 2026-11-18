@@ -925,7 +925,7 @@
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "next": "Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time.",
+   "next": "Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time. Update 2026-11-18 (P1, transfer/results/2026-11-18/): for the gate network, the digits-only lead did not carry over: on text and UCI Adult it used 2.1x and 1.3x mlp16's instructions and was less accurate, so on the first two non-digit tasks this family weakens the hypothesis (sizes grew with the class count: 50 output gates per class). Lookup-table and constraint-propagation families are still untested; add them in P3.",
    "refs": [
     "project doc claude/forge-hypothesis-process-is-computation.md",
     "loop/results/scale-2026-11-18/",
@@ -945,22 +945,23 @@
    "id": "P1",
    "title": "Transfer test: do structure rankings hold beyond digits?",
    "kind": "test",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
    "severity": "none",
    "blocked_by": [],
-   "next": "Add next-character text (bits/char) and a UCI tabular set; run linear, MLPs, LGNs (plus a lookup-table family for Q54) on all three with per-item outcomes kept. Rule fixed first: any two families flip order on metric or cost by >2 SE.",
+   "next": "Done 2026-11-18 (main 0844200 and d6b2fa5, transfer/): rule fixed at c5949a5 before running, reviewed first by gpt-oss-120b (router-runs reviews/44237547673; 1 of 9 points applied, 1 partly, rest rejected with evidence in transfer/PLAN.md). Verdict: rankings differ. 3 accuracy flips (larger MLP wins on digits, loses on text; 2 survive a 4x training budget, run 44238804472), 4 instruction-count flips and 2 native-time flips (LGN cheaper than linear and mlp16 on digits only: 0.47x mlp16 instructions on digits, 2.1x on text, 1.3x on adult). Built in transfer/, not tasks/ or runner/; loop/scale.py untouched. Differences from this item's wording: text scored by accuracy, not bits/char (gate networks and the C programs output a class); no separate lookup-table family for Q54 (linear and MLPs run as per-feature lookups, which is not the native-primitive family Q54 means). Per-item outcomes kept in result-*.json.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
-    "README.md (Next) on main"
+    "README.md (Next) on main",
+    "transfer/results/2026-11-18/ on main",
+    "Actions runs 44237908056, 44238804472"
    ],
    "batch": "B1",
    "touches": [
-    "tasks/",
-    "runner/",
-    "loop/scale.py"
+    "transfer/",
+    ".github/workflows/transfer.yml"
    ]
   },
   {
@@ -975,7 +976,7 @@
    "blocked_by": [
     "P1"
    ],
-   "next": "Task card (data, I/O schema, checker program, floor, baselines, split, ledger gate) and a new runner reusing loop's jail, meters, scale.py and the ledger; loop.py stays frozen.",
+   "next": "Task card (data, I/O schema, checker program, floor, baselines, split, ledger gate) and a new runner reusing loop's jail, meters, scale.py and the ledger; loop.py stays frozen. From P1 (2026-11-18): reuse transfer/tasks.py's byte records and sha256 pins, meter.py's per-item outcomes and C-equals-reference check, and decide.py's flip rule; every task card also needs a tuning budget on a split inside training, or capacity effects look structural (P1's surviving flips were mlp64 overfitting text under a fixed L2).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
