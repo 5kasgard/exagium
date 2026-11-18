@@ -50,7 +50,9 @@ SOURCES:
 """
 
 CHECK_PROMPT = """Check each claim against its quote. Keep a claim only if the quote supports it, the claim adds nothing the quote
-doesn't say, it bears on the question, and its evidence grade is right ("measured" needs a stated measurement and method). Reply with JSON only: {{"keep": [<indexes of claims to keep>], "notes": "<one sentence>"}}
+doesn't say, and it bears on the question. Then set its evidence grade: "measured" only if the quote states a
+measurement and how it was made; "reported" for a result without its method; else "expert view", "experience report"
+or "opinion". A wrong grade is corrected, not a reason to drop the claim (release test, R1: 5 good claims were lost so). Reply with JSON only: {{"keep": [<indexes of claims to keep>], "grades": {{"<index>": "<grade>"}}, "notes": "<one sentence>"}}
 
 QUESTION: {question}
 
@@ -81,7 +83,7 @@ def get(url, as_json=True):
 
 
 def openalex(q):
-    j = get("https://api.openalex.org/works?per-page=%d&search=%s" % (PER_QUERY, urllib.parse.quote(q)))
+    j = get("https://api.openalex.org/works?per-page=%d&mailto=worker@exagium.invalid&search=%s" % (PER_QUERY, urllib.parse.quote(q)))
     out = []
     for w in j.get("results", []):
         inv = w.get("abstract_inverted_index") or {}
@@ -153,6 +155,7 @@ APIS = {"papers": (("openalex", "openalex"), ("arxiv", "arxiv"), ("semanticschol
         "encyclopedia": (("wikipedia", "wikipedia"),), "Q&A": (("stackexchange", "stackexchange"),),
         "forum": (("hackernews", "hackernews"), ("reddit", "reddit"))}
 PER_KIND = {"papers": 12, "encyclopedia": 3, "Q&A": 5, "forum": 6}
+PACE = {"semanticscholar": 3.5, "openalex": 1.0}   # seconds before each call
 
 
 def search(item_path, out):
@@ -164,6 +167,7 @@ def search(item_path, out):
     fns = [(name, globals()[fn], k) for k in kinds for name, fn in APIS[k]]
     for q in r["queries"]:
         for name, f, k in fns:
+            time.sleep(PACE.get(name, 1.0))   # release test, R1: OpenAlex and Semantic Scholar answered 429 when called back to back
             t0 = time.time()
             try:
                 got = f(q)
@@ -274,7 +278,12 @@ def card(repo, out):
         print(json.dumps(res)); return 0
     kept, _ = verified(rd["script_kept"], d["sources"])   # re-checked here, with no keys
     keep = (rd.get("check") or {}).get("keep")
-    final = [c for i, c in enumerate(kept) if isinstance(keep, list) and i in keep]
+    grades = (rd.get("check") or {}).get("grades") or {}
+    final = []
+    for i, c in enumerate(kept):
+        if isinstance(keep, list) and i in keep:
+            g = grades.get(str(i)) if isinstance(grades, dict) else None
+            final.append(dict(c, evidence=g) if g in EVIDENCE else c)   # the checker's grade wins
     q = clean(item["research"]["question"], 400)
     L = [f"# Literature card {item['id']}: {q}", "",
          f"Made by the queue worker (P7 in P8). Sources found by API scripts; claims read by {READER[1]}, each with a quote "
