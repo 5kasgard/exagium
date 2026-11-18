@@ -1,0 +1,91 @@
+# Transfer plan, step 1 (transfer/PLAN.md): train every family on every task, meter them, apply the fixed rule.
+# Manual only. Holds no secrets; read-only token. Results are artifacts; a person or agent commits them.
+name: transfer
+on:
+  workflow_dispatch:
+    inputs:
+      plan_commit:
+        description: "the commit that registered transfer/PLAN.md"
+        required: true
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash
+jobs:
+  task:
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [optdigits, text, adult]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: setup
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
+      - name: compare with the registered plan
+        env:
+          PLAN_COMMIT: ${{ github.event.inputs.plan_commit }}
+        run: |
+          mkdir -p out
+          git cat-file -e "$PLAN_COMMIT^{commit}" || { echo "plan commit not found"; exit 1; }
+          git diff --stat "$PLAN_COMMIT" HEAD -- transfer/PLAN.md transfer/decide.py transfer/families.py \
+            transfer/tasks.py transfer/meter.py transfer/infer_table.c transfer/infer_lgn.c > out/amended.txt
+          echo "registered $PLAN_COMMIT, run at $GITHUB_SHA" > out/commits.txt
+          if [ -s out/amended.txt ]; then echo "AMENDED since registration:"; cat out/amended.txt; fi
+      - name: build the task
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" -I transfer/tasks.py "$RUNNER_TEMP/tasks" --cache "$RUNNER_TEMP/dl"
+          cp "$RUNNER_TEMP/tasks/${{ matrix.task }}/card.json" out/
+      - name: train 5 families x 3 seeds
+        run: |
+          W="$RUNNER_TEMP/w"; mkdir -p "$W"
+          gcc -O2 -std=c11 -ffp-contract=off -Wall transfer/infer_table.c -o "$W/infer_table"
+          gcc -O2 -std=c11 -ffp-contract=off -Wall transfer/infer_lgn.c -o "$W/infer_lgn"
+          for f in lgn mlp64 mlp32 mlp16 linear; do for s in 1 2 3; do echo "$f $s"; done; done |
+            xargs -P "$(nproc)" -L 1 bash -c 'OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
+              "$0/venv/bin/python" -I transfer/families.py "$0/tasks/'"${{ matrix.task }}"'" "$1" "$2" "$0/w/$1-s$2.bin" \
+              > "$0/w/$1-s$2.json"' "$RUNNER_TEMP"
+          cat "$W"/*.json | tee out/train.jsonl
+      - name: meter
+        run: |
+          rc=0
+          "$RUNNER_TEMP/venv/bin/python" -I transfer/meter.py "$RUNNER_TEMP/tasks/${{ matrix.task }}" "$RUNNER_TEMP/w" \
+            "out/result-${{ matrix.task }}.json" || rc=$?
+          echo "meter exit $rc"; exit $rc
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: transfer-${{ matrix.task }}
+          path: out/
+  decide:
+    needs: task
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          pattern: transfer-*
+          path: in
+      - name: decide
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
+          mkdir -p out
+          rc=0; "$RUNNER_TEMP/venv/bin/python" -I transfer/decide.py in/*/result-*.json --out out/decision.json \
+            | tee out/decision.txt || rc=$?
+          echo "decide exit $rc"; exit $rc
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: transfer-decision
+          path: out/
