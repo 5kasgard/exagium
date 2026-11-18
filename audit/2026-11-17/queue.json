@@ -1157,6 +1157,30 @@
     "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
     "P5 design in project doc claude/forge-next-item-2026-11-18.md"
    ]
+  },
+  {
+   "id": "P9",
+   "title": "Process manager: measure, watch and improve how the free workers work (no worker changes its own rules)",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P8"
+   ],
+   "batch": "B3",
+   "touches": [
+    "worker/metrics/",
+    ".github/workflows/process-review.yml"
+   ],
+   "next": "Owner, 2026-11-18: with free workers doing routine work, Claude's role becomes managing the process. Split by part: measure by script every run (valid rate, spot-check acceptance, claim conflicts, budget used vs wasted, time per item, reverts, cost per accepted item per pool); spot problems weekly with a free model reading metrics and run notes; it files proposals as queue items of kind 'process' with evidence; Claude decides and redesigns periodically in an owner-opened chat (free reviewers' points were only partly usable: 3 of 8 applied in bench-5); changes audited by a reviewer of another model family. Rules: no worker changes its own rules (process changes go through the queue); the manager's own proposals are scored by whether they moved the numbers they targeted. Define the metrics from P8's first runs, not before.",
+   "refs": [
+    "P8 (worker runs and notes)",
+    "HANDOFF-bench5-nim (outside review 3 of 8 applied)",
+    "skills: agent-orchestration, adversarial-review"
+   ]
   }
  ],
  "batches": [
@@ -1186,10 +1210,11 @@
   },
   {
    "id": "B3",
-   "name": "Free workers (queue worker + proposer)",
+   "name": "Free workers (queue worker, proposer, process manager)",
    "items": [
     "P5",
-    "P8"
+    "P8",
+    "P9"
    ],
    "why": "One scheduled-worker machinery: claims and leases in the queue, key and generated code in separate jobs. The proposer (P5) is one job type of the queue worker (P8), so they are built once.",
    "worker": "Claude designs once; a separate agent reviews (it holds a key); after that free models and CI run it on a schedule."
