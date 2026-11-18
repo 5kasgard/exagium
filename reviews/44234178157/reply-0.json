@@ -1,0 +1,19 @@
+{
+ "t": "2026-11-18T03:59:36Z",
+ "engine": "cloudflare",
+ "model": "@cf/openai/gpt-oss-120b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 59.1,
+ "usage": {
+  "prompt_tokens": 2956,
+  "completion_tokens": 4000,
+  "total_tokens": 6956,
+  "prompt_tokens_details": {
+   "cached_tokens": 0
+  },
+  "neurons": 366.78118896484375
+ },
+ "text": "**Adversarial review of the README**  \n\nBelow each problem is shown the exact line (or table entry) from the README, why it does **not** follow the evidence that you supplied, a concrete fix, and a severity grade (Critical\u202f/\u202fMajor\u202f/\u202fMinor).  \n\n---\n\n### 1. Over\u2011stated immutability claim  \n**README line** \u2013 \u201cEvery claim is recorded, so none can be quietly changed later.\u201d  \n\n**What\u2019s wrong** \u2013 The ledger is append\u2011only, but the evidence only shows that entries are written and anchored; it does **not** prove that a claim cannot be altered *before* anchoring or that the anchoring itself is tamper\u2011proof.  \n\n**Fix** \u2013 Change to something verifiable, e.g.:  \n> \u201cEvery claim is recorded in an append\u2011only, hash\u2011chained ledger that is anchored with Sigstore/OpenTimestamps, making post\u2011anchor modifications detectable.\u201d  \n\n**Grade** \u2013 **Major** (misleads readers about a core security guarantee).\n\n---\n\n### 2. Accuracy\u2011difference wording  \n**README line** \u2013 \u201c\u2026 at 0.7 points lower dev accuracy.\u201d  \n\n**What\u2019s wrong** \u2013 Evidence shows lgn_d dev\u202f=\u202f0.9728 and mlp16 dev\u202f=\u202f0.9800, a **0.0072 absolute difference** (\u2248\u202f0.73\u202f%\u2011points). \u201c0.7 points\u201d suggests 0.7 on",
+ "error": null
+}
