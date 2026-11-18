@@ -1,0 +1,35 @@
+# worker — spec card (queue P8, first version; P7 and P9 wired in)
+
+**What it is.** Free models working the queue without a chat. A scheduled job claims the top ready item, a free model
+does it, another family checks it, a script checks both, and the result lands on main or as a PR. A daily digest
+writes the handoff. Claude designs and spot-checks; it is not in the loop.
+
+**How it decides (hypotheses, measured by the digest):**
+- **Claims:** git is the lock. A claim is a commit to the queue branch, and git refuses the second of two concurrent
+  pushes. Leases last 2 h. A chat's claim always wins. An item whose files a live claim touches is skipped.
+- **Job types**, by what an item carries:
+  - `targets` (exact file and line ranges): a doc fix (`doc_job.py`);
+  - `research` (a question and queries): a literature card (`research_job.py`, P7).
+- **Who does what:**
+  - search: API scripts (OpenAlex, arXiv, Semantic Scholar);
+  - drafting and first reads: gpt-oss-120b on Cloudflare;
+  - the check: Nemotron 3 Ultra on NIM, another family;
+  - verification by script: edits only on target lines with exact old text, Markdown only; quotes verbatim in the
+    source abstract, numbers in the quote.
+- **Lands on main** only if every script check passes and the second model approves; else a PR, with the item waiting
+  on the owner.
+- **Budget:** `ledger.py` reserves calls before any call, by commit, against caps of half each free pool's daily
+  allowance. Paid pools can't be reserved.
+- **Jobs:** the key and the write token are never in one job: claim (write, no keys), draft (keys, read-only, runs
+  nothing a model writes), land (write, no keys).
+- **Pause:** a file `worker/PAUSE` on main stops every run before it claims.
+
+**Measured** (`digest.py`, P9's first measures): claims, double claims (target 0), releases, expired leases, results
+by kind, budget used per pool. Spot-check acceptance is recorded per item by Claude or the owner.
+
+**Files.** `queue_ops.py` (claims), `ledger.py` (budget), `doc_job.py`, `research_job.py`, `digest.py`,
+`test_worker.py`; workflows `worker.yml` (hourly) and `digest.yml` (daily, 06:23 Brisbane). Records: the queue's
+items (`runs`), and the `worker-runs` branch (`ledger/`, `digest/`).
+
+**Not yet:** code items (they need P5's jailed proposer and Q56), the P10 auditor, process proposals (P9's weekly
+free-model step).

@@ -1,0 +1,168 @@
+# Queue worker (queue P8, first version): free models work queue items without a chat. Job types (worker/queue_ops.py):
+# doc fixes with exact targets (doc_job.py) and literature cards (research_job.py, queue P7).
+# Three jobs, as P5 and P8 require: `claim` (writes the queue, no keys), `draft` (keys, read-only token, runs nothing a
+# model writes), `land` (writes, no keys: checks, applies, merges or opens a PR, records usage, releases the claim).
+# Pause switch: a file worker/PAUSE on main stops every run before it claims anything.
+name: worker
+on:
+  schedule:
+    - cron: "17 * * * *"   # hourly; an idle run costs nothing on this public repo
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: worker-${{ github.run_id }}   # runs may overlap on purpose: the queue's git CAS is the lock (P8's race test)
+defaults:
+  run:
+    shell: bash
+env:
+  WORKER: worker-${{ github.run_id }}
+jobs:
+  claim:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    outputs:
+      item: ${{ steps.claim.outputs.item }}
+      type: ${{ steps.claim.outputs.type }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: pause switch
+        run: |
+          if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "PAUSED=1" >> "$GITHUB_ENV"; fi
+      - name: tests
+        if: env.PAUSED != '1'
+        run: python3 -m unittest worker/test_worker.py
+      - name: claim the top ready item
+        id: claim
+        if: env.PAUSED != '1'
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git worktree add -q --detach "$RUNNER_TEMP/q" HEAD
+          rc=0; python3 -I worker/queue_ops.py claim "$RUNNER_TEMP/q" "$WORKER" "$RUNNER_TEMP/claim.json" || rc=$?; echo "claim exit $rc"
+          cat "$RUNNER_TEMP/claim.json"
+          id=$(python3 -c "import json;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(i['id'] if i else '')")
+          typ=$(python3 -c "import json,sys;sys.path.insert(0,'worker');import queue_ops as Q;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(Q.job_type(i) if i else '')")
+          echo "item=$id" >> "$GITHUB_OUTPUT"; echo "ITEM=$id" >> "$GITHUB_ENV"; echo "type=$typ" >> "$GITHUB_OUTPUT"; echo "TYPE=$typ" >> "$GITHUB_ENV"
+      - name: reserve budget (1 drafter call, 1 reviewer call)
+        if: env.ITEM != ''
+        run: |
+          if git ls-remote --exit-code origin worker-runs >/dev/null; then
+            git worktree add -q --detach "$RUNNER_TEMP/r" origin/worker-runs 2>/dev/null || { git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD; }
+          else
+            git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
+              && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
+          fi
+          rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" cloudflare:1,nvidia:1 || rc=$?
+          if [ "$rc" != 0 ]; then
+            echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
+            python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" open "$RUNNER_TEMP/note.json"
+            echo "ITEM=" >> "$GITHUB_ENV"; echo "item=" >> "$GITHUB_OUTPUT"
+          fi
+          echo "reserve exit $rc"
+      - name: prompt bundle (doc) or literature search by API scripts (research, no keys)
+        if: env.ITEM != ''
+        run: |
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context "$RUNNER_TEMP/claim.json" . "$RUNNER_TEMP/job"
+          else python3 -I worker/research_job.py search "$RUNNER_TEMP/claim.json" "$RUNNER_TEMP/job"; fi
+          cp "$RUNNER_TEMP/claim.json" "$RUNNER_TEMP/job/"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: env.ITEM != ''
+        with:
+          name: bundle
+          path: ${{ runner.temp }}/job/
+  draft:
+    needs: claim
+    if: needs.claim.outputs.item != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: bundle
+          path: job
+      - name: drafter and reviewer (free models; their text is parsed as JSON, never run)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          TYPE: ${{ needs.claim.outputs.type }}
+        run: |
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job; else python3 -I worker/research_job.py read job; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: draft
+          path: job/
+  land:
+    needs: [claim, draft]
+    if: ${{ always() && needs.claim.outputs.item != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      ITEM: ${{ needs.claim.outputs.item }}
+      TYPE: ${{ needs.claim.outputs.type }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 5
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        continue-on-error: true
+        with:
+          name: draft
+          path: job
+      - name: check, apply, merge or open a PR
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ ! -f job/draft.json ] && [ ! -f job/read.json ]; then
+            echo "{\"result\": \"failed: no draft (draft job did not finish)\", \"where\": \"$RUN_URL\"}" > note.json
+            echo "STATUS=open" >> "$GITHUB_ENV"; exit 0
+          fi
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job; else python3 -I worker/research_job.py card . job; fi
+          res=$(python3 -c "import json;print(json.load(open('job/result.json'))['result'])")
+          msg="worker: $ITEM ($(python3 -c "import json;print((json.load(open('job/result.json')).get('note') or '')[:150])"))"
+          git add -A -- '*.md'   # stage first: a research card is a new file, which plain git diff would not see
+          if [ "$res" = merge ] && ! git diff --cached --quiet; then
+            git commit -qm "$msg" -m "$TYPE job: drafted by gpt-oss-120b (Cloudflare), checked by Nemotron 3 Ultra (NIM) and by worker/${TYPE}_job.py. Run: $RUN_URL"
+            for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
+            sha=$(git rev-parse --short HEAD)
+            echo "{\"result\": \"merged\", \"where\": \"main $sha\", \"run\": \"$RUN_URL\", \"edits\": $(python3 -c "import json;print(json.load(open('job/result.json'))['edits'])")}" > note.json
+            echo "STATUS=done" >> "$GITHUB_ENV"
+          elif ! git diff --cached --quiet; then
+            b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"; git push -q origin "$b"
+            why=$(python3 -c "import json;print('; '.join(json.load(open('job/result.json'))['why'])[:900])")
+            url=$(gh pr create --base main --head "$b" --title "$msg" --body "Queue item $ITEM, drafted by the worker; not merged because: $why. Run: $RUN_URL")
+            echo "{\"result\": \"pr\", \"where\": \"$url\", \"why\": $(python3 -c "import json;print(json.dumps(json.load(open('job/result.json'))['why']))")}" > note.json
+            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
+          else
+            echo "{\"result\": \"no accepted edit\", \"where\": \"$RUN_URL\", \"why\": $(python3 -c "import json;print(json.dumps(json.load(open('job/result.json'))['why']))")}" > note.json
+            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
+          fi
+          cat note.json
+      - name: record usage and release the claim
+        if: always()
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          [ -f note.json ] || echo '{"result": "failed before a note was written", "where": ""}' > note.json
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
+          if [ -f job/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$WORKER" job/calls.jsonl || echo "ledger record exit $?"; fi
+          git worktree add -q --detach "$RUNNER_TEMP/q" HEAD
+          rc=0; python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" "${STATUS:-open}" note.json || rc=$?
+          echo "release exit $rc"; exit $rc
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: always()
+        with:
+          name: result
+          path: |
+            job/
+            note.json
