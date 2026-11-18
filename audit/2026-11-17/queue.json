@@ -1876,6 +1876,28 @@
     "docs/capability-map.md"
    ],
    "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md."
+  },
+  {
+   "id": "P18",
+   "kind": "test",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "title": "Jail assurance: prove isolation holds, refused things stay refused, allowed things still work, and the search cannot game its own checker",
+   "blocked_by": [],
+   "batch": "B1",
+   "touches": [
+    "runner/jail_tests/",
+    "runner/results/jail-assurance-*/"
+   ],
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Purpose is defensive: the owner's own sandbox, in the owner's own repo. Owner's point: attackers game the system as it is, so known-wall tests are not enough. Layers: (1) conformance suite: network, files outside the work folder, secrets and env, child processes, resource limits, forbidden syscalls must be refused; legitimate work must pass; each test proven to bite by switching its restriction off (mutation check). (2) Defence in depth and least privilege: nothing worth taking inside the jail (key never in the same job), so one breached wall is not enough. (3) Fuzz the boundary with existing tools (syscall and argument fuzzing inside the jail) rather than hand-written exploits; known weaknesses checked by version and setting against published advisories with existing scanners. (4) The realistic creative adversary here is the search itself: evolved candidates will game meters and checkers (reward hacking); log and test for it as a standing threat (frozen evaluator, held-out checks, anomaly flags on implausible gains). (5) Assume breach: detect and limit blast radius (job isolation, short-lived tokens, audit of what each job touched). Covers runner/jail.py and loop/confine.c (loop.py frozen: tests only, no edits).",
+   "refs": [
+    "runner/jail.py, loop/confine.c, loop/seccomp_filter.h on main",
+    "runner/results/2026-11-18-q10-q55/ (Q10 jail runs)",
+    "skills: careful-live-changes, security-code-review, adversarial-review"
+   ]
   }
  ],
  "batches": [
@@ -1888,7 +1910,8 @@
     "P2",
     "Q10",
     "P3",
-    "Q25"
+    "Q25",
+    "P18"
    ],
    "why": "All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data.",
    "worker": "Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs."
