@@ -142,6 +142,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      status: ${{ steps.release.outputs.status }}   # read by chain
     env:
       ITEM: ${{ needs.claim.outputs.item }}
       TYPE: ${{ needs.claim.outputs.type }}
@@ -200,8 +202,10 @@ jobs:
           echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
           cat note.json
       - name: record usage and release the claim
+        id: release
         if: always()
         run: |
+          echo "status=${STATUS:-open}" >> "$GITHUB_OUTPUT"
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           [ -f note.json ] || python3 -I worker/note.py note.json "failed before a note was written" "" "$GITHUB_RUN_ID"
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
@@ -219,12 +223,17 @@ jobs:
   chain:
     # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that
     # found work starts the next run itself. A workflow_dispatch made with the job's own token does start a new run.
-    # Guards: not when paused or when nothing was claimed (no work or no budget: claim leaves item empty); not when a
+    # Guards: not when paused, when nothing was claimed or the item did not land (no work or no budget: claim leaves item empty); not when a
     # worker run is already waiting to start (at most one pending); at most CHAIN_CAP chained runs per UTC day. The cron stays as a backup.
     needs: [claim, land]
-    if: ${{ always() && needs.claim.outputs.item != '' }}
+    # only after a run whose item did not go back to open: land exits 0 on a failed item and releases it as open, so a
+    # failing item would otherwise be retried up to the cap (review 44392240031, 2; the check is on the status, not the job result)
+    if: ${{ always() && needs.claim.outputs.item != '' && needs.land.result == 'success' && needs.land.outputs.status != 'open' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    concurrency:   # serialise check-then-dispatch across runs, so two chains can't both see 0 waiting (review 44392240031, 2)
+      group: worker-chain
+      cancel-in-progress: false
     permissions:
       actions: write     # dispatch the next run and list today's runs
       contents: read     # read worker/PAUSE
