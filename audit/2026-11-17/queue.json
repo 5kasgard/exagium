@@ -1181,6 +1181,30 @@
     "HANDOFF-bench5-nim (outside review 3 of 8 applied)",
     "skills: agent-orchestration, adversarial-review"
    ]
+  },
+  {
+   "id": "P10",
+   "title": "Whole-system auditor: an independent, periodic look at direction, debt and blind spots that can't be seen from inside a task",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "Q07"
+   ],
+   "batch": "B8",
+   "touches": [
+    "audit/periodic/",
+    ".github/workflows/whole-audit.yml"
+   ],
+   "next": "Owner, 2026-11-18: something whose only job is to look at the whole: wrong direction, accruing debt, anything invisible locally. Evidence it pays: the 2026-11-17 audit found 52 items; S2 confirmed 15 of 16 high-impact ones by reproduction (router probe red 12 of 12, loop CI unable to fail, a bench grade-step escape), none visible from inside the tasks that made them; it cost 6 parallel Claude agents plus verification. Tiers: weekly indicators by script on CI (size and duplication, dead files, tests that can't fail, CI red rate, queue item age, stale branches, claims without evidence); weekly direction check by free models in fresh context, of another family than the builders, comparing completed work with the README's 'What this is for'; deep audit by Claude agents monthly or when an indicator trips. Rules: reports straight to the owner, not via Claude or the process manager; read-only; fresh context; its findings are scored by whether they checked out, which sets how often the expensive tier runs. The indicator script needs no worker and can start first; its workflow waits on Q07.",
+   "refs": [
+    "audit/2026-11-17/README.md, S2-verification.md, S4-final-review.md (this branch)",
+    "README.md 'What this is for' on main",
+    "skills: adversarial-review, one-queue"
+   ]
   }
  ],
  "batches": [
@@ -1263,6 +1287,15 @@
    ],
    "why": "New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing.",
    "worker": "API scripts and free models on CI; a script checks every quote; Claude only judges the final card."
+  },
+  {
+   "id": "B8",
+   "name": "Whole-system auditor",
+   "items": [
+    "P10"
+   ],
+   "why": "Its own folder and workflow; independent of the builders and the process manager by design.",
+   "worker": "Scripts weekly; free models of another family for the direction check; Claude agents monthly or on a tripped indicator; reports to the owner directly."
   }
  ]
 }
