@@ -135,11 +135,11 @@
    "title": "Older workflows: excessive permissions, persisted tokens, unpinned actions@vN (known since 11-13 zizmor)",
    "kind": "fix",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Pin actions by SHA, set least permissions, persist-credentials: false; non-registered workflows only",
+   "next": "Done 2026-11-19 (main 6579aed): every action pinned by commit SHA (the @v4/@v2 tags resolved with git ls-remote to the same SHAs the repo already pinned, so behaviour is unchanged); record.yml and record-e2e.yml scoped per job (append keeps contents/id-token/attestations write; upgrade gets contents write and attestations read; append jobs still byte-identical); counter's read-only job drops its persisted token; checkouts in jobs that push carry a zizmor ignore with a checked reason. zizmor 1.32: 25 high to 5, all 5 in workflows now disabled (anchor-test, bench, bench2). Free review 44392240031 (gpt-oss-120b): Q07 parts hold. Live: record append and upgrade green with the new permissions (run 44395236438), loop, tests and router green.",
    "refs": [
     "A-security m1,m2",
     "project doc repo-audit-2026-11-13 (known)"
@@ -407,7 +407,7 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Log usage per call like OpenRouter; resolve the 2,876-neuron vs 11-12 conflict from logs",
+   "next": "Half done 2026-11-19 (main 6579aed): engines.call and compat_call write one JSON line per call (time, engine, model, ok, status, latency, reported usage; no prompt or reply) when ROUTER_USAGE_LOG is set; router.yml sets it. Remaining: set it in the worker and review workflows, then resolve the 2,876-neuron vs 11-12 conflict from logged Cloudflare usage.",
    "refs": [
     "E E-07"
    ],
@@ -470,11 +470,11 @@
    "title": "bench2.yml keeps the unfixed git-maintenance / chmod race",
    "kind": "fix",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Apply the f76f2da fix or retire bench2",
+   "next": "Done 2026-11-19: bench2.yml retired (workflow disabled in settings, reversible with gh workflow enable); bench.yml too. Both benches are complete.",
    "refs": [
     "B"
    ],
@@ -562,7 +562,7 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Keep e2e-main (record-e2e.yml uses it; record/README:114 cites it). Step 1 (reversible): disable stale workflows rather than delete. Step 2: on a throwaway repo, test whether a deleted branch's ref stays in GitHub's /activity log, which record.py monitor reads (record.py:541-552). Only then tag and delete anchor-test (fix VERIFY-anchors.md:27, RESULTS.md cites), q2-main, q2-shadow. Deletion leaves a branch_deletion entry, so it is not fully undoable: confirm with the owner if step 2 shows any loss. Also rule on record-e2e drift (C F3): keep its append job byte-identical to record.yml (done 05328a4). Q38 edits VERIFY-anchors.md first (same file).",
+   "next": "Step 1 done 2026-11-19: anchor-test.yml and record-q2.yml disabled in settings (reversible). Remaining as before: step 2 (does a deleted branch's ref stay in /activity?), then tag and delete anchor-test, q2-main, q2-shadow. Q38 edits VERIFY-anchors.md first. Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Keep e2e-main (record-e2e.yml uses it; record/README:114 cites it). Step 1 (reversible): disable stale workflows rather than delete. Step 2: on a throwaway repo, test whether a deleted branch's ref stays in GitHub's /activity log, which record.py monitor reads (record.py:541-552). Only then tag and delete anchor-test (fix VERIFY-anchors.md:27, RESULTS.md cites), q2-main, q2-shadow. Deletion leaves a branch_deletion entry, so it is not fully undoable: confirm with the owner if step 2 shows any loss. Also rule on record-e2e drift (C F3): keep its append job byte-identical to record.yml (done 05328a4). Q38 edits VERIFY-anchors.md first (same file).",
    "refs": [
     "C F3, F4",
     "A m4"
@@ -584,11 +584,11 @@
    "title": "Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored",
    "kind": "decision",
    "severity": "minor",
-   "status": "open",
-   "needs": "subscription usage",
+   "status": "waiting on the owner",
+   "needs": "the owner",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do the reversible half: branch protection (no force-push, no deletion) on main, router-runs and ci-runs (no writer force-pushes; checked). The token reports admin but whether it can write protection is unproven: one write test, else this is a settings click for the owner. Raw outputs move to release assets only if size starts to cost.",
+   "next": "Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19).",
    "refs": [
     "C F14",
     "S2 partly right (93.7%)"
@@ -1085,13 +1085,13 @@
    "id": "P4",
    "title": "Spend caps at the call site for paid pools (Cerebras, xAI, Gemini)",
    "kind": "build",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "medium",
    "severity": "none",
    "blocked_by": [],
-   "next": "Per-call and per-day caps enforced in router/engines.py before any paid pool takes work; refusal tested.",
+   "next": "Done 2026-11-19 (main 6579aed): router/engines.py refuses a call to cerebras, xai or gemini before any request unless the workflow lists the pool in ROUTER_PAID_POOLS, the call is within 2,000 output tokens and 40,000 prompt chars, and ROUTER_USAGE_LOG shows today's (UTC) calls under 50/30/50. router.yml seeds the log from router-runs and leaves paid pools off if it can't (review 44393174128 finding 2). review.yml and the worker list no paid pool, so they can't call one. 6 tests, mutation-checked. Live probe 44393180102: cerebras and xai answered under the caps. Known: two simultaneous probe runs can exceed a cap by one run's calls (at most 4 per pool).",
    "refs": [
     "README.md (Who does what)",
     "project doc claude/HANDOFF-audit-2026-11-17.md"
@@ -1285,11 +1285,11 @@
    "title": "The runner compiles candidate C with gcc outside the jail: an #include of a host file can put its contents into the binary and so into the output",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "next": "Compile infer.c inside the jail (gcc under J.jail with the filter and limits, the source and output dir as the only binds), and add a probe: a candidate that #includes a host path must fail to build. Needed before P5 compiles generated code. Found by the independent check of Q10, 2026-11-18; older than Q10 (loop.py does the same).",
+   "next": "Done 2026-11-19 (main 6579aed): runner/jail.py compile_candidate compiles infer.c in the jail (rlimits and no_new_privs; no seccomp filter because gcc forks, as for the timer; stated gap: a compiler bug triggered by hostile source runs with the jail's reach). check() now fails closed unless a plain program compiles and an #include of a host file does not. Mutation-checked locally (host gcc makes the probe fail). CI run 44392549096: all 4 tasks green in bubblewrap mode, compile_jailed true. Free review 44393174128: its jail-escape findings rejected with evidence (the jail binds only /usr, Python roots, ld.so.cache and /w). loop.py still compiles on the host (frozen by plan 2): fix in the next plan.",
    "refs": [
     "runner/results/2026-11-18-q10-q55/README.md on main",
     "runner/run.py (L.build of infer.c)"
@@ -1681,7 +1681,7 @@
    "id": "Q57",
    "title": "Worker never ran on its schedule: GitHub's free scheduler delayed or dropped it (record.yml's 03:17 UTC cron ran at 11:53 UTC; 0 of ~8 hourly worker crons fired)",
    "kind": "fix",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1691,7 +1691,7 @@
    "touches": [
     ".github/workflows/worker.yml"
    ],
-   "next": "Evidence (2026-11-19, gh run list): all 15 worker runs were workflow_dispatch; no run of any workflow between 11:53Z and 19:24Z although the hourly worker cron was due 8 times; record.yml's daily 03:17Z cron started 11:53Z on 2026-11-18. Fix (hypothesis): self-chaining. A run dispatches the next run (workflow_dispatch with the job's own token, which GitHub allows to start a new run) when not paused, work is ready and budget remains; the cron stays as a backup. Guard: at most one pending chained run (concurrency group), and a cap per day, so a bug cannot loop. Measure: scheduled-vs-actual start delay per run, logged in the digest.",
+   "next": "Done 2026-11-19 (main 6579aed): worker.yml gains a chain job. A run that claimed an item which did not fall back to open dispatches the next run with its own token; not when worker/PAUSE exists, not when a worker run is already waiting, at most 24 chained runs per UTC day; chain jobs serialised by a concurrency group; the cron stays as backup. Free review 44392240031: 2 findings confirmed and fixed (chain after a failed item; check-then-dispatch race), 3 rejected with evidence (the API date filter works: 15 runs on >=2026-11-18, 0 on >=2026-11-19; overlapping runs are by design). Not yet exercised live: the worker is paused until P8r.",
    "refs": [
     "gh run list -w worker.yml (15 dispatch, 0 schedule)",
     "record.yml cron 17 3 * * * vs run at 2026-11-18T11:53Z",
@@ -1807,7 +1807,7 @@
     ".github/workflows/machines.yml",
     "loop/results/machines-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it)."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it). Finding 2026-11-19: loop.yml and counter.yml already run on ubuntu-24.04 and ubuntu-24.04-arm (run 44395229919: 6 runs plus docker on both), so the x86-vs-arm half of this test may be answerable from ci-runs data without a new workflow; check that first."
   },
   {
    "kind": "build",
