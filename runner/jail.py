@@ -14,7 +14,7 @@ Gaps, stated: training writes to a host directory bound at /w, so its total disk
 file-size and open-file limits; and without --size (refused by check()), total disk use in
 bubblewrap's tmpfs is bounded only by the file-size and open-file limits and the host's memory.
 """
-import os, platform, subprocess, sys, tempfile
+import os, platform, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "loop"))
@@ -70,7 +70,8 @@ def counter_confine(tool_dst):
 
 
 def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
-    """Like loop.jail, with limits.c in front of cmd. seccomp=False only for the trusted timer."""
+    """Like loop.jail, with limits.c in front of cmd. seccomp=False only for trusted programs that fork: the timer,
+    and gcc (compile_candidate), whose input is untrusted but which cannot run under the fork-refusing filter."""
     build()
     binds = list(binds) + [(STATE["dir"], "/run/exagium", False)]
     pre = _limits_args(timeout, seccomp)
@@ -101,6 +102,43 @@ def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
         a += ["--setenv", k, v]
     a += ["--chdir", cwd, "--", *pre, *cmd]
     return subprocess.run(a, capture_output=True, timeout=timeout, preexec_fn=L._fresh_keyring)
+
+
+def compile_candidate(src, out, timeout=300):
+    """Queue Q56: compile a candidate's infer.c inside the jail, never on the host. Only the source is copied in
+    (/w, the one writable place); gcc sees /usr, the Python roots and the jail's own files, so an #include of a host
+    path (a key file, the repo, the runner's home) fails to compile instead of copying the file into the binary and so
+    into the output. gcc forks (cc1, as, ld), so it runs with the rlimits and no_new_privs but without the seccomp
+    filter, as the timer does; the namespaces (bwrap) or Landlock (confine) still bound what it can read and write.
+    Gap, stated: a compiler bug triggered by hostile source would run with that reach, not the filtered one."""
+    build()
+    with tempfile.TemporaryDirectory(prefix="exagium-cc-") as w:
+        shutil.copy2(src, os.path.join(w, "infer.c"))
+        r = jail(["gcc", *L.CFLAGS, "-pipe", "-o", "/w/infer", "/w/infer.c", "-lm"], [(w, "/w", True)], timeout,
+                 seccomp=False)
+        if r.returncode or not os.path.exists(os.path.join(w, "infer")):
+            raise L.Failed(f"{src} does not compile in the jail:\n{r.stderr.decode(errors='replace')[-2000:]}")
+        shutil.copy2(os.path.join(w, "infer"), out)
+
+
+INCLUDE_OK = "#include <stdio.h>\nint main(void){puts(\"ok\");return 0;}\n"
+INCLUDE_HOST = "#include \"%s\"\nint main(void){return 0;}\n"
+
+
+def check_compile():
+    """Fail closed unless the jailed compiler builds a plain program and refuses to #include a host file."""
+    with tempfile.TemporaryDirectory(prefix="exagium-ccprobe-") as d:
+        secret = os.path.join(d, "host-secret.h")
+        open(secret, "w").write("int host_secret = 42;\n")
+        ok, bad = os.path.join(d, "ok.c"), os.path.join(d, "bad.c")
+        open(ok, "w").write(INCLUDE_OK)
+        open(bad, "w").write(INCLUDE_HOST % secret)
+        compile_candidate(ok, os.path.join(d, "ok"))
+        try:
+            compile_candidate(bad, os.path.join(d, "bad"))
+        except L.Failed:
+            return True
+        raise L.Failed("the jailed compiler read a host file through #include (Q56 probe)")
 
 
 PROBE = r"""
@@ -183,6 +221,7 @@ def check():
             if r.returncode or out != "filtered":
                 raise L.Failed(f"confine inside the jail (the counter path) does not hold here (exit {r.returncode}, "
                                f"{out!r}): {r.stderr.decode(errors='replace')[-500:]}")
+    check_compile()   # Q56: candidate C is compiled in the jail, and a host #include must fail
     f = _bwrap_flags() if L.JAIL["mode"] == "bwrap" else {}
-    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True, counter_filtered=True,
+    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True, counter_filtered=True, compile_jailed=True,
                 disable_userns=f.get("disable_userns"), tmpfs_size=f.get("size") and TMPFS_BYTES)

@@ -245,7 +245,7 @@ def cmd_evaluate(a):
         c["weights_path"] = os.path.join(work, f"{c['name']}.weights")
         open(c["weights_path"], "wb").write(w)
         c["exe"] = os.path.join(work, f"{c['name']}.infer")
-        L.build(os.path.join(c["dir"], "infer.c"), c["exe"])
+        J.compile_candidate(os.path.join(c["dir"], "infer.c"), c["exe"])   # Q56: never compile candidate code on the host
         out, _ = timed(c, inp, n, timer, cpu)
         items = check(t, a.split, out)
         rec_dir = a.records or os.path.join(work, "records")
