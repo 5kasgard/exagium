@@ -2,10 +2,12 @@
 
 python3 worker/ledger.py reserve WT RUN_ID POOL:CALLS[,POOL:CALLS...]   # exit 2 if a cap would be passed
 python3 worker/ledger.py record WT RUN_ID CALLS_JSONL                     # actual usage of each call, appended
+python3 worker/ledger.py check WT POOL:CALLS[,...]                        # no write: exit 2 if the reservation would fail
 
 WT is a worktree of the "worker-runs" branch. ledger/YYYY-MM-DD.json holds, per pool, calls reserved and calls,
-tokens and neurons used. A run reserves before it calls (a commit; git refuses a second concurrent push, so two runs
-can't both take the last share). Caps are half of each pool's measured daily allowance, so the other half stays for
+tokens and neurons used. A run checks headroom before it claims, then reserves calls before it calls (a commit; git refuses a
+second concurrent push, so two runs can't both take the last share). Calls are counted exactly; neurons are a projection
+(EST_NEURONS per Cloudflare call) checked against recorded actuals, so one run can overshoot by the difference. Caps are half of each pool's measured daily allowance, so the other half stays for
 chats, reviews and probes (P8, "coexists with chat sessions"):
   cloudflare 10,000 neurons/day (measured: 560-780 per long review, router-runs reviews/44253058538, 44257135013)
   -> cap 5,000 neurons and 20 calls; nvidia (NIM) shape unmeasured (bench-5: about 30/min, then refusals) -> cap
@@ -40,6 +42,23 @@ def push(wt, paths, msg):
 
 def load(p):
     return json.load(open(p)) if os.path.exists(p) else {}
+
+
+def headroom(led, want):
+    for pool, n in want.items():
+        if pool not in CAPS:
+            return f"pool {pool} is not a free pool the worker may use"
+        e, cap = led.get(pool, {}), CAPS[pool]
+        if e.get("reserved", 0) + n > cap["calls"] or ("neurons" in cap and max(e.get("neurons", 0), e.get("neurons_reserved", 0)) + n * EST_NEURONS > cap["neurons"]):
+            return f"{pool}: cap reached ({e.get('reserved', 0)} calls reserved, {e.get('neurons', 0):.0f} neurons used; cap {cap})"
+    return None
+
+
+def check(wt, spec):
+    sync(wt)
+    why = headroom(load(day_path(wt)), {k: int(v) for k, v in (x.split(":") for x in spec.split(","))})
+    print(why or "headroom ok")
+    return 2 if why else 0
 
 
 def reserve(wt, run, spec):
@@ -96,7 +115,7 @@ def record(wt, run, calls_path):
 if __name__ == "__main__":
     a = sys.argv[1:]
     try:
-        sys.exit(reserve(a[1], a[2], a[3]) if a[0] == "reserve" else record(a[1], a[2], a[3]))
+        sys.exit(reserve(a[1], a[2], a[3]) if a[0] == "reserve" else check(a[1], a[2]) if a[0] == "check" else record(a[1], a[2], a[3]))
     except subprocess.CalledProcessError as e:
         print("FAILURE", e, e.stderr, file=sys.stderr)
         sys.exit(3)

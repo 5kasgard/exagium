@@ -87,8 +87,9 @@ class Claims(unittest.TestCase):
         self.assertEqual(Q.ready(q, self.t), [])
 
     def test_failures_park(self):
-        i = {"runs": [{"result": "failed: x"}, {"result": "not started: cap"}, {"result": "merged"}]}
-        self.assertEqual(Q.failures(i), 2)
+        self.assertEqual(Q.failures({"runs": [{"result": "failed: x"}, {"result": "not started: cap"}, {"result": "failed: y"}]}), 2)
+        self.assertEqual(Q.failures({"runs": [{"result": "failed: x"}, {"result": "merged"}, {"result": "failed: y"}]}), 1)
+        self.assertEqual(Q.failures({"runs": [{"result": "not started: cap"}, {"result": "not started: cap"}]}), 0)
 
     def test_overlap(self):
         self.assertTrue(Q._overlap("record/", "record/README.md"))
@@ -119,9 +120,16 @@ class Research(unittest.TestCase):
 
 class DocSafety(unittest.TestCase):
     def test_paths_and_new_lines(self):
-        for p in ("AGENTS.md", "x/HANDOFF-a.md", ".github/a.md", "worker/README.md", "../a.md", "/etc/a.md", "a.py", ["a.md"]):
+        for p in (".github/a.md", "worker/README.md", "../a.md", "/etc/a.md", "a.py", ["a.md"], "router/bench4/PREREG.md"):
             self.assertFalse(D.safe_path(p), p)
-        self.assertTrue(D.safe_path("record/README.md"))
+        for p in ("AGENTS.md", "x/HANDOFF-a.md", "VERIFY.md", "explore/BRIEF.md", ".claude/x.md", "a/SKILL.md"):
+            self.assertTrue(D.safe_path(p), p)
+            self.assertFalse(D.merge_ok(p), p)
+        self.assertTrue(D.merge_ok("record/README.md"))
+        self.assertFalse(D.safe_new("[a](https://good.org/x)", "[a](https://evil.com/y)"))   # review N2
+        self.assertFalse(D.safe_new("see https://a.b/c", "see https://a.b/c and https://d.e"))
+        self.assertTrue(D.safe_new("see https://a.b/c here", "see https://a.b/c there"))
+        self.assertFalse(D.safe_new("see https://a.b/c here", "see https://a.b/c, here"))   # strict: fails closed, to a PR
         self.assertFalse(D.safe_new("plain line", "plain line, see https://x.y"))
         self.assertFalse(D.safe_new("plain", "plain <img src=x>"))
         self.assertFalse(D.safe_new("plain", "ping @owner"))

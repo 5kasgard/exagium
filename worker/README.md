@@ -21,13 +21,16 @@ writes the handoff. Claude designs and spot-checks; it is not in the loop.
   - verification by script: edits only on target lines with exact old text, Markdown only; quotes verbatim in the
     source abstract, numbers in the quote.
 - **Lands on main** only if every script check passes and the second model approves (doc: it approves the diff;
-  research: it keeps the claim and its grade); else a PR, with the item waiting on the owner. Never on main: agent
-  briefs, handoffs, workflows, the worker's own files; a new line may not add a link, HTML or mention; card text is
+  research: it keeps the claim and its grade); else a PR, with the item waiting on the owner. Never written:
+  workflows, the worker's own files, registered plans. Only by PR: anything agents read as instructions (AGENTS,
+  CLAUDE, VERIFY, BRIEF, SKILL, handoffs, .claude/), and cards with claims from forums, Q&A or Wikipedia (text anyone
+  can write; cards also carry an untrusted-data banner); a new line may not add a link, HTML or mention; card text is
   cleaned to one line with no links, HTML, mentions or issue references; a card is never overwritten.
 - **Failures:** an item that fails twice waits on the owner instead of being retried hourly; a failed push to main falls
   back to a PR.
-- **Budget:** `ledger.py` reserves calls before any call, by commit, against caps of half each free pool's daily
-  allowance. Paid pools can't be reserved.
+- **Budget:** a run checks headroom before it claims, then `ledger.py` reserves its calls by commit, against caps of
+  half each free pool's daily allowance. Calls are counted exactly; Cloudflare neurons are projected (1,000 per call)
+  and checked against recorded use, so one run can overshoot by the difference. Paid pools can't be reserved.
 - **Jobs:** the key and the write token are never in one job: claim (write, no keys), prepare (read-only, no keys;
   the literature search parses untrusted API text here), draft (keys, read-only, runs nothing a model writes), land
   (write, no keys).

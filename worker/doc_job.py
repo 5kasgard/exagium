@@ -46,20 +46,33 @@ PROPOSED CHANGE (unified diff):
 """
 
 
-DENY = re.compile(r"(^|/)(AGENTS\.md|CLAUDE\.md|VERIFY\.md)$|HANDOFF|^\.github/|^worker/|^ledger/|^\.git", re.I)
-UNSAFE = re.compile(r"https?://|www\.|<[a-zA-Z/!]|@[A-Za-z0-9]|\]\(|javascript:", re.I)
+# Never written by the worker: workflows, the worker and its records, git internals, registered plans.
+REFUSE = re.compile(r"^\.github/|^worker/|^ledger/|(^|/)\.git(/|$)|PREREG|REGISTERED", re.I)
+# Written only through a PR (a person decides): anything an agent reads as instructions (review N3: an allow-list for merge).
+PR_ONLY = re.compile(r"(^|/)(AGENTS|CLAUDE|GEMINI|VERIFY|BRIEF|SKILL|copilot-instructions)[^/]*\.md$|HANDOFF|(^|/)\.(claude|cursor)/", re.I)
+TOKENS = re.compile(r"https?://\S+|www\.\S+|<[^>]*>|@[A-Za-z0-9][\w-]*|\]\([^)]*\)|javascript:\S*", re.I)
 
 
 def safe_path(p):
-    """A relative Markdown path inside the repo, not an agent brief, handoff, workflow or the worker itself."""
+    """A relative Markdown path inside the repo that the worker may write at all."""
     return (isinstance(p, str) and p.endswith(".md") and not p.startswith("/") and ".." not in p.split("/")
-            and not DENY.search(p))
+            and not REFUSE.search(p))
+
+
+def merge_ok(p):
+    return safe_path(p) and not PR_ONLY.search(p)
 
 
 def safe_new(old, new):
-    """The new line adds no link, HTML or mention the old line didn't have, and stays short."""
-    added = set(UNSAFE.findall(new)) - set(UNSAFE.findall(old))
-    return not added and len(new) <= max(2 * len(old), len(old) + 300)
+    """Every link, HTML tag, mention or Markdown link target in the new line occurs in the old line, as often, and the
+    line stays short (review N2: whole tokens, not their prefixes)."""
+    have = TOKENS.findall(old)
+    for t in TOKENS.findall(new):
+        if t in have:
+            have.remove(t)
+        else:
+            return False
+    return len(new) <= max(2 * len(old), len(old) + 300)
 
 
 def excerpts(repo, item):
@@ -79,7 +92,7 @@ def context(item_path, repo, out):
     bad = [t.get("path") for t in item["targets"] if not safe_path(t.get("path"))
            or not os.path.isfile(os.path.join(repo, t["path"])) or t["path"] not in item.get("touches", [])]
     if bad:
-        raise SystemExit(f"targets refused (must be existing Markdown, listed in touches, not a brief or workflow): {bad}")
+        raise SystemExit(f"targets refused (must be existing Markdown, listed in touches, not a workflow, the worker or a registered plan): {bad}")
     files = {t["path"]: open(os.path.join(repo, t["path"]), encoding="utf-8").read() for t in item["targets"]}
     json.dump({"item": item, "files": files,
                "prompt": DRAFT_PROMPT.format(id=item["id"], title=item["title"], next=item["next"],
@@ -200,6 +213,9 @@ def apply(repo, out):
             if s != files[p]:
                 open(os.path.join(repo, p), "w", encoding="utf-8").write(s)
         open(os.path.join(out, "change.diff"), "w").write(diff(files, new))
+        pr_only = sorted({e["path"] for e in edits if not merge_ok(e["path"])})
+        if pr_only:
+            why.append(f"agent-facing file(s), merged only by a person: {', '.join(pr_only)}")
         res = {"result": "merge" if not why else "pr", "why": why, "edits": len(edits),
                "note": d["proposal"].get("note"), "review": d.get("review")}
     json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)

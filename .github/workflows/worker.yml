@@ -33,6 +33,14 @@ jobs:
       - name: tests
         if: env.PAUSED != '1'
         run: python3 -m unittest worker/test_worker.py
+      - name: budget headroom before claiming (review N1)
+        if: env.PAUSED != '1'
+        run: |
+          if git ls-remote --exit-code origin worker-runs >/dev/null; then
+            git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r0" FETCH_HEAD
+            rc=0; python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1,nvidia:1 || rc=$?
+            if [ "$rc" = 2 ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
+          fi
       - name: claim the top ready item
         id: claim
         if: env.PAUSED != '1'

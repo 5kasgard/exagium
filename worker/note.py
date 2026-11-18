@@ -10,7 +10,7 @@ import json, os, re, sys
 
 
 def clean(t, n=200):
-    t = re.sub(r"[@#](?=\w)|[\r\n`$\\]", " ", str(t or ""))
+    t = re.sub(r"https?://\S+|www\.\S+|[@#](?=\w)|[\r\n`$\\]", " ", str(t or ""))   # review N5: no URLs either
     return " ".join(t.split())[:n]
 
 

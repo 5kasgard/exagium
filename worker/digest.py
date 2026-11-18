@@ -81,6 +81,9 @@ def metrics(queue_wt, since, q):
             if holder.get(m.group(2)) not in (None, m.group(1)):
                 double.append(f"{m.group(2)} by {m.group(1)} while {holder[m.group(2)]} held it")
             holder[m.group(2)] = m.group(1)
+            for x in re.findall(r"'([^']+)'", s_.split("(leases expired", 1)[1] if "(leases expired" in s_ else ""):
+                if x != m.group(2):
+                    holder.pop(x, None)   # review N7: a claim commit can also expire other leases
             continue
         m = re.match(r"worker: (worker-\d+) (releases|records \(lease lost\)) (\S+)", s_)
         if m:

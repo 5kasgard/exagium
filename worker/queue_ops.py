@@ -121,7 +121,17 @@ def covered(i):
 
 
 def failures(i):
-    return sum(1 for r in i.get("runs", []) if str(r.get("result", "")).startswith(("failed", "not started")))
+    """Consecutive failed runs at the end of the item's history (review N1: a budget refusal is not a failure, and a
+    success resets the count)."""
+    n = 0
+    for r in reversed(i.get("runs", [])):
+        res = str(r.get("result", ""))
+        if res.startswith("not started") or r.get("result") == "lease expired":
+            continue
+        if not res.startswith("failed"):
+            break
+        n += 1
+    return n
 
 
 def commit_push(wt, msg):
@@ -146,7 +156,7 @@ def claim(wt, worker, out):
         i = r[0]
         i.update(status="in progress", claimed_by=worker, claimed_at=iso(t), lease_until=iso(t + dt.timedelta(hours=LEASE_HOURS)))
         save(wt, q)
-        if commit_push(wt, f"worker: {worker} claims {i['id']}"):
+        if commit_push(wt, f"worker: {worker} claims {i['id']}" + (f" (leases expired {expired})" if expired else "")):
             json.dump({"item": i, "expired": expired, "attempts": attempt + 1}, open(out, "w"), indent=1)
             return 0
     json.dump({"item": None, "lost_races": TRIES}, open(out, "w"))
