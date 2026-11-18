@@ -1130,6 +1130,30 @@
     "Q37 (citation error found by audit)",
     "skills: paper-research, tiered-source-research, adversarial-review D2/D3"
    ]
+  },
+  {
+   "id": "P8",
+   "title": "Queue worker: free models keep working the queue without a chat (claims, leases, automatic notes and handoffs)",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "Q07"
+   ],
+   "batch": "B3",
+   "touches": [
+    ".github/workflows/worker.yml",
+    "worker/"
+   ],
+   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases.",
+   "refs": [
+    "skills: agent-orchestration (claims), one-queue",
+    "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
+    "P5 design in project doc claude/forge-next-item-2026-11-18.md"
+   ]
   }
  ],
  "batches": [
@@ -1159,12 +1183,13 @@
   },
   {
    "id": "B3",
-   "name": "Free proposer",
+   "name": "Free workers (queue worker + proposer)",
    "items": [
-    "P5"
+    "P5",
+    "P8"
    ],
-   "why": "Needs B1's contract (P2) and B2's spend caps before any paid pool joins. It is the batch that moves work off Claude.",
-   "worker": "Claude designs; a separate agent reviews (it holds a key); after that it runs on free models and CI."
+   "why": "One scheduled-worker machinery: claims and leases in the queue, key and generated code in separate jobs. The proposer (P5) is one job type of the queue worker (P8), so they are built once.",
+   "worker": "Claude designs once; a separate agent reviews (it holds a key); after that free models and CI run it on a schedule."
   },
   {
    "id": "B4",
