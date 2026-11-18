@@ -29,7 +29,7 @@ if __name__ == "__main__":
         print(clean(f"worker: {a[1]} ({a[2]}): {r.get('note') or r.get('path') or r.get('result')}", 160))
     else:
         r = load(a[4]) if len(a) > 4 else {}
-        note = {"result": a[1], "where": clean(a[2], 300), "run": a[3],
+        note = {"result": a[1], "where": " ".join(str(a[2]).split())[:300], "run": a[3],   # where: our own value (a URL, a sha), not model text
                 "edits": int(r.get("edits") or 0) if str(r.get("edits", "0")).isdigit() else 0,
                 "why": [clean(x, 300) for x in (r.get("why") or []) if isinstance(x, str)][:6]}
         json.dump(note, open(a[0], "w"), indent=1)
