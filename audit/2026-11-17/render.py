@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """One-queue checker and renderer. Usage: python3 render.py queue.json > QUEUE.md   (exit 1 if the file is invalid).
 Checks: unique ids, known values, blockers that exist, no cycles, a next step and refs on every item.
-Order: can run now (by optional priority, then value, then cost), waiting on a blocker, needs the owner, scheduled, parked, done."""
+Order: can run now (by optional priority, then how many open items it unlocks, directly or through others, then value, then cost), waiting on a blocker, needs the owner, scheduled, parked, done."""
 import json, sys
 
 KIND = {'test', 'build', 'fix', 'doc', 'infra', 'decision'}
@@ -52,6 +52,15 @@ def open_blockers(i):
     return [b for b in i.get('blocked_by', []) if by[b]['status'] != 'done']
 
 
+def unlocks(i, memo={}):
+    """Open items that wait on i, directly or through other items: the critical path goes first."""
+    if i['id'] not in memo:
+        memo[i['id']] = {j['id'] for j in items if j['status'] != 'done' and i['id'] in j.get('blocked_by', [])}
+        for d in list(memo[i['id']]):
+            memo[i['id']] |= unlocks(by[d])
+    return memo[i['id']]
+
+
 groups = [('Can run now', lambda i: i['status'] in ('open', 'in progress') and not open_blockers(i) and i['needs'] != 'the owner'),
           ('Waiting on a blocker', lambda i: i['status'] in ('open', 'in progress', 'blocked') and open_blockers(i)),
           ('Needs the owner', lambda i: i['status'] == 'waiting on the owner' or (i['needs'] == 'the owner' and i['status'] not in ('done', 'parked', 'scheduled'))),
@@ -62,14 +71,14 @@ placed = set()
 out = [f"# {q['title']}", '', q.get('intro', ''), '']
 for name, pred in groups:
     rows = [i for i in items if i['id'] not in placed and pred(i)]
-    rows.sort(key=lambda i: (i.get('priority', 99), VALUE[i['value']], i['cost'], i['id']))
+    rows.sort(key=lambda i: (i.get('priority', 99), -len(unlocks(i)), VALUE[i['value']], i['cost'], i['id']))
     if not rows:
         continue
-    out += [f'## {name} ({len(rows)})', '', '| id | severity | value | kind | title | next | refs |', '|---|---|---|---|---|---|---|']
+    out += [f'## {name} ({len(rows)})', '', '| id | unlocks | severity | value | kind | title | next | refs |', '|---|---|---|---|---|---|---|---|']
     for i in rows:
         placed.add(i['id'])
         nxt = i['next'] + (f" (blocked by {', '.join(open_blockers(i))})" if open_blockers(i) else '')
-        out.append(f"| {i['id']} | {i['severity']} | {i['value']} | {i['kind']} | {i['title']} | {nxt} | {'; '.join(i['refs'])} |")
+        out.append(f"| {i['id']} | {len(unlocks(i)) or ''} | {i['severity']} | {i['value']} | {i['kind']} | {i['title']} | {nxt} | {'; '.join(i['refs'])} |")
     out.append('')
 left = [i['id'] for i in items if i['id'] not in placed]
 if left:

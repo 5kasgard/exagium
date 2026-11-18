@@ -7,11 +7,11 @@
    "title": "bench2/3/5 grade steps run host git in the agent workspace: a planted filter runs on the runner (bench3/5 dormant: empty plans; bench2 dispatch-only, no hardening)",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "parked",
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: build the diff without the agent's .git, or run git inside the no-network container (A reproduced C1; S2 judged exposure). No effect today: every bench is dispatch-only and complete.",
+   "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: build the diff without the agent's .git, or run git inside the no-network container (A reproduced C1; S2 judged exposure). No effect today: every bench is dispatch-only and complete.",
    "refs": [
     "A-security C1",
     "S2 (orchestrator reproduction)",
@@ -19,39 +19,35 @@
     "A C1 bench2.yml:79,83",
     "S4 finding 2"
    ],
-   "blocked_by": [
-    "Q24"
-   ]
+   "blocked_by": []
   },
   {
    "id": "Q02",
    "title": "Grader trusts the first @@RESULTS@@ line from a process that imports agent code: a print forges passes",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "parked",
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: either a per-run nonce result file or a separate test process (A M1 gives both; S2 reproduced the forged line).",
+   "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: either a per-run nonce result file or a separate test process (A M1 gives both; S2 reproduced the forged line).",
    "refs": [
     "A-security M1",
     "S2 A-M1 confirmed",
     "main:router/bench/grade.py:14-38"
    ],
-   "blocked_by": [
-    "Q24"
-   ]
+   "blocked_by": []
   },
   {
    "id": "Q03",
    "title": "bench3/5 give the real API key to the agent container; seal allows all Cloudflare ranges and DNS anywhere (dormant)",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "parked",
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: every future bench uses bench-4's design, where only the host-side meter holds the key (A: bench-4 clean for C1/M2).",
+   "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: every future bench uses bench-4's design, where only the host-side meter holds the key (A: bench-4 clean for C1/M2).",
    "refs": [
     "A-security M2",
     "S2 A-M2 confirmed",
@@ -59,9 +55,7 @@
     "bench5.yml:131-133",
     "router/bench3/run_agent.py:63,66"
    ],
-   "blocked_by": [
-    "Q24"
-   ]
+   "blocked_by": []
   },
   {
    "id": "Q04",
@@ -85,17 +79,15 @@
    "title": "Third-party code by mutable reference in key-holding steps (OpenHands SDK tag, agent-server image tag, uv)",
    "kind": "fix",
    "severity": "major",
-   "status": "open",
+   "status": "parked",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: pin the SDK, agent-server image and uv by commit/digest in the next bench (A M4).",
+   "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: pin the SDK, agent-server image and uv by commit/digest in the next bench (A M4).",
    "refs": [
     "A-security M4"
    ],
-   "blocked_by": [
-    "Q24"
-   ]
+   "blocked_by": []
   },
   {
    "id": "Q06",
@@ -441,11 +433,11 @@
    "title": "\"router\" has no routing and the free pools have no work queue after bench-4 (the 24/7 goal)",
    "kind": "decision",
    "severity": "none",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Data supports the order of work, not idling the pools: Actions CPU is measured (loop 23/24 runs ok, counter 21/21 on 8 runners); the per-image meter (chosen 2026-11-15, HANDOFF-lgn-pilot2) is next but is a one-off build. LLM supply: OpenRouter's 1,000/day tier is active (guard read 292 and 346 left, about 25 agent attempts/day), NIM passes agent tasks (11/15), Cloudflare fits reviews. Next: design one recurring free-pool job (taste-and-adjust) after the meter; owner-only action: keys for Groq, Cerebras, Mistral (E E-20). Update 2026-11-18: owner added a Cerebras key ($10 credit): Developer tier (1,000 req/min, no daily cap), models gpt-oss-120b and qwen-3.8-27b; gpt-oss-120b answered exactly (run 44182646783). Paid per token ($0.35 in / $0.75 out per M for gpt-oss-120b, Oct 2026 rate cards), so any job using it needs a spend cap at the call site first. Groq: key added by the owner but GROQ_API_KEY was not set in that run (secret name to confirm). Update 2026-11-18 (router run 44197136667): Groq key live (free tier): gpt-oss-120b exact; headers show 1,000 requests and 8,000 tokens per window (Groq documents these as per day and per minute); models incl. openai/gpt-oss-120b, gpt-oss-20b, qwen/qwen3.8-27b. xAI key live (paid credit): grok-4.20-0309-non-reasoning exact; 1,800 requests, 10M tokens per window; 13 models listed (grok-4.3 to grok-4.7, grok-build-0.1, image/video). Engine fix: Groq's Cloudflare refused urllib's default agent (403/1010) until main c825b52. Paid pools (Cerebras, xAI) need a spend cap at the call site before any job uses them. freellms.org could not be read (robots.txt disallows fetching); a Nov 2026 list checked against provider docs (pricepertoken.com) names DeepSeek, Cohere, SambaNova, SiliconFlow and Novita among no-card free tiers not yet keyed here (cohere, sambanova slots already exist). Update 2026-11-18 09:30 (runs 44197900439, 44198469483, 44199259422): NIM key lists 32 models; the directory's top NIM ids are not among them; of the ids it lists, nemotron-3-ultra, minimax-m3.1-flash and step-5-preview answer exactly, glm-5.3-flash timed out at 180 s twice. Gemini: all 4 models return 402 'prepayment credits are depleted' after the owner set up billing (09:22) and claimed $10 credit; forum reports say claimed Cloud credits apply on Prepay only after prepaid credits are bought, and billing-sync faults are common. LLM7 DeepSeek-V4-Flash-0731 now exact; Nara 402/429 (unfunded). Cerebras models.list hit a 429 (Cloudflare 1015) once after several probes in an hour.",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Data supports the order of work, not idling the pools: Actions CPU is measured (loop 23/24 runs ok, counter 21/21 on 8 runners); the per-image meter (chosen 2026-11-15, HANDOFF-lgn-pilot2) is next but is a one-off build. LLM supply: OpenRouter's 1,000/day tier is active (guard read 292 and 346 left, about 25 agent attempts/day), NIM passes agent tasks (11/15), Cloudflare fits reviews. Next: design one recurring free-pool job (taste-and-adjust) after the meter; owner-only action: keys for Groq, Cerebras, Mistral (E E-20). Update 2026-11-18: owner added a Cerebras key ($10 credit): Developer tier (1,000 req/min, no daily cap), models gpt-oss-120b and qwen-3.8-27b; gpt-oss-120b answered exactly (run 44182646783). Paid per token ($0.35 in / $0.75 out per M for gpt-oss-120b, Oct 2026 rate cards), so any job using it needs a spend cap at the call site first. Groq: key added by the owner but GROQ_API_KEY was not set in that run (secret name to confirm). Update 2026-11-18 (router run 44197136667): Groq key live (free tier): gpt-oss-120b exact; headers show 1,000 requests and 8,000 tokens per window (Groq documents these as per day and per minute); models incl. openai/gpt-oss-120b, gpt-oss-20b, qwen/qwen3.8-27b. xAI key live (paid credit): grok-4.20-0309-non-reasoning exact; 1,800 requests, 10M tokens per window; 13 models listed (grok-4.3 to grok-4.7, grok-build-0.1, image/video). Engine fix: Groq's Cloudflare refused urllib's default agent (403/1010) until main c825b52. Paid pools (Cerebras, xAI) need a spend cap at the call site before any job uses them. freellms.org could not be read (robots.txt disallows fetching); a Nov 2026 list checked against provider docs (pricepertoken.com) names DeepSeek, Cohere, SambaNova, SiliconFlow and Novita among no-card free tiers not yet keyed here (cohere, sambanova slots already exist). Update 2026-11-18 09:30 (runs 44197900439, 44198469483, 44199259422): NIM key lists 32 models; the directory's top NIM ids are not among them; of the ids it lists, nemotron-3-ultra, minimax-m3.1-flash and step-5-preview answer exactly, glm-5.3-flash timed out at 180 s twice. Gemini: all 4 models return 402 'prepayment credits are depleted' after the owner set up billing (09:22) and claimed $10 credit; forum reports say claimed Cloud credits apply on Prepay only after prepaid credits are bought, and billing-sync faults are common. LLM7 DeepSeek-V4-Flash-0731 now exact; Nara 402/429 (unfunded). Cerebras models.list hit a 429 (Cloudflare 1015) once after several probes in an hour. Resolved 2026-11-18 (owner: an ideal construction order where each step feeds the next). the first recurring free job is the proposer (P5).",
    "refs": [
     "E E-03",
     "C F7"
@@ -461,12 +453,12 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "next": "Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs.",
+   "next": "Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs.",
    "refs": [
     "E E-04"
    ],
    "blocked_by": [
-    "Q24"
+    "P3"
    ]
   },
   {
@@ -728,11 +720,11 @@
    "title": "README leads with word history, omits router/ and benches from the status table",
    "kind": "doc",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "low",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do the factual half: add router/ and the benches to the README status table. Ordering is taste with no data either way, so it stays.",
+   "next": "Done (main 643943f/867d150): README rewritten status-first, with router/ and benches in the status table.",
    "refs": [
     "E E-16",
     "C F7"
@@ -858,8 +850,120 @@
    "cost": 0,
    "value": "high",
    "next": "Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time.",
-   "refs": "project doc claude/forge-hypothesis-process-is-computation.md; loop/results/scale-2026-11-18/; explore/ on this branch; RabbitHole README (constraint propagation, native-C candidate)",
-   "blocked_by": []
+   "refs": [
+    "project doc claude/forge-hypothesis-process-is-computation.md",
+    "loop/results/scale-2026-11-18/",
+    "explore/ on this branch",
+    "RabbitHole README (constraint propagation, native-C candidate)"
+   ],
+   "blocked_by": [
+    "P1"
+   ]
+  },
+  {
+   "id": "P1",
+   "title": "Transfer test: do structure rankings hold beyond digits?",
+   "kind": "test",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [],
+   "next": "Add next-character text (bits/char) and a UCI tabular set; run linear, MLPs, LGNs (plus a lookup-table family for Q54) on all three with per-item outcomes kept. Rule fixed first: any two families flip order on metric or cost by >2 SE.",
+   "refs": [
+    "project doc claude/forge-next-item-2026-11-18.md",
+    "README.md (Next) on main"
+   ]
+  },
+  {
+   "id": "P2",
+   "title": "General task contract: bytes in, bytes out, a checker; per-item outcomes recorded",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P1"
+   ],
+   "next": "Task card (data, I/O schema, checker program, floor, baselines, split, ledger gate) and a new runner reusing loop's jail, meters, scale.py and the ledger; loop.py stays frozen.",
+   "refs": [
+    "project doc claude/forge-next-item-2026-11-18.md",
+    "README.md (Next) on main"
+   ]
+  },
+  {
+   "id": "P3",
+   "title": "Mixed first suite, incl. verifier-scored tasks and PFNs",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P2"
+   ],
+   "next": "vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code.",
+   "refs": [
+    "project doc claude/forge-next-item-2026-11-18.md",
+    "README.md (Next) on main"
+   ]
+  },
+  {
+   "id": "P4",
+   "title": "Spend caps at the call site for paid pools (Cerebras, xAI, Gemini)",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "severity": "none",
+   "blocked_by": [],
+   "next": "Per-call and per-day caps enforced in router/engines.py before any paid pool takes work; refusal tested.",
+   "refs": [
+    "README.md (Who does what)",
+    "project doc claude/HANDOFF-audit-2026-11-17.md"
+   ]
+  },
+  {
+   "id": "P5",
+   "title": "Free proposer: free models write candidates around the clock; CI scores them",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P2"
+   ],
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite.",
+   "refs": [
+    "project doc claude/forge-next-item-2026-11-18.md",
+    "README.md (Next) on main"
+   ]
+  },
+  {
+   "id": "P6",
+   "title": "Compartments and connections from per-item data",
+   "kind": "test",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P3",
+    "P5"
+   ],
+   "next": "Behaviour-space clusters, error consistency, item response theory, functional equivalence, transfer; a living map linked to item-level evidence.",
+   "refs": [
+    "project doc claude/forge-next-item-2026-11-18.md",
+    "README.md (Next) on main"
+   ]
   }
  ]
 }
