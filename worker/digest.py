@@ -23,19 +23,24 @@ def git(wt, *a):
 
 
 def queue_at(wt, since):
-    """The queue as it was at the last commit before `since` (None if none is in the fetched history)."""
+    """(queue, label): the queue at the last commit before `since`; if the queue file didn't exist then, its oldest
+    version inside the window (digest 2026-11-18: the queue was younger than the window, so every item read as new)."""
     sha = git(wt, "rev-list", "-1", f"--before={since}", "HEAD").strip()
-    if not sha:
-        return None
-    s = git(wt, "show", f"{sha}:{Q.QUEUE}")
-    return json.loads(s) if s else None
+    s = git(wt, "show", f"{sha}:{Q.QUEUE}") if sha else ""
+    if s:
+        return json.loads(s), "the window's start"
+    for sha in git(wt, "rev-list", "--reverse", f"--since={since}", "HEAD", "--", Q.QUEUE).split():
+        s = git(wt, "show", f"{sha}:{Q.QUEUE}")
+        if s:
+            return json.loads(s), f"its first version in the window ({sha[:7]})"
+    return None, "none found"
 
 
 def facts(main_wt, queue_wt, runs_wt, out, hours=24):
     t = Q.now()
     since = Q.iso(t - dt.timedelta(hours=hours))
     q = Q.load(queue_wt)
-    old = queue_at(queue_wt, since)
+    old, base = queue_at(queue_wt, since)
     old_status = {i["id"]: i.get("status") for i in (old or {}).get("items", [])}
     changed = [(i["id"], old_status.get(i["id"], "new"), i.get("status"), i["title"][:110]) for i in q["items"]
                if old_status.get(i["id"], "new") != i.get("status")]
@@ -49,10 +54,10 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
     by = {i["id"]: i for i in q["items"]}
     open_list = [i for i in q["items"] if i.get("status") in ("open", "in progress")]
     lines = [f"# Digest {t.strftime('%Y-%m-%d')} (facts by script, {hours} h to {Q.iso(t)})", "",
-             f"## Queue: status changes ({'baseline missing: history too shallow' if old is None else len(changed)})"]
+             f"## Queue: status changes ({len(changed)}, compared with {base})"]
     lines += [f"- {a}: {b} -> {c}. {d}" for a, b, c, d in changed] or ["- none"]
     lines += ["", f"## Worker runs ({len(runs)})"]
-    lines += [f"- {a}: {r.get('result')} by {r.get('worker')} at {r.get('at')}; {r.get('where', '')} {('(lease lost)' if r.get('lost_lease') else '')}".rstrip()
+    lines += [f"- {a}: {r.get('result')} by {r.get('worker') or 'a chat'} at {r.get('at')}; {r.get('where', '')} {('(lease lost)' if r.get('lost_lease') else '')}".rstrip()
               for a, r in runs] or ["- none"]
     lines += ["", f"## Commits on main ({len(commits)})"] + ([f"- {c}" for c in commits] or ["- none"])
     lines += ["", "## Budget used (ledger on worker-runs)"]

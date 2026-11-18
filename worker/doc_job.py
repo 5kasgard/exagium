@@ -34,7 +34,9 @@ TARGET LINES (number | text):
 """
 
 REVIEW_PROMPT = """You review a proposed documentation fix. Approve only if the change does what the item asks, changes nothing else,
-adds no fact or number that the item or the original lines do not support, and keeps the meaning correct.
+adds no fact or number that the item or the original lines do not support, and keeps the meaning correct. Also reject
+wording that is redundant (e.g. "currently ... today"), vague, or weaker than the item asks: a careful maintainer must be
+able to merge the line as it is (release test 2026-11-18, Q38).
 
 Reply with JSON only: {{"verdict": "approve" or "reject", "reason": "<one or two sentences>"}}
 

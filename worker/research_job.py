@@ -33,7 +33,8 @@ a project that measures small AI models. Grade each claim's evidence: "measured"
 and how it was made; "reported" if it states a result without its method; "expert view", "experience report" (someone
 says what happened to them) or "opinion" otherwise. The source's kind is shown in brackets; a forum comment is rarely
 "measured".
-Extract only claims that bear on the question. For each, copy an exact quote from the abstract (verbatim, 8 to 40 words)
+Extract only claims that directly answer the question, not claims from the same field that don't; return no claims
+rather than off-topic ones (release test 2026-11-18, R1). Each claim must say exactly what its quote says, no broader. For each, copy an exact quote from the abstract (verbatim, 8 to 40 words)
 that states it; a claim without such a quote is not allowed. Prefer measured results, numbers to beat, known failure modes
 and prior art. Do not add anything the abstracts don't say.
 
@@ -49,8 +50,9 @@ SOURCES:
 {sources}
 """
 
-CHECK_PROMPT = """Check each claim against its quote. Keep a claim only if the quote supports it, the claim adds nothing the quote
-doesn't say, and it bears on the question. Then set its evidence grade: "measured" only if the quote states a
+CHECK_PROMPT = """Check each claim against its quote. Keep a claim only if the quote supports it, the claim says exactly what the quote
+says and no more (e.g. "across corruption types" when the quote compares two models is a misreading), and it directly
+answers the question, not merely the same field. Then set its evidence grade: "measured" only if the quote states a
 measurement and how it was made; "reported" for a result without its method; else "expert view", "experience report"
 or "opinion". A wrong grade is corrected, not a reason to drop the claim (release test, R1: 5 good claims were lost so). Reply with JSON only: {{"keep": [<indexes of claims to keep>], "grades": {{"<index>": "<grade>"}}, "notes": "<one sentence>"}}
 
@@ -310,7 +312,8 @@ def card(repo, out):
             L.append(f"- **{clean(c.get('kind'), 20)}**: {clean(c['claim'])} — \"{clean(c['quote'], 400)}\" "
                      f"[{s_['kind']}: {clean(s_['title'], 120)}, {clean(s_.get('year'), 10)}; {url}]")
         L.append("")
-    oq = [clean(x, 200) for x in ((rd.get("reading") or {}).get("open_questions") or [])[:8] if isinstance(x, str)]
+    oq = [clean(re.sub(r"\(?\b(S\d+)(,\s*S\d+)*\b\)?", "", x), 200)   # source IDs mean nothing outside the run (R1)
+          for x in ((rd.get("reading") or {}).get("open_questions") or [])[:8] if isinstance(x, str)]
     if oq:
         L += ["## Open questions (the reader's; not checked)"] + [f"- {x}" for x in oq] + [""]
     kinds = {}
