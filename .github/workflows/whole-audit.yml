@@ -1,0 +1,68 @@
+# Whole-system auditor, tier 1 (queue P10): weekly debt and blind-spot indicators, by script, read-only on the code.
+# The JSON goes to the ci-runs branch under audit/periodic/; a short summary goes straight to the owner as a GitHub
+# issue, not through the builders. Indicators and their definitions: audit/periodic/README.md.
+name: whole audit
+on:
+  schedule:
+    - cron: "43 21 * * 1"   # Mondays 21:43 UTC (Tuesday morning in Brisbane); GitHub may delay or drop it (queue Q57)
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: whole-audit
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+jobs:
+  indicators:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write   # pushes the week's JSON to ci-runs (never to main)
+      actions: read     # gh run list, for the CI indicator
+      issues: write     # the report to the owner
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no artifact
+        with:
+          fetch-depth: 0   # churn and stale-branch indicators read history and every remote branch
+      - name: inputs (queue from the pilot branch, CI runs, last week's result)
+        run: |
+          git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+          git show origin/pilot/lgn-20261115:audit/2026-11-17/queue.json > "$RUNNER_TEMP/queue.json"
+          gh run list -R "$R" --limit 300 --json workflowName,conclusion,createdAt,event > "$RUNNER_TEMP/runs.json"
+          prev=$(git ls-tree --name-only origin/ci-runs audit/periodic/ 2>/dev/null | sort | tail -1)
+          if [ -n "$prev" ]; then git show "origin/ci-runs:$prev" > "$RUNNER_TEMP/previous.json"; echo "previous: ci-runs $prev"
+          else cp audit/periodic/2026-11-18-baseline.json "$RUNNER_TEMP/previous.json"; echo "previous: the committed baseline"; fi
+      - name: measure
+        run: |
+          python3 -I audit/periodic/indicators.py --repo . --queue "$RUNNER_TEMP/queue.json" --queue-git . \
+            --runs "$RUNNER_TEMP/runs.json" --previous "$RUNNER_TEMP/previous.json" --out "$RUNNER_TEMP/now.json" > /dev/null
+          python3 -I -c 'import json,sys; r=json.load(open(sys.argv[1])); print(json.dumps(r["change"], indent=1))' "$RUNNER_TEMP/now.json"
+      - name: keep the result on ci-runs
+        run: |
+          day=$(date -u +%F)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5; do
+            git checkout -q -B ci-runs origin/ci-runs
+            mkdir -p audit/periodic && cp "$RUNNER_TEMP/now.json" "audit/periodic/$day.json"
+            git add audit/periodic && git commit -qm "whole audit indicators $day (run $GITHUB_RUN_ID)"
+            if git push -q origin ci-runs; then echo "pushed on try $i"; exit 0; fi
+            sleep $((i * 7)); git fetch -q origin ci-runs
+          done
+          exit 1
+      - name: report to the owner
+        run: |
+          day=$(date -u +%F)
+          python3 -I - "$RUNNER_TEMP/now.json" "$GITHUB_SERVER_URL/$R/blob/ci-runs/audit/periodic/$day.json" > "$RUNNER_TEMP/body.md" <<'PY'
+          import json, sys
+          r, url = json.load(open(sys.argv[1])), sys.argv[2]
+          print(f"Weekly indicators from `audit/periodic/indicators.py` at {r['commit'][:7]}. Full result: {url}\n")
+          print("Changes since the last run (definitions in audit/periodic/README.md):\n")
+          print("```json\n" + json.dumps(r.get("change"), indent=1)[:50000] + "\n```")
+          print("\nThis is the script tier of the whole-system auditor (queue P10). It reports; it changes no code.")
+          PY
+          gh issue create -R "$R" --title "Whole audit: weekly indicators $day" --body-file "$RUNNER_TEMP/body.md"
