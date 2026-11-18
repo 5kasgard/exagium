@@ -59,6 +59,8 @@ def main():
     d, n = card["d"], card["n_eval"]
     ex = os.path.join(a.task, "eval.x")
     y = np.fromfile(os.path.join(a.task, "eval.y"), dtype=np.uint8)
+    ty = np.fromfile(os.path.join(a.task, "train.y"), dtype=np.uint8)
+    major = int(np.bincount(ty).argmax())   # the most frequent training class
     reps = -(-a.timing_items // n)
     tx = os.path.join(a.wdir, "timing.x")
     np.tile(np.fromfile(ex, dtype=np.uint8).reshape(n, d), (reps, 1))[:a.timing_items].tofile(tx)
@@ -89,7 +91,7 @@ def main():
             tn = wall_ns(prog, w, tx, a.timing_items, cpu)
             arts[name]["ns_rounds"].append((tn - t0) / a.timing_items)
     res = dict(task=card["task"], card=card, n_eval=n, eval_y_b64=base64.b64encode(y.tobytes()).decode(),
-               rounds=a.rounds, timing_items=a.timing_items, host=dict(cpu=cpu_model(), machine=platform.machine(),
+               majority=dict(cls=major, accuracy=float((y == major).mean())), rounds=a.rounds, timing_items=a.timing_items, host=dict(cpu=cpu_model(), machine=platform.machine(),
                kernel=platform.release(), runner=os.environ.get("RUNNER_NAME", ""),
                run_id=os.environ.get("GITHUB_RUN_ID", "")), artifacts=arts, problems=problems)
     json.dump(res, open(a.out, "w"), indent=1, sort_keys=True)

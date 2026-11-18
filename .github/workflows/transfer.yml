@@ -7,6 +7,15 @@ on:
       plan_commit:
         description: "the commit that registered transfer/PLAN.md"
         required: true
+      budget_x:
+        description: "1 = main run; 4 = PLAN.md's budget check"
+        default: "1"
+      tasks:
+        description: "JSON list of tasks"
+        default: '["optdigits", "text", "adult"]'
+      families:
+        description: "space-separated families"
+        default: "lgn mlp64 mlp32 mlp16 linear"
 permissions:
   contents: read
 defaults:
@@ -17,9 +26,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        task: [optdigits, text, adult]
+        task: ${{ fromJSON(github.event.inputs.tasks) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 180
+    env:
+      TASK: ${{ matrix.task }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -27,6 +38,7 @@ jobs:
           persist-credentials: false
       - name: setup
         run: |
+          case "$TASK" in optdigits|text|adult) ;; *) echo "bad task"; exit 1 ;; esac
           sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
           python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
       - name: compare with the registered plan
@@ -42,27 +54,32 @@ jobs:
       - name: build the task
         run: |
           "$RUNNER_TEMP/venv/bin/python" -I transfer/tasks.py "$RUNNER_TEMP/tasks" --cache "$RUNNER_TEMP/dl"
-          cp "$RUNNER_TEMP/tasks/${{ matrix.task }}/card.json" out/
-      - name: train 5 families x 3 seeds
+          cp "$RUNNER_TEMP/tasks/$TASK/card.json" out/
+      - name: train the families x 3 seeds
+        env:
+          FAMILIES: ${{ github.event.inputs.families }}
+          TRANSFER_BUDGET_X: ${{ github.event.inputs.budget_x }}
         run: |
+          case "$TRANSFER_BUDGET_X" in 1|4) ;; *) echo "budget_x must be 1 or 4"; exit 1 ;; esac
+          for f in $FAMILIES; do case "$f" in lgn|mlp64|mlp32|mlp16|linear) ;; *) echo "bad family $f"; exit 1 ;; esac; done
           W="$RUNNER_TEMP/w"; mkdir -p "$W"
           gcc -O2 -std=c11 -ffp-contract=off -Wall transfer/infer_table.c -o "$W/infer_table"
           gcc -O2 -std=c11 -ffp-contract=off -Wall transfer/infer_lgn.c -o "$W/infer_lgn"
-          for f in lgn mlp64 mlp32 mlp16 linear; do for s in 1 2 3; do echo "$f $s"; done; done |
+          for f in $FAMILIES; do for s in 1 2 3; do echo "$f $s"; done; done |
             xargs -P "$(nproc)" -L 1 bash -c 'OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
-              "$0/venv/bin/python" -I transfer/families.py "$0/tasks/'"${{ matrix.task }}"'" "$1" "$2" "$0/w/$1-s$2.bin" \
+              "$0/venv/bin/python" -I transfer/families.py "$0/tasks/$TASK" "$1" "$2" "$0/w/$1-s$2.bin" \
               > "$0/w/$1-s$2.json"' "$RUNNER_TEMP"
           cat "$W"/*.json | tee out/train.jsonl
       - name: meter
         run: |
           rc=0
-          "$RUNNER_TEMP/venv/bin/python" -I transfer/meter.py "$RUNNER_TEMP/tasks/${{ matrix.task }}" "$RUNNER_TEMP/w" \
-            "out/result-${{ matrix.task }}.json" || rc=$?
+          "$RUNNER_TEMP/venv/bin/python" -I transfer/meter.py "$RUNNER_TEMP/tasks/$TASK" "$RUNNER_TEMP/w" \
+            "out/result-$TASK.json" || rc=$?
           echo "meter exit $rc"; exit $rc
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
         with:
-          name: transfer-${{ matrix.task }}
+          name: transfer-${{ matrix.task }}-x${{ github.event.inputs.budget_x }}
           path: out/
   decide:
     needs: task

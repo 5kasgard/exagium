@@ -11,6 +11,8 @@ For every pair of families (A, B) and every task, an order holds when it clears 
             round differences is below -2 SE (SE = sd/sqrt(rounds)).
 A flip: the order of A and B holds one way on one task and the other way on another task.
 Verdict: "rankings differ" if any flip on any of the three measures; else "no flip found".
+budget_check lists (A, B, task1, task2) for every accuracy flip: PLAN.md retrains A and B on both tasks at 4x the
+budget and runs this script on those results; the flip "survives the budget check" if it is found again.
 Exit codes: 0 done, 1 an input lists problems (the verdict is then marked invalid), 3 failure.
 """
 import argparse, base64, itertools, json, math, statistics, sys
@@ -89,7 +91,11 @@ def main():
                                             else float(np.mean(s[f]["ns_rounds"]))))
                 for m in ("acc", "ir", "ns")} for t, s in sums.items()}
     out = dict(verdict=verdict, valid=not problems, problems=problems, flips_by_measure=by, flips=flips,
-               table=table, rank=rank, hosts={r["task"]: r["host"] for r in res})
+               table=table, rank=rank, majority={r["task"]: r.get("majority") for r in res},
+               below_majority=[f"{t}/{f}" for r in res for t in [r["task"]] for f, v in table[t].items()
+                               if r.get("majority") and v["acc"] <= r["majority"]["accuracy"]],
+               budget_check=sorted({(f["pair"][0], f["pair"][1], *sorted((f["better_on"], f["worse_on"])))
+                                    for f in flips if f["measure"] == "acc"}), hosts={r["task"]: r["host"] for r in res})
     if a.out:
         json.dump(out, open(a.out, "w"), indent=1, sort_keys=True)
     for t in sorted(table):
@@ -98,6 +104,11 @@ def main():
             v = table[t][f]
             print(f"  {f:7s} acc {v['acc']:.4f} {v['acc_seeds']}  Ir/item {v['ir_per_item']:9.1f}  "
                   f"ns/item {v['ns_per_item']:8.1f}")
+    for t, m in out["majority"].items():
+        if m:
+            print(f"  majority class on {t}: {m['accuracy']:.4f}")
+    if out["below_majority"]:
+        print("  AT OR BELOW THE MAJORITY CLASS:", out["below_majority"])
     print(f"\nflips: {by}")
     for f in flips:
         print("  ", json.dumps(f))

@@ -10,7 +10,7 @@ Every family sees the same bytes and the same per-feature types, with one shared
     (duplicates and a threshold at the minimum dropped); a categorical byte becomes one bit v == c for each of
     its (at most 64) most frequent training values.
 Training budget, the same rule for every family: epochs = min(100, ceil(600000 / n_train)), minibatch 64,
-Adam. Nothing is tuned on the eval split; every hyperparameter below is fixed in PLAN.md before any run.
+Adam (TRANSFER_BUDGET_X=4 multiplies the epochs by 4, for the budget check only). Nothing is tuned on the eval split; every hyperparameter below is fixed in PLAN.md before any run.
 
 Exported forms (little-endian):
   table (linear, mlp*): because each feature is one byte, layer 1 (or the linear scores) is a sum of per-feature
@@ -23,13 +23,14 @@ Prints one JSON line: family, seed, epochs, train accuracy (of the exported form
 Also writes OUT_WEIGHTS + ".pred" (uint8 class per eval item, from a numpy run of the exported form), which the
 meter checks against the C program's output byte for byte.
 """
-import json, math, struct, sys, time
+import json, math, os, struct, sys, time
 
 import numpy as np
 
 QUANTILES = (0.2, 0.4, 0.6, 0.8)
 MAX_CATS = 64
 SAMPLES = 600000
+BUDGET_X = int(os.environ.get("TRANSFER_BUDGET_X", "1"))   # 1 for the main run; 4 for PLAN.md's budget check
 MAX_EPOCHS = 100
 BATCH = 64
 TABLE_LR, TABLE_L2 = 3e-3, 1e-4
@@ -44,7 +45,7 @@ def load(task):
 
 
 def epochs_for(n):
-    return min(MAX_EPOCHS, math.ceil(SAMPLES / n))
+    return BUDGET_X * min(MAX_EPOCHS, math.ceil(SAMPLES / n))
 
 
 # ---------------------------------------------------------------- table families
@@ -297,7 +298,7 @@ def main():
         size = dict(hidden=H, table_floats=int(m["T"].size))
     open(out, "wb").write(blob)
     pred.astype(np.uint8).tofile(out + ".pred")
-    print(json.dumps(dict(task=card["task"], family=fam, seed=seed, epochs=ep,
+    print(json.dumps(dict(task=card["task"], family=fam, seed=seed, epochs=ep, budget_x=BUDGET_X,
                           train_accuracy=round(float((ptr == y).mean()), 6), bytes=len(blob),
                           seconds=round(time.time() - t0, 1), **size)))
 

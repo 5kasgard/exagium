@@ -30,7 +30,8 @@ distribution, and one metric must serve every family.
   tau 4, Adam lr 0.01. Ordinal bytes as thermometer bits at the training quantiles 0.2/0.4/0.6/0.8; categorical
   bytes as one bit per value (64 most frequent). Exported as gates, run bit-sliced (`infer_lgn.c`).
 - **Same budget for all:** epochs = min(100, ⌈600,000 / n_train⌉), minibatch 64; 3 seeds (1, 2, 3) each.
-- Mandatory baselines: linear is in every comparison; the majority class is reported.
+- Mandatory baselines: linear is in every comparison; the majority class (most frequent training class) is
+  reported, and any family at or below it is listed.
 - **Not in this step:** a PFN (TabPFN needs PyTorch and downloaded weights, and its context limit is below
   adult's 32,561 rows; whether it fits CI's CPU limits is untested). Trees and boosting: step 2.
 
@@ -53,6 +54,10 @@ For each pair of families A, B and each task, an order holds when:
 there is any flip on any of the three measures; else "no flip found". Any problem in the meter (a C/numpy mismatch,
 a failed run) marks the verdict invalid.
 
+**Budget check (fixed now):** for every accuracy flip, the two families are retrained on both of its tasks at 4×
+the epochs (`budget_x = 4`, same seeds) and `decide.py` is run on those results alone. The flip "survives the
+budget check" if it is found again; otherwise it is reported as a possible budget effect, not a structural one.
+
 **What follows:** "rankings differ" → step 2 (a general task contract and a mixed suite) before any cross-task
 claim. "No flip found" → step 2 is still needed for breadth, but a single-task result gains weight. Either
 way, accuracy flips and cost flips are reported apart, because cost flips can follow from input shape alone.
@@ -66,3 +71,20 @@ way, accuracy flips and cost flips are reported apart, because cost flips can fo
   must go through loop's jail.
 - The generic logic-gate program is not lgn_d's compiled circuit (no constant folding or pruning), so its costs
   are not lgn_d's numbers.
+
+## Outside review before registration
+gpt-oss-120b (Cloudflare, free) reviewed the first draft: `router-runs`, `reviews/44237547673/`. Each point checked:
+- "LGN gradients are applied to the wrong layers": **rejected**. The loop runs from the last layer down and
+  prepends, so `grads` is in forward order, as `params` is; lgn reached 0.9948 training and 0.9697 dev accuracy on
+  optdigits in the pre-run check (lgn_d: 0.973), which a mis-wired update would not.
+- "Flips are counted twice": **rejected**. The condition is one-directional, so each flip is listed once per
+  task pair (checked with a planted flip).
+- "Instruction counts are noisy": **rejected**. Three cachegrind runs gave 4,063,623 I refs each (lgn, optdigits).
+- "Multithreaded BLAS": **already done**; `transfer.yml` sets one thread per training process.
+- "The seed term double-counts": **rejected**. Its proposed fix is the formula already used (per-seed means over
+  items are the per-seed accuracies), and item sampling and training randomness are separate terms.
+- "The budget differs by task": **partly applied**. Equal samples is one fair choice and equal epochs another;
+  neither removes the confound, so the budget check above tests it.
+- "The majority class is said to be reported but is not": **applied**.
+- Division by zero, empty rounds: **not applied**; neither can occur with these families and a failed run
+  stops the job.
