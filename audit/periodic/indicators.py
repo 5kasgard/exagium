@@ -4,6 +4,7 @@ Read-only. Every indicator is mechanical and says how it is computed; heuristics
 they flagged, so a reader can check each one. Thresholds are not fixed in advance: the first run is the baseline, and
 later runs report the change against a previous report (--previous). Trip rules come from that history, not guesses.
 
+Not yet measured (each needs a tool installed; queue P10): test coverage, lint warnings, dependency freshness.
 Usage: python3 audit/periodic/indicators.py [--repo .] [--queue QUEUE.json] [--queue-git DIR] [--runs RUNS.json]
                                             [--previous OLD.json] [--out NEW.json]
   --queue      the queue file (it lives on the pilot branch: git show origin/pilot/lgn-20261115:audit/2026-11-17/queue.json)
@@ -41,12 +42,12 @@ def size(repo, files):
         kind = ("workflows" if f.startswith(".github/") else "code" if f.endswith(CODE) else
                 "docs" if f.endswith(".md") else "data")
         if f.endswith(TEXT):
-            out[top][kind] += read(repo, f).count("\n")
+            out[top][kind] += len(read(repo, f).splitlines())
     return {k: dict(v) for k, v in sorted(out.items())}
 
 
 def duplication(repo, files):
-    """Python functions whose bodies are identical after parsing (ast.dump, names of the function itself excluded).
+    """Python functions whose bodies are identical after parsing (ast.dump, without the function's name or docstring).
     Method: exact structural duplicates only; near-duplicates are not counted. Share = duplicated function lines / all function lines."""
     seen = collections.defaultdict(list)
     total = 0
@@ -61,7 +62,9 @@ def duplication(repo, files):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 n = (node.end_lineno or node.lineno) - node.lineno + 1
                 total += n
-                body = ast.dump(ast.Module(body=node.body, type_ignores=[]), include_attributes=False)
+                stmts = node.body[1:] if (node.body and isinstance(node.body[0], ast.Expr) and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+                                          and isinstance(node.body[0].value.value, str)) else node.body
+                body = ast.dump(ast.Module(body=stmts, type_ignores=[]), include_attributes=False)
                 if n >= 4:
                     seen[hashlib.sha256(body.encode()).hexdigest()].append((f, node.name, n))
     groups = [g for g in seen.values() if len(set(x[0] for x in g)) > 1]
@@ -88,7 +91,8 @@ def unreferenced(repo, files):
 
 
 def cannot_fail(repo, files):
-    """Workflow lines that swallow a failure: '|| true', 'continue-on-error: true', 'set +e' without a later exit.
+    """Workflow lines that swallow a failure: '|| true' and 'continue-on-error: true'. ('set +e' is not counted: the
+    repo uses it deliberately to record an exit code and return it later.)
     Some are deliberate diagnostics; each is listed with its line so a reader can tell which."""
     hits = []
     for f in files:
@@ -109,7 +113,7 @@ def ci(runs, days=7, now=None):
     per = collections.defaultdict(collections.Counter)
     for r in runs:
         t = dt.datetime.fromisoformat(r["createdAt"].replace("Z", "+00:00"))
-        if (now - t).days < days and r.get("conclusion"):
+        if now - t < dt.timedelta(days=days) and r.get("conclusion"):
             per[r["workflowName"]][r["conclusion"]] += 1
     out = {}
     for w, c in sorted(per.items()):
@@ -119,24 +123,26 @@ def ci(runs, days=7, now=None):
     return out
 
 
-def queue_state(queue, qgit=None, qpath="audit/2026-11-17/queue.json", today=None):
-    """Counts by status; for open items, days since the item id first appeared in the queue's history."""
+def queue_state(queue, qgit=None, qpath="audit/2026-11-17/queue.json", now=None):
+    """Counts by status; for open items, hours since the item id first appeared in the queue's history.
+    Uses commit timestamps (Unix time), so the commit's own timezone cannot shift the age (a first run in local
+    dates read 0 days for items about 12 hours old)."""
     if queue is None:
         return None
     items = queue["items"]
     st = collections.Counter(i["status"] for i in items)
     age = {}
     if qgit:
-        today = today or dt.date.today()
+        now = now or dt.datetime.now(dt.timezone.utc).timestamp()
         for i in items:
             if i["status"] in ("done", "parked"):
                 continue
-            log = subprocess.run(["git", "-C", qgit, "log", "--all", "--reverse", "--format=%ad", "--date=short",
+            log = subprocess.run(["git", "-C", qgit, "log", "--all", "--reverse", "--format=%ct",
                                   "-S", f'"id": "{i["id"]}"', "--", qpath], capture_output=True, text=True).stdout.split()
             if log:
-                age[i["id"]] = (today - dt.date.fromisoformat(log[0])).days
+                age[i["id"]] = round((now - int(log[0])) / 3600, 1)
     claims = [f"{i['id']} by {i.get('claimed_by')} since {i.get('claimed_at')}" for i in items if i.get("claimed_by")]
-    return {"by_status": dict(st), "open_age_days": age, "claims": claims}
+    return {"by_status": dict(st), "open_age_hours": age, "claims": claims}
 
 
 def stale_branches(repo, days=14):
@@ -154,7 +160,7 @@ def stale_branches(repo, days=14):
     return out
 
 
-EVIDENCE = re.compile(r"(\b[0-9a-f]{7,40}\b|\b\d{11}\b|[\w./-]+/[\w./-]+|\.(json|md|txt|py)\b|ledger entr|run \d|entry \d)")
+EVIDENCE = re.compile(r"(https?://\S+|\]\([^)]+\)|\b[0-9a-f]{7,40}\b|\b\d{11}\b|[\w./-]+/[\w./-]+|\.(json|md|txt|py)\b|ledger entr|run \d|entry \d)")
 NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?\s*(?:%|×|x\b|ns|ms|µs|s\b)|\b0\.\d{2,}\b")
 
 
@@ -168,6 +174,20 @@ def claims_without_evidence(repo, path="README.md"):
     return {"count": len(out), "lines": out}
 
 
+def churn(repo, days=7):
+    """Lines added plus deleted per top-level folder over the last `days` days (git log --numstat): where the work went.
+    A direction signal: compare it with what the README says the project is for."""
+    out = collections.defaultdict(collections.Counter)
+    for line in git(repo, "log", f"--since={days}.days", "--numstat", "--format=").splitlines():
+        p = line.split("\t")
+        if len(p) == 3 and p[0].isdigit() and p[1].isdigit():
+            f = p[2]
+            kind = ("workflows" if f.startswith(".github/") else "code" if f.endswith(CODE) else
+                    "docs" if f.endswith(".md") else "data")
+            out[f.split("/")[0] if "/" in f else "(root)"][kind] += int(p[0]) + int(p[1])
+    return {k: dict(v) for k, v in sorted(out.items(), key=lambda kv: -kv[1]["code"])}
+
+
 def delta(new, old):
     """Changes against a previous report, for the scalar indicators."""
     if not old:
@@ -175,7 +195,9 @@ def delta(new, old):
     pick = lambda r: {"duplication_share": r["duplication"]["share"], "unreferenced": r["unreferenced"]["count"],
                       "cannot_fail_lines": r["cannot_fail"]["count"], "claims_without_evidence": r["claims_without_evidence"]["count"],
                       "stale_branches": len(r["stale_branches"]),
-                      "code_lines": sum(v.get("code", 0) for v in r["size"].values())}
+                      "code_lines": sum(v.get("code", 0) for v in r["size"].values()),
+                      "ci_not_success_runs": sum(v["not_success"] for v in (r["ci_7d"] or {}).values()),
+                      "open_items": (r["queue"] or {}).get("by_status", {}).get("open")}
     a, b = pick(old), pick(new)
     return {k: {"was": a[k], "now": b[k]} for k in b if a[k] != b[k]}
 
@@ -196,7 +218,8 @@ def main(argv=None):
          "date": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%MZ"), "tracked_files": len(files),
          "size": size(repo, files), "duplication": duplication(repo, files), "unreferenced": unreferenced(repo, files),
          "cannot_fail": cannot_fail(repo, files), "ci_7d": ci(load(a.runs)), "queue": queue_state(load(a.queue), a.queue_git),
-         "stale_branches": stale_branches(repo), "claims_without_evidence": claims_without_evidence(repo)}
+         "stale_branches": stale_branches(repo), "claims_without_evidence": claims_without_evidence(repo),
+         "churn_7d": churn(repo)}
     r["change"] = delta(r, load(a.previous))
     if a.out:
         with open(a.out, "x") as fh:

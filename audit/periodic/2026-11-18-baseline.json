@@ -1,0 +1,395 @@
+{
+ "tool": "audit/periodic/indicators.py",
+ "commit": "c8d47475ef247499333bbe5b0caac5e50fd2e8a7",
+ "date": "2026-11-18T07:44Z",
+ "tracked_files": 331,
+ "size": {
+  "(root)": {
+   "docs": 220
+  },
+  ".github": {
+   "workflows": 1758
+  },
+  "audit": {
+   "code": 232
+  },
+  "counter": {
+   "docs": 194,
+   "code": 1005,
+   "data": 96
+  },
+  "ledger": {
+   "data": 8
+  },
+  "loop": {
+   "docs": 238,
+   "code": 2713,
+   "data": 8310
+  },
+  "probe": {
+   "docs": 146,
+   "data": 4167,
+   "code": 1579
+  },
+  "record": {
+   "docs": 807,
+   "code": 1728,
+   "data": 946
+  },
+  "router": {
+   "code": 2546,
+   "docs": 3228,
+   "data": 7541
+  },
+  "runner": {
+   "docs": 137,
+   "code": 1217,
+   "data": 189426
+  },
+  "runs": {
+   "data": 4630
+  },
+  "tasks": {
+   "data": 338,
+   "code": 155
+  },
+  "transfer": {
+   "docs": 172,
+   "code": 838,
+   "data": 3572
+  },
+  "verifications": {
+   "docs": 209,
+   "data": 29027,
+   "code": 284
+  }
+ },
+ "duplication": {
+  "function_lines": 7228,
+  "duplicated_lines": 313,
+  "share": 0.0433,
+  "groups": [
+   [
+    "runner/candidates/label-linear/train.py:main",
+    "runner/candidates/label-mlp16/train.py:main"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:fit",
+    "loop/candidates/mlp32/train.py:fit",
+    "loop/candidates/mlp64/train.py:fit"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:main",
+    "loop/candidates/mlp32/train.py:main",
+    "loop/candidates/mlp64/train.py:main"
+   ],
+   [
+    "loop/baselines/linear/train.py:fit",
+    "loop/baselines/thermo/train.py:fit"
+   ],
+   [
+    "router/bench3/decide.py:interval",
+    "router/bench4/decide.py:interval"
+   ],
+   [
+    "router/bench3/measure.py:visible",
+    "router/bench4/measure.py:visible"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:quantize",
+    "loop/candidates/mlp32/train.py:quantize",
+    "loop/candidates/mlp64/train.py:quantize"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:exp_neg",
+    "loop/candidates/mlp32/train.py:exp_neg",
+    "loop/candidates/mlp64/train.py:exp_neg"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:predict_q",
+    "loop/candidates/mlp32/train.py:predict_q",
+    "loop/candidates/mlp64/train.py:predict_q"
+   ],
+   [
+    "runner/candidates/label-linear/train.py:records",
+    "runner/candidates/label-mlp16/train.py:records"
+   ],
+   [
+    "router/bench3/decide.py:solve",
+    "router/bench4/decide.py:solve"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:mm",
+    "loop/candidates/mlp32/train.py:mm",
+    "loop/candidates/mlp64/train.py:mm"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:mtm",
+    "loop/candidates/mlp32/train.py:mtm",
+    "loop/candidates/mlp64/train.py:mtm"
+   ],
+   [
+    "runner/candidates/label-linear/train.py:sg",
+    "runner/candidates/label-mlp16/train.py:sg"
+   ]
+  ]
+ },
+ "unreferenced": {
+  "count": 5,
+  "files": [
+   "loop/results/plan2/verifier-recompute.py",
+   "loop/results/plan2/verifier-score.py",
+   "router/analysis/design_variance.py",
+   "verifications/z-20261106/scripts/dram_check.c",
+   "verifications/z-20261106/scripts/newmount_proc.c"
+  ]
+ },
+ "cannot_fail": {
+  "count": 31,
+  "lines": [
+   ".github/workflows/anchor-test.yml:34: continue-on-error: true",
+   ".github/workflows/anchor-test.yml:45: cp \"${{ steps.att.outputs.bundle-path }}\" out/attestation.jsonl 2>/dev/null || true",
+   ".github/workflows/bench.yml:68: git -C ws add -A >/dev/null 2>&1; diffstat=$(git -C ws diff --cached --shortstat base 2>/dev/null ||",
+   ".github/workflows/bench2.yml:78: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench2.yml:79: git -C \"$WS\" add -A >/dev/null 2>&1; d=$(git -C \"$WS\" diff --cached --shortstat HEAD 2>/dev/null || ",
+   ".github/workflows/bench2.yml:83: git -C \"$WS\" diff --cached HEAD > \"$RUNNER_TEMP/out/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:139: echo \"CHECK_DROPS=$(sudo dmesg | grep -c 'B3DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench3.yml:158: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:160: $G -C \"$WS\" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true",
+   ".github/workflows/bench3.yml:161: $G -C \"$WS\" diff --cached HEAD > \"$O/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:162: all=$(sudo dmesg | grep -c 'B3DROP ' || true)",
+   ".github/workflows/bench3.yml:163: sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/bench4.yml:117: echo \"DROPS0=$(sudo dmesg | grep -c 'B4DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench4.yml:140: all=$(sudo dmesg | grep -c 'B4DROP ' || true)",
+   ".github/workflows/bench4.yml:141: sudo dmesg | grep 'B4DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/bench4.yml:143: sudo chown -R \"$(id -u)\" \"$WS\" \"$O\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:149: echo \"CHECK_DROPS=$(sudo dmesg | grep -c 'B5DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench5.yml:173: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:175: $G -C \"$WS\" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true",
+   ".github/workflows/bench5.yml:176: $G -C \"$WS\" diff --cached HEAD > \"$O/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:177: all=$(sudo dmesg | grep -c 'B5DROP ' || true)",
+   ".github/workflows/bench5.yml:178: sudo dmesg | grep 'B5DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/counter.yml:37: for n in 1000 0; do python3 ../count.py --reps 3 --input mlp --out-dir ../../runs/ci --keep-raw ../.",
+   ".github/workflows/counter.yml:38: for n in 20 0; do python3 ../count.py --reps 3 --input mlp.py --out-dir ../../runs/ci --keep-raw ../",
+   ".github/workflows/loop.yml:8: #      and the upload still run). Until 2026-11-18 every step ended in `|| true`, so CI could not fa",
+   ".github/workflows/loop.yml:42: grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true",
+   ".github/workflows/loop.yml:97: mkdir -p out && { uname -r; id -u; grep -m1 -E 'model name|CPU part' /proc/cpuinfo || true; grep Sec",
+   ".github/workflows/loop.yml:98: { bwrap --unshare-all --ro-bind / / true 2>&1; echo \"bwrap exit $?\"; } >> out/host.txt || true",
+   ".github/workflows/loop.yml:99: /opt/venv/bin/python -c \"import sys; sys.path.insert(0, 'loop'); import loop; loop.check_jail(); pri",
+   ".github/workflows/loop.yml:109: done 2>&1 | tee out/valgrind-confine.txt || true",
+   ".github/workflows/record.yml:141: for f in ledger/anchors/*.ots; do ots upgrade \"$f\" || true; done"
+  ]
+ },
+ "ci_7d": {
+  "bench2": {
+   "runs": 1,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 1
+   }
+  },
+  "bench3": {
+   "runs": 14,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 14
+   }
+  },
+  "bench4": {
+   "runs": 13,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 12,
+    "cancelled": 1
+   }
+  },
+  "bench5": {
+   "runs": 7,
+   "not_success": 1,
+   "share": 0.143,
+   "conclusions": {
+    "success": 6,
+    "failure": 1
+   }
+  },
+  "counter cross-host": {
+   "runs": 2,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 2
+   }
+  },
+  "loop": {
+   "runs": 3,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 3
+   }
+  },
+  "record": {
+   "runs": 9,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 9
+   }
+  },
+  "review": {
+   "runs": 24,
+   "not_success": 1,
+   "share": 0.042,
+   "conclusions": {
+    "success": 23,
+    "failure": 1
+   }
+  },
+  "router": {
+   "runs": 16,
+   "not_success": 7,
+   "share": 0.438,
+   "conclusions": {
+    "success": 9,
+    "failure": 7
+   }
+  },
+  "runner": {
+   "runs": 3,
+   "not_success": 2,
+   "share": 0.667,
+   "conclusions": {
+    "failure": 2,
+    "success": 1
+   }
+  },
+  "tests": {
+   "runs": 6,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 6
+   }
+  },
+  "transfer": {
+   "runs": 2,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 2
+   }
+  }
+ },
+ "queue": {
+  "by_status": {
+   "parked": 17,
+   "done": 23,
+   "open": 23,
+   "in progress": 1
+  },
+  "open_age_hours": {
+   "Q06": 12.1,
+   "Q07": 12.1,
+   "Q09": 12.1,
+   "Q10": 12.1,
+   "Q22": 12.1,
+   "Q48": 12.1,
+   "Q25": 12.1,
+   "Q28": 12.1,
+   "Q29": 12.1,
+   "Q36": 12.1,
+   "Q37": 12.1,
+   "Q38": 12.1,
+   "Q39": 12.1,
+   "Q44": 12.1,
+   "Q54": 3.3,
+   "P3": 3.3,
+   "P4": 3.3,
+   "P5": 3.3,
+   "P6": 3.3,
+   "Q55": 0.8,
+   "P7": 0.5,
+   "P8": 0.3,
+   "P9": 0.1,
+   "P10": 0.1
+  },
+  "claims": [
+   "P10 by chat-session_01DdaGg2i6NRCvDv1cftN7gp since 2026-11-18T07:41Z"
+  ]
+ },
+ "stale_branches": [],
+ "claims_without_evidence": {
+  "count": 3,
+  "lines": [
+   "README.md:33: | Nov 15\u201317 | Why mlp16 is slow: 6 causes ruled out by at least two independent runs (two other models' report",
+   "README.md:44: | mlp16 (the best small MLP) | 0.980 | 1\u00d7 | 104 ns (mlp16_chunked: 83) |",
+   "README.md:45: | lgn_d (logic-gate network) | 0.973 | 0.45\u00d7 | 55 ns (read by block: 31) |"
+  ]
+ },
+ "churn_7d": {
+  "loop": {
+   "docs": 302,
+   "data": 20139,
+   "code": 3017
+  },
+  "router": {
+   "docs": 3242,
+   "code": 2606,
+   "data": 7585
+  },
+  "record": {
+   "data": 1085,
+   "code": 1757,
+   "docs": 807
+  },
+  "probe": {
+   "docs": 146,
+   "data": 4167,
+   "code": 1579
+  },
+  "runner": {
+   "code": 1285,
+   "docs": 139,
+   "data": 189426
+  },
+  "counter": {
+   "docs": 194,
+   "code": 1005,
+   "data": 96
+  },
+  "transfer": {
+   "docs": 196,
+   "data": 3644,
+   "code": 850
+  },
+  "verifications": {
+   "docs": 209,
+   "data": 29027,
+   "code": 284
+  },
+  "audit": {
+   "code": 209
+  },
+  "tasks": {
+   "code": 157,
+   "data": 338
+  },
+  ".github": {
+   "workflows": 1884
+  },
+  "(root)": {
+   "docs": 316,
+   "data": 4
+  },
+  "ledger": {
+   "data": 8
+  },
+  "runs": {
+   "data": 4630
+  }
+ },
+ "change": null
+}
