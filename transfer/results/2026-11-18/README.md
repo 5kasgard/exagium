@@ -5,17 +5,18 @@ Plan registered at `c5949a5` (`../../PLAN.md`); both runs were made from that co
 - **Budget check** (4× epochs, the families of the accuracy flips): run 44238804472 → `budget-x4/`. Hosts: Xeon 6975P-C
   (optdigits, text), EPYC 7763 (adult).
 
-Every number below is in those folders (`decision.txt`, `decision.json`, `result-*.json`, which also hold every
+An independent agent re-applied the rule from the raw per-item data with its own script and got the same
+flips and verdict for both runs; its wording fixes are applied here. Every number below is in those folders (`decision.txt`, `decision.json`, `result-*.json`, which also hold every
 artifact's class for every eval item). Eval splits only; nothing was tuned on them.
 
 ## Verdict by the fixed rule: **rankings differ**
 | measure | flips | which |
 |---|---|---|
-| accuracy | 3 (2 survive the budget check) | linear vs mlp64 and mlp16 vs mlp64: the larger MLP wins on digits, loses on text (both survive at 4×). linear vs mlp64 on adult vs text: does **not** survive (at 4× linear and mlp64 tie on adult) |
+| accuracy | 3, over 2 family pairs (2 survive the budget check, one per pair, both digits vs text) | linear vs mlp64 and mlp16 vs mlp64: the larger MLP wins on digits, loses on text (both survive at 4×). linear vs mlp64 on adult vs text: does **not** survive (at 4× linear and mlp64 tie on adult) |
 | instructions per item | 4 | lgn cheaper than linear and than mlp16 on digits only; dearer on text and adult |
-| native ns per item | 2 | lgn faster than mlp32 on digits only |
+| native ns per item | 2 | lgn faster than mlp32 on digits, slower on text (same host) and on adult (another host; each order is measured within one host) |
 
-## The table (main run; mean of 3 seeds)
+## The table (main run; mean of 3 seeds; bold marks the top value, not a rule-backed win: close values are ties)
 | | optdigits acc | text acc | adult acc | Ir/item: digits / text / adult |
 |---|---|---|---|---|
 | linear | 0.961 | **0.334** | 0.853 | 4,729 / 6,975 / **397** |
@@ -33,12 +34,12 @@ artifact's class for every eval item). Eval splits only; nothing was tuned on th
   on text's 65 classes) and the bit-sliced count per class, against table models whose cost grows with the bytes
   per item, not the classes. It was also last or near last on accuracy on text and adult, and underfit on adult
   (training accuracy 0.81–0.84).
-- **The surviving accuracy flips are about capacity under a fixed L2,** not about kinds of structure: mlp64 fits
-  text's training items far better (0.70; 0.82 at 4×) and does worse on eval (0.317; 0.295 at 4×), so more training
-  made it worse. Tuning L2 per task could remove the flip; the plan tuned nothing, on purpose.
+- **The surviving accuracy flips look like capacity under a fixed L2** (hypothesis, not tested: no run varied L2
+  or width per task), not kinds of structure: mlp64 fits text's training items far better (0.70; 0.82 at 4×) and
+  does worse on eval (0.317; 0.295 at 4×), so more training made it worse. Whether per-task tuning removes the flip is
+  untested; the plan tuned nothing, on purpose.
 - **Not shown:** that any family is best at anything in general; anything about PFNs, trees or symbolic systems
-  (not run); cross-host time comparisons (each task ran on its own host). Instruction counts travel better: the
-  4× artifacts, retrained and measured on other hosts, came within 0.1% of the main run's counts.
+  (not run); any time comparison between hosts (each task ran on its own host).
 - **Limits** are listed in the plan: three tasks, one encoding per kind, three seeds, no jail, a generic logic-gate
   program that is not lgn_d's compiled circuit.
 

@@ -4,8 +4,8 @@
 on three unlike tasks given as byte records, with every item's outcome kept. It asks one question, fixed in
 [`PLAN.md`](PLAN.md) before any run: does the order of families change from one kind of task to another?
 
-**Answer so far (2026-11-18): yes.** See [`results/2026-11-18/`](results/2026-11-18/README.md): 3 accuracy flips
-(2 survive a 4× training budget), 4 instruction-count flips, 2 native-time flips. The logic-gate network's cost lead
+**Answer so far (2026-11-18): yes.** See [`results/2026-11-18/`](results/2026-11-18/README.md): 3 accuracy flips over
+2 family pairs (one per pair survives a 4× training budget), 4 instruction-count flips, 2 native-time flips. The logic-gate network's cost lead
 over the small MLP holds on digits only.
 
 **Parts.**
