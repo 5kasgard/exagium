@@ -1224,7 +1224,7 @@
     "worker/",
     "worker/budgets.json"
    ],
-   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test. Release test 1 (2026-11-18, worker/RESULTS-release-test-1.md on main): 0 double claims over 5 races, 0 changes outside targets, injection and out-of-target canaries held, ledger matched, no stuck leases; FAILED on acceptance (6 of 8 acceptable as is by blind grading; target 4 of 5): Q38's wording redundant and vague, R1's card off the question. Paused (worker/PAUSE). 7 faults found and fixed during the test. Prompt fixes applied for both failures; next: P8r (re-test). Chat claim released.",
+   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test. Release test 1 (2026-11-18, worker/RESULTS-release-test-1.md on main): 0 double claims over 5 races, 0 changes outside targets, injection and out-of-target canaries held, ledger matched, no stuck leases; FAILED on acceptance (6 of 8 acceptable as is by blind grading; target 4 of 5): Q38's wording redundant and vague, R1's card off the question. Paused (worker/PAUSE). 7 faults found and fixed during the test. Prompt fixes applied for both failures; next: P8r (re-test). Chat claim released. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both.",
    "refs": [
     "skills: agent-orchestration (claims), one-queue",
     "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
@@ -1461,7 +1461,7 @@
    "needs": "the owner",
    "value": "medium",
    "title": "YouTube comments as a research source (needs a YouTube Data API key)",
-   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it.",
+   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both.",
    "refs": [
     "worker/research_job.py on main",
     "queue P7"
@@ -1696,6 +1696,28 @@
     "record.yml cron 17 3 * * * vs run at 2026-11-18T11:53Z",
     "project doc claude/HANDOFF-worker-P8.md"
    ]
+  },
+  {
+   "id": "P7e",
+   "title": "Source discovery and per-source credibility from track record (find niche communities and knowledge pools)",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "blocked_by": [
+    "P7b"
+   ],
+   "batch": "B7",
+   "touches": [
+    "research/sources/"
+   ],
+   "next": "Owner, 2026-11-19: compare sources dynamically to find niche communities and knowledge pools, with credibility and data. Hypothesis: each source (subreddit, forum, channel, journal, arXiv category) is a part with a record: cost and quota per use, and how often its claims were later confirmed or contradicted by stronger evidence (measured results, papers, our own tests). Discovery by snowball: follow links, citations and recommendations from trusted sources; add a source when trusted ones keep citing it or it keeps being right early. Cross-source corroboration counts independent agreement only (detect echoes of one origin). Route each research question to the sources with the best record for that topic within quota. Grades stay (measured > reported > expert > experience > opinion); the per-source record is added on top. First test: score the sources behind R1/R2 and the next cards once their claims are checked; is the record stable enough to route by?",
+   "refs": [
+    "project doc claude/HANDOFF-worker-P8.md (P7 grading, sources)",
+    "worker/research_job.py on main"
+   ]
   }
  ],
  "batches": [
@@ -1775,7 +1797,8 @@
    "id": "B7",
    "name": "Research worker",
    "items": [
-    "P7"
+    "P7",
+    "P7e"
    ],
    "why": "New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing.",
    "worker": "API scripts and free models on CI; a script checks every quote; Claude only judges the final card."
