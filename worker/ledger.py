@@ -15,6 +15,7 @@ import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 20, "neurons": 5000}, "nvidia": {"calls": 40}, "groq": {"calls": 500}}
+EST_NEURONS = 1000   # per Cloudflare call, reserved ahead (measured 560-780 for long reviews); actuals recorded after
 TRIES = 5
 
 
@@ -54,10 +55,13 @@ def reserve(wt, run, spec):
                 return 2
             e = led.setdefault(pool, {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             cap = CAPS[pool]
-            if e["reserved"] + n > cap["calls"] or ("neurons" in cap and e["neurons"] >= cap["neurons"]):
+            e.setdefault("neurons_reserved", 0)
+            if e["reserved"] + n > cap["calls"] or ("neurons" in cap and max(e["neurons"], e["neurons_reserved"]) + n * EST_NEURONS > cap["neurons"]):
                 print(f"{pool}: cap reached ({e['reserved']} reserved, {e['neurons']:.0f} neurons; cap {cap})")
                 return 2
             e["reserved"] += n
+            if "neurons" in cap:
+                e["neurons_reserved"] += n * EST_NEURONS
             e["runs"].append(run)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         if push(wt, [p], f"ledger: {run} reserves {spec}"):

@@ -9,19 +9,28 @@ writes the handoff. Claude designs and spot-checks; it is not in the loop.
   pushes. Leases last 2 h. A chat's claim always wins. An item whose files a live claim touches is skipped.
 - **Job types**, by what an item carries:
   - `targets` (exact file and line ranges): a doc fix (`doc_job.py`);
-  - `research` (a question and queries): a literature card (`research_job.py`, P7).
+  - `research` (a question and queries): a literature card (`research_job.py`, P7). Sources, by kind: papers and
+    preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker
+    News comments, Reddit). Every claim is graded by evidence: measured > reported > expert view > experience report >
+    opinion, and the card groups claims by grade. YouTube comments need an API key; a headless browser for pages with
+    no API comes when a question needs one (queue items).
 - **Who does what:**
   - search: API scripts (OpenAlex, arXiv, Semantic Scholar);
   - drafting and first reads: gpt-oss-120b on Cloudflare;
   - the check: Nemotron 3 Ultra on NIM, another family;
   - verification by script: edits only on target lines with exact old text, Markdown only; quotes verbatim in the
     source abstract, numbers in the quote.
-- **Lands on main** only if every script check passes and the second model approves; else a PR, with the item waiting
-  on the owner.
+- **Lands on main** only if every script check passes and the second model approves (doc: it approves the diff;
+  research: it keeps the claim and its grade); else a PR, with the item waiting on the owner. Never on main: agent
+  briefs, handoffs, workflows, the worker's own files; a new line may not add a link, HTML or mention; card text is
+  cleaned to one line with no links, HTML, mentions or issue references; a card is never overwritten.
+- **Failures:** an item that fails twice waits on the owner instead of being retried hourly; a failed push to main falls
+  back to a PR.
 - **Budget:** `ledger.py` reserves calls before any call, by commit, against caps of half each free pool's daily
   allowance. Paid pools can't be reserved.
-- **Jobs:** the key and the write token are never in one job: claim (write, no keys), draft (keys, read-only, runs
-  nothing a model writes), land (write, no keys).
+- **Jobs:** the key and the write token are never in one job: claim (write, no keys), prepare (read-only, no keys;
+  the literature search parses untrusted API text here), draft (keys, read-only, runs nothing a model writes), land
+  (write, no keys).
 - **Pause:** a file `worker/PAUSE` on main stops every run before it claims.
 
 **Measured** (`digest.py`, P9's first measures): claims, double claims (target 0), releases, expired leases, results
@@ -33,3 +42,8 @@ items (`runs`), and the `worker-runs` branch (`ledger/`, `digest/`).
 
 **Not yet:** code items (they need P5's jailed proposer and Q56), the P10 auditor, process proposals (P9's weekly
 free-model step).
+
+**Reviews before the first run (2026-11-18):** a separate agent found 4 major issues (a research merge broke the release;
+a failed push counted as done; unchecked model text could land on main; a failing item burnt budget hourly), all fixed;
+gpt-oss-120b (router-runs `reviews/44290632002`): 3 of 8 points held (neuron cap not projected, false double claims
+after a lease expiry, a lenient pointer check; the first two fixed), 5 rejected with reasons in the queue's P8 notes.

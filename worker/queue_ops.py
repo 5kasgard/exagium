@@ -15,7 +15,7 @@ Rules (P8, owner 2026-11-18; a hypothesis to measure, not a final design):
 - order is the queue's own order (it is ordered by how the work actually happens).
 Exit codes: 0 done (claim: an item was claimed, or none was ready, see OUT_JSON); 1 lost the race too often; 3 failure.
 """
-import datetime as dt, json, os, subprocess, sys
+import datetime as dt, json, os, re, subprocess, sys
 
 QUEUE = "audit/2026-11-17/queue.json"
 RENDER = "audit/2026-11-17/render.py"
@@ -23,6 +23,8 @@ QUEUE_MD = "audit/2026-11-17/QUEUE.md"
 BRANCH = "pilot/lgn-20261115"
 LEASE_HOURS = 2
 TRIES = 5
+MAX_FAILURES = 2   # an item that fails twice waits on the owner, not on the next hourly run (review M4)
+ID = re.compile(r"[A-Za-z0-9._-]+")
 
 
 def now():
@@ -91,7 +93,7 @@ def ready(q, t):
             held.update(i.get("touches", []))
     out = []
     for i in q["items"]:
-        if i.get("status") != "open" or not (i.get("targets") or i.get("research")):
+        if i.get("status") != "open" or not job_type(i) or not ID.fullmatch(str(i.get("id"))) or not covered(i):
             continue
         if any(by.get(b, {}).get("status") != "done" for b in i.get("blocked_by", [])):
             continue
@@ -108,6 +110,18 @@ def _overlap(a, b):
 
 def job_type(i):
     return "doc" if i.get("targets") else "research" if i.get("research") else None
+
+
+def covered(i):
+    """Everything the job writes is declared in touches, so the overlap rule sees it (review m2)."""
+    t = set(i.get("touches", []))
+    if job_type(i) == "doc":
+        return all(isinstance(x, dict) and x.get("path") in t for x in i["targets"])
+    return f"research/cards/{i.get('id')}.md" in t
+
+
+def failures(i):
+    return sum(1 for r in i.get("runs", []) if str(r.get("result", "")).startswith(("failed", "not started")))
 
 
 def commit_push(wt, msg):
@@ -140,7 +154,11 @@ def claim(wt, worker, out):
 
 
 def release(wt, worker, item_id, status, note_path):
-    note = json.load(open(note_path))
+    try:
+        note = json.load(open(note_path))
+        assert isinstance(note, dict)
+    except (OSError, ValueError, AssertionError):
+        note = {"result": "failed: the note was missing or not JSON"}
     for _ in range(TRIES):
         sync(wt)
         q = load(wt)
@@ -150,6 +168,9 @@ def release(wt, worker, item_id, status, note_path):
         lost = i.get("claimed_by") != worker
         i.setdefault("runs", []).append(dict(note, worker=worker, at=iso(now()), lost_lease=lost))
         if not lost:
+            if status == "open" and failures(i) >= MAX_FAILURES:
+                status = "waiting on the owner"
+                i["runs"][-1]["parked"] = f"failed {failures(i)} times"
             i["status"] = status
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)

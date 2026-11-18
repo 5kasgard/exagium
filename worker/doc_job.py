@@ -46,6 +46,22 @@ PROPOSED CHANGE (unified diff):
 """
 
 
+DENY = re.compile(r"(^|/)(AGENTS\.md|CLAUDE\.md|VERIFY\.md)$|HANDOFF|^\.github/|^worker/|^ledger/|^\.git", re.I)
+UNSAFE = re.compile(r"https?://|www\.|<[a-zA-Z/!]|@[A-Za-z0-9]|\]\(|javascript:", re.I)
+
+
+def safe_path(p):
+    """A relative Markdown path inside the repo, not an agent brief, handoff, workflow or the worker itself."""
+    return (isinstance(p, str) and p.endswith(".md") and not p.startswith("/") and ".." not in p.split("/")
+            and not DENY.search(p))
+
+
+def safe_new(old, new):
+    """The new line adds no link, HTML or mention the old line didn't have, and stays short."""
+    added = set(UNSAFE.findall(new)) - set(UNSAFE.findall(old))
+    return not added and len(new) <= max(2 * len(old), len(old) + 300)
+
+
 def excerpts(repo, item):
     out = []
     for t in item["targets"]:
@@ -60,6 +76,10 @@ def excerpts(repo, item):
 def context(item_path, repo, out):
     item = json.load(open(item_path))["item"]
     os.makedirs(out, exist_ok=True)
+    bad = [t.get("path") for t in item["targets"] if not safe_path(t.get("path"))
+           or not os.path.isfile(os.path.join(repo, t["path"])) or t["path"] not in item.get("touches", [])]
+    if bad:
+        raise SystemExit(f"targets refused (must be existing Markdown, listed in touches, not a brief or workflow): {bad}")
     files = {t["path"]: open(os.path.join(repo, t["path"]), encoding="utf-8").read() for t in item["targets"]}
     json.dump({"item": item, "files": files,
                "prompt": DRAFT_PROMPT.format(id=item["id"], title=item["title"], next=item["next"],
@@ -91,18 +111,21 @@ def check_edits(item, files, edits):
     if not isinstance(edits, list):
         return [], ["edits is not a list"]
     for e in edits:
-        if not isinstance(e, dict) or not {"path", "line", "old", "new"} <= set(e):
+        if not isinstance(e, dict) or not {"path", "line", "old", "new"} <= set(e) \
+                or not all(isinstance(e[k], str) for k in ("path", "old", "new")):
             reasons.append(f"malformed edit {str(e)[:120]}"); continue
         p, n = e["path"], e["line"]
-        if p not in targets or not p.endswith(".md"):
+        if p not in targets or not safe_path(p):
             reasons.append(f"{p}: not a Markdown target"); continue
         if not isinstance(n, int) or not any(a <= n <= b for a, b in targets[p]):
             reasons.append(f"{p}:{n}: outside the target lines"); continue
         lines = files[p].split("\n")
         if n > len(lines) or lines[n - 1] != e["old"]:
             reasons.append(f"{p}:{n}: 'old' does not match the line"); continue
-        if not isinstance(e["new"], str) or "\n" in e["new"] or e["new"] == e["old"]:
+        if "\n" in e["new"] or "\r" in e["new"] or e["new"] == e["old"]:
             reasons.append(f"{p}:{n}: 'new' is not one changed line"); continue
+        if not safe_new(e["old"], e["new"]):
+            reasons.append(f"{p}:{n}: 'new' adds a link, HTML or mention, or is too long"); continue
         if (p, n) in seen:
             reasons.append(f"{p}:{n}: edited twice"); continue
         seen.add((p, n))
@@ -134,6 +157,19 @@ def draft(out):
         calls.append(r)
         return r
 
+    try:
+        return _draft(out, b, item, files, calls, ask)
+    finally:
+        write_calls(out, calls)
+
+
+def write_calls(out, calls):
+    with open(os.path.join(out, "calls.jsonl"), "w") as f:
+        for c in calls:
+            f.write(json.dumps({k: c.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")}) + "\n")
+
+
+def _draft(out, b, item, files, calls, ask):
     d = ask(*DRAFTER, b["prompt"])
     proposal = parse_json(d["text"]) or {"edits": [], "note": "drafter reply was not JSON"}
     edits, reasons = check_edits(item, files, proposal.get("edits"))
@@ -143,9 +179,6 @@ def draft(out):
         r = ask(*REVIEWER, REVIEW_PROMPT.format(id=item["id"], title=item["title"], next=item["next"], diff=dd))
         review = parse_json(r["text"]) or {"verdict": "none", "reason": "reviewer reply was not JSON: " + str(r["error"])[:200]}
     json.dump({"proposal": proposal, "review": review, "pre_check": reasons}, open(os.path.join(out, "draft.json"), "w"), indent=1)
-    with open(os.path.join(out, "calls.jsonl"), "w") as f:
-        for c in calls:
-            f.write(json.dumps({k: c.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")}) + "\n")
     print(f"drafter ok={d['ok']} edits={len(edits)} rejected={len(reasons)} review={review and review.get('verdict')}")
     return 0
 

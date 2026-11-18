@@ -60,19 +60,40 @@ jobs:
             echo "ITEM=" >> "$GITHUB_ENV"; echo "item=" >> "$GITHUB_OUTPUT"
           fi
           echo "reserve exit $rc"
-      - name: prompt bundle (doc) or literature search by API scripts (research, no keys)
-        if: env.ITEM != ''
-        run: |
-          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context "$RUNNER_TEMP/claim.json" . "$RUNNER_TEMP/job"
-          else python3 -I worker/research_job.py search "$RUNNER_TEMP/claim.json" "$RUNNER_TEMP/job"; fi
-          cp "$RUNNER_TEMP/claim.json" "$RUNNER_TEMP/job/"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: env.ITEM != ''
         with:
-          name: bundle
-          path: ${{ runner.temp }}/job/
-  draft:
+          name: claim
+          path: ${{ runner.temp }}/claim.json
+  prepare:
+    # read-only, no keys: builds the prompt bundle, or runs the literature search, which parses untrusted API text (review m5)
     needs: claim
+    if: needs.claim.outputs.item != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      TYPE: ${{ needs.claim.outputs.type }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: claim
+          path: claim
+      - name: prompt bundle (doc) or literature search by API scripts (research)
+        run: |
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context claim/claim.json . job
+          else python3 -I worker/research_job.py search claim/claim.json job; fi
+          cp claim/claim.json job/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: bundle
+          path: job/
+  draft:
+    needs: [claim, prepare]
     if: needs.claim.outputs.item != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -100,7 +121,7 @@ jobs:
           name: draft
           path: job/
   land:
-    needs: [claim, draft]
+    needs: [claim, prepare, draft]
     if: ${{ always() && needs.claim.outputs.item != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -125,35 +146,50 @@ jobs:
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           if [ ! -f job/draft.json ] && [ ! -f job/read.json ]; then
-            echo "{\"result\": \"failed: no draft (draft job did not finish)\", \"where\": \"$RUN_URL\"}" > note.json
+            python3 -I worker/note.py note.json "failed: no draft (prepare or draft job did not finish)" "" "$RUN_URL"
             echo "STATUS=open" >> "$GITHUB_ENV"; exit 0
           fi
-          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job; else python3 -I worker/research_job.py card . job; fi
-          res=$(python3 -c "import json;print(json.load(open('job/result.json'))['result'])")
-          msg="worker: $ITEM ($(python3 -c "import json;print((json.load(open('job/result.json')).get('note') or '')[:150])"))"
-          git add -A -- '*.md'   # stage first: a research card is a new file, which plain git diff would not see
-          if [ "$res" = merge ] && ! git diff --cached --quiet; then
-            git commit -qm "$msg" -m "$TYPE job: drafted by gpt-oss-120b (Cloudflare), checked by Nemotron 3 Ultra (NIM) and by worker/${TYPE}_job.py. Run: $RUN_URL"
-            for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
-            sha=$(git rev-parse --short HEAD)
-            echo "{\"result\": \"merged\", \"where\": \"main $sha\", \"run\": \"$RUN_URL\", \"edits\": $(python3 -c "import json;print(json.load(open('job/result.json'))['edits'])")}" > note.json
-            echo "STATUS=done" >> "$GITHUB_ENV"
-          elif ! git diff --cached --quiet; then
-            b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"; git push -q origin "$b"
-            why=$(python3 -c "import json;print('; '.join(json.load(open('job/result.json'))['why'])[:900])")
-            url=$(gh pr create --base main --head "$b" --title "$msg" --body "Queue item $ITEM, drafted by the worker; not merged because: $why. Run: $RUN_URL")
-            echo "{\"result\": \"pr\", \"where\": \"$url\", \"why\": $(python3 -c "import json;print(json.dumps(json.load(open('job/result.json'))['why']))")}" > note.json
-            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
-          else
-            echo "{\"result\": \"no accepted edit\", \"where\": \"$RUN_URL\", \"why\": $(python3 -c "import json;print(json.dumps(json.load(open('job/result.json'))['why']))")}" > note.json
-            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
+          rc=0
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job || rc=$?; else python3 -I worker/research_job.py card . job || rc=$?; fi
+          if [ "$rc" != 0 ] || [ ! -f job/result.json ]; then
+            python3 -I worker/note.py note.json "failed: the check or apply step exited $rc" "" "$RUN_URL"
+            echo "STATUS=open" >> "$GITHUB_ENV"; exit 0
           fi
+          res=$(python3 -c "import json;print(json.load(open('job/result.json')).get('result',''))")
+          msg=$(python3 -I worker/note.py msg "$ITEM" "$TYPE" job/result.json)
+          git add -A -- '*.md'   # stage first: a research card is a new file, which plain git diff would not see
+          if git diff --cached --quiet; then
+            python3 -I worker/note.py note.json "no accepted edit" "$RUN_URL" "$RUN_URL" job/result.json
+            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"; exit 0
+          fi
+          if [ "$res" = merge ]; then
+            git commit -qm "$msg" -m "$TYPE job: drafted by gpt-oss-120b (Cloudflare), checked by Nemotron 3 Ultra (NIM) and by worker/${TYPE}_job.py. Run: $RUN_URL"
+            pushed=0
+            for i in 1 2 3; do
+              if git pull -q --rebase origin main && git push -q origin HEAD:main; then pushed=1; break; fi
+              git rebase --abort 2>/dev/null || true; sleep 5
+            done
+            if [ "$pushed" = 1 ]; then
+              python3 -I worker/note.py note.json merged "main $(git rev-parse --short HEAD)" "$RUN_URL" job/result.json
+              echo "STATUS=done" >> "$GITHUB_ENV"; exit 0
+            fi
+            echo "push to main failed 3 times: falling back to a PR (review M2)"
+            git reset -q --soft HEAD~1
+          fi
+          b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"; git push -q origin "$b"
+          body="Queue item $ITEM ($TYPE), drafted by the worker and not merged. Reasons are in the run note on the queue branch. Run: $RUN_URL"
+          if url=$(gh pr create --base main --head "$b" --title "$msg" --body "$body" 2>pr.err); then
+            python3 -I worker/note.py note.json pr "$url" "$RUN_URL" job/result.json
+          else
+            python3 -I worker/note.py note.json "pr not created; branch pushed (Actions may not be allowed to create PRs)" "branch $b" "$RUN_URL" job/result.json
+          fi
+          echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
           cat note.json
       - name: record usage and release the claim
         if: always()
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
-          [ -f note.json ] || echo '{"result": "failed before a note was written", "where": ""}' > note.json
+          [ -f note.json ] || python3 -I worker/note.py note.json "failed before a note was written" "" "$GITHUB_RUN_ID"
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
           if [ -f job/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$WORKER" job/calls.jsonl || echo "ledger record exit $?"; fi
           git worktree add -q --detach "$RUNNER_TEMP/q" HEAD

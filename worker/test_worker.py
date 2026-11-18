@@ -29,6 +29,7 @@ class Edits(unittest.TestCase):
             {"path": "a.md", "line": 2, "old": "two", "new": "two"},         # no change
             {"path": "a.md", "line": "2", "old": "two", "new": "x"},         # line not an int
             {"path": "../a.md", "line": 2, "old": "two", "new": "x"},        # path games
+            {"path": ["a.md"], "line": 2, "old": "two", "new": "x"},         # unhashable path (review M4)
             "edit",
         ]
         for e in cases:
@@ -52,8 +53,8 @@ class Claims(unittest.TestCase):
     t = dt.datetime(2026, 11, 18, 12, tzinfo=dt.timezone.utc)
 
     def q(self, **extra):
-        a = {"id": "A", "status": "open", "targets": [1], "touches": ["x.md"], "blocked_by": []}
-        b = {"id": "B", "status": "open", "targets": [1], "touches": ["y/"], "blocked_by": ["C"]}
+        a = {"id": "A", "status": "open", "targets": [{"path": "x.md", "lines": [1, 1]}], "touches": ["x.md"], "blocked_by": []}
+        b = {"id": "B", "status": "open", "targets": [{"path": "y/a.md", "lines": [1, 1]}], "touches": ["y/a.md"], "blocked_by": ["C"]}
         c = {"id": "C", "status": "open", "touches": ["z"], "blocked_by": []}
         a.update(extra)
         return {"items": [a, b, c]}
@@ -79,6 +80,16 @@ class Claims(unittest.TestCase):
         self.assertEqual(q["items"][0]["status"], "open")
         self.assertNotIn("claimed_by", q["items"][0])
 
+    def test_touches_must_cover_targets_and_ids_plain(self):
+        q = self.q(touches=["other.md"], targets=[{"path": "x.md", "lines": [1, 1]}])
+        self.assertEqual(Q.ready(q, self.t), [])
+        q = self.q(id="A\nB=1", targets=[{"path": "x.md", "lines": [1, 1]}])
+        self.assertEqual(Q.ready(q, self.t), [])
+
+    def test_failures_park(self):
+        i = {"runs": [{"result": "failed: x"}, {"result": "not started: cap"}, {"result": "merged"}]}
+        self.assertEqual(Q.failures(i), 2)
+
     def test_overlap(self):
         self.assertTrue(Q._overlap("record/", "record/README.md"))
         self.assertFalse(Q._overlap("record/README.md", "record/READMEx.md"))
@@ -89,14 +100,32 @@ class Research(unittest.TestCase):
 
     def test_quote_and_numbers_checked(self):
         ok, dropped = R.verified([
-            {"source": "S1", "claim": "LGNs reach 98.5% on MNIST", "quote": "logic gate networks reach 98.5% accuracy on MNIST"},
-            {"source": "S1", "claim": "LGNs reach 99% on MNIST", "quote": "logic gate networks reach 98.5% accuracy on MNIST"},
+            {"source": "S1", "claim": "LGNs reach 98.5% on MNIST", "quote": "logic gate networks reach 98.5% accuracy on MNIST", "evidence": "measured"},
+            {"source": "S1", "claim": "LGNs reach 99% on MNIST", "quote": "logic gate networks reach 98.5% accuracy on MNIST", "evidence": "measured"},
+            {"source": "S1", "claim": "LGNs reach 98.5% on MNIST", "quote": "logic gate networks reach 98.5% accuracy on MNIST", "evidence": "proof"},
+            {"source": ["S1"], "claim": "x", "quote": "logic gate networks reach 98.5% accuracy"},
             {"source": "S1", "claim": "x", "quote": "words that are not in the abstract"},
             {"source": "S9", "claim": "x", "quote": "logic gate networks reach 98.5% accuracy"},
             {"source": "S1", "claim": "x", "quote": "logic gate"},
             "junk"], self.src)
         self.assertEqual(len(ok), 1)
-        self.assertEqual(len(dropped), 5)
+        self.assertEqual(len(dropped), 7)
+
+    def test_clean(self):
+        t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
+        for bad in ("http", "<", "@someone", "#12", "](", "\n"):
+            self.assertNotIn(bad, t)
+
+
+class DocSafety(unittest.TestCase):
+    def test_paths_and_new_lines(self):
+        for p in ("AGENTS.md", "x/HANDOFF-a.md", ".github/a.md", "worker/README.md", "../a.md", "/etc/a.md", "a.py", ["a.md"]):
+            self.assertFalse(D.safe_path(p), p)
+        self.assertTrue(D.safe_path("record/README.md"))
+        self.assertFalse(D.safe_new("plain line", "plain line, see https://x.y"))
+        self.assertFalse(D.safe_new("plain", "plain <img src=x>"))
+        self.assertFalse(D.safe_new("plain", "ping @owner"))
+        self.assertTrue(D.safe_new("the guarantee", "the claim, today, rests on who can push"))
 
 
 class Digest(unittest.TestCase):

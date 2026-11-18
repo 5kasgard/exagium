@@ -90,6 +90,8 @@ def metrics(queue_wt, since, q):
             continue
         if s_.startswith("worker: leases expired"):
             expired += 1
+            for x in re.findall(r"'([^']+)'", s_):   # an expired lease frees the item (review: no false double claims)
+                holder.pop(x, None)
     results = {}
     for i in q["items"]:
         for r in i.get("runs", []):
