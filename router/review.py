@@ -13,7 +13,7 @@ os.makedirs(out, exist_ok=True)
 ok = 0
 for i, spec in enumerate(sys.argv[3:]):
     engine, model = spec.split(":", 1)
-    r = call(engine, model, prompt, max_tokens=16000  # reasoning models spent 4,000 on thinking and cut the reply (2026-11-18))
+    r = call(engine, model, prompt, max_tokens=16000)  # reasoning models spent 4,000 on thinking and cut the reply (2026-11-18)
     ok += r["ok"]
     json.dump(r, open(os.path.join(out, f"reply-{i}.json"), "w"), indent=1)
     open(os.path.join(out, f"reply-{i}.md"), "w").write(f"<!-- {engine} {model} status={r['status']} latency={r['latency_s']}s -->\n\n{r['text'] or r['error']}\n")
