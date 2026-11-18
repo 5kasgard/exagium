@@ -174,19 +174,22 @@
    "title": "Jail modes differ: bwrap mode has no seccomp filter and allows nested user namespaces; neither mode limits memory or disk",
    "kind": "fix",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Add the seccomp filter and --disable-userns to bwrap mode; rlimits for memory/disk in both; test in CI",
+   "next": "Done 2026-11-18 (main 7ea2ff6..aeefa44; runner/jail.py, runner/limits.c; loop.py not edited): every candidate run gets rlimits (8 GiB AS, 1 GiB per file, 256 files, CPU s) and loop's seccomp filter in both modes; the timer filters its child in both; the counter's valgrind starts inside confine within bubblewrap; --unshare-user --disable-userns and a 2 GiB tmpfs. jail.check() fails closed (run 44257075574 did); the stricter probe (CPU limit, raise attempts, no_new_privs, --disable-userns without the filter, bwrap flags required) passes on CI, run 44263440298, with identical outputs, Ir/item and weights. Outputs, scores and Ir/item unchanged (run 44260596412). Free review 44257135013: counter point applied, others rejected with reasons; independent agent: no unfiltered candidate path. Gaps stated: confine-mode counter has no rlimits; training's /w bounded per file only. Evidence: runner/results/2026-11-18-q10-q55/.",
    "refs": [
     "A-security m5",
-    "main:loop/loop.py:212-227"
+    "main:loop/loop.py:212-227",
+    "runner/results/2026-11-18-q10-q55/ on main"
    ],
    "blocked_by": [],
    "batch": "B1",
    "touches": [
-    "runner/jail"
+    "runner/jail.py",
+    "runner/limits.c",
+    "runner/run.py"
    ]
   },
   {
@@ -1048,9 +1051,10 @@
     "P4",
     "Q07",
     "Q10",
-    "Q22"
+    "Q22",
+    "Q56"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18.",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1090,15 +1094,17 @@
    "title": "Trained weights differ across hosts for numpy float trainers (P2: text mlp16 59/6000 dev outputs differ, CI vs local)",
    "kind": "test",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "Test the hypothesis that BLAS kernel choice per CPU causes it: train label-linear and label-mlp16 on two CI CPU types with OPENBLAS_CORETYPE fixed to one value, and with a pure-numpy deterministic matmul as lgn_d did; supported if weights match across hosts in either case. Until then, an artifact's identity is its code plus training host, and cross-host claims compare outputs, not weights.",
+   "next": "Done 2026-11-18: supported. Weights differ by forced OpenBLAS core type on one host, and are identical across hosts (Xeon AVX-512 here, CI EPYC 7763, CI Xeon 6975P-C; Python 3.12 and 3.13) for the same type. The runner's jail now pins OPENBLAS_CORETYPE=Haswell on x86; text weights byte-identical CI vs local (run 44260596412). Text mlp16 dev accuracy is 0.3260 under the pin (P2 reported 0.3278 under an EPYC 9V74's own kernel). ARM untested. runner/results/2026-11-18-q10-q55/.",
    "refs": [
     "runner/results/2026-11-18/README.md on main",
     "Actions run 44253054973",
-    "pilots/lgn-20261115-2/lgn_d (deterministic ops)"
+    "pilots/lgn-20261115-2/lgn_d (deterministic ops)",
+    "runner/results/2026-11-18-q10-q55/ on main",
+    "Actions runs 44258892424, 44260596412"
    ],
    "blocked_by": [],
    "batch": "B1",
@@ -1204,6 +1210,27 @@
     "audit/2026-11-17/README.md, S2-verification.md, S4-final-review.md (this branch)",
     "README.md 'What this is for' on main",
     "skills: adversarial-review, one-queue"
+   ]
+  },
+  {
+   "id": "Q56",
+   "title": "The runner compiles candidate C with gcc outside the jail: an #include of a host file can put its contents into the binary and so into the output",
+   "kind": "fix",
+   "severity": "major",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "next": "Compile infer.c inside the jail (gcc under J.jail with the filter and limits, the source and output dir as the only binds), and add a probe: a candidate that #includes a host path must fail to build. Needed before P5 compiles generated code. Found by the independent check of Q10, 2026-11-18; older than Q10 (loop.py does the same).",
+   "refs": [
+    "runner/results/2026-11-18-q10-q55/README.md on main",
+    "runner/run.py (L.build of infer.c)"
+   ],
+   "blocked_by": [],
+   "batch": "B1",
+   "touches": [
+    "runner/run.py",
+    "runner/jail.py"
    ]
   }
  ],
