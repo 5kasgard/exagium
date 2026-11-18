@@ -55,7 +55,7 @@ Give each a verdict: CONFIRMED / REFUTED / UNCLEAR, with evidence.
 ## Counter claims (`counter/`)
 ```
 cd exagium/counter
-python3 -m unittest -v test_count     # expect 16 passing, ~16 s; needs valgrind >= 3.22
+python3 -m unittest -v test_count     # expect 23 passing, ~16 s; needs valgrind >= 3.22
 gcc -O2 -o workloads/mlp workloads/mlp.c && sha256sum workloads/mlp
 cd workloads && for n in 1000 0; do python3 ../count.py --input mlp -- ./mlp $n; done
 python3 ../count.py --check ../../runs/<record>.json
