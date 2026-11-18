@@ -1062,7 +1062,7 @@
    "id": "P3",
    "title": "Mixed first suite, incl. verifier-scored tasks and PFNs",
    "kind": "build",
-   "status": "open",
+   "status": "in progress",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1070,7 +1070,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy).",
+   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1079,7 +1079,8 @@
    "touches": [
     "tasks/",
     "runner/candidates/"
-   ]
+   ],
+   "claimed_by": "another chat (owner, 2026-11-18)"
   },
   {
    "id": "P4",
@@ -1117,9 +1118,10 @@
     "Q07",
     "Q10",
     "Q22",
-    "Q56"
+    "Q56",
+    "Q56b"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18.",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1898,6 +1900,48 @@
     "runner/results/2026-11-18-q10-q55/ (Q10 jail runs)",
     "skills: careful-live-changes, security-code-review, adversarial-review"
    ]
+  },
+  {
+   "id": "Q56b",
+   "kind": "fix",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "major",
+   "title": "Compile in the jail on the remaining host-gcc path: loop/scale.py (loop.py stays frozen until plan 3)",
+   "blocked_by": [],
+   "batch": "B1",
+   "touches": [
+    "loop/scale.py",
+    "loop/test_scale.py"
+   ],
+   "refs": [
+    "project doc claude/forge-directional-omni-2026-11-19.md (outside review, 6 Sonnet directions plus a fresh reviewer)",
+    "loop/scale.py:156 L.build(src, ...) on the host"
+   ],
+   "next": "scale.py line 156 builds candidates with host gcc (L.build); switch to runner/jail.py compile_candidate (same CFLAGS plus -pipe, which does not change code generation), keep the timer build (trusted) as is, and confirm on CI that scale's reference predictions and per-segment checks still pass. loop.py:370 stays frozen by plan 2: fix in plan 3. Blocks P5, because proposed candidates will be metered by scale.py."
+  },
+  {
+   "id": "P19",
+   "kind": "build",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "none",
+   "title": "Distillation: turn a trained model into plain code, and check it computes the same function at lower cost",
+   "blocked_by": [
+    "P11"
+   ],
+   "batch": "B9",
+   "touches": [
+    "distill/"
+   ],
+   "refs": [
+    "project doc claude/forge-directional-omni-2026-11-19.md (outside review, 6 Sonnet directions plus a fresh reviewer)"
+   ],
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. A core goal with no item until now (outside review finding 7). First test, when started: distil the best optdigits candidate into straight-line C (or a lookup or rule set), check per-item agreement on dev with the original, and meter both; the store (P11) records the pair as one function in two forms."
   }
  ],
  "batches": [
@@ -1911,7 +1955,8 @@
     "Q10",
     "P3",
     "Q25",
-    "P18"
+    "P18",
+    "Q56b"
    ],
    "why": "All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data.",
    "worker": "Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs."
@@ -2001,7 +2046,8 @@
     "P17",
     "P12",
     "P13",
-    "P16"
+    "P16",
+    "P19"
    ],
    "why": "P12, P13 and P16 all read from the store P11 creates, and P6 now waits on it too; one schema, one ingest script, one review. P17 names what the store must answer.",
    "worker": "Claude designs the schema once; a script fills it from the ledger; free models review; later items can go to the free proposer once P5 runs."
