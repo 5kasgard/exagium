@@ -1,6 +1,6 @@
 {
  "title": "exagium: one queue after the whole-project audit (2026-11-17)",
- "intro": "Built from six skill-group audits (A security, B tests/bugs/state, C structure, D claims, E agents/free compute, F ML/binaries), a separate verification pass (S2: 15 of 16 high-impact items confirmed by reproduction, 1 partly right), and the 2026-11-13 audit and handoffs. Severity is after S2 corrections. Source of truth: queue.json; render with render.py.",
+ "intro": "Built from six skill-group audits (A security, B tests/bugs/state, C structure, D claims, E agents/free compute, F ML/binaries), a separate verification pass (S2: 15 of 16 high-impact items confirmed by reproduction, 1 partly right), and the 2026-11-13 audit and handoffs. Severity is after S2 corrections. Source of truth: queue.json; render with render.py. Every open item declares what it writes ('touches': files, paths, branches; reads don't count); render.py refuses an open item without it and lists items in different batches that touch the same thing, so overlaps show up as items are added.",
  "items": [
   {
    "id": "Q01",
@@ -104,7 +104,10 @@
     "S2 confirmed; severity lowered"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "record/README.md"
+   ]
   },
   {
    "id": "Q07",
@@ -121,7 +124,10 @@
     "project doc repo-audit-2026-11-13 (known)"
    ],
    "blocked_by": [],
-   "batch": "B4"
+   "batch": "B4",
+   "touches": [
+    ".github/workflows/"
+   ]
   },
   {
    "id": "Q08",
@@ -156,7 +162,12 @@
    "blocked_by": [
     "Q28"
    ],
-   "batch": "B4"
+   "batch": "B4",
+   "touches": [
+    "branch: anchor-test",
+    "branch: q2-main",
+    "branch: q2-shadow"
+   ]
   },
   {
    "id": "Q10",
@@ -173,7 +184,10 @@
     "main:loop/loop.py:212-227"
    ],
    "blocked_by": [],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "runner/jail"
+   ]
   },
   {
    "id": "Q11",
@@ -345,16 +359,20 @@
    "title": "OpenRouter allowance guard fails open when the allowance cannot be read",
    "kind": "fix",
    "severity": "minor",
-   "status": "open",
+   "status": "parked",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Fail closed (skip the batch) when the allowance read fails",
+   "next": "Parked 2026-11-18: the allowance guard lives only in bench3/4/5.yml (grep on main), and those benches are complete and run only by hand, so it has no live effect. Fix with Q01-Q03 before any new bench run; P4 (spend caps in router/engines.py) covers live calls. Fail closed (skip the batch) when the allowance read fails",
    "refs": [
     "E E-10"
    ],
    "blocked_by": [],
-   "batch": "B2"
+   "touches": [
+    ".github/workflows/bench3.yml",
+    ".github/workflows/bench4.yml",
+    ".github/workflows/bench5.yml"
+   ]
   },
   {
    "id": "Q22",
@@ -370,7 +388,11 @@
     "E E-07"
    ],
    "blocked_by": [],
-   "batch": "B2"
+   "batch": "B2",
+   "touches": [
+    "router/engines.py",
+    "router/log/"
+   ]
   },
   {
    "id": "Q23",
@@ -433,7 +455,10 @@
     "B"
    ],
    "blocked_by": [],
-   "batch": "B4"
+   "batch": "B4",
+   "touches": [
+    ".github/workflows/bench2.yml"
+   ]
   },
   {
    "id": "Q24",
@@ -467,7 +492,10 @@
    "blocked_by": [
     "P3"
    ],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "tasks/"
+   ]
   },
   {
    "id": "Q26",
@@ -510,13 +538,22 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
-   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Keep e2e-main (record-e2e.yml uses it; record/README:114 cites it). Step 1 (reversible): disable stale workflows rather than delete. Step 2: on a throwaway repo, test whether a deleted branch's ref stays in GitHub's /activity log, which record.py monitor reads (record.py:541-552). Only then tag and delete anchor-test (fix VERIFY-anchors.md:27, RESULTS.md cites), q2-main, q2-shadow. Deletion leaves a branch_deletion entry, so it is not fully undoable: confirm with the owner if step 2 shows any loss. Also rule on record-e2e drift (C F3): keep its append job byte-identical to record.yml (done 05328a4).",
+   "next": "Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Keep e2e-main (record-e2e.yml uses it; record/README:114 cites it). Step 1 (reversible): disable stale workflows rather than delete. Step 2: on a throwaway repo, test whether a deleted branch's ref stays in GitHub's /activity log, which record.py monitor reads (record.py:541-552). Only then tag and delete anchor-test (fix VERIFY-anchors.md:27, RESULTS.md cites), q2-main, q2-shadow. Deletion leaves a branch_deletion entry, so it is not fully undoable: confirm with the owner if step 2 shows any loss. Also rule on record-e2e drift (C F3): keep its append job byte-identical to record.yml (done 05328a4). Q38 edits VERIFY-anchors.md first (same file).",
    "refs": [
     "C F3, F4",
     "A m4"
    ],
-   "blocked_by": [],
-   "batch": "B4"
+   "blocked_by": [
+    "Q38"
+   ],
+   "batch": "B4",
+   "touches": [
+    "branch: anchor-test",
+    "branch: q2-main",
+    "branch: q2-shadow",
+    "record/experiments/anchors/VERIFY-anchors.md",
+    "record/experiments/anchors/RESULTS.md"
+   ]
   },
   {
    "id": "Q29",
@@ -533,7 +570,12 @@
     "S2 partly right (93.7%)"
    ],
    "blocked_by": [],
-   "batch": "B4"
+   "batch": "B4",
+   "touches": [
+    "branch settings: main",
+    "branch settings: router-runs",
+    "branch settings: ci-runs"
+   ]
   },
   {
    "id": "Q30",
@@ -677,7 +719,11 @@
     "D-claims missing-evidence list"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "loop/README.md",
+    "explore/"
+   ]
   },
   {
    "id": "Q37",
@@ -693,7 +739,10 @@
     "D-claims citations"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "router/bench4/"
+   ]
   },
   {
    "id": "Q38",
@@ -710,7 +759,11 @@
     "A M5"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "record/README.md",
+    "record/experiments/anchors/VERIFY-anchors.md"
+   ]
   },
   {
    "id": "Q39",
@@ -727,7 +780,11 @@
     "E ASD-STE100 table"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "VERIFY.md",
+    "explore/mlp16-speed/BRIEF.md"
+   ]
   },
   {
    "id": "Q40",
@@ -806,7 +863,11 @@
     "F findings 4, 5"
    ],
    "blocked_by": [],
-   "batch": "B5"
+   "batch": "B5",
+   "touches": [
+    "loop/candidates/",
+    "pilots/lgn-20261115-2/"
+   ]
   },
   {
    "id": "Q51",
@@ -874,7 +935,11 @@
    "blocked_by": [
     "P1"
    ],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "tasks/",
+    "runner/candidates/"
+   ]
   },
   {
    "id": "P1",
@@ -891,7 +956,12 @@
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
    ],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "tasks/",
+    "runner/",
+    "loop/scale.py"
+   ]
   },
   {
    "id": "P2",
@@ -910,7 +980,12 @@
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
    ],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "runner/",
+    "tasks/",
+    "loop/jail (reused, not edited: loop.py is frozen)"
+   ]
   },
   {
    "id": "P3",
@@ -929,7 +1004,11 @@
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
    ],
-   "batch": "B1"
+   "batch": "B1",
+   "touches": [
+    "tasks/",
+    "runner/candidates/"
+   ]
   },
   {
    "id": "P4",
@@ -946,7 +1025,11 @@
     "README.md (Who does what)",
     "project doc claude/HANDOFF-audit-2026-11-17.md"
    ],
-   "batch": "B2"
+   "batch": "B2",
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ]
   },
   {
    "id": "P5",
@@ -958,14 +1041,23 @@
    "value": "high",
    "severity": "none",
    "blocked_by": [
-    "P2"
+    "P2",
+    "P4",
+    "Q07",
+    "Q10",
+    "Q22"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite.",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
    ],
-   "batch": "B3"
+   "batch": "B3",
+   "touches": [
+    ".github/workflows/propose.yml",
+    "router/engines.py",
+    "runner/proposals/"
+   ]
   },
   {
    "id": "P6",
@@ -985,7 +1077,10 @@
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
    ],
-   "batch": "B6"
+   "batch": "B6",
+   "touches": [
+    "analysis/"
+   ]
   }
  ],
  "batches": [
@@ -1005,13 +1100,12 @@
   },
   {
    "id": "B2",
-   "name": "Router: spend, guard, usage",
+   "name": "Router: spend caps and usage log",
    "items": [
     "P4",
-    "Q21",
     "Q22"
    ],
-   "why": "All in router/engines.py and the allowance guard: one edit, one test file, one live probe, one review.",
+   "why": "Both in router/engines.py: one edit, one test file, one live probe, one review. P5 (proposer) also edits engines.py, so B2 lands before B3.",
    "worker": "Small Claude change plus router tests; free review; the live probe on CI checks it."
   },
   {

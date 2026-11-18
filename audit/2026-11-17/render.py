@@ -44,6 +44,10 @@ def cyc(n, seen):
 for i in items:
     if cyc(i['id'], set()):
         errs.append(f"{i['id']}: blocker cycle")
+LIVE = ('open', 'in progress', 'blocked', 'waiting on the owner', 'scheduled')
+for i in items:
+    if i['status'] in LIVE and not i.get('touches'):
+        errs.append(f"{i['id']}: open items must say what they touch (files, paths, branches): add 'touches'")
 bids = [b['id'] for b in q.get('batches', [])]
 for b in q.get('batches', []):
     for x in b['items']:
@@ -78,8 +82,38 @@ groups = [('Can run now', lambda i: i['status'] in ('open', 'in progress') and n
           ('Scheduled', lambda i: i['status'] == 'scheduled'),
           ('Parked', lambda i: i['status'] == 'parked'),
           ('Done', lambda i: i['status'] == 'done')]
+def key(t):
+    return t.split(' (')[0].strip().rstrip('/')
+
+
+def overlap(a, b):
+    """Shared touch points: the same path, or one path inside the other."""
+    hits = set()
+    for x in a.get('touches', []):
+        for y in b.get('touches', []):
+            kx, ky = key(x), key(y)
+            if kx == ky or kx.startswith(ky + '/') or ky.startswith(kx + '/'):
+                hits.add(kx if len(kx) >= len(ky) else ky)
+    return hits
+
+
+live = [i for i in items if i['status'] in LIVE]
+shared = []
+for n, a in enumerate(live):
+    for b in live[n + 1:]:
+        h = overlap(a, b)
+        ordered = b['id'] in unlocks(a) or a['id'] in unlocks(b)  # a dependency already sequences them
+        if h and not ordered and (a.get('batch') != b.get('batch') or not a.get('batch')):
+            shared.append((a['id'], a.get('batch', '-'), b['id'], b.get('batch', '-'), sorted(h)))
+for s_ in shared:
+    print(f"note: {s_[0]} ({s_[1]}) and {s_[2]} ({s_[3]}) both touch {', '.join(s_[4])}", file=sys.stderr)
+
 placed = set()
 out = [f"# {q['title']}", '', q.get('intro', ''), '']
+if shared:
+    out += ['## Shared work across batches, not yet ordered (do together, or add a blocker)', '', '| item | batch | item | batch | both touch |', '|---|---|---|---|---|']
+    out += [f"| {a} | {ba} | {b} | {bb} | {', '.join(h)} |" for a, ba, b, bb, h in shared]
+    out.append('')
 if q.get('batches'):
     def bkey(b):
         live = [by[x] for x in b['items'] if by[x]['status'] not in ('done', 'parked')]
