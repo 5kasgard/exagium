@@ -7,7 +7,7 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 - A separate verifier and a meter decide.
 - Every claim is recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable.
 
-**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Most results still hold for **one problem**, classifying 8×8 handwritten digits. The first test of whether they carry over to other kinds of task says they do not: on next-character text and on tabular census data, the order of the same model families changed, and the logic-gate network that was cheapest on digits was dearer than the small MLP on both ([`transfer/`](transfer/)). So the next step is a general task contract and a mixed suite of tasks, before any claim beyond one task (see **Next**).
+**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Most results still hold for **one problem**, classifying 8×8 handwritten digits. The first test of whether they carry over to other kinds of task says they do not: on next-character text and on tabular census data, the order of the same model families changed, and the logic-gate network that was cheapest on digits was dearer than the small MLP on both ([`transfer/`](transfer/)). A general task contract now exists and held on its first four tasks, including one scored by a verifier with no answer key (SAT) ([`runner/`](runner/)). Next is a mixed suite on it, before any claim beyond these tasks (see **Next**).
 
 ## How it works
 1. **A candidate** is a folder: `train.py` (deterministic numpy) writes `weights.bin`, and `infer.c` classifies images. Anyone, human or agent, can propose one.
@@ -34,6 +34,7 @@ Everything runs on free compute: GitHub Actions runners (loop on 6 runner types,
 | Nov 17–18 | Whole-project audit, 52 items; 14 fixed on `main`, every decision ruled by data | `audit/2026-11-17/` on the pilot branch |
 | Nov 18 | Per-image meter: at scale, lgn_blockread costs 31 ns/img against mlp16's 104; at the task's 956 images the order flips | `loop/results/scale-2026-11-18/` |
 | Nov 18 | Do rankings transfer? Same 5 families on digits, next-character text and UCI Adult, rule fixed before running: **rankings differ**. 3 accuracy flips over 2 family pairs (one per pair survives 4× training), 4 instruction-count flips; the logic-gate network's cost lead holds on digits only | `transfer/results/2026-11-18/`; runs 44237908056, 44238804472 |
+| Nov 18 | General task contract (records in and out, a checker per task): optdigits, text, UCI Adult and planted 3-SAT ran through one runner with no task code in it; WalkSAT solved 200 of 200 dev instances, checked without a key. Training reproduces on one host but not across hosts | `runner/results/2026-11-18/`; run 44253054973 |
 
 ## Best result so far
 On one task (optdigits), dev data only (the test set is spent), one host, one session: direction, not a claim. **It does not carry over:** with one generic program per family, the logic-gate network costs 0.47× mlp16's instructions per item on digits, 2.1× on next-character text and 1.3× on UCI Adult, and it is last or near last on accuracy on both (`transfer/results/2026-11-18/`).
@@ -61,10 +62,11 @@ Open work is in one queue: `audit/2026-11-17/QUEUE.md` on the pilot branch. [AGE
 ## Next
 "AI" here means more than neural networks: in-context learners (PFNs), trees and boosting, probabilistic models, theorem provers and SAT solvers, planners and search, program synthesis, agents, and hybrids of these. The plan, in order, each step a test of whether the next is worth building:
 1. ~~**Do rankings transfer?**~~ Done 2026-11-18: no. The order of families changed across digits, text and tabular data ([`transfer/`](transfer/)). Two lessons carried forward: every task card needs a tuning budget on a split inside training, or capacity effects pass for structural ones; and a model's size rule that grows with the number of classes needs its own test.
-2. **A general task contract:** bytes in, bytes out, and a checker program. A label set is one checker; a proof kernel, a SAT check or held-out test cases are others. Then a mixed first suite: vision, audio, language, tabular (with a PFN and boosted trees), time series, control, verifier-scored problems (SAT, simple formal lemmas), and learning a rule and emitting it as code.
-3. **Free models propose candidates around the clock** across the suite. The model's key and the generated code never share a job, and the results build up on a public leaderboard.
-4. **Compartments and connections from data:** artifacts are grouped by which items they win and fail on, not by human labels, and the groups are recomputed as the collection grows. Shared failures across unrelated families, items that only one family solves, and artifacts that compute the same function are found the same way. Step 1 already keeps every item's outcome for this.
-5. **Later:** an interface for working on it without a chat, and outside contributors' agents and compute.
+2. ~~**A general task contract:**~~ Done 2026-11-18: records in, records out, and a checker program per task; it held on four tasks, one of them checked with no answer key (SAT) ([`runner/`](runner/)).
+3. **A mixed first suite on the contract (next):** vision, audio, language, tabular (with a PFN and boosted trees), time series, control, verifier-scored problems (harder SAT, simple formal lemmas), and learning a rule and emitting it as code. It must settle what the first four tasks didn't: outputs larger than one bound (proofs, programs), slow checkers, a tuning budget in every card, and weights that differ by host.
+4. **Free models propose candidates around the clock** across the suite. The model's key and the generated code never share a job, and the results build up on a public leaderboard.
+5. **Compartments and connections from data:** artifacts are grouped by which items they win and fail on, not by human labels, and the groups are recomputed as the collection grows. Shared failures across unrelated families, items that only one family solves, and artifacts that compute the same function are found the same way. Step 1 already keeps every item's outcome for this.
+6. **Later:** an interface for working on it without a chat, and outside contributors' agents and compute.
 
 ## What this is for
 The direction this project is meant to take, not a fixed destination: it follows the data.
@@ -89,6 +91,7 @@ The direction this project is meant to take, not a fixed destination: it follows
 | [`record/`](record/) ledger, anchors, monitor; dependencies pinned by hash | done; plan 1 **pass** (entry 4) |
 | [`loop/`](loop/) jailed training and scoring, two meters, per-image meter | done; plan 2 **inconclusive** (entry 3) |
 | [`transfer/`](transfer/) same families across three kinds of task | step 1 done: rankings differ |
+| [`runner/`](runner/) + [`tasks/`](tasks/) the general task contract and runner | held on 4 tasks (3 label, SAT) |
 | [`router/`](router/) free pools and agent benches | working: required pools probed daily; benches 2–5 complete |
 | real-hardware calibration (tier 3) | needs hardware |
 

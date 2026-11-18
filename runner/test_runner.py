@@ -1,5 +1,5 @@
 """Tests for the contract's untrusted-byte paths: python3 -m unittest runner/test_runner.py (stdlib + numpy)."""
-import json, os, subprocess, sys, tempfile, unittest
+import json, os, re, subprocess, sys, tempfile, unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -75,7 +75,8 @@ class NoTaskCodeInRunner(unittest.TestCase):
         names = [n for n in os.listdir(os.path.join(REPO, "tasks")) if os.path.isdir(os.path.join(REPO, "tasks", n))]
         self.assertTrue(names)
         for n in names:
-            self.assertNotIn(f'"{n}"', src, f"run.py names task {n}")
+            # a task name inside a string or a path ('sat', "text", /adult/), not Python's own text=True
+            self.assertIsNone(re.search(r"""['"/]""" + re.escape(n) + r"""['"/.]""", src), f"run.py names task {n}")
 
 
 if __name__ == "__main__":

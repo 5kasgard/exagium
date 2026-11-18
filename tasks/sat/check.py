@@ -24,7 +24,7 @@ def main():
             print(json.dumps({"score": 0, "satisfied": 0.0, "malformed": True}))
             continue
         sat = sum(any((o[abs(l) - 1] == 1) == (l > 0) for l in lits[3 * c:3 * c + 3]) for c in range(m))
-        print(json.dumps({"score": int(sat == m), "satisfied": sat / m, "malformed": False}))
+        print(json.dumps({"score": int(sat == m), "satisfied": sat / m if m else 1.0, "malformed": False}))
 
 
 if __name__ == "__main__":

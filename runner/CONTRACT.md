@@ -1,6 +1,7 @@
 # The task contract (queue P2): bytes in, bytes out, a checker
 
-**Status: hypothesis, being tested.** Written 2026-11-18 after transfer step 1 showed one-task results don't carry
+**Status: held on its first four tasks (2026-11-18; `results/2026-11-18/`), still a hypothesis for the kinds
+not yet tried** (proofs, programs, slow verifiers). Written after transfer step 1 showed one-task results don't carry
 over (`../transfer/results/2026-11-18/`).
 
 ## Hypothesis
