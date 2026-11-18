@@ -29,6 +29,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PROMPT: ${{ github.event.inputs.prompt }}
           ENGINES: ${{ github.event.inputs.engines }}
+          # queue Q22: one line per call (time, engine, model, status, usage incl. Cloudflare neurons; no text). No
+          # ROUTER_PAID_POOLS here, so a paid pool (gemini, cerebras, xai) is refused before any request (queue P4).
+          ROUTER_USAGE_LOG: ${{ runner.temp }}/usage.jsonl
         run: |
           # allowlist (audit Q08): only a regular, tracked file under router/review/; this step holds the keys in its
           # environment, so a path like /proc/self/environ must never be copied to the public branch
@@ -37,6 +40,7 @@ jobs:
           [ -f "$PROMPT" ] && [ ! -L "$PROMPT" ] && git ls-files --error-unmatch -- "$PROMPT" > /dev/null || { echo "prompt must be a tracked regular file"; exit 1; }
           rc=0; python3 -I router/review.py "$PROMPT" "$RUNNER_TEMP/rev" $ENGINES || rc=$?
           cp "$PROMPT" "$RUNNER_TEMP/rev/prompt.txt"; echo "$GITHUB_SHA $PROMPT" > "$RUNNER_TEMP/rev/source.txt"
+          [ -f "$RUNNER_TEMP/usage.jsonl" ] && cp "$RUNNER_TEMP/usage.jsonl" "$RUNNER_TEMP/rev/usage.jsonl"
           echo "exit $rc"
       - name: save the replies on router-runs
         run: |
