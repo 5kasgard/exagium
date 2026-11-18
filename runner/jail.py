@@ -7,9 +7,10 @@ child itself), adds loop's seccomp filter. In bubblewrap mode the jail also gets
 tmpfs when this bubblewrap supports them; check() records which. Confine mode (Landlock + seccomp, loop.py's fallback)
 already had the filter; it gains the rlimits.
 
-Gaps, stated: the counter's run gets the rlimits but not the filter in bubblewrap mode (count.py forks valgrind, so
-the filter can't sit above it), and the filter but not the rlimits in confine mode (count.py runs outside and starts
-valgrind under confine). The program counted is the one already run under the filter in the timed runs; without --size, total disk use in
+The counter's run: count.py forks valgrind, so the filter can't sit above it. In bubblewrap mode count.py runs under
+the rlimits and starts valgrind inside loop's confine (Landlock + the filter) within the jail (counter_confine); in
+confine mode count.py runs outside and starts valgrind under confine, without the rlimits (a gap, stated).
+Gap, stated: without --size, total disk use in
 bubblewrap's tmpfs is bounded only by the file-size and open-file limits and the host's memory.
 """
 import os, shutil, subprocess, sys, tempfile
@@ -38,15 +39,26 @@ def _bwrap_flags():
 
 
 def build():
+    """Compile limits.c and loop's confine.c into one directory, bound read-only into every jail at /run/exagium."""
     if STATE["exe"]:
         return
     d = tempfile.mkdtemp(prefix="exagium-limits-")
-    exe = os.path.join(d, "limits")
-    r = subprocess.run(["gcc", "-O2", "-std=c11", "-I", os.path.dirname(L.SECCOMP), "-o", exe,
-                        os.path.join(HERE, "limits.c")], capture_output=True, text=True, env=L.ENV)
-    if r.returncode:
-        raise L.Failed(f"runner/limits.c does not compile here:\n{r.stderr}")
-    STATE["exe"], STATE["dir"] = exe, d
+    for src, out, extra in ((os.path.join(HERE, "limits.c"), "limits", ["-I", os.path.dirname(L.SECCOMP)]),
+                            (L.CONFINE, "confine", [])):
+        r = subprocess.run(["gcc", "-O2", "-std=c11", *extra, "-o", os.path.join(d, out), src],
+                           capture_output=True, text=True, env=L.ENV)
+        if r.returncode:
+            raise L.Failed(f"{src} does not compile here:\n{r.stderr}")
+    STATE["exe"], STATE["dir"] = os.path.join(d, "limits"), d
+
+
+def counter_confine(tool_dst):
+    """count.py arguments that start valgrind (and so the candidate) inside loop's confine (Landlock + the filter),
+    from inside the bubblewrap jail: count.py itself forks, so the filter goes one level down (review 44257135013)."""
+    a = ["--confine", "/run/exagium/confine", "--confine-ro", tool_dst, "--confine-ro", "/run/exagium"]
+    for flag, p in L.read_allow():
+        a += ["--confine-ro" if flag == "--ro" else "--confine-ls", p]
+    return a
 
 
 def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
@@ -68,7 +80,7 @@ def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
     a += ["--unshare-all", "--uid", "65534", "--gid", "65534", "--cap-drop", "ALL", "--die-with-parent",
           "--new-session", "--clearenv"]
     if f["disable_userns"]:
-        a += ["--disable-userns"]
+        a += ["--unshare-user", "--disable-userns"]   # --unshare-all only tries the user namespace (CI run 44257075574)
     if os.path.exists("/etc/ld.so.cache"):
         a += ["--ro-bind", "/etc/ld.so.cache", "/etc/ld.so.cache"]
     for r in L.python_roots():
@@ -112,6 +124,21 @@ print("bad:" + ",".join(bad) if bad else "limited")
 """ % LIMITS
 
 
+COUNTER_PROBE = r"""
+import os, socket
+bad = []
+for name, f in (("fork", os.fork), ("socket", socket.socket)):
+    try:
+        r = f()
+        if name == "fork" and r == 0:
+            os._exit(0)
+        bad.append(name)
+    except OSError:
+        pass
+print("bad:" + ",".join(bad) if bad else "filtered")
+"""
+
+
 def check():
     """Pick loop's jail mode, then prove here that the limits hold (fail closed): returns what the jail has."""
     L.check_jail()
@@ -122,6 +149,16 @@ def check():
         if r.returncode or out != "limited":
             raise L.Failed(f"the runner's jail does not hold here (exit {r.returncode}, {out!r}): "
                            f"{r.stderr.decode(errors='replace')[-500:]}")
+    if L.JAIL["mode"] == "bwrap":
+        # the counter path: confine inside bubblewrap must start and must refuse fork and sockets
+        ro = [x for flag, p in L.read_allow() for x in (("--ro", p) if flag == "--ro" else ("--ls", p))]
+        with tempfile.TemporaryDirectory(prefix="exagium-jailprobe2-") as w:
+            r = jail(["/run/exagium/confine", *ro, "--ro", "/run/exagium", "--rw", "/w", "--rw", "/dev/null", "--",
+                      sys.executable, "-I", "-c", COUNTER_PROBE], [(w, "/w", True)], 120, seccomp=False)
+            out = r.stdout.decode(errors="replace").strip()
+            if r.returncode or out != "filtered":
+                raise L.Failed(f"confine inside the jail (the counter path) does not hold here (exit {r.returncode}, "
+                               f"{out!r}): {r.stderr.decode(errors='replace')[-500:]}")
     f = _bwrap_flags() if L.JAIL["mode"] == "bwrap" else {}
-    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True,
+    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True, counter_filtered=True,
                 disable_userns=f.get("disable_userns"), tmpfs_size=f.get("size") and TMPFS_BYTES)

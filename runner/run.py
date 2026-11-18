@@ -150,8 +150,9 @@ def count(c, inp, n, outdir):
                                     "--confine", L.JAIL["confine"], *ro, *[x.replace("/tool", tool, 1) for x in tail]],
                                    capture_output=True, timeout=3600, cwd=cwd, env=dict(L.ENV, HOME=cwd, TMPDIR=cwd))
         else:
-            # count.py forks valgrind, so no filter here: rlimits only (runner/jail.py, "Gaps")
-            r = J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process", *tail],
+            # count.py forks valgrind, so it runs under the rlimits only and starts valgrind inside confine (runner/jail.py)
+            r = J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process",
+                        *J.counter_confine("/tool"), *tail],
                        [(tool, "/tool", False)], 3600, cwd="/tmp", seccomp=False)
     if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1:
         raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")

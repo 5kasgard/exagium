@@ -42,6 +42,7 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -m unittest runner/test_runner.py
           "$RUNNER_TEMP/venv/bin/python" -c "import sys; sys.path.insert(0, 'runner'); import jail, json; print(json.dumps(jail.check()))" | tee "out/jail-$TASK.json"
       - name: build the task
+        id: build
         run: '"$RUNNER_TEMP/venv/bin/python" -I tasks/build.py "$RUNNER_TEMP/built" --cache "$RUNNER_TEMP/dl" --only "$TASK"'
       - name: reproduce training (twice, in the jail)
         run: |
@@ -55,7 +56,7 @@ jobs:
             --cand $CANDS --split dev --rounds 5 --records out/records --out "out/dev-$TASK.json" 2>&1 | tee "out/dev-$TASK.txt"
           rc=${PIPESTATUS[0]}; set -e; echo "exit $rc"; exit $rc
       - name: Q55, weights per OpenBLAS core type (text only)
-        if: ${{ !cancelled() && matrix.task == 'text' }}
+        if: ${{ !cancelled() && matrix.task == 'text' && steps.build.outcome == 'success' }}
         run: '"$RUNNER_TEMP/venv/bin/python" runner/q55.py "$RUNNER_TEMP/built" text out/q55-text.json'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
