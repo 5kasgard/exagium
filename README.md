@@ -5,7 +5,7 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 **What it is:** a lab where agents build, test, optimise and distil neural networks and other AI, and every result is weighed against real hardware.
 - Agents propose.
 - A separate verifier and a meter decide.
-- Every claim is recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable.
+- Plans and verdicts are recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable. Other results so far point to their runs and files; they are not in the ledger yet.
 
 **Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Most results still hold for **one problem**, classifying 8×8 handwritten digits. The first test of whether they carry over to other kinds of task says they do not: on next-character text and on tabular census data, the order of the same model families changed, and the logic-gate network that was cheapest on digits was dearer than the small MLP on both ([`transfer/`](transfer/)). A general task contract now exists and held on its first four tasks, including one scored by a verifier with no answer key (SAT) ([`runner/`](runner/)). Next is a mixed suite on it, before any claim beyond these tasks (see **Next**).
 
