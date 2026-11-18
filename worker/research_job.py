@@ -229,6 +229,7 @@ def verified(claims, sources):
 def read(out):
     sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
     import engines
+    engines.TIMEOUT = 600   # Nemotron with 16,000 tokens took over the router's 180 s (release test, R2)
     d = json.load(open(os.path.join(out, "search.json")))
     q = d["item"]["research"]["question"]
     calls = []
@@ -236,6 +237,10 @@ def read(out):
     def ask(engine, model, prompt):
         r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
              else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
+        if not r["ok"] and "timed out" in str(r.get("error")):   # one retry on a timeout
+            calls.append(r)
+            r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
+                 else engines.compat_call(engine, model, prompt, max_tokens=16000))
         calls.append(r)
         return r
 

@@ -110,7 +110,7 @@ jobs:
     needs: [claim, prepare]
     if: needs.claim.outputs.item != ''
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 45   # two checker attempts of up to 10 min each, plus the reader
     permissions:
       contents: read
     steps:
