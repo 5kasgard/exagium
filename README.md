@@ -7,7 +7,7 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 - A separate verifier and a meter decide.
 - Every claim is recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable.
 
-**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Small digit classifiers are built and scored on it. The first architecture found by following the data, a logic-gate network, is about 1.9–3.3× cheaper per image than the best small MLP at scale, at 0.7 percentage points lower dev accuracy. The next step is a fresh task with a pre-registered plan, and then free models proposing candidates around the clock.
+**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed, but it has only been pointed at **one problem**: classifying 8×8 handwritten digits. Every result below holds for that task only. The first architecture found by following the data, a logic-gate network, is about 1.9–3.3× cheaper per image than the best small MLP at scale, at 0.7 percentage points lower dev accuracy. The next steps widen it to AI in general and then hand the routine work to free models (see **Next**).
 
 ## How it works
 1. **A candidate** is a folder: `train.py` (deterministic numpy) writes `weights.bin`, and `infer.c` classifies images. Anyone, human or agent, can propose one.
@@ -35,7 +35,7 @@ Everything runs on free compute: GitHub Actions runners (loop on 6 runner types,
 | Nov 18 | Per-image meter: at scale, lgn_blockread costs 31 ns/img against mlp16's 104; at the task's 956 images the order flips | `loop/results/scale-2026-11-18/` |
 
 ## Best result so far
-Dev data only (the optdigits test set is spent), one host, one session; direction, not a claim:
+On one task (optdigits), dev data only (the test set is spent), one host, one session: direction, not a claim. Whether it holds on any other kind of task is untested.
 
 | | dev accuracy | instructions per image | large-N cost per image |
 |---|---|---|---|
@@ -55,12 +55,15 @@ Each kind of work goes to the cheapest worker that measurably does it well. The 
 | Design, integration, final adversarial checks | Claude (scarce; used least) | — |
 | Liveness probes only | Llama-4-Scout | 0 of 8 review points usable |
 
-Open work is in one queue: `audit/2026-11-17/QUEUE.md` on the pilot branch.
+Open work is in one queue: `audit/2026-11-17/QUEUE.md` on the pilot branch. [AGENTS.md](AGENTS.md) says how any agent working here closes a session.
 
 ## Next
-1. **A fresh task with a pre-registered plan** (MNIST). Choose the architecture on several seeds. Register two claims: accuracy within a stated floor of an mlp16-class MLP, and a win on every meter, including large-N cost.
-2. **Free models propose candidates around the clock.** A scheduled job asks a free agent for a new candidate folder. `loop/` retrains and scores it in the jail on dev data, and the results accumulate on a branch. This is the first piece of "agents building networks" that runs without Claude.
-3. **Spend caps** at the call site, before any paid pool takes real work.
+"AI" here means more than neural networks: in-context learners (PFNs), trees and boosting, probabilistic models, theorem provers and SAT solvers, planners and search, program synthesis, agents, and hybrids of these. The plan, in order, each step a test of whether the next is worth building:
+1. **Do rankings transfer?** Add two tasks as unlike digits as possible: next-character text and a tabular set. Run the same families on all three, keeping every item's outcome. The rule for "the ranking changed" is fixed before running.
+2. **A general task contract:** bytes in, bytes out, and a checker program. A label set is one checker; a proof kernel, a SAT check or held-out test cases are others. Then a mixed first suite: vision, audio, language, tabular, time series, control, verifier-scored problems (SAT, simple formal lemmas), and learning a rule and emitting it as code.
+3. **Free models propose candidates around the clock** across the suite. The model's key and the generated code never share a job, and the results build up on a public leaderboard.
+4. **Compartments and connections from data:** artifacts are grouped by which items they win and fail on, not by human labels, and the groups are recomputed as the collection grows. Shared failures across unrelated families, items that only one family solves, and artifacts that compute the same function are found the same way.
+5. **Later:** an interface for working on it without a chat, and outside contributors' agents and compute.
 
 ## What this is for
 The direction this project is meant to take, not a fixed destination: it follows the data.
