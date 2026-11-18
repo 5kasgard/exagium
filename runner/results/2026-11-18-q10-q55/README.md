@@ -18,7 +18,9 @@ nested user namespaces, and neither mode limited memory or disk.
 
   In bubblewrap mode it also requires `--disable-userns` and `--size`. It proves a command without the filter is
   still refused a user namespace, and that the counter path refuses fork and sockets. (The read-back of the CPU
-  limit, the raise attempt and these bubblewrap checks were added after the independent check; see below.)
+  limit, the raise attempt and these bubblewrap checks were added after the independent check. They pass on CI,
+  run 44263440298 (`ci-44263440298/jail-*.json`), with outputs, instructions per item and weights identical to run
+  44260596412 on all four tasks.)
 
 **Evidence:**
 - **Fails closed:** run 44257075574 stopped before any candidate ran (`run44257075574-failed-closed.txt`); bubblewrap
