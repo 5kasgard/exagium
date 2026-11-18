@@ -11,10 +11,19 @@ records in, records out and a checker; any candidate is a `train.py` and an `inf
 - training reproduced byte for byte in the jail on each host;
 - outputs matched a direct run on the same host.
 
-Weights do **not** reproduce across hosts for these numpy trainers.
+Weights first did not reproduce across hosts: OpenBLAS chose its kernels per CPU. Since Q55 the jail pins one
+kernel type on x86, and text weights now match byte for byte across two CPU families
+([`results/2026-11-18-q10-q55/`](results/2026-11-18-q10-q55/README.md)).
+
+**The jail (Q10):** `loop.py`'s jail, plus `jail.py` and `limits.c`:
+- rlimits (8 GiB address space, 1 GiB per file, 256 open files, CPU seconds) and the seccomp filter on every candidate
+  run, in both modes;
+- in bubblewrap mode, the counter's valgrind run inside confine, `--disable-userns`, and a 2 GiB tmpfs;
+- a probe that fails closed if any of these is missing.
 
 **Parts.**
 - `run.py`: `evaluate` (dev; test only under a ledger plan) and `reproduce` (train twice, compare).
+- `jail.py`, `limits.c`: the hardened jail. `q55.py`: the cross-host weights test.
 - `records.py`: the record format. `checkers/label.py`: the built-in label checker.
 - `candidates/`: `majority` and `label-linear`, `label-mlp16` (any label task); `sat-zeros`, `sat-walksat`.
 - `../tasks/`: `build.py` (all tasks, downloads pinned by sha256), one `card.json` per task, `sat/check.py`.
@@ -32,4 +41,5 @@ digests), a builder in `tasks/build.py`, and a `check.py` if labels don't fit. I
 contract failed for that kind of task: record it.
 
 **Limits.** Fixed output bound per task; one checker call per split; no per-item time limit; the SAT task is easy;
-cross-host weight reproduction fails for float trainers.
+weights reproduce across x86 hosts only with the kernel pinned (ARM untested); in confine mode the counter's run has
+the filter but not the rlimits.

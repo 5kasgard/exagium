@@ -10,7 +10,8 @@ already had the filter; it gains the rlimits.
 The counter's run: count.py forks valgrind, so the filter can't sit above it. In bubblewrap mode count.py runs under
 the rlimits and starts valgrind inside loop's confine (Landlock + the filter) within the jail (counter_confine); in
 confine mode count.py runs outside and starts valgrind under confine, without the rlimits (a gap, stated).
-Gap, stated: without --size, total disk use in
+Gaps, stated: training writes to a host directory bound at /w, so its total disk use there is bounded only by the
+file-size and open-file limits; and without --size (refused by check()), total disk use in
 bubblewrap's tmpfs is bounded only by the file-size and open-file limits and the host's memory.
 """
 import os, platform, subprocess, sys, tempfile
@@ -24,7 +25,7 @@ TMPFS_BYTES = 2 << 30
 STATE = {"exe": None, "dir": None, "bwrap_flags": None}
 
 # Q55: numpy's OpenBLAS picks its kernels per CPU, so trained weights differed across hosts. Forcing one kernel type
-# made them identical across two CPUs and two Python versions (runner/results/2026-11-18-q10-q55/). Haswell needs AVX2,
+# made them identical across three hosts, two CPU families and two Python versions (runner/results/2026-11-18-q10-q55/). Haswell needs AVX2,
 # which every x86 CI host seen so far has; ARM hosts keep OpenBLAS's own choice. This sets the jail's environment for
 # this process only (loop.ENV is a dict; loop.py is not edited).
 if platform.machine() == "x86_64":
@@ -105,10 +106,18 @@ def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
 PROBE = r"""
 import os, resource, socket, sys
 bad = []
-want = {resource.RLIMIT_AS: %(as_bytes)d, resource.RLIMIT_FSIZE: %(fsize)d, resource.RLIMIT_NOFILE: %(nofile)d}
+want = {resource.RLIMIT_AS: %(as_bytes)d, resource.RLIMIT_FSIZE: %(fsize)d, resource.RLIMIT_NOFILE: %(nofile)d,
+        resource.RLIMIT_CPU: 120}
 for res, v in want.items():
     if resource.getrlimit(res) != (v, v):
         bad.append(f"rlimit {res} is {resource.getrlimit(res)}")
+    try:   # a candidate must not be able to raise a limit
+        resource.setrlimit(res, (v + 1, v + 1)); bad.append(f"raised rlimit {res}")
+    except (OSError, ValueError):
+        pass
+import ctypes
+if ctypes.CDLL(None, use_errno=True).prctl(39, 0, 0, 0, 0) != 1:   # PR_GET_NO_NEW_PRIVS
+    bad.append("no_new_privs not set")
 for name, f in (("fork", os.fork), ("socket", socket.socket), ("userns", lambda: os.unshare(os.CLONE_NEWUSER))):
     try:
         r = f()
@@ -151,12 +160,20 @@ def check():
     L.check_jail()
     build()
     with tempfile.TemporaryDirectory(prefix="exagium-jailprobe-") as w:
-        r = jail([sys.executable, "-I", "-c", PROBE], [(w, "/w", True)], 120)
+        r = jail([sys.executable, "-I", "-c", PROBE], [(w, "/w", True)], 120)   # 120 s: the RLIMIT_CPU read back
         out = r.stdout.decode(errors="replace").strip()
         if r.returncode or out != "limited":
             raise L.Failed(f"the runner's jail does not hold here (exit {r.returncode}, {out!r}): "
                            f"{r.stderr.decode(errors='replace')[-500:]}")
     if L.JAIL["mode"] == "bwrap":
+        f = _bwrap_flags()
+        if not (f["disable_userns"] and f["size"]):
+            raise L.Failed(f"this bubblewrap lacks --disable-userns or --size ({f}); the runner's jail needs both")
+        # --disable-userns on its own: a command without the seccomp filter must still be refused a user namespace
+        r = jail([sys.executable, "-I", "-c", "import os\ntry:\n os.unshare(os.CLONE_NEWUSER); print('allowed')\n"
+                  "except OSError:\n print('refused')"], [], 60, cwd="/", seccomp=False)
+        if r.stdout.decode().strip() != "refused":
+            raise L.Failed(f"a new user namespace is not refused without the filter: {r.stdout!r} {r.stderr[-300:]!r}")
         # the counter path: confine inside bubblewrap must start and must refuse fork and sockets
         ro = [x for flag, p in L.read_allow() for x in (("--ro", p) if flag == "--ro" else ("--ls", p))]
         with tempfile.TemporaryDirectory(prefix="exagium-jailprobe2-") as w:
