@@ -7,7 +7,8 @@ python3 worker/ledger.py check WT POOL:CALLS[,...]                        # no w
 WT is a worktree of the "worker-runs" branch. ledger/YYYY-MM-DD.json holds, per pool, calls reserved and calls,
 tokens and neurons used. A run checks headroom before it claims, then reserves calls before it calls (a commit; git refuses a
 second concurrent push, so two runs can't both take the last share). Calls are counted exactly; neurons are a projection
-(EST_NEURONS per Cloudflare call) checked against recorded actuals, so one run can overshoot by the difference. Caps are half of each pool's measured daily allowance, so the other half stays for
+(per job type) held as "pending" until the run records its actual use, then replaced by it; the cap applies to actual plus
+pending, so one run can overshoot by the difference between its projection and its use. Caps are half of each pool's measured daily allowance, so the other half stays for
 chats, reviews and probes (P8, "coexists with chat sessions"):
   cloudflare 10,000 neurons/day (measured: 560-780 per long review, router-runs reviews/44253058538, 44257135013)
   -> cap 5,000 neurons and 20 calls; nvidia (NIM) shape unmeasured (bench-5: about 30/min, then refusals) -> cap
@@ -58,7 +59,8 @@ def headroom(led, want):
         if pool not in CAPS:
             return f"pool {pool} is not a free pool the worker may use"
         e, cap = led.get(pool, {}), CAPS[pool]
-        if e.get("reserved", 0) + n > cap["calls"] or ("neurons" in cap and max(e.get("neurons", 0), e.get("neurons_reserved", 0)) + n * est > cap["neurons"]):
+        pending = sum((e.get("pending") or {}).values())   # projections of runs not yet recorded
+        if e.get("reserved", 0) + n > cap["calls"] or ("neurons" in cap and e.get("neurons", 0) + pending + n * est > cap["neurons"]):
             return f"{pool}: cap reached ({e.get('reserved', 0)} calls reserved, {e.get('neurons', 0):.0f} neurons used; cap {cap})"
     return None
 
@@ -91,6 +93,7 @@ def reserve(wt, run, spec):
             e["reserved"] += n
             if "neurons" in cap:
                 e["neurons_reserved"] += n * est
+                e.setdefault("pending", {})[run] = n * est   # replaced by the actual use when the run is recorded
             e["runs"].append(run)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         if push(wt, [p], f"ledger: {run} reserves {spec}"):
@@ -112,6 +115,7 @@ def record(wt, run, calls_path):
             e["calls"] += 1
             e["tokens"] += int(u.get("total_tokens") or 0)
             e["neurons"] += float(u.get("neurons") or 0)
+            (e.get("pending") or {}).pop(run, None)   # the projection gives way to the actual (release test, R2)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         with open(log, "a") as f:
             for c in calls:
