@@ -1,6 +1,6 @@
 # record — spec card
 
-**What it is.** The third brick: an append-only, hash-chained ledger of **plans** (a claim and the test fixed before it runs) and **verdicts** (the outcome, given by someone other than the claimant).
+**What it is.** The third brick: an append-only, hash-chained ledger of **plans** (a claim and the test fixed before it runs) and **verdicts** (the outcome, whose independence rests on who can push – only the owner today).
 - **One writer.** Only `.github/workflows/record.yml` writes to it. Each run attests the exact range of entries it added: a Sigstore attestation in the public Rekor log, plus an OpenTimestamps proof in Bitcoin.
 - **A stranger's checks:**
   - every entry is covered by the writer's attestations, with no gap;
