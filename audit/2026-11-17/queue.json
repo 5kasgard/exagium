@@ -1474,7 +1474,8 @@
    "cost": 0,
    "batch": "B7",
    "blocked_by": [
-    "P8"
+    "P8",
+    "Q57"
    ]
   },
   {
@@ -1497,7 +1498,8 @@
    "cost": 0,
    "batch": "B7",
    "blocked_by": [
-    "P8"
+    "P8",
+    "Q57"
    ]
   },
   {
@@ -1662,7 +1664,7 @@
    "batch": "B3",
    "blocked_by": [],
    "title": "Queue worker release test 2 (after the acceptance fixes)",
-   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items.",
+   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run.",
    "refs": [
     "worker/RESULTS-release-test-1.md on main",
     "worker/RELEASE-TEST.md on main"
@@ -1671,6 +1673,27 @@
     "worker/PAUSE",
     "tests/worker-canary.md",
     "research/cards/"
+   ]
+  },
+  {
+   "id": "Q57",
+   "title": "Worker never ran on its schedule: GitHub's free scheduler delayed or dropped it (record.yml's 03:17 UTC cron ran at 11:53 UTC; 0 of ~8 hourly worker crons fired)",
+   "kind": "fix",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "severity": "major",
+   "blocked_by": [],
+   "batch": "B4",
+   "touches": [
+    ".github/workflows/worker.yml"
+   ],
+   "next": "Evidence (2026-11-19, gh run list): all 15 worker runs were workflow_dispatch; no run of any workflow between 11:53Z and 19:24Z although the hourly worker cron was due 8 times; record.yml's daily 03:17Z cron started 11:53Z on 2026-11-18. Fix (hypothesis): self-chaining. A run dispatches the next run (workflow_dispatch with the job's own token, which GitHub allows to start a new run) when not paused, work is ready and budget remains; the cron stays as a backup. Guard: at most one pending chained run (concurrency group), and a cap per day, so a bug cannot loop. Measure: scheduled-vs-actual start delay per run, logged in the digest.",
+   "refs": [
+    "gh run list -w worker.yml (15 dispatch, 0 schedule)",
+    "record.yml cron 17 3 * * * vs run at 2026-11-18T11:53Z",
+    "project doc claude/HANDOFF-worker-P8.md"
    ]
   }
  ],
@@ -1718,7 +1741,8 @@
     "Q48",
     "Q28",
     "Q09",
-    "Q29"
+    "Q29",
+    "Q57"
    ],
    "why": "All .github/workflows and branch settings: one actionlint and zizmor pass (zizmor --fix does much of Q07 mechanically), one review, one round of CI runs.",
    "worker": "Mostly mechanical: linters and auto-fix on CI; a free review; Claude only for the /activity-log test design."
