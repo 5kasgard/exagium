@@ -20,9 +20,9 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 **What it is:** a lab where agents build, test, optimise and distil neural networks and other AI, and every result is weighed against real hardware.
 - Agents propose.
 - A separate verifier and a meter decide.
-- Every claim is recorded, so none can be quietly changed later.
+- Every claim is recorded in an append-only ledger anchored outside the repo, so a change made after anchoring is detectable.
 
-**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Small digit classifiers are built and scored on it. The first architecture found by following the data, a logic-gate network, is about 2–3.4× cheaper per image than the best small MLP at scale, at 0.7 points lower dev accuracy. The next step is a fresh task with a pre-registered plan, and then free models proposing candidates around the clock.
+**Where it is now (November 2026):** the measuring and recording machinery works and has been reviewed. Small digit classifiers are built and scored on it. The first architecture found by following the data, a logic-gate network, is about 2–3.4× cheaper per image than the best small MLP at scale, at 0.7 percentage points lower dev accuracy. The next step is a fresh task with a pre-registered plan, and then free models proposing candidates around the clock.
 
 ## How it works
 1. **A candidate** is a folder: `train.py` (deterministic numpy) writes `weights.bin`, and `infer.c` classifies images. Anyone, human or agent, can propose one.
