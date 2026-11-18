@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """One-queue checker and renderer. Usage: python3 render.py queue.json > QUEUE.md   (exit 1 if the file is invalid).
 Checks: unique ids, known values, blockers that exist, no cycles, a next step and refs on every item.
+Batches: related items done together (one checkout, one review, one CI run), ordered by the work they unlock.
 Order: can run now (by optional priority, then how many open items it unlocks, directly or through others, then value, then cost), waiting on a blocker, needs the owner, scheduled, parked, done."""
 import json, sys
 
@@ -43,6 +44,16 @@ def cyc(n, seen):
 for i in items:
     if cyc(i['id'], set()):
         errs.append(f"{i['id']}: blocker cycle")
+bids = [b['id'] for b in q.get('batches', [])]
+for b in q.get('batches', []):
+    for x in b['items']:
+        if x not in by:
+            errs.append(f"batch {b['id']}: unknown item {x}")
+        elif by[x].get('batch') != b['id']:
+            errs.append(f"{x}: listed in batch {b['id']} but its batch field says {by[x].get('batch')!r}")
+for i in items:
+    if i.get('batch') and i['batch'] not in bids:
+        errs.append(f"{i['id']}: unknown batch {i['batch']}")
 if errs:
     print('\n'.join(errs), file=sys.stderr)
     sys.exit(1)
@@ -69,16 +80,29 @@ groups = [('Can run now', lambda i: i['status'] in ('open', 'in progress') and n
           ('Done', lambda i: i['status'] == 'done')]
 placed = set()
 out = [f"# {q['title']}", '', q.get('intro', ''), '']
+if q.get('batches'):
+    def bkey(b):
+        live = [by[x] for x in b['items'] if by[x]['status'] not in ('done', 'parked')]
+        ready = any(not open_blockers(i) for i in live)
+        reach = set().union(*[unlocks(i) for i in live]) - set(b['items']) if live else set()
+        return (not ready, -len(reach), b['id'])
+    out += ['## Batches (related items done together)', '', '| batch | items (open) | ready now | unlocks outside it | why together | worker |', '|---|---|---|---|---|---|']
+    for b in sorted(q['batches'], key=bkey):
+        live = [x for x in b['items'] if by[x]['status'] not in ('done', 'parked')]
+        ready = [x for x in live if not open_blockers(by[x])]
+        reach = set().union(*[unlocks(by[x]) for x in live]) - set(b['items']) if live else set()
+        out.append(f"| {b['id']} {b['name']} | {', '.join(live) or 'all done'} | {', '.join(ready) or '-'} | {len(reach) or ''} | {b['why']} | {b['worker']} |")
+    out.append('')
 for name, pred in groups:
     rows = [i for i in items if i['id'] not in placed and pred(i)]
     rows.sort(key=lambda i: (i.get('priority', 99), -len(unlocks(i)), VALUE[i['value']], i['cost'], i['id']))
     if not rows:
         continue
-    out += [f'## {name} ({len(rows)})', '', '| id | unlocks | severity | value | kind | title | next | refs |', '|---|---|---|---|---|---|---|---|']
+    out += [f'## {name} ({len(rows)})', '', '| id | batch | unlocks | severity | value | kind | title | next | refs |', '|---|---|---|---|---|---|---|---|---|']
     for i in rows:
         placed.add(i['id'])
         nxt = i['next'] + (f" (blocked by {', '.join(open_blockers(i))})" if open_blockers(i) else '')
-        out.append(f"| {i['id']} | {len(unlocks(i)) or ''} | {i['severity']} | {i['value']} | {i['kind']} | {i['title']} | {nxt} | {'; '.join(i['refs'])} |")
+        out.append(f"| {i['id']} | {i.get('batch', '')} | {len(unlocks(i)) or ''} | {i['severity']} | {i['value']} | {i['kind']} | {i['title']} | {nxt} | {'; '.join(i['refs'])} |")
     out.append('')
 left = [i['id'] for i in items if i['id'] not in placed]
 if left:

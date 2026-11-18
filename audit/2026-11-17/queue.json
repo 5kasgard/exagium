@@ -103,7 +103,8 @@
     "A-security M5",
     "S2 confirmed; severity lowered"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q07",
@@ -119,7 +120,8 @@
     "A-security m1,m2",
     "project doc repo-audit-2026-11-13 (known)"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B4"
   },
   {
    "id": "Q08",
@@ -153,7 +155,8 @@
    ],
    "blocked_by": [
     "Q28"
-   ]
+   ],
+   "batch": "B4"
   },
   {
    "id": "Q10",
@@ -169,7 +172,8 @@
     "A-security m5",
     "main:loop/loop.py:212-227"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B1"
   },
   {
    "id": "Q11",
@@ -349,7 +353,8 @@
    "refs": [
     "E E-10"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B2"
   },
   {
    "id": "Q22",
@@ -364,7 +369,8 @@
    "refs": [
     "E E-07"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B2"
   },
   {
    "id": "Q23",
@@ -426,7 +432,8 @@
    "refs": [
     "B"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B4"
   },
   {
    "id": "Q24",
@@ -459,7 +466,8 @@
    ],
    "blocked_by": [
     "P3"
-   ]
+   ],
+   "batch": "B1"
   },
   {
    "id": "Q26",
@@ -507,7 +515,8 @@
     "C F3, F4",
     "A m4"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B4"
   },
   {
    "id": "Q29",
@@ -523,7 +532,8 @@
     "C F14",
     "S2 partly right (93.7%)"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B4"
   },
   {
    "id": "Q30",
@@ -666,7 +676,8 @@
    "refs": [
     "D-claims missing-evidence list"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q37",
@@ -681,7 +692,8 @@
    "refs": [
     "D-claims citations"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q38",
@@ -697,7 +709,8 @@
     "repo-audit-2026-11-13 (known)",
     "A M5"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q39",
@@ -713,7 +726,8 @@
     "E E-13, E-14",
     "E ASD-STE100 table"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q40",
@@ -791,7 +805,8 @@
    "refs": [
     "F findings 4, 5"
    ],
-   "blocked_by": []
+   "blocked_by": [],
+   "batch": "B5"
   },
   {
    "id": "Q51",
@@ -858,7 +873,8 @@
    ],
    "blocked_by": [
     "P1"
-   ]
+   ],
+   "batch": "B1"
   },
   {
    "id": "P1",
@@ -874,7 +890,8 @@
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
-   ]
+   ],
+   "batch": "B1"
   },
   {
    "id": "P2",
@@ -892,7 +909,8 @@
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
-   ]
+   ],
+   "batch": "B1"
   },
   {
    "id": "P3",
@@ -910,7 +928,8 @@
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
-   ]
+   ],
+   "batch": "B1"
   },
   {
    "id": "P4",
@@ -926,7 +945,8 @@
    "refs": [
     "README.md (Who does what)",
     "project doc claude/HANDOFF-audit-2026-11-17.md"
-   ]
+   ],
+   "batch": "B2"
   },
   {
    "id": "P5",
@@ -944,7 +964,8 @@
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
-   ]
+   ],
+   "batch": "B3"
   },
   {
    "id": "P6",
@@ -963,7 +984,80 @@
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
-   ]
+   ],
+   "batch": "B6"
+  }
+ ],
+ "batches": [
+  {
+   "id": "B1",
+   "name": "Task suite (new runner)",
+   "items": [
+    "P1",
+    "Q54",
+    "P2",
+    "Q10",
+    "P3",
+    "Q25"
+   ],
+   "why": "All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data.",
+   "worker": "Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs."
+  },
+  {
+   "id": "B2",
+   "name": "Router: spend, guard, usage",
+   "items": [
+    "P4",
+    "Q21",
+    "Q22"
+   ],
+   "why": "All in router/engines.py and the allowance guard: one edit, one test file, one live probe, one review.",
+   "worker": "Small Claude change plus router tests; free review; the live probe on CI checks it."
+  },
+  {
+   "id": "B3",
+   "name": "Free proposer",
+   "items": [
+    "P5"
+   ],
+   "why": "Needs B1's contract (P2) and B2's spend caps before any paid pool joins. It is the batch that moves work off Claude.",
+   "worker": "Claude designs; a separate agent reviews (it holds a key); after that it runs on free models and CI."
+  },
+  {
+   "id": "B4",
+   "name": "Repo and workflow hygiene",
+   "items": [
+    "Q07",
+    "Q48",
+    "Q28",
+    "Q09",
+    "Q29"
+   ],
+   "why": "All .github/workflows and branch settings: one actionlint and zizmor pass (zizmor --fix does much of Q07 mechanically), one review, one round of CI runs.",
+   "worker": "Mostly mechanical: linters and auto-fix on CI; a free review; Claude only for the /activity-log test design."
+  },
+  {
+   "id": "B5",
+   "name": "Doc truthfulness",
+   "items": [
+    "Q06",
+    "Q38",
+    "Q39",
+    "Q36",
+    "Q37",
+    "Q44"
+   ],
+   "why": "Wording fixes with known targets (file and line in each item): one pass, one free review, no code risk.",
+   "worker": "A free model drafts from the item text; a second free model checks against the cited lines; Claude spot-checks."
+  },
+  {
+   "id": "B6",
+   "name": "Compartments and connections",
+   "items": [
+    "P6"
+   ],
+   "why": "Needs per-item data from B1's suite and B3's proposals.",
+   "worker": "Analysis code runs on CI; free models describe the clusters; Claude checks the claims."
   }
  ]
 }
