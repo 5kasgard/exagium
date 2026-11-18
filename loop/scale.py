@@ -18,8 +18,8 @@ depends on which hidden units fire, so off-distribution inputs could misstate co
 
 Checks (each failure is listed under "problems", exit 1):
   - every timed run's predictions equal the same images' predictions in a reference run on the whole pool;
-  - accuracy on the pool images beyond the first 956 must not fall below accuracy on the first 956 by more
-    than 3 SE: a candidate that does less work at large N (reviewer's test, 2026-11-18: classify 1,000 images,
+  - accuracy on each segment of pool images past the first 956 (956-4,096, 4,096-16,384, ...) must not fall
+    below accuracy on the first 956 by more than 3 SE: a candidate that does less work at large N (reviewer's test, 2026-11-18: classify 1,000 images,
     print 7 for the rest) would otherwise look cheap. Both ranges come from the same shuffle, so they are
     comparable to each other; pool images come from training rows, so they are not an accuracy estimate.
 
@@ -77,19 +77,22 @@ def pool(n, seed):
     return [list(im) for im, _ in imgs[:n]], [y for _, y in imgs[:n]]
 
 
-def accuracy_check(pred, labels, split=TASK_N):
-    """Accuracy on the first `split` images and on the rest; a problem if the rest is worse by more than 3 SE."""
+def accuracy_check(pred, labels, sizes, first=TASK_N):
+    """Accuracy on the first `first` images, and on each later segment between run sizes; a problem if any later
+    segment is worse than the first by more than 3 SE (a candidate doing less work somewhere past N = 956)."""
     def acc(p, y):
         a = sum(x == z for x, z in zip(p, y)) / len(y)
         return a, math.sqrt(a * (1 - a) / len(y))
-    small = acc(pred[:split], labels[:split])
-    rec = {"first": split, "accuracy_first": small[0], "accuracy_rest": None, "problem": None}
-    if len(labels) > split:
-        rest = acc(pred[split:], labels[split:])
-        rec["accuracy_rest"] = rest[0]
-        if rest[0] < small[0] - 3 * math.hypot(small[1], rest[1]):
-            rec["problem"] = (f"accuracy beyond the first {split} images is {rest[0]:.3f} against {small[0]:.3f} "
-                              "on the first: it may do less work at large N")
+    base = acc(pred[:first], labels[:first])
+    rec = {"first": first, "accuracy_first": base[0], "segments": [], "problem": None}
+    edges = [first] + [n for n in sizes if n > first]
+    for a, b in zip(edges, edges[1:]):
+        seg = acc(pred[a:b], labels[a:b])
+        rec["segments"].append({"from": a, "to": b, "accuracy": seg[0]})
+        if seg[0] < base[0] - 3 * math.hypot(base[1], seg[1]) and rec["problem"] is None:
+            rec["problem"] = (f"accuracy on images {a}-{b} is {seg[0]:.3f} against {base[0]:.3f} on the first {first}: "
+                              "it may do less work at larger N")
+    rec["accuracy_rest"] = acc(pred[first:], labels[first:])[0] if len(labels) > first else None
     return rec
 
 
@@ -103,6 +106,7 @@ def summarise(ts, sizes):
     for name, rounds in ts.items():
         rec = {"fixed_ns_t0": L.mean_se([r[sizes[0]] for r in rounds]) if sizes[0] == 0 else None,
                "marginal_ns_per_image_large_n": L.mean_se([marginal(r) for r in rounds]),
+               "marginal_ns_per_image_large_n_median": statistics.median([marginal(r) for r in rounds]),
                "large_n_segment": [prev, big],
                "segments": [{"from": a, "to": b, "ns_per_image": L.mean_se([(r[b] - r[a]) / (b - a) for r in rounds])}
                             for a, b in zip(sizes, sizes[1:])],
@@ -151,7 +155,7 @@ def measure(dirs, sizes, rounds, seed):
             c = {"name": name, "dir": d, "exe": os.path.join(work, name, "infer")}
             L.build(src, c["exe"])
             c["ref"], _ = L.timed(c, imgs, timer, cpu)  # reference predictions on the whole pool (not a timing)
-            acc[name] = accuracy_check(c["ref"], labels)
+            acc[name] = accuracy_check(c["ref"], labels, sizes)
             if acc[name]["problem"]:
                 problems.append(f"{name}: {acc[name]['problem']}")
             cands.append(c)

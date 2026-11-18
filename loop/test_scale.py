@@ -89,12 +89,21 @@ class Accuracy(unittest.TestCase):
     def test_honest_candidate_passes(self):
         y = [i % 10 for i in range(5000)]
         pred = [v if i % 10 else (v + 1) % 10 for i, v in enumerate(y)]  # 90% everywhere
-        self.assertIsNone(scale.accuracy_check(pred, y)["problem"])
+        self.assertIsNone(scale.accuracy_check(pred, y, [0, 956, 2000, 5000])["problem"])
 
     def test_less_work_at_large_n_is_a_problem(self):
         y = [i % 10 for i in range(5000)]
         pred = y[:1000] + [7] * 4000  # the reviewer's cheat: real answers early, a constant later
-        self.assertIsNotNone(scale.accuracy_check(pred, y)["problem"])
+        self.assertIsNotNone(scale.accuracy_check(pred, y, [0, 956, 2000, 5000])["problem"])
+
+
+class AccuracyMiddle(unittest.TestCase):
+    def test_cheating_only_in_a_middle_segment_is_caught(self):
+        # free outside review (gpt-oss-120b, 2026-11-18): a cheat confined to one middle segment passed the old check
+        y = [i % 10 for i in range(20000)]
+        pred = y[:4096] + [7] * (16384 - 4096) + y[16384:]
+        rec = scale.accuracy_check(pred, y, [0, 956, 4096, 16384, 20000])
+        self.assertIn("4096-16384", rec["problem"])
 
 
 class Measure(unittest.TestCase):
@@ -130,7 +139,7 @@ class Measure(unittest.TestCase):
 
     def test_less_work_at_large_n_is_a_problem(self):
         s = self.run_measure(lambda rows, k: [y if i < 1000 else 7 for i, y in enumerate(self.labels_for(rows))])
-        self.assertTrue(any("less work at large N" in p for p in s["problems"]))
+        self.assertTrue(any("less work at larger N" in p for p in s["problems"]))
 
     def test_refuses_without_a_jail(self):
         with mock.patch.dict(L.JAIL, {"mode": None}):

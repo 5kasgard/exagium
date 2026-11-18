@@ -104,7 +104,7 @@ Both meters above work at the task's 956 images, where a run is about 1 ms of pr
 - Rounds are paired: every candidate runs at every size in each round, in a shuffled order.
 - The images are 65,536 distinct images from the training rows only, never dev or test. Each is either an original or a copy with 4 pixels moved by ±1. Shifted copies were tried first and dropped: a 1-pixel shift cuts mlp16's accuracy from 0.99 to 0.44–0.56, and an MLP's cost depends on which hidden units fire.
 - Every run's predictions must match a reference run on the same images.
-- Accuracy past the first 956 images must not fall more than 3 SE below accuracy on the first 956. A copy of mlp16 that classified 1,000 images and printed 7 for the rest passed the first version unflagged; it is now caught.
+- Accuracy on each later segment (956–4,096, 4,096–16,384, 16,384–65,536) must not fall more than 3 SE below accuracy on the first 956. A copy of mlp16 that classified 1,000 images and printed 7 for the rest passed the first version unflagged. A cheat confined to one middle segment passed the second, as a free outside review (gpt-oss-120b) pointed out. Both are now caught.
 
 **What the per-image figure includes:** everything the candidate does per image, including how it stages its input, because that is part of the candidate. The harness hands every candidate the same file.
 
@@ -112,19 +112,19 @@ Both meters above work at the task's 956 images, where a run is about 1 ms of pr
 
 | | large-N cost per image (ns) | t(0) (ms) | N = 956 on pool images, t(0) removed (ns) |
 |---|---|---|---|
-| lgn_blockread | 37.9 ± 3.5 | 1.56 | -354 ± 523 |
-| lgn_d | 73.0 ± 6.3 | 1.03 | 185 ± 50 |
-| mlp16_chunked | 91.1 ± 8.3 | 1.08 | 136 ± 31 |
-| mlp16 | 115.6 ± 2.5 | 1.13 | 116 ± 29 |
-| mlp32 | 164.5 ± 10.4 | 1.13 | 152 ± 36 |
-| thermo | 191.1 ± 9.1 | 1.04 | 320 ± 72 |
-| linear | 209.9 ± 29.5 | 1.13 | 185 ± 57 |
-| mlp64 | 250.4 ± 4.5 | 1.16 | 288 ± 72 |
+| lgn_blockread | 31.3 ± 2.9 | 0.97 | 170 ± 38 |
+| lgn_d | 54.8 ± 1.3 | 0.99 | 106 ± 24 |
+| mlp16_chunked | 83.2 ± 4.2 | 0.97 | 97 ± 22 |
+| mlp16 | 103.5 ± 2.1 | 1.00 | 78 ± 20 |
+| mlp32 | 155.7 ± 11.1 | 1.02 | 144 ± 43 |
+| linear | 174.0 ± 5.4 | 0.96 | 183 ± 24 |
+| thermo | 204.3 ± 17.1 | 0.97 | 212 ± 18 |
+| mlp64 | 251.3 ± 11.9 | 1.23 | 129 ± 165 |
 
-- **Separation:** the large-N figure separates 23 of the 28 pairs at t(14). The N = 956 figure separates 3.
-- **Cost per image changes with N.** For example, lgn_d's segments run 185, 68, 58 and 73 ns. The large-N column is a marginal cost at large N, not a constant.
-- **This run against the first:** a first run (9 rounds, shifted inputs, an earlier version of the tool) put lgn_d at 53.9 ± 1.3 ns, against 73.0 ± 6.3 here. Session-to-session spread is larger than one session's SE. Read the ranking, not the decimals.
-- **One noisy round:** lgn_blockread's t(0) and its N = 956 figure carry one slow round.
+- **Separation:** a pair counts as separated when its paired difference over the 15 rounds is more than 2.145 SE from zero (a two-sided paired t-test at 5%, 14 degrees of freedom). The large-N figure separates 26 of the 28 pairs; the N = 956 figure separates 7. The JSON also gives the median per-round slope, as a check against outliers.
+- **The ranking flips with N.** At the task's 956 images, lgn_blockread is the most expensive per image after thermo and linear (170 ns against mlp16's 78), because it pays for whole 1,024-image blocks. At scale it is the cheapest (31 against 104). A cost claim has to say at which N it holds.
+- **Cost per image changes with N.** For example, lgn_d's segments run 106, 72, 53 and 55 ns. The large-N column is a marginal cost at large N, not a constant.
+- **Sessions disagree more than their SEs:** three runs on the same day put lgn_d at 53.9, 73.0 and 54.8 ns (SEs 1.3–6.3); the first used shifted inputs and an earlier tool. Read the ranking, not the decimals. It held across all three, except that linear and thermo swapped places, within noise.
 - **linear is slow per image for a known reason:** it runs 3,813 instructions per image (plan 2's counter) at about 20 per ns. mlp16 runs 645 at about 6 per ns.
 - **Block steps** (one image past a 1,024-image block) **aren't measured.** One image costs 0.03–0.3 µs, and single runs vary by tens to thousands of µs.
 
