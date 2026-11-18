@@ -235,7 +235,7 @@ def read(out):
 
     def ask(engine, model, prompt):
         r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
-             else engines.compat_call(engine, model, prompt, max_tokens=4000))
+             else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
         calls.append(r)
         return r
 
