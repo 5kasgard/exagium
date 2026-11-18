@@ -21,14 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no workspace artifact
       - name: "today's paid calls so far (queue P4): the daily cap counts router-runs' call log, not just this run"
+        id: seed
         run: |
-          git fetch -q origin router-runs && git show FETCH_HEAD:router/log/calls.jsonl > "$RUNNER_TEMP/usage.jsonl" 2>/dev/null || : > "$RUNNER_TEMP/usage.jsonl"
-          wc -l < "$RUNNER_TEMP/usage.jsonl"
+          # fail closed: without today's history the daily cap would start from 0, so paid pools stay off (review 44393174128, 2)
+          if git fetch -q origin router-runs && git show FETCH_HEAD:router/log/calls.jsonl > "$RUNNER_TEMP/usage.jsonl"; then
+            echo "pools=cerebras,xai,gemini" >> "$GITHUB_OUTPUT"; wc -l < "$RUNNER_TEMP/usage.jsonl"
+          else
+            echo "pools=" >> "$GITHUB_OUTPUT"; : > "$RUNNER_TEMP/usage.jsonl"; echo "no call history: paid pools off for this run"
+          fi
       - name: probe every engine
         env:
           # queue P4: paid pools this workflow may call, under engines.PAID's per-call and daily caps. Two probe runs at
           # once can each see the same count, so a day can exceed a cap by one run's calls (at most 4 per pool).
-          ROUTER_PAID_POOLS: cerebras,xai,gemini
+          ROUTER_PAID_POOLS: ${{ steps.seed.outputs.pools }}
           ROUTER_USAGE_LOG: ${{ runner.temp }}/usage.jsonl
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
