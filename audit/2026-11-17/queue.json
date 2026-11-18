@@ -1155,7 +1155,7 @@
     ".github/workflows/research.yml"
    ],
    "batch": "B7",
-   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it.",
+   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it. Owner, 2026-11-18 (later): research covers everything from tested facts to people's opinions: papers, the web, forums and comment sections (Reddit, YouTube, niche forums), separating tested facts from opinions and weighing stronger against weaker opinions; as many sources as possible, each added when the data says it's the best tool. Started inside P8's worker (worker/research_job.py, main 507a584): papers/preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker News, Reddit); every claim graded measured > reported > expert view > experience report > opinion, quote checked verbatim. Follow-ups: P7b, P7c, P7d.",
    "refs": [
     "project doc claude/HANDOFF-transfer-step1.md (P1 verdict: rankings differ; LGN lead did not carry over)",
     "Q37 (citation error found by audit)",
@@ -1316,6 +1316,75 @@
    "value": "high",
    "blocked_by": [],
    "batch": "B7"
+  },
+  {
+   "id": "P7b",
+   "kind": "build",
+   "needs": "the owner",
+   "value": "medium",
+   "title": "YouTube comments as a research source (needs a YouTube Data API key)",
+   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it.",
+   "refs": [
+    "worker/research_job.py on main",
+    "queue P7"
+   ],
+   "touches": [
+    "worker/research_job.py",
+    ".github/workflows/worker.yml"
+   ],
+   "severity": "minor",
+   "status": "open",
+   "cost": 0,
+   "batch": "B7",
+   "blocked_by": [
+    "P8"
+   ]
+  },
+  {
+   "id": "P7c",
+   "kind": "build",
+   "needs": "free",
+   "value": "medium",
+   "title": "Headless-browser tier for research: load and scrape pages and forums with no API",
+   "next": "Add when a card's question needs pages no API covers (niche forums, docs, comment sections). Playwright on CI in the keyless prepare job, read-only, robots.txt respected, pages saved with their URL and time; text graded like forum text. Measure before keeping: share of claims from this tier that survive both checks, and whether any changed a decision.",
+   "refs": [
+    "worker/research_job.py on main",
+    "queue P7"
+   ],
+   "touches": [
+    "worker/research_job.py",
+    ".github/workflows/worker.yml"
+   ],
+   "severity": "minor",
+   "status": "open",
+   "cost": 0,
+   "batch": "B7",
+   "blocked_by": [
+    "P8"
+   ]
+  },
+  {
+   "id": "P7d",
+   "kind": "test",
+   "needs": "free",
+   "value": "high",
+   "title": "Are the research worker's evidence grades right? (measured > reported > expert > experience > opinion)",
+   "next": "After R1 and R2: Claude or the owner grades a sample of 30 claims blind to the model's grade; agreement (Cohen's kappa) decides whether the card's grouping can be trusted. Below 0.6: fix the grading prompt or grade by source kind and features by script.",
+   "refs": [
+    "research/cards/ on main (after R1, R2)",
+    "queue P7"
+   ],
+   "touches": [
+    "worker/research_job.py"
+   ],
+   "severity": "minor",
+   "status": "open",
+   "cost": 0,
+   "batch": "B7",
+   "blocked_by": [
+    "R1",
+    "R2"
+   ]
   }
  ],
  "batches": [
