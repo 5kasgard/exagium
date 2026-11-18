@@ -26,7 +26,7 @@ jobs:
       item: ${{ steps.out.outputs.item }}
       type: ${{ steps.out.outputs.type }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only claim.json from RUNNER_TEMP, never .git
       - name: pause switch
         run: |
           if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "PAUSED=1" >> "$GITHUB_ENV"; fi
@@ -147,7 +147,7 @@ jobs:
       TYPE: ${{ needs.claim.outputs.type }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only job/ and note.json, never .git
         with:
           fetch-depth: 5
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
@@ -216,3 +216,32 @@ jobs:
           path: |
             job/
             note.json
+  chain:
+    # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that
+    # found work starts the next run itself. A workflow_dispatch made with the job's own token does start a new run.
+    # Guards: not when paused or when nothing was claimed (no work or no budget: claim leaves item empty); not when a
+    # worker run is already waiting to start (at most one pending); at most CHAIN_CAP chained runs per UTC day. The cron stays as a backup.
+    needs: [claim, land]
+    if: ${{ always() && needs.claim.outputs.item != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      actions: write     # dispatch the next run and list today's runs
+      contents: read     # read worker/PAUSE
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: ${{ github.repository }}
+      CHAIN_CAP: 24
+    steps:
+      - name: start the next run if the guards allow
+        run: |
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: not chaining"; exit 0; fi
+          waiting=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=50" \
+            -q '[.workflow_runs[] | select(.status=="queued" or .status=="waiting" or .status=="pending" or .status=="requested")] | length')
+          if [ "$waiting" -gt 0 ]; then echo "a worker run is already waiting ($waiting): not chaining"; exit 0; fi
+          today=$(date -u +%F)
+          chained=$(gh api "repos/$R/actions/workflows/worker.yml/runs?event=workflow_dispatch&created=>=$today&per_page=100" \
+            -q '[.workflow_runs[] | select(.triggering_actor.login=="github-actions[bot]")] | length')
+          if [ "$chained" -ge "$CHAIN_CAP" ]; then echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"; exit 0; fi
+          gh workflow run worker.yml -R "$R" --ref main
+          echo "chained run $((chained + 1)) of $CHAIN_CAP today (UTC $today)"

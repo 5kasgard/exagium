@@ -17,7 +17,7 @@ jobs:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - name: try each anchor route
         env:
           GH_TOKEN: ${{ github.token }}
@@ -32,7 +32,7 @@ jobs:
       - name: attest digest (Sigstore / Rekor)
         id: att
         continue-on-error: true
-        uses: actions/attest@v2
+        uses: actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc  # v2.4.0
         with:
           subject-name: exagium-record-digest
           subject-digest: sha256:${{ steps.d.outputs.digest }}
@@ -43,7 +43,7 @@ jobs:
         run: |
           echo '{"route":"sigstore_attest","outcome":"${{ steps.att.outcome }}","bundle":"${{ steps.att.outputs.bundle-path }}","attestation_id":"${{ steps.att.outputs.attestation-id }}","url":"${{ steps.att.outputs.attestation-url }}"}' >> out/attempts.jsonl
           cp "${{ steps.att.outputs.bundle-path }}" out/attestation.jsonl 2>/dev/null || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: anchors-${{ matrix.runner }}
           path: out
@@ -52,7 +52,7 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           path: art
       - name: commit results to ci-runs

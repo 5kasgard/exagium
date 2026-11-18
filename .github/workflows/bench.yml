@@ -90,7 +90,7 @@ jobs:
               "stderr_tail": err[-1500:]}))
           EOF
           cat "$out" | head -c 3000; echo; echo "exit 0"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
         with:
           name: bench1-${{ matrix.task }}-${{ matrix.arm.name }}
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: {path: art, pattern: bench1-*}
       - name: commit results to router-runs
         run: |

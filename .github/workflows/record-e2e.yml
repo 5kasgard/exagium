@@ -25,18 +25,19 @@ env:
 concurrency:
   group: record-e2e-writer   # one writer at a time, across every ref
   cancel-in-progress: false
-permissions:
-  contents: write
-  id-token: write
-  attestations: write
+permissions: {}   # each job asks for what it needs (audit Q07)
 defaults:
   run:
     shell: bash   # bash -eo pipefail: a failing command in a pipe fails the step
 jobs:
   append:   # also on the daily schedule and by hand, so proposals stranded by a stepped-aside run are picked up
     runs-on: ubuntu-24.04
+    permissions:   # signs attestations and pushes the ledger
+      contents: write
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0   # github.sha: the commit the certificate will name
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0   # github.sha: the commit the certificate will name  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no workspace artifact
       - name: step aside if the branch has moved on
         id: current
         run: |
@@ -130,7 +131,7 @@ jobs:
       contents: write
       attestations: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no workspace artifact
         with:
           ref: ${{ env.LEDGER_REF }}
       - name: verify the head with gh, pinned and unpinned

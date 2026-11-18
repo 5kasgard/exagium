@@ -18,7 +18,9 @@ jobs:
         slot: [1, 2, 3, 4]
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false   # this job only reads
       - name: install valgrind
         run: sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
       - name: build workloads
@@ -38,7 +40,7 @@ jobs:
           for n in 20 0; do python3 ../count.py --reps 3 --input mlp.py --out-dir ../../runs/ci --keep-raw ../../runs/ci/raw -- python3 mlp.py $n || true; done
           f=$(ls ../../runs/ci/count-*.json | head -1); python3 ../count.py --check "$f"; echo "check exit $?" > ../../runs/ci/check.txt
           ls ../../runs/ci
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: runs-${{ matrix.runner }}-${{ matrix.slot }}
           path: runs/ci
@@ -49,7 +51,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with:
           path: art
       - name: commit records to ci-runs
