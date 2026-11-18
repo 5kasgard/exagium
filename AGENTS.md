@@ -5,6 +5,9 @@
 - Say on which task, host and data split a result holds. Results on one task are not results about AI in general.
 - A separate reviewer checks consequential work: another agent, or a free model through `review.yml`. Its points are verified, then applied or rejected with evidence.
 
+## Check the world's evidence, not only our own (hypothesis under test, queue P7)
+Before building or testing something, look for what is already known: published results, the current best number to beat, prior art and patents, known failure modes. Our own data shows only what we ran. Each outside claim cites its source, and its quote and numbers are checked against that source. Whether this becomes a required step depends on P7's test: would such a check have changed a past decision?
+
 ## Use the cheapest worker that does the job well
 See the README's "Who does what". Measurement and scoring run on CI. Reviews and proposals go to free models. Scarce paid models do design, integration and final checks.
 
