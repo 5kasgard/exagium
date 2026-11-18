@@ -1,6 +1,6 @@
 """Budget ledger for the free workers (queue P8; logs usage per call for the pools it uses, part of Q22).
 
-python3 worker/ledger.py reserve WT RUN_ID POOL:CALLS[,POOL:CALLS...]   # exit 2 if a cap would be passed
+python3 worker/ledger.py reserve WT RUN_ID POOL:CALLS[:NEURONS_EACH][,...]   # exit 2 if a cap would be passed
 python3 worker/ledger.py record WT RUN_ID CALLS_JSONL                     # actual usage of each call, appended
 python3 worker/ledger.py check WT POOL:CALLS[,...]                        # no write: exit 2 if the reservation would fail
 
@@ -17,7 +17,16 @@ import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 20, "neurons": 5000}, "nvidia": {"calls": 40}, "groq": {"calls": 500}}
-EST_NEURONS = 1000   # per Cloudflare call, reserved ahead (measured 560-780 for long reviews); actuals recorded after
+EST_NEURONS = 1000   # default per Cloudflare call when the caller gives none (long reviews measured 560-780)
+
+
+def parse(spec):
+    """POOL:CALLS[:NEURONS_EACH],... -> {pool: (calls, neurons each)}"""
+    out = {}
+    for x in spec.split(","):
+        f = x.split(":")
+        out[f[0]] = (int(f[1]), int(f[2]) if len(f) > 2 else EST_NEURONS)
+    return out
 TRIES = 5
 
 
@@ -45,42 +54,43 @@ def load(p):
 
 
 def headroom(led, want):
-    for pool, n in want.items():
+    for pool, (n, est) in want.items():
         if pool not in CAPS:
             return f"pool {pool} is not a free pool the worker may use"
         e, cap = led.get(pool, {}), CAPS[pool]
-        if e.get("reserved", 0) + n > cap["calls"] or ("neurons" in cap and max(e.get("neurons", 0), e.get("neurons_reserved", 0)) + n * EST_NEURONS > cap["neurons"]):
+        if e.get("reserved", 0) + n > cap["calls"] or ("neurons" in cap and max(e.get("neurons", 0), e.get("neurons_reserved", 0)) + n * est > cap["neurons"]):
             return f"{pool}: cap reached ({e.get('reserved', 0)} calls reserved, {e.get('neurons', 0):.0f} neurons used; cap {cap})"
     return None
 
 
 def check(wt, spec):
     sync(wt)
-    why = headroom(load(day_path(wt)), {k: int(v) for k, v in (x.split(":") for x in spec.split(","))})
+    why = headroom(load(day_path(wt)), parse(spec))
     print(why or "headroom ok")
     return 2 if why else 0
 
 
 def reserve(wt, run, spec):
-    want = {k: int(v) for k, v in (x.split(":") for x in spec.split(","))}
+    want = parse(spec)
     for _ in range(TRIES):
         sync(wt)
         p = day_path(wt)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
-        for pool, n in want.items():
+        why = headroom(led, want)
+        if why:
+            print(why)
+            return 2
+        for pool, (n, est) in want.items():
             if pool not in CAPS:
                 print(f"pool {pool} is not a free pool the worker may use", file=sys.stderr)
                 return 2
             e = led.setdefault(pool, {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             cap = CAPS[pool]
             e.setdefault("neurons_reserved", 0)
-            if e["reserved"] + n > cap["calls"] or ("neurons" in cap and max(e["neurons"], e["neurons_reserved"]) + n * EST_NEURONS > cap["neurons"]):
-                print(f"{pool}: cap reached ({e['reserved']} reserved, {e['neurons']:.0f} neurons; cap {cap})")
-                return 2
             e["reserved"] += n
             if "neurons" in cap:
-                e["neurons_reserved"] += n * EST_NEURONS
+                e["neurons_reserved"] += n * est
             e["runs"].append(run)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         if push(wt, [p], f"ledger: {run} reserves {spec}"):

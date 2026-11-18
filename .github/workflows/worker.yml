@@ -38,7 +38,7 @@ jobs:
         run: |
           if git ls-remote --exit-code origin worker-runs >/dev/null; then
             git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r0" FETCH_HEAD
-            rc=0; python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1,nvidia:1 || rc=$?
+            rc=0; python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:400,nvidia:1 || rc=$?
             if [ "$rc" = 2 ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
       - name: claim the top ready item
@@ -52,7 +52,7 @@ jobs:
           id=$(python3 -c "import json;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(i['id'] if i else '')")
           typ=$(python3 -c "import json,sys;sys.path.insert(0,'worker');import queue_ops as Q;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(Q.job_type(i) if i else '')")
           echo "item=$id" >> "$GITHUB_OUTPUT"; echo "ITEM=$id" >> "$GITHUB_ENV"; echo "type=$typ" >> "$GITHUB_OUTPUT"; echo "TYPE=$typ" >> "$GITHUB_ENV"
-      - name: reserve budget (1 drafter call, 1 reviewer call)
+      - name: reserve budget (1 drafter or reader call, 1 checker call; neurons projected per job type)
         if: env.ITEM != ''
         run: |
           if git ls-remote --exit-code origin worker-runs >/dev/null; then
@@ -61,7 +61,8 @@ jobs:
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
               && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
           fi
-          rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" cloudflare:1,nvidia:1 || rc=$?
+          if [ "$TYPE" = doc ]; then spec=cloudflare:1:400,nvidia:1; else spec=cloudflare:1:1500,nvidia:1; fi
+          rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
             python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" open "$RUNNER_TEMP/note.json"
