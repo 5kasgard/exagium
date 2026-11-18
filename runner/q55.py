@@ -22,9 +22,11 @@ def train(cand, task_dir, card, core):
         env["OPENBLAS_CORETYPE"] = core
     with tempfile.TemporaryDirectory() as d:
         w = os.path.join(d, "w.bin")
-        subprocess.run([sys.executable, "-s", "-P", os.path.join(HERE, "candidates", cand, "train.py"), card,
-                        os.path.join(task_dir, "train.in"), os.path.join(task_dir, "train.key"), w],
-                       check=True, env=env, capture_output=True)
+        r = subprocess.run([sys.executable, "-s", "-P", os.path.join(HERE, "candidates", cand, "train.py"), card,
+                            os.path.join(task_dir, "train.in"), os.path.join(task_dir, "train.key"), w],
+                           env=env, capture_output=True)
+        if r.returncode:   # e.g. a core type this CPU can't run (SkylakeX on an AVX2-only EPYC: run 44258892424)
+            return f"cannot run here (exit {r.returncode})", ""
         probe = subprocess.run([sys.executable, "-c", "import numpy; c = numpy.show_config(mode='dicts'); "
                                 "print(c['Build Dependencies']['blas'].get('version'))"], env=env,
                                capture_output=True, text=True)

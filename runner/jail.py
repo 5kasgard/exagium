@@ -13,7 +13,7 @@ confine mode count.py runs outside and starts valgrind under confine, without th
 Gap, stated: without --size, total disk use in
 bubblewrap's tmpfs is bounded only by the file-size and open-file limits and the host's memory.
 """
-import os, shutil, subprocess, sys, tempfile
+import os, platform, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "loop"))
@@ -22,6 +22,13 @@ import loop as L  # noqa: E402
 LIMITS = dict(as_bytes=8 << 30, fsize=1 << 30, nofile=256)   # 8 GiB address space (valgrind needs headroom), 1 GiB per file
 TMPFS_BYTES = 2 << 30
 STATE = {"exe": None, "dir": None, "bwrap_flags": None}
+
+# Q55: numpy's OpenBLAS picks its kernels per CPU, so trained weights differed across hosts. Forcing one kernel type
+# made them identical across two CPUs and two Python versions (runner/results/2026-11-18-q10-q55/). Haswell needs AVX2,
+# which every x86 CI host seen so far has; ARM hosts keep OpenBLAS's own choice. This sets the jail's environment for
+# this process only (loop.ENV is a dict; loop.py is not edited).
+if platform.machine() == "x86_64":
+    L.ENV["OPENBLAS_CORETYPE"] = "Haswell"
 
 
 def _limits_args(cpu_s, seccomp):
