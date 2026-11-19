@@ -21,7 +21,7 @@ on:
         default: "0"
 permissions: {}
 concurrency:
-  group: propose${{ github.event.inputs.dry == '1' && '-dry' || '' }}   # a dry run never waits behind, or displaces, a real batch
+  group: propose${{ github.event.inputs.dry == '1' && '-dry' || '' }}${{ github.event.inputs.rescore != '' && format('-rescore-{0}', github.event.inputs.rescore) || '' }}   # a dry run or a rescore (no calls) never waits behind, or displaces, a real batch; a pending rescore was cancelled by the chain's next dispatch (44526641247)
   cancel-in-progress: false
 env:
   FIRST_N: 20   # PLAN.md: the keep/switch rule is applied after the first 20 proposals; the chain stops there
