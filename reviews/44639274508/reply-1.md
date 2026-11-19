@@ -1,0 +1,9 @@
+<!-- openrouter baidu/ernie-5.5-flash-preview:free status=200 latency=53.91s -->
+
+**KEEP** — the limit-capped, everyday-shared assistant allowance is already burned twice daily on routine grading/queue-draining; P31 offloads that slice to a free/cheap tier behind a pre-registered gate, the state machine/scripts already exist, and one model already cleared it, so this is a cheap test of a real, recurring cost rather than net-new machinery. (Hold scope to grading/confirmation; "pick next experiment" must mean *advance the fixed queue*, not set direction.)
+
+**Data vs. pleasing:** Called for in its core, pleasing at the edges. The session is described as spending allowance on grade-results and queue-draining (offloadable) and a model passed the gate, so "cheap tier for the routine part, assistant only for escalations" answers an observed cost. What the data does *not* demand is the formal "tier + three-role judgement taxonomy" — the evidence supports one move, not the architecture around it. Build the minimum the existing scripts give you.
+
+**Biggest flaw:** "Overturned <10%" is only observable on items the assistant actually reviews, and the assistant is called only on escalations — so quiet, confident tier errors (the exact failure mode a cheap grader introduces) are never reviewed and never counted. The headline quality metric is computed on a biased, best-case sample and effectively cannot fail. **Cheapest fix:** each day pull a small random sample (~10–20) of tier-settled, *non-escalated* decisions and have the assistant or the trusted reference grader score them; report overturn on that unbiased sample.
+
+(Secondary, one line: add a guard that gating the session didn't silently kill the non-escalation work — today's probes/contamination test — since raw "sessions/day ↓" will score that loss as a win.)
