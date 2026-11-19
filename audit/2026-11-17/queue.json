@@ -1488,7 +1488,7 @@
    "needs": "free",
    "value": "medium",
    "title": "YouTube comments as a research source (needs a YouTube Data API key)",
-   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Verified 2026-11-19: the key works (probe-youtube.yml on main, run 44472159823: http 200, 1 item, 1 quota unit); Actions can create PRs (PR #2 opened by github-actions[bot] 05:46Z). No longer waits on the owner.",
+   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Verified 2026-11-19: the key works (probe-youtube.yml on main, run 44472159823: http 200, 1 item, 1 quota unit); Actions can create PRs (PR #2 opened by github-actions[bot] 05:46Z). No longer waits on the owner. Blocked by P20e (2026-11-19): both edit worker.yml, and P20e changes how the worker dispatches; new sources land on the new structure once.",
    "refs": [
     "worker/research_job.py on main",
     "queue P7"
@@ -1502,6 +1502,7 @@
    "cost": 0,
    "batch": "B7",
    "blocked_by": [
+    "P20e",
     "P8",
     "Q57",
     "Q58"
@@ -1513,7 +1514,7 @@
    "needs": "free",
    "value": "medium",
    "title": "Headless-browser tier for research: load and scrape pages and forums with no API",
-   "next": "Add when a card's question needs pages no API covers (niche forums, docs, comment sections). Playwright on CI in the keyless prepare job, read-only, robots.txt respected, pages saved with their URL and time; text graded like forum text. Measure before keeping: share of claims from this tier that survive both checks, and whether any changed a decision.",
+   "next": "Add when a card's question needs pages no API covers (niche forums, docs, comment sections). Playwright on CI in the keyless prepare job, read-only, robots.txt respected, pages saved with their URL and time; text graded like forum text. Measure before keeping: share of claims from this tier that survive both checks, and whether any changed a decision. Blocked by P20e (2026-11-19): both edit worker.yml, and P20e changes how the worker dispatches; new sources land on the new structure once.",
    "refs": [
     "worker/research_job.py on main",
     "queue P7"
@@ -1527,6 +1528,7 @@
    "cost": 0,
    "batch": "B7",
    "blocked_by": [
+    "P20e",
     "P8",
     "Q57",
     "Q58"
