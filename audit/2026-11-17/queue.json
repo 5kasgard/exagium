@@ -3058,7 +3058,10 @@
    "title": "Routing by cards with cascades (cheap -> strong -> Claude -> owner) and a little exploration",
    "kind": "build",
    "blocked_by": [
-    "P20b"
+    "P20b",
+    "P7b",
+    "P7c",
+    "P7d"
    ],
    "touches": [
     "router/engines.py",
@@ -3067,7 +3070,7 @@
    "refs": [
     "queue P20"
    ],
-   "next": "Replace the worker's fixed drafter/checker choice with a router call; measure cost per accepted item against fixed assignment live, both arms interleaved.",
+   "next": "Replace the worker's fixed drafter/checker choice with a router call; measure cost per accepted item against fixed assignment live, both arms interleaved. Blocked by P7b/P7c/P7d because all touch worker/research_job.py; if P7b is still waiting on the owner's YouTube key when this item is otherwise ready, move P7b behind this item instead (blocker reversed, recorded here).",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3081,7 +3084,10 @@
    "title": "Shape work to fit the worker: split oversized tasks, retrieval instead of stuffed context, step handoffs, reasoning budgets from need",
    "kind": "build",
    "blocked_by": [
-    "P20a"
+    "P20a",
+    "P7b",
+    "P7c",
+    "P7d"
    ],
    "touches": [
     "worker/"
@@ -3089,7 +3095,7 @@
    "refs": [
     "queue P20"
    ],
-   "next": "Only when P20a's data shows failures rising with size or depth for the workers in use; then measure acceptance before and after on the same items.",
+   "next": "Only when P20a's data shows failures rising with size or depth for the workers in use; then measure acceptance before and after on the same items. Blocked by P7b/P7c/P7d because all touch worker/research_job.py; if P7b is still waiting on the owner's YouTube key when this item is otherwise ready, move P7b behind this item instead (blocker reversed, recorded here).",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3130,7 +3136,7 @@
     "P20a"
    ],
    "touches": [
-    ".github/workflows/",
+    ".github/workflows/drift.yml",
     "router/workers/"
    ],
    "refs": [
