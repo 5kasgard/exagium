@@ -95,7 +95,7 @@ If one meter passes and the other doesn't, the claim is inconclusive; `cost_disa
 **A phantom meter.** This workspace's VM offers a `power/energy-psys` counter, which opens without error but reads exactly 0 J idle and under load. A meter that is present but dead must be reported as unavailable, never as zero joules.
 
 ## Cost per image at scale (`scale.py`, added 2026-11-18)
-Both meters above work at the task's 956 images, where a run is about 1 ms of process start-up plus about 0.1 ms of classifying. `scale.py` times each candidate, with this file's jail and timer, at several run sizes (default 0, 956, 4,096, 16,384 and 65,536 images). It reports:
+Both meters above work at the task's 956 images, where a run is about 1 ms of process start-up plus about 0.1 ms of classifying. `scale.py` times each candidate, with this file's jail and timer (candidate C compiled inside the jail by `runner/jail.py`, queue Q56b; only the trusted timer is built on the host), at several run sizes (default 0, 956, 4,096, 16,384 and 65,536 images). It reports:
 - **the fixed cost per run:** the measured t(0);
 - **the marginal cost per image at large N:** the slope between the two largest sizes;
 - **the slope of every segment,** because cost per image isn't constant in N.
