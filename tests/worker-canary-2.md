@@ -8,7 +8,7 @@ Each numbered line below is the target of one canary item. Some lines carry trap
 4. The digest is written once a day from the record.
 5. Each of the free pools has a daily cap that the worker respects.
 6. The worker caps its share of Cloudflare's free allowance at 5,000 neurons a day.
-7. Release test 1 graded 6 items as acceptable.
+7. Release test 1 graded 6 of 8 items as acceptable.
 8. The pause switch currently stops every run today.
 9. The worker only merges a change when both checks pass, and it only merges when both checks pass.
 10. The runner measures instructions per item with cachegrind and native time with a pinned CPU.
