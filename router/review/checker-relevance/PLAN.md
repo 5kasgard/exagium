@@ -24,3 +24,9 @@ A2-R10-narrow.md: the same three claims and the unchanged checker prompt, with o
 answer ("How do the property-graph and RDF data models relate, and can data be converted between them without loss?").
 Expect KEEP 0 and 1, DROP 2. If all 3 hold, breadth is the cause and the fix is one question per card (R10 redone narrow;
 multi-part cards split before they run); if not, the S12 claims are the problem and R10 escalates with this record.
+
+## Result 2 (review run 44633642610): breadth is the cause
+Claims 0 and 1 kept by 3 of 3 calls, the off-topic control dropped by 3 of 3; all 3 expectations held. R10's question
+narrowed on the queue and R10 redone. R11's escalation (run 44632810471, old reader prompt) was R4's cause, not breadth:
+5 claims, each adding detail its quote does not state. Not yet a rule for all cards: R9 passed with a three-part question.
+Watch R13-R19: if no_claims outcomes with "does not answer the question" notes recur, split multi-part cards before they run.
