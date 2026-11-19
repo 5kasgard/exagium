@@ -24,7 +24,9 @@ import xml.etree.ElementTree as ET
 HERE = os.path.dirname(os.path.abspath(__file__))
 READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
-CHECK_CALLS = 3   # majority of 3 (see _read); the worker reserves nvidia:3 for research
+CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
+CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
+MAX_CHECKED = 6   # so at most 2 chunks x 3 calls = 6 NIM calls; worker.yml reserves nvidia:6 for research
 PER_QUERY = 6
 MAX_SOURCES = 26
 UA = {"User-Agent": "exagium-research/1.0 (+https://github.com/5kasgard/exagium)"}
@@ -363,24 +365,36 @@ def _read(out, d, q, calls, ask):
     if kept:
         lines = "\n".join(f"{i}. [{c['source']}] GRADE: {c.get('evidence')} CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(kept))
         # One checker call is a noisy gate: on R9's 3 claims, 3 calls of the same model on the same prompt kept [], [0,1,2]
-        # and [0,1] (router/review/checker-consistency, 2026-11-19). A claim is kept only if a strict majority of
-        # CHECK_CALLS calls keep it, with at least 2 usable replies; grades from the first usable reply.
-        votes, firsts, notes = [], None, []
-        for _ in range(CHECK_CALLS):
-            c2 = ask(*CHECKER, CHECK_PROMPT.format(question=q, claims=lines))
-            one = parse_json(c2["text"]) if c2["ok"] else None
-            if isinstance(one, dict) and isinstance(one.get("keep"), list):
-                votes.append({i for i in one["keep"] if isinstance(i, int)})
-                firsts = firsts or one
-                notes.append(str(one.get("notes", ""))[:200])
-            else:
-                notes.append(("checker call failed: " + str(c2["error"])[:150]) if not c2["ok"] else "checker reply was not JSON")
-        if len(votes) < 2:
-            model_fail.append(f"checker: {len(votes)} usable replies of {CHECK_CALLS}")
-            check = {"keep": None, "notes": "; ".join(notes)}
-        else:
-            keep = [i for i in range(len(kept)) if sum(i in v for v in votes) * 2 > len(votes)]
-            check = {"keep": keep, "grades": (firsts or {}).get("grades"), "votes": [sorted(v) for v in votes], "notes": "; ".join(notes)}
+        # and [0,1]. Long prompts also fail: on R10's 8 claims, 2 of 3 calls spent all 16,000 tokens reasoning and returned
+        # nothing (router/review/checker-consistency, 2026-11-19). So: at most MAX_CHECKED claims, checked CHUNK at a time,
+        # each chunk by CHECK_CALLS calls; a claim is kept if a strict majority of its chunk's usable replies keep it, and a
+        # chunk with fewer than 2 usable replies is a model failure. Grades from the first usable reply of each chunk.
+        kept = kept[:MAX_CHECKED]
+        keep, grades, votes_all, notes = [], {}, [], []
+        for c0 in range(0, len(kept), CHUNK):
+            part = kept[c0:c0 + CHUNK]
+            lines = "\n".join(f"{i}. [{c['source']}] GRADE: {c.get('evidence')} CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(part))
+            votes, first = [], None
+            for _ in range(CHECK_CALLS):
+                c2 = ask(*CHECKER, CHECK_PROMPT.format(question=q, claims=lines))
+                one = parse_json(c2["text"]) if c2["ok"] else None
+                if isinstance(one, dict) and isinstance(one.get("keep"), list):
+                    votes.append({i for i in one["keep"] if isinstance(i, int)})
+                    first = first or one
+                    notes.append(str(one.get("notes", ""))[:160])
+                else:
+                    notes.append(("checker call failed: " + str(c2["error"])[:120]) if not c2["ok"] else "checker reply was not JSON")
+            votes_all.append([sorted(v) for v in votes])
+            if len(votes) < 2:
+                model_fail.append(f"checker: {len(votes)} usable replies of {CHECK_CALLS} for claims {c0}-{c0 + len(part) - 1}")
+                continue
+            for i in range(len(part)):
+                if sum(i in v for v in votes) * 2 > len(votes):
+                    keep.append(c0 + i)
+                    g = ((first or {}).get("grades") or {}).get(str(i)) if isinstance((first or {}).get("grades"), dict) else None
+                    if g:
+                        grades[str(c0 + i)] = g
+        check = {"keep": None if model_fail else keep, "grades": grades, "votes": votes_all, "notes": "; ".join(notes)}
     json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check,
                "model_fail": model_fail},
               open(os.path.join(out, "read.json"), "w"), indent=1)

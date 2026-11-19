@@ -42,7 +42,7 @@ jobs:
             # which job types today's budget can still pay for (same specs as the reserve step); claim only those
             types=""
             python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" groq:1,cloudflare:1:400,nvidia:1 && types="doc"
-            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:1500,nvidia:3 && types="${types:+$types,}research"
+            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:1500,nvidia:6 && types="${types:+$types,}research"
             echo "TYPES=$types" >> "$GITHUB_ENV"; echo "job types with budget today: ${types:-none}"
             if [ -z "$types" ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
@@ -66,7 +66,7 @@ jobs:
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
               && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
           fi
-          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:400,nvidia:1; else spec=cloudflare:1:1500,nvidia:3; fi
+          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:400,nvidia:1; else spec=cloudflare:1:1500,nvidia:6; fi
           rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"

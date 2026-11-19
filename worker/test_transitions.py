@@ -149,12 +149,12 @@ class WorkflowUsesOnlyKnownOutcomes(unittest.TestCase):
 
 class CheckerMajority(unittest.TestCase):
     """research_job._read keeps a claim only if a strict majority of checker calls keep it (Q60 escalation of R10-R13)."""
-    def run_read(self, checker_replies):
+    def run_read(self, checker_replies, n=3):
         import tempfile, research_job as R
         abstract = "We measured a forty percent drop in errors when the model was retrained on fresh data each week."
         src = [{"sid": "s1", "kind": "paper", "via": "x", "title": "t", "year": 2025, "abstract": abstract}]
-        claims = [{"source": "s1", "claim": f"Retraining weekly cut errors (variant {'abc'[k]}).", "evidence": "reported",
-                   "quote": "a forty percent drop in errors when the model was retrained"} for k in range(3)]
+        claims = [{"source": "s1", "claim": f"Retraining weekly cut errors (variant {'abcdefgh'[k]}).", "evidence": "reported",
+                   "quote": "a forty percent drop in errors when the model was retrained"} for k in range(n)]
         replies = iter([json.dumps({"claims": claims, "open_questions": []})] + checker_replies)
 
         def ask(engine, model, prompt):
@@ -174,3 +174,16 @@ class CheckerMajority(unittest.TestCase):
         rd = self.run_read([None, "not json", json.dumps({"keep": [0]})])
         self.assertEqual(rd["check"]["keep"], None)
         self.assertTrue(rd["model_fail"])
+
+    def test_chunks_of_three_each_with_its_own_majority(self):
+        j = json.dumps
+        rd = self.run_read([j({"keep": [0, 2]}), j({"keep": [0]}), j({"keep": [0, 2]}),     # chunk 0-2: keeps 0, 2
+                            j({"keep": [1]}), j({"keep": []}), j({"keep": [1]})], n=5)       # chunk 3-4: keeps 4
+        self.assertEqual(rd["check"]["keep"], [0, 2, 4])
+
+    def test_at_most_six_claims_checked(self):
+        j = json.dumps
+        rd = self.run_read([j({"keep": [0]})] * 6, n=8)
+        self.assertEqual(len(rd["script_kept"]), 6)
+        self.assertEqual(rd["check"]["keep"], [0, 3])
+
