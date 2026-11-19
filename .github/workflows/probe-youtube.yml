@@ -1,0 +1,20 @@
+# Checks that the YOUTUBE_API_KEY secret exists and works (queue P7b), with one call that costs 1 quota unit
+# of the free 10,000/day. Prints only the HTTP status, the item count and Google's error reason; never the key.
+name: probe-youtube
+on:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: one videos.list call
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          if [ -z "$YOUTUBE_API_KEY" ]; then echo "result: secret YOUTUBE_API_KEY is missing or empty"; exit 1; fi
+          code=$(curl -sS -o out.json -w '%{http_code}' -H "X-Goog-Api-Key: $YOUTUBE_API_KEY" \
+            'https://www.googleapis.com/youtube/v3/videos?part=id&id=jNQXAC9IVRw')
+          python3 -c "import json,sys; d=json.load(open('out.json')); e=d.get('error',{}); print('result: http', sys.argv[1], '| items', len(d.get('items',[])), '| error', e.get('code'), (e.get('errors') or [{}])[0].get('reason'))" "$code"
+          [ "$code" = 200 ]
