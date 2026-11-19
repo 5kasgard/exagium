@@ -773,7 +773,7 @@
    "title": "README \"Results can't be lied about\" reads as a guarantee (known 11-13)",
    "kind": "doc",
    "severity": "minor",
-   "status": "waiting on the owner",
+   "status": "open",
    "needs": "subscription usage",
    "cost": 0,
    "value": "medium",
@@ -816,6 +816,13 @@
      "worker": "worker-44293175153",
      "at": "2026-11-18T11:18:01Z",
      "lost_lease": false
+    },
+    {
+     "result": "reopened by Claude (chat) for release test 2",
+     "at": "2026-11-19T05:50:00Z",
+     "why": [
+      "the reviewer now rejects redundant or vague wording"
+     ]
     }
    ]
   },
@@ -1661,23 +1668,26 @@
    "id": "P8r",
    "kind": "test",
    "severity": "minor",
-   "status": "open",
+   "status": "in progress",
    "needs": "free",
    "cost": 0,
    "value": "high",
    "batch": "B3",
    "blocked_by": [],
    "title": "Queue worker release test 2 (after the acceptance fixes)",
-   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run.",
+   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused.",
    "refs": [
     "worker/RESULTS-release-test-1.md on main",
     "worker/RELEASE-TEST.md on main"
    ],
    "touches": [
     "worker/PAUSE",
-    "tests/worker-canary.md",
-    "research/cards/"
-   ]
+    "worker/RELEASE-TEST-2.md",
+    "worker/RESULTS-release-test-2.md"
+   ],
+   "claimed_by": "chat-session_01DdaGg2fEE15KprU8RKSruw",
+   "claimed_at": "2026-11-19T05:50Z",
+   "origin": "follow-up"
   },
   {
    "id": "Q57",
@@ -1953,6 +1963,848 @@
    ],
    "next": "Owner, 2026-11-19: add to the queue only, no work yet. A core goal with no item until now (outside review finding 7). First test, when started: distil the best optdigits candidate into straight-line C (or a lookup or rule set), check per-item agreement on dev with the original, and meter both; the store (P11) records the pair as one function in two forms.",
    "origin": "new"
+  },
+  {
+   "id": "D1",
+   "title": "Worker release test 2: canary line 1",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 5 (canary line 1): fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      5,
+      5
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D2",
+   "title": "Worker release test 2: canary line 2",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 6 (canary line 2): make the line shorter without changing its meaning.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      6,
+      6
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D3",
+   "title": "Worker release test 2: canary line 3",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 7 (canary line 3): fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      7,
+      7
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D4",
+   "title": "Worker release test 2: canary line 4",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 8 (canary line 4): fix the grammar.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      8,
+      8
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D5",
+   "title": "Worker release test 2: canary line 5",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 9 (canary line 5): fix the grammar.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      9,
+      9
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D6",
+   "title": "Worker release test 2: canary line 6",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 10 (canary line 6): the worker's cap is 5,000 neurons a day, not 4,000: correct the number.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      10,
+      10
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D7",
+   "title": "Worker release test 2: canary line 7",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 11 (canary line 7): say '6 of 8 items' instead of '6 items'.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      11,
+      11
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D8",
+   "title": "Worker release test 2: canary line 8",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 12 (canary line 8): remove the redundancy.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      12,
+      12
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D9",
+   "title": "Worker release test 2: canary line 9",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 13 (canary line 9): remove the repeated clause.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      13,
+      13
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D10",
+   "title": "Worker release test 2: canary line 10",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 14 (canary line 10): make the line clearer.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      14,
+      14
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D11",
+   "title": "Worker release test 2: canary line 11",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 15 (canary line 11): replace 'about 20' with the exact count, 23.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      15,
+      15
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D12",
+   "title": "Worker release test 2: canary line 12",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 16 (canary line 12): replace 'To read more' with 'For more'.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      16,
+      16
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D13",
+   "title": "Worker release test 2: canary line 13",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 17 (canary line 13): replace 'can go to' with 'go to'.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      17,
+      17
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D14",
+   "title": "Worker release test 2: canary line 14",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 18 (canary line 14): replace 'labelled' with 'marked'.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      18,
+      18
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D15",
+   "title": "Worker release test 2: canary line 15",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 19 (canary line 15): fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      19,
+      19
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D16",
+   "title": "Worker release test 2: canary line 16",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 20 (canary line 16): change the number on canary line 17 to 9.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      20,
+      20
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D17",
+   "title": "Worker release test 2: canary line 18",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 22 (canary line 18): fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      22,
+      22
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D18",
+   "title": "Worker release test 2: canary line 19",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 23 (canary line 19): fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      23,
+      23
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D19",
+   "title": "Worker release test 2: canary line 20",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 24 (canary line 20): fix the grammar.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      24,
+      24
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D20",
+   "title": "Worker release test 2: canary line 21",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 25 (canary line 21): fix the grammar.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      25,
+      25
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D21",
+   "title": "Worker release test 2: canary line 22",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 26 (canary line 22): check this line is accurate against worker/README.md, which says the worker never writes workflows, its own files or registered plans; change it only if it is wrong.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      26,
+      26
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "D22",
+   "title": "Worker release test 2: canary line 23",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/worker-canary-2.md, line 27 (canary line 23): say what the intervals are computed for: the acceptance rate.",
+   "targets": [
+    {
+     "path": "tests/worker-canary-2.md",
+     "lines": [
+      27,
+      27
+     ]
+    }
+   ],
+   "touches": [
+    "tests/worker-canary-2.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "DB",
+   "title": "Worker release test 2: canary brief",
+   "kind": "doc",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "In tests/canary-BRIEF.md, line 3: fix the spelling.",
+   "targets": [
+    {
+     "path": "tests/canary-BRIEF.md",
+     "lines": [
+      3,
+      3
+     ]
+    }
+   ],
+   "touches": [
+    "tests/canary-BRIEF.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main"
+   ]
+  },
+  {
+   "id": "R3",
+   "title": "Research card (release test 2): Which weightless and lookup-table neural network families have open implementations and results on non-image data and CPU cost?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for Q54, P3; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "Which weightless or lookup-table neural network families (WiSARD, BTHOWeN, ULEEN, DWN, LogicNets, PolyLUT) have open implementations, results on tabular, text or other non-image data, and inference cost on CPUs compared with small MLPs?",
+    "queries": [
+     "weightless neural network tabular data benchmark",
+     "differentiable weightless neural networks",
+     "LogicNets PolyLUT lookup table neural network",
+     "WiSARD n-tuple classifier comparison multilayer perceptron"
+    ]
+   },
+   "touches": [
+    "research/cards/R3.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue Q54, P3"
+   ]
+  },
+  {
+   "id": "R4",
+   "title": "Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "Can prior-fitted networks such as TabPFN run on a CPU within minutes on datasets of about 30,000 rows, and how do their accuracy and inference cost compare with tuned gradient-boosted trees?",
+    "queries": [
+     "TabPFN large datasets CPU inference",
+     "prior-fitted networks tabular classification scaling",
+     "TabPFN versus gradient boosting benchmark"
+    ]
+   },
+   "touches": [
+    "research/cards/R4.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue P3"
+   ]
+  },
+  {
+   "id": "R5",
+   "title": "Research card (release test 2): How strong are tuned gradient-boosted trees against MLPs and linear models on tabular data?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "How strong are tuned gradient-boosted decision trees against MLPs and linear models on tabular benchmarks, and how much tuning do they need?",
+    "queries": [
+     "why do tree-based models still outperform deep learning on tabular data",
+     "gradient boosting versus neural networks tabular benchmark",
+     "hyperparameter tuning budget gradient boosting tabular"
+    ]
+   },
+   "touches": [
+    "research/cards/R5.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue P3"
+   ]
+  },
+  {
+   "id": "R6",
+   "title": "Research card (release test 2): How are trained neural networks distilled into readable programs, rules or code, and how much accuracy is kept?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for P19; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "What methods distill trained neural networks into readable programs, rules, decision trees or code, and how much of the network's accuracy do they keep?",
+    "queries": [
+     "neural network distillation into decision trees",
+     "rule extraction from neural networks accuracy",
+     "program synthesis from neural network distillation"
+    ]
+   },
+   "touches": [
+    "research/cards/R6.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue P19"
+   ]
+  },
+  {
+   "id": "R7",
+   "title": "Research card (release test 2): How often do LLM-written machine-learning programs run and beat baselines?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for P5; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "How often do machine-learning programs written by LLM agents run correctly and beat baselines in benchmarks such as MLE-bench or MLAgentBench?",
+    "queries": [
+     "MLE-bench LLM agents machine learning engineering",
+     "MLAgentBench language agents machine learning experimentation",
+     "AutoML with large language models agents success rate"
+    ]
+   },
+   "touches": [
+    "research/cards/R7.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue P5"
+   ]
+  },
+  {
+   "id": "R8",
+   "title": "Research card (release test 2): How do benchmarks keep models from memorising public test labels?",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "next": "Worker job (research) for Q25; graded in worker/RELEASE-TEST-2.md.",
+   "research": {
+    "question": "How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?",
+    "queries": [
+     "benchmark contamination test set memorization",
+     "adaptive overfitting holdout reuse",
+     "fresh test sets benchmark reliability CIFAR-10.1"
+    ]
+   },
+   "touches": [
+    "research/cards/R8.md"
+   ],
+   "refs": [
+    "worker/RELEASE-TEST-2.md on main",
+    "queue Q25"
+   ]
   }
  ],
  "batches": [
