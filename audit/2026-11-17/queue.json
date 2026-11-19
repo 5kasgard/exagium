@@ -1223,7 +1223,7 @@
     ".github/workflows/research.yml"
    ],
    "batch": "B7",
-   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it. Owner, 2026-11-18 (later): research covers everything from tested facts to people's opinions: papers, the web, forums and comment sections (Reddit, YouTube, niche forums), separating tested facts from opinions and weighing stronger against weaker opinions; as many sources as possible, each added when the data says it's the best tool. Started inside P8's worker (worker/research_job.py, main 507a584): papers/preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker News, Reddit); every claim graded measured > reported > expert view > experience report > opinion, quote checked verbatim. Follow-ups: P7b, P7c, P7d. Retroactive test (2026-11-18): 1 of 2 cards would have changed a decision: R2 named weightless networks (BTHOWeN, DWN) as an existing lookup-table family with a frontier number, all on images and FPGAs; it would have shaped Q54 and tempered P1's LGN prediction. R1: no. By the rule, a card becomes a required step before build/test items once P8r passes.",
+   "next": "Owner, 2026-11-18: the Forge only tests against data it generates; there is a world of research, patents and spent compute. Route by step: search by API scripts on CI (arXiv, OpenAlex, Semantic Scholar, patents, leaderboards; logged); first read by free models (claims, numbers, methods, limits); verify by script (exact quote and number match against source text) plus a second free model; citation chasing (forward/backward, replications, retractions); Claude judges last. Output: a literature card per part/hypothesis/task (known results with links, frontier number to beat, prior art and patents, failure modes, open questions). Cheapest test first: run retroactively on P1 (transfer test) and Q54 (LGN cost claim); measure whether a card would have changed a decision or prediction. If yes, a card becomes a required step before every build/test item (AGENTS.md); if not, an occasional check. The new workflow waits on Q07 (same folder; follows the cleaned pattern, as P5 does). The retroactive test needs no workflow and can run before it. Owner, 2026-11-18 (later): research covers everything from tested facts to people's opinions: papers, the web, forums and comment sections (Reddit, YouTube, niche forums), separating tested facts from opinions and weighing stronger against weaker opinions; as many sources as possible, each added when the data says it's the best tool. Started inside P8's worker (worker/research_job.py, main 507a584): papers/preprints (OpenAlex, arXiv, Semantic Scholar), encyclopedia (Wikipedia), Q&A (Stack Exchange), forums (Hacker News, Reddit); every claim graded measured > reported > expert view > experience report > opinion, quote checked verbatim. Follow-ups: P7b, P7c, P7d. Retroactive test (2026-11-18): 1 of 2 cards would have changed a decision: R2 named weightless networks (BTHOWeN, DWN) as an existing lookup-table family with a frontier number, all on images and FPGAs; it would have shaped Q54 and tempered P1's LGN prediction. R1: no. By the rule, a card becomes a required step before build/test items once P8r passes. 2026-11-19 (owner: 'search for whatever we could need, wired up ideally'): tally over the worker's 7 cards (24 calls per source): only OpenAlex and arXiv worked; Semantic Scholar 23/24 errors (429, no key), Reddit 24/24 (403 from CI), Stack Exchange 0 hits on 22/24 (stats site only, every word must match), HN 0 on 13, Wikipedia 0 on 9; cards yield 1-3 verified claims (mean 2.1) from 15-23 sources read. FIXED on main 1ed2c3e: keyword fallback, 4 SE sites, HN stories+comments, keyless dead sources skipped (logged as skipped), new: Hugging Face papers, GitHub repositories (untrusted), Discourse forums (PyTorch, HF, fast.ai); probe mode + search-probe.yml. Probe on CI (run 44515948441, 4 queries, before landing): every live source returned results, 0 errors. RULE, fixed before R9-R14 run: the change is kept if those cards average more distinct source kinds than R1-R8 and no fewer verified claims per card (baseline 2.1); measured from the cards' search logs and claim counts.",
    "refs": [
     "project doc claude/HANDOFF-transfer-step1.md (P1 verdict: rankings differ; LGN lead did not carry over)",
     "Q37 (citation error found by audit)",
@@ -1488,7 +1488,7 @@
    "needs": "free",
    "value": "medium",
    "title": "YouTube comments as a research source (needs a YouTube Data API key)",
-   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Verified 2026-11-19: the key works (probe-youtube.yml on main, run 44472159823: http 200, 1 item, 1 quota unit); Actions can create PRs (PR #2 opened by github-actions[bot] 05:46Z). No longer waits on the owner. Blocked by P20e (2026-11-19): both edit worker.yml, and P20e changes how the worker dispatches; new sources land on the new structure once.",
+   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Verified 2026-11-19: the key works (probe-youtube.yml on main, run 44472159823: http 200, 1 item, 1 quota unit); Actions can create PRs (PR #2 opened by github-actions[bot] 05:46Z). No longer waits on the owner. Blocked by P20e (2026-11-19): both edit worker.yml, and P20e changes how the worker dispatches; new sources land on the new structure once. Keys that would bring back dead sources (owner, free): a Semantic Scholar API key (free on request; research_job reads S2_API_KEY), a Reddit OAuth app (script type) for forum search from CI. YouTube key verified (probe-youtube).",
    "refs": [
     "worker/research_job.py on main",
     "queue P7"
@@ -3748,6 +3748,29 @@
     "runner/proposals/PLAN.md"
    ],
    "next": "0.9864 on optdigits dev (CI, jail), above gbdt 0.979 and mlp16 0.977. PLAN.md: no proposal enters runner/candidates on main without a separate check by Claude or the owner. Check (2026-11-19, Claude, first read): a deeper MLP, reads only train data, own falsifier stated; likely a capacity effect (P1's lesson) rather than a new structure. Next: copy as label-mlp2l, run on text and adult with paired SE against mlp16 and gbdt, report whether depth helps beyond digits."
+  },
+  {
+   "id": "P7e",
+   "title": "Research depth: full text instead of abstracts, citation following, and source routing by measured yield",
+   "kind": "build",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B7",
+   "origin": "follow-up",
+   "blocked_by": [
+    "P7"
+   ],
+   "touches": [
+    "worker/research_job.py"
+   ],
+   "refs": [
+    "queue P7, P20a",
+    "research/cards/R1-R8 (1-3 claims each)"
+   ],
+   "next": "Cards keep 1-3 verified claims because the checker needs a verbatim quote with numbers and the reader sees only abstracts, which rarely carry measurements. Steps, each kept only if its test shows more verified claims per card at an equal or better verification rate: (1) full text of the top papers (arXiv HTML, open-access PDFs from OpenAlex's oa_url), the reader seeing the results sections within the model's measured context (P20a); (2) one round of citation following (OpenAlex referenced_works and cited_by) and refined queries from first-pass results; (3) per-source cards (hit rate, errors, verified claims per call) from the logs, used to order and skip sources per question kind, the same engine as P20's worker cards. Also missing: general web search (no reliable keyless option from CI; candidates need an owner key and a check of current free tiers)."
   }
  ],
  "batches": [
