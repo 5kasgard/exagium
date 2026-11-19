@@ -25,3 +25,7 @@ The planned design (queue P10):
   - **Offset-less timestamps:** ISO-strict git dates always carry an offset.
   - **"Bare integers" in the claims check:** the pattern requires units.
   - **Exclusive output and failing on missing input:** both are deliberate. An audit record is never silently overwritten.
+
+## Flow and connectors (added 2026-11-19)
+- **flow_7d:** items that arrived and closed in the last 7 days, read from every version of the queue file; arrivals split by `origin` (`follow-up`: spawned by finishing or checking work; `new`: a new direction); median hours from first appearance to done; and Little's law, open items divided by closures per day, as an estimate of how long an item waits. Growth is expected (finishing work well spawns follow-ups); the warning signs are the waiting estimate rising week on week and new directions outpacing follow-ups. No thresholds until a few weeks of data set them. First reading (2026-11-19): 86 arrived, 37 closed, about 6 days' wait; the median of 0.6 hours to done is pulled down by audit items fixed within the hour they were filed.
+- **connectors:** `connectors.json` lists each connector and the evidence that a real part has gone through it end to end; the script counts one as used only when every evidence path exists and is not empty. First reading: 5 of 11.

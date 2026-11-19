@@ -145,6 +145,61 @@ def queue_state(queue, qgit=None, qpath="audit/2026-11-17/queue.json", now=None)
     return {"by_status": dict(st), "open_age_hours": age, "claims": claims}
 
 
+def flow(queue, qgit, qpath="audit/2026-11-17/queue.json", days=7, now=None):
+    """Arrivals and closures over the window, from every version of the queue file; median hours from an item's first
+    appearance to its first 'done'; Little's law estimate of waiting time (open items / closures per day).
+    Arrivals are split by the item's `origin`: follow-up (spawned by finishing or checking work: depth) or new
+    (a new direction: breadth); items from before the field existed count as unknown."""
+    if queue is None or not qgit:
+        return None
+    now = now or dt.datetime.now(dt.timezone.utc).timestamp()
+    since = now - days * 86400
+    log = subprocess.run(["git", "-C", qgit, "log", "--all", "--reverse", "--format=%H %ct", "--", qpath],
+                         capture_output=True, text=True).stdout.split("\n")
+    first, done = {}, {}
+    for line in log:
+        if not line.strip():
+            continue
+        h, t = line.split()
+        t = int(t)
+        try:
+            q = json.loads(subprocess.run(["git", "-C", qgit, "show", f"{h}:{qpath}"], capture_output=True, text=True).stdout)
+        except ValueError:
+            continue
+        for i in q.get("items", []):
+            first.setdefault(i["id"], t)
+            if i.get("status") == "done":
+                done.setdefault(i["id"], t)
+    origin = {i["id"]: i.get("origin", "unknown") for i in queue["items"]}
+    arrived = [k for k, t in first.items() if t >= since]
+    closed = [k for k, t in done.items() if t >= since]
+    cycle = sorted(round((done[k] - first[k]) / 3600, 1) for k in closed)
+    open_now = sum(1 for i in queue["items"] if i["status"] not in ("done", "parked"))
+    per_day = len(closed) / days
+    return {"window_days": days, "arrived": len(arrived),
+            "arrived_by_origin": dict(collections.Counter(origin.get(k, "unknown") for k in arrived)),
+            "closed": len(closed), "closed_per_day": round(per_day, 2),
+            "median_hours_to_done": cycle[len(cycle) // 2] if cycle else None,
+            "open_now": open_now, "littles_wait_days": round(open_now / per_day, 1) if per_day else None}
+
+
+def connectors(repo, manifest="audit/periodic/connectors.json"):
+    """Which connectors a real part has gone through end to end. The manifest names, per connector, the evidence
+    paths; a connector counts as used only if every path exists in the repo and is not empty. Hand-kept list,
+    checked by script: a stale or wrong path shows up as unused rather than passing silently."""
+    path = os.path.join(repo, manifest)
+    if not os.path.exists(path):
+        return None
+    m = json.load(open(path))
+    out = {}
+    for name, c in m["connectors"].items():
+        ev = c.get("evidence", [])
+        ok = bool(ev) and all(os.path.exists(os.path.join(repo, e)) and (os.path.isdir(os.path.join(repo, e)) or
+                              os.path.getsize(os.path.join(repo, e)) > 0) for e in ev)
+        out[name] = "used" if ok else "not yet"
+    return {"used": sum(v == "used" for v in out.values()), "total": len(out), "by_connector": out}
+
+
 def stale_branches(repo, days=14):
     """Remote branches, other than main and the data branches, whose last commit is older than `days`."""
     out = []
@@ -197,9 +252,11 @@ def delta(new, old):
                       "stale_branches": len(r["stale_branches"]),
                       "code_lines": sum(v.get("code", 0) for v in r["size"].values()),
                       "ci_not_success_runs": sum(v["not_success"] for v in (r["ci_7d"] or {}).values()),
-                      "open_items": (r["queue"] or {}).get("by_status", {}).get("open")}
+                      "open_items": (r["queue"] or {}).get("by_status", {}).get("open"),
+                      "littles_wait_days": (r.get("flow_7d") or {}).get("littles_wait_days"),
+                      "connectors_used": (r.get("connectors") or {}).get("used")}
     a, b = pick(old), pick(new)
-    return {k: {"was": a[k], "now": b[k]} for k in b if a[k] != b[k]}
+    return {k: {"was": a.get(k), "now": b[k]} for k in b if a.get(k) != b[k]}
 
 
 def main(argv=None):
@@ -219,7 +276,7 @@ def main(argv=None):
          "size": size(repo, files), "duplication": duplication(repo, files), "unreferenced": unreferenced(repo, files),
          "cannot_fail": cannot_fail(repo, files), "ci_7d": ci(load(a.runs)), "queue": queue_state(load(a.queue), a.queue_git),
          "stale_branches": stale_branches(repo), "claims_without_evidence": claims_without_evidence(repo),
-         "churn_7d": churn(repo)}
+         "churn_7d": churn(repo), "flow_7d": flow(load(a.queue), a.queue_git), "connectors": connectors(repo)}
     r["change"] = delta(r, load(a.previous))
     if a.out:
         with open(a.out, "x") as fh:
