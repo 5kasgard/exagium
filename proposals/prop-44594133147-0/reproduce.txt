@@ -1,0 +1,15 @@
+FAILED: prop-44594133147-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 155, in <module>
+    main()
+  File "/w/train.py", line 127, in main
+    params = train_loop(X_train, y_train, params, d, E, H, C, EPOCHS_TUNE, rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 88, in train_loop
+    loss, grads = loss_and_grad(xb, yb, params, d, E, H, C)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 47, in loss_and_grad
+    flat = emb[X.reshape(-1), np.arange(d)[:, None], :].reshape(n, d * E)  # (n, d*E)
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: index 36 is out of bounds for axis 0 with size 14
+
