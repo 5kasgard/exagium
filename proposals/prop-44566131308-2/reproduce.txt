@@ -1,0 +1,37 @@
+FAILED: prop-44566131308-2 on text: train.py exited 1:
+py:23: RuntimeWarning: overflow encountered in scalar multiply
+  x = (x ^ (x >> 16)) * 0x45d9f3b
+/w/train.py:24: RuntimeWarning: overflow encountered in scalar multiply
+  x = (x ^ (x >> 16)) * 0x45d9f3b
+Traceback (most recent call last):
+  File "/w/train.py", line 143, in <module>
+    main()
+  File "/w/train.py", line 103, in main
+    W, b, acc = train_one_split(X_tr, y_tr, X_te, y_te, lr, ep)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 58, in train_one_split
+    buckets_tr = featurize(X_tr)
+                 ^^^^^^^^^^^^^^^
+  File "/w/train.py", line 35, in featurize
+    buckets[:, pos] = np.vectorize(lambda v: hash32(v) % B)(feat)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py", line 2529, in __call__
+    return self._call_as_normal(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py", line 2522, in _call_as_normal
+    return self._vectorize_call(func=func, args=vargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py", line 2607, in _vectorize_call
+    ufunc, otypes = self._get_ufunc_and_otypes(func=func, args=args)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_function_base_impl.py", line 2567, in _get_ufunc_and_otypes
+    outputs = func(*inputs)
+              ^^^^^^^^^^^^^
+  File "/w/train.py", line 35, in <lambda>
+    buckets[:, pos] = np.vectorize(lambda v: hash32(v) % B)(feat)
+                                             ^^^^^^^^^
+  File "/w/train.py", line 26, in hash32
+    return x & 0xffffffff
+           ~~^~~~~~~~~~~~
+OverflowError: Python integer 4294967295 out of bounds for int32
+
