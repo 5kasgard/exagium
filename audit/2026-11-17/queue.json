@@ -1946,7 +1946,7 @@
   {
    "id": "Q56b",
    "kind": "fix",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1962,7 +1962,7 @@
     "project doc claude/forge-directional-omni-2026-11-19.md (outside review, 6 Sonnet directions plus a fresh reviewer)",
     "loop/scale.py:156 L.build(src, ...) on the host"
    ],
-   "next": "scale.py line 156 builds candidates with host gcc (L.build); switch to runner/jail.py compile_candidate (same CFLAGS plus -pipe, which does not change code generation), keep the timer build (trusted) as is, and confirm on CI that scale's reference predictions and per-segment checks still pass. loop.py:370 stays frozen by plan 2: fix in plan 3. Blocks P5, because proposed candidates will be metered by scale.py.",
+   "next": "scale.py line 156 builds candidates with host gcc (L.build); switch to runner/jail.py compile_candidate (same CFLAGS plus -pipe, which does not change code generation), keep the timer build (trusted) as is, and confirm on CI that scale's reference predictions and per-segment checks still pass. loop.py:370 stays frozen by plan 2: fix in plan 3. Blocks P5, because proposed candidates will be metered by scale.py. Done 2026-11-19 (chat): main 8096892 (scale.py: J.compile_candidate for candidates, J.check() at start; test pins it, mutation-checked), d126ab7 (loop.yml scale smoke step), 0736566 (READMEs). Evidence: objdump of host- vs jail-built code identical for all 5 candidates on main (local, confine mode); run 44474761141: scale smoke passed on all 6 runs (3 x86, 3 arm, bubblewrap). Outside review 44474822245 (gpt-oss-120b; llama timed out): 5 points, all rejected with evidence: hostile #include of /etc/passwd, a home file, a repo file and /proc/self/environ refused; check_compile runs inside J.check() at every start; nothing imports scale.py; J.check() calls loop.check_jail() first; CI passed with the path setup.",
    "origin": "follow-up"
   },
   {
