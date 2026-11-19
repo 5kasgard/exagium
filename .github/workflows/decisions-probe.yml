@@ -12,6 +12,9 @@ on:
       parts:
         description: "which halves: docs2, cards2 or both (free models allow 50 requests a day: 27 + 8)"
         default: "cards2"
+      checker:
+        description: "1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
+        default: "0"
 permissions: {}
 jobs:
   probe:
@@ -29,9 +32,15 @@ jobs:
           MODEL: ${{ github.event.inputs.model }}
           PARTS: ${{ github.event.inputs.parts }}
           MODE: ${{ github.event.inputs.mode }}
+          CHECKER: ${{ github.event.inputs.checker }}
         run: |
           case "$MODEL" in *[!A-Za-z0-9._:/-]*|'') echo "bad model id"; exit 1 ;; esac
           mkdir -p out
+          if [ "$CHECKER" = 1 ]; then
+            python3 -I router/decisions_checker_probe.py "$MODEL" out/checker.json \
+              router/review/checker-relevance/A2-R10-narrow.md:KKD router/review/checker-relevance/B-R4.md:DDD
+            exit 0
+          fi
           case "$PARTS" in docs2|cards2) list="$PARTS" ;; both) list="docs2 cards2" ;; *) echo "bad parts"; exit 1 ;; esac
           for p in $list; do case "$MODE" in per-item|batch) ;; *) echo "bad mode"; exit 1 ;; esac
             python3 -I router/decisions_probe.py "$MODEL" "router/review/grade-rt2/$p.md" "out/$p.json" "$MODE"; done

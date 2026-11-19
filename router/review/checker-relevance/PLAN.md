@@ -30,3 +30,8 @@ Claims 0 and 1 kept by 3 of 3 calls, the off-topic control dropped by 3 of 3; al
 narrowed on the queue and R10 redone. R11's escalation (run 44632810471, old reader prompt) was R4's cause, not breadth:
 5 claims, each adding detail its quote does not state. Not yet a rule for all cards: R9 passed with a three-part question.
 Watch R13-R19: if no_claims outcomes with "does not answer the question" notes recur, split multi-part cards before they run.
+
+## Test 3 (Claude chat, 2026-11-20, P31), fixed before any reply: can a decision model be the checker?
+Decider V1.3 (OpenRouter Decisions API, free) on the same 6 known answers (A2-R10-narrow: KEEP, KEEP, DROP; B-R4: DROP x3),
+one yes/no question per claim, keep if p >= 0.5; router/decisions_checker_probe.py. Rule: it may replace the Nemotron
+majority-of-3 checker in a live trial only if all 6 hold in two separate runs. Decider Flash V1.3 runs alongside for the record.
