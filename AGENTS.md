@@ -16,6 +16,13 @@
 - **A new or changed workflow path runs once with no cost before it runs for real** (a dry run, a fixture, a probe).
   On 2026-11-19 a one-character shell bug lost the proposer's first scoring run.
 
+## Context is scarce: process in code, return what the decision needs
+Run API calls, tool results and data through a script and return only the summary a decision needs; never paste raw
+JSON, logs or whole files into a model's context. The same holds for the free models: give them queried rows from a
+store, not whole documents (queue P7f). Evidence: code execution in place of direct tool calls cut one workflow from
+150,000 tokens to 2,000 (Anthropic engineering, "Code execution with MCP", Nov 2025) and total tokens by 77% at the same
+success rate in an independent benchmark (AIMultiple); direct calls still win for a single simple call.
+
 ## Check the world's evidence, not only our own (hypothesis under test, queue P7)
 Before building or testing something, look for what is already known: published results, the current best number to beat, prior art and patents, known failure modes. Our own data shows only what we ran. Each outside claim cites its source, and its quote and numbers are checked against that source. Whether this becomes a required step depends on P7's test: would such a check have changed a past decision?
 
