@@ -47,7 +47,7 @@ jobs:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
         run: |
           set -o pipefail
-          cd router/bench6/illusion
+          mkdir -p "$GITHUB_WORKSPACE/out"; cd router/bench6/illusion
           python3 -I illusion.py sample "$GITHUB_WORKSPACE/out/sample.json"
           if [ "$DRY" = 1 ]; then python3 -I illusion.py ask "$GITHUB_WORKSPACE/out/sample.json" "$GITHUB_WORKSPACE/out" --dry
           else python3 -I illusion.py ask "$GITHUB_WORKSPACE/out/sample.json" "$GITHUB_WORKSPACE/out"; fi
