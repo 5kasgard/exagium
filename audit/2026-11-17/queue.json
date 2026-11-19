@@ -1070,7 +1070,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy).",
+   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1147,7 +1147,7 @@
     "P5",
     "P11"
    ],
-   "next": "Behaviour-space clusters, error consistency, item response theory, functional equivalence, transfer; a living map linked to item-level evidence.",
+   "next": "Behaviour-space clusters, error consistency, item response theory, functional equivalence, transfer; a living map linked to item-level evidence. Owner 2026-11-19 (adds to what exists; does not change how anything works): groupings are threads by per-item wins and fails: shared failures join threads, items one family alone solves separate them; recomputed each time the store grows, and drawn (if ever) only from those outcomes.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1275,7 +1275,7 @@
     "audit/periodic/",
     ".github/workflows/whole-audit.yml"
    ],
-   "next": "Tier 1 live 2026-11-19 (main, .github/workflows/whole-audit.yml): weekly cron Mondays 21:43 UTC plus dispatch; runs indicators.py against last week's JSON on ci-runs (audit/periodic/), pushes the new JSON there and opens an issue to the owner (first: issue #1, run 44397643836; vs baseline: duplication 4.3% to 3.8%, workflow lines that swallow failures 31 to 34, CI not-success runs 11 to 13). Remaining: (2) direction check by a free model of another family over churn_7d and completed items against the README's purpose; (3) deferred indicators: coverage, lint, dependency freshness; (4) monthly deep audit by Claude agents or on a tripped indicator. Note: GitHub's scheduler may delay or drop the weekly cron (Q57). ",
+   "next": "Tier 1 live 2026-11-19 (main, .github/workflows/whole-audit.yml): weekly cron Mondays 21:43 UTC plus dispatch; runs indicators.py against last week's JSON on ci-runs (audit/periodic/), pushes the new JSON there and opens an issue to the owner (first: issue #1, run 44397643836; vs baseline: duplication 4.3% to 3.8%, workflow lines that swallow failures 31 to 34, CI not-success runs 11 to 13). Remaining: (2) direction check by a free model of another family over churn_7d and completed items against the README's purpose; (3) deferred indicators: coverage, lint, dependency freshness; (4) monthly deep audit by Claude agents or on a tripped indicator. Note: GitHub's scheduler may delay or drop the weekly cron (Q57).  Added 2026-11-19 (main 9ddee11): flow_7d (arrivals by origin, closures, median time to done, Little's-law wait: about 6 days on the first reading) and connectors used by a real part (5 of 11).",
    "refs": [
     "audit/2026-11-17/README.md, S2-verification.md, S4-final-review.md (this branch)",
     "README.md 'What this is for' on main",
@@ -1741,7 +1741,7 @@
    "touches": [
     "store/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest. Owner 2026-11-19 (adds to what exists; does not change how anything works): keep per-item detail and provenance, never only averages (two parts at 0.97 can fail on different items: that difference is the signal); record edges between parts as well as parts: derived-from (lineage, as in AlphaEvolve's archive), combined-with, distilled-into; every stored measurement is a pinned frame (hash, task, host, split, uncertainty) and the motion between frames (what changed, up or down) is queryable; recompute, don't relabel, as the collection grows.",
    "origin": "new"
   },
   {
@@ -1839,7 +1839,7 @@
     "meters/",
     "loop/results/hardware-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here. Owner 2026-11-19 (adds to what exists; does not change how anything works): cost is mostly how data moves (caches, memory, processors; mlp16's page faults): measure the flow, per memory level, not just totals.",
    "origin": "new"
   },
   {
@@ -1884,7 +1884,7 @@
    "touches": [
     "docs/capability-map.md"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md. Owner 2026-11-19 (adds to what exists; does not change how anything works): the map also shows flow: lineage between parts, waiting time and connectors used (audit/periodic/connectors.json: 5 of 11 on 2026-11-19).",
    "origin": "new"
   },
   {
