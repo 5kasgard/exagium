@@ -1090,7 +1090,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once.",
+   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tasks are the bottleneck, not candidates: a standing task-intake path (new tasks from P16 sources and the research worker), difficulty calibrated by item response theory (shared with P20b and P6), and held-out splits that cannot have leaked (with Q25).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1134,6 +1134,7 @@
    "severity": "none",
    "blocked_by": [
     "P2",
+    "P23",
     "P4",
     "Q07",
     "Q10",
@@ -1141,7 +1142,7 @@
     "Q56",
     "Q56b"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25).",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): allocate compute by expected information per unit of cost across hypotheses and candidates (search with exploration), not by fixed order; its claims at volume go through P23.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1271,7 +1272,7 @@
     "worker/metrics/",
     ".github/workflows/process-review.yml"
    ],
-   "next": "Owner, 2026-11-18: with free workers doing routine work, Claude's role becomes managing the process. Split by part: measure by script every run (valid rate, spot-check acceptance, claim conflicts, budget used vs wasted, time per item, reverts, cost per accepted item per pool); spot problems weekly with a free model reading metrics and run notes; it files proposals as queue items of kind 'process' with evidence; Claude decides and redesigns periodically in an owner-opened chat (free reviewers' points were only partly usable: 3 of 8 applied in bench-5); changes audited by a reviewer of another model family. Rules: no worker changes its own rules (process changes go through the queue); the manager's own proposals are scored by whether they moved the numbers they targeted. Define the metrics from P8's first runs, not before.",
+   "next": "Owner, 2026-11-18: with free workers doing routine work, Claude's role becomes managing the process. Split by part: measure by script every run (valid rate, spot-check acceptance, claim conflicts, budget used vs wasted, time per item, reverts, cost per accepted item per pool); spot problems weekly with a free model reading metrics and run notes; it files proposals as queue items of kind 'process' with evidence; Claude decides and redesigns periodically in an owner-opened chat (free reviewers' points were only partly usable: 3 of 8 applied in bench-5); changes audited by a reviewer of another model family. Rules: no worker changes its own rules (process changes go through the queue); the manager's own proposals are scored by whether they moved the numbers they targeted. Define the metrics from P8's first runs, not before. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): measure owner-minutes and Claude-tokens per finding and the share of work done with no human, trending; plan for a free pool disappearing (each job type has a second pool or a clean stop).",
    "refs": [
     "P8 (worker runs and notes)",
     "HANDOFF-bench5-nim (outside review 3 of 8 applied)",
@@ -1295,7 +1296,7 @@
     "audit/periodic/",
     ".github/workflows/whole-audit.yml"
    ],
-   "next": "Tier 1 live 2026-11-19 (main, .github/workflows/whole-audit.yml): weekly cron Mondays 21:43 UTC plus dispatch; runs indicators.py against last week's JSON on ci-runs (audit/periodic/), pushes the new JSON there and opens an issue to the owner (first: issue #1, run 44397643836; vs baseline: duplication 4.3% to 3.8%, workflow lines that swallow failures 31 to 34, CI not-success runs 11 to 13). Remaining: (2) direction check by a free model of another family over churn_7d and completed items against the README's purpose; (3) deferred indicators: coverage, lint, dependency freshness; (4) monthly deep audit by Claude agents or on a tripped indicator. Note: GitHub's scheduler may delay or drop the weekly cron (Q57).  Added 2026-11-19 (main 9ddee11): flow_7d (arrivals by origin, closures, median time to done, Little's-law wait: about 6 days on the first reading) and connectors used by a real part (5 of 11).",
+   "next": "Tier 1 live 2026-11-19 (main, .github/workflows/whole-audit.yml): weekly cron Mondays 21:43 UTC plus dispatch; runs indicators.py against last week's JSON on ci-runs (audit/periodic/), pushes the new JSON there and opens an issue to the owner (first: issue #1, run 44397643836; vs baseline: duplication 4.3% to 3.8%, workflow lines that swallow failures 31 to 34, CI not-success runs 11 to 13). Remaining: (2) direction check by a free model of another family over churn_7d and completed items against the README's purpose; (3) deferred indicators: coverage, lint, dependency freshness; (4) monthly deep audit by Claude agents or on a tripped indicator. Note: GitHub's scheduler may delay or drop the weekly cron (Q57).  Added 2026-11-19 (main 9ddee11): flow_7d (arrivals by origin, closures, median time to done, Little's-law wait: about 6 days on the first reading) and connectors used by a real part (5 of 11). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): add indicator findings_7d against infra_7d: object-level findings (ledger verdicts, new result folders with a pass/fail) per week against infrastructure commits per week; the risk is a system that mostly runs itself. Also hold the project's stop rules (which result would change its direction), written by the owner, checked each audit.",
    "refs": [
     "audit/2026-11-17/README.md, S2-verification.md, S4-final-review.md (this branch)",
     "README.md 'What this is for' on main",
@@ -1764,7 +1765,7 @@
    "touches": [
     "store/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest. Owner 2026-11-19 (adds to what exists; does not change how anything works): keep per-item detail and provenance, never only averages (two parts at 0.97 can fail on different items: that difference is the signal); record edges between parts as well as parts: derived-from (lineage, as in AlphaEvolve's archive), combined-with, distilled-into; every stored measurement is a pinned frame (hash, task, host, split, uncertainty) and the motion between frames (what changed, up or down) is queryable; recompute, don't relabel, as the collection grows.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest. Owner 2026-11-19 (adds to what exists; does not change how anything works): keep per-item detail and provenance, never only averages (two parts at 0.97 can fail on different items: that difference is the signal); record edges between parts as well as parts: derived-from (lineage, as in AlphaEvolve's archive), combined-with, distilled-into; every stored measurement is a pinned frame (hash, task, host, split, uncertainty) and the motion between frames (what changed, up or down) is queryable; recompute, don't relabel, as the collection grows. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): also store every plan's forecast (P23) and score calibration per source (Claude, each worker, the owner); provenance edges claim -> run -> code digest -> data; the web view (P21) reads from the store once it exists.",
    "origin": "new"
   },
   {
@@ -1836,7 +1837,7 @@
     ".github/workflows/machines.yml",
     "loop/results/machines-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it). Finding 2026-11-19: loop.yml and counter.yml already run on ubuntu-24.04 and ubuntu-24.04-arm (run 44395229919: 6 runs plus docker on both), so the x86-vs-arm half of this test may be answerable from ci-runs data without a new workflow; check that first.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it). Finding 2026-11-19: loop.yml and counter.yml already run on ubuntu-24.04 and ubuntu-24.04-arm (run 44395229919: 6 runs plus docker on both), so the x86-vs-arm half of this test may be answerable from ci-runs data without a new workflow; check that first. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): add an energy measure where the runner exposes one (RAPL, perf) and record when it does not; 'hardware near its limits' is the headline promise and the least measured.",
    "origin": "new"
   },
   {
@@ -1862,7 +1863,7 @@
     "meters/",
     "loop/results/hardware-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here. Owner 2026-11-19 (adds to what exists; does not change how anything works): cost is mostly how data moves (caches, memory, processors; mlp16's page faults): measure the flow, per memory level, not just totals.",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here. Owner 2026-11-19 (adds to what exists; does not change how anything works): cost is mostly how data moves (caches, memory, processors; mlp16's page faults): measure the flow, per memory level, not just totals. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tier-3 calibration: map simulated instruction and cache counts to real time and energy on at least one real machine before ranking by them at scale.",
    "origin": "new"
   },
   {
@@ -1907,7 +1908,7 @@
    "touches": [
     "docs/capability-map.md"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md. Owner 2026-11-19 (adds to what exists; does not change how anything works): the map also shows flow: lineage between parts, waiting time and connectors used (audit/periodic/connectors.json: 5 of 11 on 2026-11-19).",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md. Owner 2026-11-19 (adds to what exists; does not change how anything works): the map also shows flow: lineage between parts, waiting time and connectors used (audit/periodic/connectors.json: 5 of 11 on 2026-11-19). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): the map shows, per ability, findings with evidence against infrastructure built for it, so starved science is visible.",
    "origin": "new"
   },
   {
@@ -1925,7 +1926,7 @@
     "runner/jail_tests/",
     "runner/results/jail-assurance-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Purpose is defensive: the owner's own sandbox, in the owner's own repo. Owner's point: attackers game the system as it is, so known-wall tests are not enough. Layers: (1) conformance suite: network, files outside the work folder, secrets and env, child processes, resource limits, forbidden syscalls must be refused; legitimate work must pass; each test proven to bite by switching its restriction off (mutation check). (2) Defence in depth and least privilege: nothing worth taking inside the jail (key never in the same job), so one breached wall is not enough. (3) Fuzz the boundary with existing tools (syscall and argument fuzzing inside the jail) rather than hand-written exploits; known weaknesses checked by version and setting against published advisories with existing scanners. (4) The realistic creative adversary here is the search itself: evolved candidates will game meters and checkers (reward hacking); log and test for it as a standing threat (frozen evaluator, held-out checks, anomaly flags on implausible gains). (5) Assume breach: detect and limit blast radius (job isolation, short-lived tokens, audit of what each job touched). Covers runner/jail.py and loop/confine.c (loop.py frozen: tests only, no edits).",
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Purpose is defensive: the owner's own sandbox, in the owner's own repo. Owner's point: attackers game the system as it is, so known-wall tests are not enough. Layers: (1) conformance suite: network, files outside the work folder, secrets and env, child processes, resource limits, forbidden syscalls must be refused; legitimate work must pass; each test proven to bite by switching its restriction off (mutation check). (2) Defence in depth and least privilege: nothing worth taking inside the jail (key never in the same job), so one breached wall is not enough. (3) Fuzz the boundary with existing tools (syscall and argument fuzzing inside the jail) rather than hand-written exploits; known weaknesses checked by version and setting against published advisories with existing scanners. (4) The realistic creative adversary here is the search itself: evolved candidates will game meters and checkers (reward hacking); log and test for it as a standing threat (frozen evaluator, held-out checks, anomaly flags on implausible gains). (5) Assume breach: detect and limit blast radius (job isolation, short-lived tokens, audit of what each job touched). Covers runner/jail.py and loop/confine.c (loop.py frozen: tests only, no edits). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): at scale add contributor gaming: fake accounts, leaderboard gaming, and an independent reproducer assigned to any result before it gains authority.",
    "refs": [
     "runner/jail.py, loop/confine.c, loop/seccomp_filter.h on main",
     "runner/results/2026-11-18-q10-q55/ (Q10 jail runs)",
@@ -3250,6 +3251,75 @@
    "value": "high",
    "batch": "B3",
    "origin": "follow-up"
+  },
+  {
+   "id": "P21",
+   "title": "Typed links and the web view: the whole system as a graph drawn from the record (needs, gate, better after, writes; later derived from, evidence for, run by)",
+   "kind": "build",
+   "batch": "B9",
+   "blocked_by": [],
+   "touches": [
+    "audit/2026-11-17/web/",
+    "audit/2026-11-17/render.py",
+    "audit/2026-11-17/queue.json (link fields)"
+   ],
+   "refs": [
+    "artifact 'The Forge as a web' (v0, 2026-11-19)",
+    "audit/2026-11-17/web/ on this branch",
+    "skill: honest-views"
+   ],
+   "next": "Owner 2026-11-19: dependency- or prerequisite-based work, a web where nodes, connections and flows are easy to see and manipulate. v0 built (audit/2026-11-17/web/build.py: reads queue.json only; 75 live items form one piece of 93 nodes, one of 12, and 24 small ones incl. 14 items with no link at all: check each for a missing link). Next: (1) link kinds in queue.json: gate (go/no-go; a no closes everything downstream), better-after, alongside blocked_by; render.py enforces them; today 3 'only if' gates live only in prose (D21, P20d, P20e) plus B10's P14->P15; (2) a cycle is resolved, not just refused: split off the smallest working version of one side; (3) each prerequisite states the smallest version needed and a cost limit, past which it goes to the owner; (4) a worker that hits a missing piece files it and waits on it; (5) a changed upstream result flags its dependents for recheck; (6) everything waiting on the owner is gathered into one request; (7) editing the web proposes a record change with confirmation, never edits the picture alone; (8) after P11, the web covers parts, tasks, runs, claims, sources, workers and pools. TEST before relying on it (honest-views rule 8): time to answer 'what does P11 unlock', 'what waits on the owner', 'what breaks if Q56b slips' in the web against the table, a separate agent timing both.",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new"
+  },
+  {
+   "id": "P22",
+   "title": "Does ordering by information per unit of cost change the queue's order against 'how many items it unlocks'?",
+   "kind": "test",
+   "batch": "B9",
+   "blocked_by": [
+    "P21"
+   ],
+   "touches": [
+    "audit/2026-11-17/render.py"
+   ],
+   "refs": [
+    "queue P21",
+    "skill: weigh-the-evidence"
+   ],
+   "next": "Needs P21's gate links. Score every ready item both ways (unlocks count; expected items closed or decided by gates per unit of cost), rule fixed before running: adopt the new key only if the top 5 differ; otherwise keep the current rule.",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new"
+  },
+  {
+   "id": "P23",
+   "title": "Claims at volume: a test-set budget per data set, false-discovery control, and a forecast on every plan",
+   "kind": "build",
+   "batch": "B1",
+   "blocked_by": [],
+   "touches": [
+    "runner/run.py",
+    "runner/CONTRACT.md"
+   ],
+   "refs": [
+    "queue P5, P11, Q25",
+    "skills: test-design, adversarial-review"
+   ],
+   "next": "Whole-system review 2026-11-19: pre-registering each plan works for a dozen claims, not for thousands of proposed candidates. Add to the runner's test gate: (1) each test split has a use count and budget; past it, the split refreshes or claims go to a fresh holdout (reusable-holdout method); (2) claims from one search are corrected for many comparisons (false-discovery control) before a verdict; (3) every plan states the claimant's probability of a pass before running, kept in the ledger, scored by P11 for calibration per source. Must land before P5's first test-set claim.",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new"
   }
  ],
  "batches": [
@@ -3264,7 +3334,8 @@
     "P3",
     "Q25",
     "P18",
-    "Q56b"
+    "Q56b",
+    "P23"
    ],
    "why": "All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data.",
    "worker": "Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs."
@@ -3355,7 +3426,9 @@
     "P12",
     "P13",
     "P16",
-    "P19"
+    "P19",
+    "P21",
+    "P22"
    ],
    "why": "P12, P13 and P16 all read from the store P11 creates, and P6 now waits on it too; one schema, one ingest script, one review. P17 names what the store must answer.",
    "worker": "Claude designs the schema once; a script fills it from the ledger; free models review; later items can go to the free proposer once P5 runs."

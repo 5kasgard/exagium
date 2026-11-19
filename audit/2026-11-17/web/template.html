@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forge web: queue as a graph</title>
+<style>
+:root{--bg:#fbfaf7;--fg:#1d1d1b;--mut:#6b6a66;--line:#d9d6cf;--open:#2f6fb3;--prog:#c27b12;--done:#9a9892;--park:#b9b6ae;--own:#b4462f;--blk:#7a4fb0;--file:#5b8a5a}
+@media (prefers-color-scheme:dark){:root{--bg:#171715;--fg:#ecebe6;--mut:#9c9a94;--line:#3a3935;--done:#6e6c67;--park:#55534e}}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,sans-serif}
+header{padding:10px 12px;border-bottom:1px solid var(--line)}h1{font-size:16px;margin:0 0 4px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--mut)}
+.bar input[type=search]{flex:1;min-width:120px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--fg)}
+body{display:flex;flex-direction:column}#wrap{position:relative;flex:1;min-height:0}#svg{width:100%;height:100%;touch-action:none;cursor:grab;display:block}
+#panel{position:absolute;left:8px;right:8px;bottom:8px;max-height:48%;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:none;box-shadow:0 4px 16px #0002}
+#panel h2{font-size:15px;margin:0 0 6px}#panel table{border-collapse:collapse;width:100%;font-size:12.5px}#panel td{border-top:1px solid var(--line);padding:4px 6px;vertical-align:top}#panel td:first-child{color:var(--mut);white-space:nowrap}
+#panel .x{float:right;border:0;background:transparent;color:var(--mut);font-size:18px}
+#legend{position:absolute;top:8px;right:8px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:11.5px;color:var(--mut);max-width:210px}
+#legend div{display:flex;gap:6px;align-items:center}a{color:var(--open)}
+.dim{opacity:.12}
+</style></head><body>
+<header><h1>The Forge as a web: queue items, the files they write, and what waits on what</h1>
+<div class="bar"><input id="q" type="search" placeholder="Find an item, e.g. P11 or knowledge">
+<label><input type="checkbox" id="done"> done items</label><label><input type="checkbox" id="files" checked> files</label>
+<span id="src"></span></div></header>
+<div id="wrap"><svg id="svg"><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="var(--blk)"/></marker></defs><g id="vp"><g id="E"></g><g id="N"></g></g></svg>
+<details id="legend"><summary>Key</summary>
+<div><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--open)"/></svg>open</div>
+<div><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--prog)"/></svg>in progress</div>
+<div><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--park)"/></svg>parked</div>
+<div><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--done)"/></svg>done</div>
+<div><svg width="14" height="14"><rect x="2" y="2" width="10" height="10" fill="var(--file)"/></svg>file or folder written</div>
+<div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="var(--blk)" stroke-width="2"/></svg>needs (blocked_by, enforced)</div>
+<div><svg width="26" height="10"><line x1="0" y1="5" x2="26" y2="5" stroke="var(--own)" stroke-width="2" stroke-dasharray="4 3"/></svg>waits on the owner</div>
+<div><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="none" stroke="var(--own)" stroke-dasharray="2 2"/></svg>"only if" gate in prose: not enforced</div>
+<div>Tap a node: what it needs and what it unlocks.</div></details>
+<div id="panel"></div></div>
+<script>
+const D=/*DATA*/null;
+const S='http://www.w3.org/2000/svg',$=id=>document.getElementById(id);
+$('src').innerHTML='Drawn from <a href="'+D.source+'">queue.json @ '+D.commit+'</a>; nothing is drawn that is not in it.';
+const byId={};D.nodes.forEach(n=>byId[n.id]=n);
+const col=n=>n.type==='file'?'var(--file)':n.type==='owner'?'var(--own)':({open:'var(--open)','in progress':'var(--prog)',done:'var(--done)',parked:'var(--park)','waiting on the owner':'var(--own)'}[n.status]||'var(--open)');
+const up={},down={};D.edges.forEach(e=>{if(e.kind==='needs'){(down[e.s]=down[e.s]||[]).push(e.t);(up[e.t]=up[e.t]||[]).push(e.s)}});
+function closure(id,m){const s=new Set,st=[id];while(st.length){const x=st.pop();(m[x]||[]).forEach(y=>{if(!s.has(y)){s.add(y);st.push(y)}})}return s}
+let showDone=false,showFiles=true,sel=null,els={};
+function visible(n){if(n.type==='file')return showFiles;if(n.type==='item'&&n.status==='done')return showDone;return true}
+function draw(){const E=$('E'),N=$('N');E.innerHTML='';N.innerHTML='';els={};
+ D.edges.forEach(e=>{const a=byId[e.s],b=byId[e.t];if(!a||!b||!visible(a)||!visible(b))return;const l=document.createElementNS(S,'line');
+  l.setAttribute('x1',a.x);l.setAttribute('y1',a.y);l.setAttribute('x2',b.x);l.setAttribute('y2',b.y);
+  if(e.kind==='needs'){l.setAttribute('stroke','var(--blk)');l.setAttribute('stroke-width',2.2);l.setAttribute('marker-end','url(#arr)')}
+  else if(e.kind==='owner'){l.setAttribute('stroke','var(--own)');l.setAttribute('stroke-width',1.6);l.setAttribute('stroke-dasharray','6 4')}
+  else{l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width',1)}
+  l.dataset.s=e.s;l.dataset.t=e.t;E.appendChild(l)});
+ D.nodes.forEach(n=>{if(!visible(n))return;const g=document.createElementNS(S,'g');g.setAttribute('transform',`translate(${n.x},${n.y})`);g.style.cursor='pointer';
+  let sh;if(n.type==='file'){sh=document.createElementNS(S,'rect');sh.setAttribute('x',-6);sh.setAttribute('y',-6);sh.setAttribute('width',12);sh.setAttribute('height',12)}
+  else{sh=document.createElementNS(S,'circle');sh.setAttribute('r',n.type==='owner'?16:Math.min(18,8+2*closure(n.id,down).size))}
+  sh.setAttribute('fill',col(n));g.appendChild(sh);
+  if(n.gate){const r=document.createElementNS(S,'circle');r.setAttribute('r',+sh.getAttribute('r')+5);r.setAttribute('fill','none');r.setAttribute('stroke','var(--own)');r.setAttribute('stroke-dasharray','3 3');g.appendChild(r)}
+  const t=document.createElementNS(S,'text');t.textContent=n.type==='file'?n.title.split('/').filter(Boolean).slice(-1)[0]:n.type==='owner'?'OWNER':n.id;
+  t.setAttribute('y',n.type==='file'?18:-12);t.setAttribute('text-anchor','middle');t.setAttribute('font-size',n.type==='file'?10:12);t.setAttribute('fill','var(--fg)');g.appendChild(t);
+  g.addEventListener('click',ev=>{ev.stopPropagation();pick(n.id)});els[n.id]=g;N.appendChild(g)});
+ if(sel)pick(sel,true)}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function pick(id,keep){sel=id;const n=byId[id];const U=closure(id,up),W=closure(id,down);const rel=new Set([id,...U,...W]);
+ D.edges.forEach(e=>{if(e.kind!=='needs'&&(e.s===id||e.t===id)){rel.add(e.s);rel.add(e.t)}});
+ Object.entries(els).forEach(([k,g])=>g.classList.toggle('dim',!rel.has(k)));
+ document.querySelectorAll('#E line').forEach(l=>l.classList.toggle('dim',!(rel.has(l.dataset.s)&&rel.has(l.dataset.t))));
+ const p=$('panel');p.style.display='block';let rows=[];
+ if(n.type==='item'){rows=[['status',n.status],['batch',n.batch?n.batch+' '+(D.batches[n.batch]||''):''],['kind / needs / value',n.kind+' / '+n.needs+' / '+n.value],
+  ['needs first (all upstream)',[...U].join(', ')||'nothing'],['unlocks (all downstream)',[...W].join(', ')||'nothing'],['writes',n.touches.join(', ')],
+  ['gate',n.gate?'its text says "only if" or go/no-go; the queue does not enforce it':''],['next',n.next],['refs',n.refs.join('; ')]]}
+ else if(n.type==='file'){rows=[['written by',D.edges.filter(e=>e.t===id).map(e=>e.s).join(', ')]]}
+ else rows=[['waited on by',D.edges.filter(e=>e.s===id).map(e=>e.t).join(', ')]];
+ p.innerHTML='<button class="x" onclick="clearSel()">×</button><h2>'+esc(n.type==='item'?n.id+': '+n.title:n.title)+'</h2><table>'+rows.filter(r=>r[1]).map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td></tr>').join('')+'</table><p style="font-size:12px;color:var(--mut)">The plain record: <a href="'+D.source+'">queue.json</a>. This view only reads it; editing the queue is done in the record.</p>'}
+function clearSel(){sel=null;$('panel').style.display='none';Object.values(els).forEach(g=>g.classList.remove('dim'));document.querySelectorAll('#E line').forEach(l=>l.classList.remove('dim'))}
+$('done').onchange=e=>{showDone=e.target.checked;draw();fit()};$('files').onchange=e=>{showFiles=e.target.checked;draw();fit()};
+$('q').oninput=e=>{const v=e.target.value.trim().toLowerCase();if(!v)return clearSel();const n=D.nodes.find(n=>visible(n)&&(n.id.toLowerCase()===v||(n.title||'').toLowerCase().includes(v)));if(n){pick(n.id);center(n)}};
+// pan and zoom (mouse, wheel, touch, pinch)
+const svg=$('svg'),vp=$('vp');let T={x:0,y:0,k:1};const apply=()=>vp.setAttribute('transform',`translate(${T.x},${T.y}) scale(${T.k})`);
+function fit(){const V=D.nodes.filter(visible),xs=V.map(n=>n.x),ys=V.map(n=>n.y),r=svg.getBoundingClientRect();const w=Math.max(...xs)-Math.min(...xs)+80,h=Math.max(...ys)-Math.min(...ys)+80;
+ T.k=Math.min(r.width/w,r.height/h);T.x=r.width/2-T.k*(Math.min(...xs)+Math.max(...xs))/2;T.y=r.height/2-T.k*(Math.min(...ys)+Math.max(...ys))/2;apply()}
+function center(n){const r=svg.getBoundingClientRect();T.k=Math.max(T.k,1);T.x=r.width/2-T.k*n.x;T.y=r.height*0.3-T.k*n.y;apply()}
+const pts=new Map;let last=null;
+svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY})});
+svg.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;const p=pts.get(e.pointerId);
+ if(pts.size===1){T.x+=e.clientX-p.x;T.y+=e.clientY-p.y;apply()}
+ else if(pts.size===2){const o=[...pts.entries()].find(([k])=>k!==e.pointerId)[1];const d0=Math.hypot(p.x-o.x,p.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);
+  if(d0>0)zoom(d1/d0,(e.clientX+o.x)/2,(e.clientY+o.y)/2)}
+ pts.set(e.pointerId,{x:e.clientX,y:e.clientY})});
+['pointerup','pointercancel'].forEach(t=>svg.addEventListener(t,e=>pts.delete(e.pointerId)));
+function zoom(f,cx,cy){const r=svg.getBoundingClientRect();cx-=r.left;cy-=r.top;T.x=cx-(cx-T.x)*f;T.y=cy-(cy-T.y)*f;T.k*=f;apply()}
+svg.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(-e.deltaY*0.0015),e.clientX,e.clientY)},{passive:false});
+svg.addEventListener('click',()=>clearSel());
+draw();fit();addEventListener('resize',fit);
+if(location.hash){const n=byId[decodeURIComponent(location.hash.slice(1))];if(n&&visible(n)){pick(n.id);center(n)}}
+</script></body></html>
