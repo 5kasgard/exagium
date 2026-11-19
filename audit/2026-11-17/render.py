@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """One-queue checker and renderer. Usage: python3 render.py queue.json > QUEUE.md   (exit 1 if the file is invalid).
-Checks: unique ids, known values, blockers that exist, no cycles, a next step and refs on every item.
+Checks: unique ids, known values, blockers and 'informs' links that exist, no cycles, a next step and refs on every item.
 Batches: related items done together (one checkout, one review, one CI run), ordered by the work they unlock.
 Order: can run now (by optional priority, then how many open items it unlocks, directly or through others, then value, then cost), waiting on a blocker, needs the owner, scheduled, parked, done."""
 import json, sys
@@ -35,6 +35,9 @@ for i in items:
     for b in i.get('blocked_by', []):
         if b not in by:
             errs.append(f"{i['id']}: unknown blocker {b}")
+    for b in i.get('informs', []):   # queue P21: feeds another item's decisions without making it wait
+        if b not in by or b == i['id']:
+            errs.append(f"{i['id']}: informs unknown or self item {b}")
 
 
 def cyc(n, seen):

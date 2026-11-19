@@ -22,9 +22,16 @@ for i in items:
         if b in by:
             edges.append(dict(s=b, t=i['id'], kind='needs'))
             G.add_edge(b, i['id'], weight=3)
-    if i['needs'] == 'the owner' or i['status'] == 'waiting on the owner':
-        if i['status'] not in ('done', 'parked'):
+    for b in i.get('informs', []):
+        if b in by:
+            edges.append(dict(s=i['id'], t=b, kind='informs'))
+            G.add_edge(i['id'], b, weight=1)
+    if i['status'] not in ('done', 'parked'):
+        if i['needs'] == 'the owner':   # a decision or action only the owner can take
             edges.append(dict(s='OWNER', t=i['id'], kind='owner'))
+            G.add_edge('OWNER', i['id'], weight=1)
+        elif i['status'] == 'waiting on the owner':   # sent to the owner after failed attempts (worker rule)
+            edges.append(dict(s='OWNER', t=i['id'], kind='escalated'))
             G.add_edge('OWNER', i['id'], weight=1)
     if i['status'] != 'done':
         for t in i.get('touches', []):

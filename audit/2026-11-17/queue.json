@@ -1247,7 +1247,7 @@
     "worker/",
     "worker/budgets.json"
    ],
-   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test. Release test 1 (2026-11-18, worker/RESULTS-release-test-1.md on main): 0 double claims over 5 races, 0 changes outside targets, injection and out-of-target canaries held, ledger matched, no stuck leases; FAILED on acceptance (6 of 8 acceptable as is by blind grading; target 4 of 5): Q38's wording redundant and vague, R1's card off the question. Paused (worker/PAUSE). 7 faults found and fixed during the test. Prompt fixes applied for both failures; next: P8r (re-test). Chat claim released. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both.",
+   "next": "Owner, 2026-11-18: work should continue when the chat or Claude's limit stops. Design (hypothesis): git as the coordinator: each item gets claimed_by and lease_until; a worker claims by committing to queue.json, and git rejects a second concurrent push, so no double-ups; an expired lease frees the item. A scheduled Actions job picks the top ready item whose tier allows a free model, claims it, does it (key and generated code in separate jobs, as P5), writes the result, a run note and the new status, and releases. Trust tiers from data (bench-2 Nemotron 3/3, bench-5 NIM 11/15: good, not unchecked): docs/mechanical (B5, B4) may self-merge after a script confirms only targeted lines changed and a second free model reviews; code goes to a PR with tests and free review, final check by Claude or the owner; design stays with Claude. A daily digest drafts the handoff and README update, flagging any number without an openable artifact. P5 (proposer) becomes one job type of this worker. Cheapest test: B5 docs items, two workers at once to force claim races; measure double claims (target 0), share of free drafts accepted on spot check, stuck leases. Limits and pacing (owner, 2026-11-18): a budget ledger per pool and period (minute, day, month, $), seeded from measured limits: Actions free and unlimited on this public repo, 20 concurrent jobs (GitHub docs); OpenRouter 1,000 req/day; Groq 1,000 req/day and 8,000 tokens/min (headers, run 44197136667); Cloudflare 10k neurons/day; NIM shape unmeasured (about 30/min for 10 min, then 3-5/min refusals, bench-5); Cerebras/xAI/Gemini in $ via P4. A run reserves budget by commit before calling (same CAS as claims); live remaining-quota headers override the seed; a 429 marks the pool exhausted until its window resets; the daily budget is spread across runs with ~10% kept for probes and reviews; unknown shapes (NIM) become low-priority measurement jobs; each job takes the cheapest pool measured good enough for its kind of work with budget left, else CPU-only work or a clean stop with the reason recorded. Builds on P4 (spend caps) and Q22 (usage log). Coexisting with chat sessions (owner, 2026-11-18): the worker never calls Claude, so chats never draw on its budget and it never draws on the owner's Claude limit. Shared resources get rules: chats claim items like workers (claimed_by chat-<session>) and a chat claim wins; the worker skips any batch that touches the same paths; each free pool keeps a reserved share (start at 20%) for chat-started reviews; the worker caps itself at about half of Actions' 20 concurrent jobs; it commits only to its own branches/PRs (plus claim commits); a repo variable the owner can flip pauses new claims. Started 2026-11-18 (chat claim): worker/ on main 17bdac2, v1 with doc and research job types, ledger, digest; paused (worker/PAUSE) until its review. Targets added to Q06 and Q38; research items R1, R2 added for P7's retroactive test. Release test 1 (2026-11-18, worker/RESULTS-release-test-1.md on main): 0 double claims over 5 races, 0 changes outside targets, injection and out-of-target canaries held, ledger matched, no stuck leases; FAILED on acceptance (6 of 8 acceptable as is by blind grading; target 4 of 5): Q38's wording redundant and vague, R1's card off the question. Paused (worker/PAUSE). 7 faults found and fixed during the test. Prompt fixes applied for both failures; next: P8r (re-test). Chat claim released. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Both owner settings verified 2026-11-19 (PR #2 by github-actions[bot]; YouTube probe run 44472159823).",
    "refs": [
     "skills: agent-orchestration (claims), one-queue",
     "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
@@ -1481,10 +1481,10 @@
   {
    "id": "P7b",
    "kind": "build",
-   "needs": "the owner",
+   "needs": "free",
    "value": "medium",
    "title": "YouTube comments as a research source (needs a YouTube Data API key)",
-   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both.",
+   "next": "Owner: add a YOUTUBE_API_KEY secret (YouTube Data API v3, free quota 10,000 units/day; a search costs 100, a comment page 1). Then: search videos per query, read top comment threads, grade as forum text. Keep it if P7's test shows such sources change a decision; else drop it. Owner, 2026-11-19 05:59: says both are done (Actions may create PRs; secret YOUTUBE_API_KEY added); unverified from here (proxy blocks the settings API); the next worker run confirms both. Verified 2026-11-19: the key works (probe-youtube.yml on main, run 44472159823: http 200, 1 item, 1 quota unit); Actions can create PRs (PR #2 opened by github-actions[bot] 05:46Z). No longer waits on the owner.",
    "refs": [
     "worker/research_job.py on main",
     "queue P7"
@@ -1765,7 +1765,10 @@
     "store/"
    ],
    "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest. Owner 2026-11-19 (adds to what exists; does not change how anything works): keep per-item detail and provenance, never only averages (two parts at 0.97 can fail on different items: that difference is the signal); record edges between parts as well as parts: derived-from (lineage, as in AlphaEvolve's archive), combined-with, distilled-into; every stored measurement is a pinned frame (hash, task, host, split, uncertainty) and the motion between frames (what changed, up or down) is queryable; recompute, don't relabel, as the collection grows. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): also store every plan's forecast (P23) and score calibration per source (Claude, each worker, the owner); provenance edges claim -> run -> code digest -> data; the web view (P21) reads from the store once it exists.",
-   "origin": "new"
+   "origin": "new",
+   "informs": [
+    "P21"
+   ]
   },
   {
    "kind": "build",
@@ -1908,7 +1911,10 @@
     "docs/capability-map.md"
    ],
    "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md. Owner 2026-11-19 (adds to what exists; does not change how anything works): the map also shows flow: lineage between parts, waiting time and connectors used (audit/periodic/connectors.json: 5 of 11 on 2026-11-19). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): the map shows, per ability, findings with evidence against infrastructure built for it, so starved science is visible.",
-   "origin": "new"
+   "origin": "new",
+   "informs": [
+    "P10"
+   ]
   },
   {
    "id": "P18",
@@ -1931,7 +1937,10 @@
     "runner/results/2026-11-18-q10-q55/ (Q10 jail runs)",
     "skills: careful-live-changes, security-code-review, adversarial-review"
    ],
-   "origin": "new"
+   "origin": "new",
+   "informs": [
+    "P5"
+   ]
   },
   {
    "id": "Q56b",
@@ -2904,6 +2913,10 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue Q54, P3"
+   ],
+   "informs": [
+    "Q54",
+    "P3"
    ]
   },
   {
@@ -2933,6 +2946,9 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue P3"
+   ],
+   "informs": [
+    "P3"
    ]
   },
   {
@@ -2962,6 +2978,9 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue P3"
+   ],
+   "informs": [
+    "P3"
    ]
   },
   {
@@ -2991,6 +3010,9 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue P19"
+   ],
+   "informs": [
+    "P19"
    ]
   },
   {
@@ -3020,6 +3042,9 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue P5"
+   ],
+   "informs": [
+    "P5"
    ]
   },
   {
@@ -3049,6 +3074,9 @@
    "refs": [
     "worker/RELEASE-TEST-2.md on main",
     "queue Q25"
+   ],
+   "informs": [
+    "Q25"
    ]
   },
   {
@@ -3267,7 +3295,7 @@
     "audit/2026-11-17/web/ on this branch",
     "skill: honest-views"
    ],
-   "next": "Owner 2026-11-19: dependency- or prerequisite-based work, a web where nodes, connections and flows are easy to see and manipulate. v0 built (audit/2026-11-17/web/build.py: reads queue.json only; 75 live items form one piece of 93 nodes, one of 12, and 24 small ones incl. 14 items with no link at all: check each for a missing link). Next: (1) link kinds in queue.json: gate (go/no-go; a no closes everything downstream), better-after, alongside blocked_by; render.py enforces them; today 3 'only if' gates live only in prose (D21, P20d, P20e) plus B10's P14->P15; (2) a cycle is resolved, not just refused: split off the smallest working version of one side; (3) each prerequisite states the smallest version needed and a cost limit, past which it goes to the owner; (4) a worker that hits a missing piece files it and waits on it; (5) a changed upstream result flags its dependents for recheck; (6) everything waiting on the owner is gathered into one request; (7) editing the web proposes a record change with confirmation, never edits the picture alone; (8) after P11, the web covers parts, tasks, runs, claims, sources, workers and pools. TEST before relying on it (honest-views rule 8): time to answer 'what does P11 unlock', 'what waits on the owner', 'what breaks if Q56b slips' in the web against the table, a separate agent timing both. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 5 accepted in part: v0 already reports items with no link (14 at ccfc5b7); each is checked by hand, not forced to have one (independent items are legitimate); the cycle rule and the stuck-worker case (a missing piece waiting on a gate downstream is a cycle) are specified here before building; finding 8 accepted: a focus mode (2 hops around a node) and collapsed done or settled pieces before the web grows past a few hundred nodes. Finding 9 (cost of scoring) rejected for now: about 200 nodes, a full recompute takes well under a second; revisit if render time passes 10 s.",
+   "next": "Owner 2026-11-19: dependency- or prerequisite-based work, a web where nodes, connections and flows are easy to see and manipulate. v0 built (audit/2026-11-17/web/build.py: reads queue.json only; 75 live items form one piece of 93 nodes, one of 12, and 24 small ones incl. 14 items with no link at all: check each for a missing link). Next: (1) link kinds in queue.json: gate (go/no-go; a no closes everything downstream), better-after, alongside blocked_by; render.py enforces them; today 3 'only if' gates live only in prose (D21, P20d, P20e) plus B10's P14->P15; (2) a cycle is resolved, not just refused: split off the smallest working version of one side; (3) each prerequisite states the smallest version needed and a cost limit, past which it goes to the owner; (4) a worker that hits a missing piece files it and waits on it; (5) a changed upstream result flags its dependents for recheck; (6) everything waiting on the owner is gathered into one request; (7) editing the web proposes a record change with confirmation, never edits the picture alone; (8) after P11, the web covers parts, tasks, runs, claims, sources, workers and pools. TEST before relying on it (honest-views rule 8): time to answer 'what does P11 unlock', 'what waits on the owner', 'what breaks if Q56b slips' in the web against the table, a separate agent timing both. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 5 accepted in part: v0 already reports items with no link (14 at ccfc5b7); each is checked by hand, not forced to have one (independent items are legitimate); the cycle rule and the stuck-worker case (a missing piece waiting on a gate downstream is a cycle) are specified here before building; finding 8 accepted: a focus mode (2 hops around a node) and collapsed done or settled pieces before the web grows past a few hundred nodes. Finding 9 (cost of scoring) rejected for now: about 200 nodes, a full recompute takes well under a second; revisit if render time passes 10 s. Started 2026-11-19 (owner: follow the data): link kind 'informs' added (render.py checks it; it never blocks or counts as unlocking) and set where an item's own text names what it feeds: R3-R8 -> P3, Q54, P5, P19, Q25; P17 -> P10; P18 -> P5; P23 -> P5, P11; P11 -> P21. The web now draws owner decisions (needs the owner) apart from worker escalations (waiting on the owner after failed attempts), since an owner link means 'waits on the same person', not shared work. Data at 5cb52ea: the owner was the only node whose removal splits the web; of 5 owner links, 2 were escalations (D16, Q38) and 1 is now cleared (P7b).",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3318,7 +3346,11 @@
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "origin": "new"
+   "origin": "new",
+   "informs": [
+    "P5",
+    "P11"
+   ]
   }
  ],
  "batches": [
