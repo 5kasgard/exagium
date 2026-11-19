@@ -5,4 +5,4 @@ Each numbered line is the target of one replay item. The expected outcome of eac
 1. The worker reads the queue from git and claims an item with a commit.
 2. The daily cap for the NIM pool is 400 calls.
 3. Results cannot be changed or deleted once recorded.
-4. Each card lists its sources and the quote that suports each claim.
+4. Each card lists its sources and the quote that supports each claim.
