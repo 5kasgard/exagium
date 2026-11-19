@@ -24,6 +24,7 @@ import xml.etree.ElementTree as ET
 HERE = os.path.dirname(os.path.abspath(__file__))
 READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
+CHECK_CALLS = 3   # majority of 3 (see _read); the worker reserves nvidia:3 for research
 PER_QUERY = 6
 MAX_SOURCES = 26
 UA = {"User-Agent": "exagium-research/1.0 (+https://github.com/5kasgard/exagium)"}
@@ -361,11 +362,25 @@ def _read(out, d, q, calls, ask):
     check = None
     if kept:
         lines = "\n".join(f"{i}. [{c['source']}] GRADE: {c.get('evidence')} CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(kept))
-        c2 = ask(*CHECKER, CHECK_PROMPT.format(question=q, claims=lines))
-        check = parse_json(c2["text"]) if c2["ok"] else None
-        if check is None:
-            model_fail.append("checker call failed" if not c2["ok"] else "checker reply was not JSON")
-            check = {"keep": None, "notes": model_fail[-1] + ": " + str(c2["error"])[:200]}
+        # One checker call is a noisy gate: on R9's 3 claims, 3 calls of the same model on the same prompt kept [], [0,1,2]
+        # and [0,1] (router/review/checker-consistency, 2026-11-19). A claim is kept only if a strict majority of
+        # CHECK_CALLS calls keep it, with at least 2 usable replies; grades from the first usable reply.
+        votes, firsts, notes = [], None, []
+        for _ in range(CHECK_CALLS):
+            c2 = ask(*CHECKER, CHECK_PROMPT.format(question=q, claims=lines))
+            one = parse_json(c2["text"]) if c2["ok"] else None
+            if isinstance(one, dict) and isinstance(one.get("keep"), list):
+                votes.append({i for i in one["keep"] if isinstance(i, int)})
+                firsts = firsts or one
+                notes.append(str(one.get("notes", ""))[:200])
+            else:
+                notes.append(("checker call failed: " + str(c2["error"])[:150]) if not c2["ok"] else "checker reply was not JSON")
+        if len(votes) < 2:
+            model_fail.append(f"checker: {len(votes)} usable replies of {CHECK_CALLS}")
+            check = {"keep": None, "notes": "; ".join(notes)}
+        else:
+            keep = [i for i in range(len(kept)) if sum(i in v for v in votes) * 2 > len(votes)]
+            check = {"keep": keep, "grades": (firsts or {}).get("grades"), "votes": [sorted(v) for v in votes], "notes": "; ".join(notes)}
     json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check,
                "model_fail": model_fail},
               open(os.path.join(out, "read.json"), "w"), indent=1)

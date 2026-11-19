@@ -145,3 +145,32 @@ class WorkflowUsesOnlyKnownOutcomes(unittest.TestCase):
         self.assertTrue(lit, "no outcomes found: the pattern is stale")
         self.assertTrue(lit <= set(T.WORKER), lit - set(T.WORKER))
         self.assertIn("transitions.py classify", wf)
+
+
+class CheckerMajority(unittest.TestCase):
+    """research_job._read keeps a claim only if a strict majority of checker calls keep it (Q60 escalation of R10-R13)."""
+    def run_read(self, checker_replies):
+        import tempfile, research_job as R
+        abstract = "We measured a forty percent drop in errors when the model was retrained on fresh data each week."
+        src = [{"sid": "s1", "kind": "paper", "via": "x", "title": "t", "year": 2025, "abstract": abstract}]
+        claims = [{"source": "s1", "claim": f"Retraining weekly cut errors (variant {'abc'[k]}).", "evidence": "reported",
+                   "quote": "a forty percent drop in errors when the model was retrained"} for k in range(3)]
+        replies = iter([json.dumps({"claims": claims, "open_questions": []})] + checker_replies)
+
+        def ask(engine, model, prompt):
+            t = next(replies)
+            return {"ok": t is not None, "text": t or "", "error": None if t else "down"}
+        with tempfile.TemporaryDirectory() as out:
+            d = {"item": {"research": {"question": "q"}}, "sources": src}
+            R._read(out, d, "q", [], ask)
+            return json.load(open(os.path.join(out, "read.json")))
+
+    def test_majority(self):
+        rd = self.run_read([json.dumps({"keep": []}), json.dumps({"keep": [0, 1, 2]}), json.dumps({"keep": [0, 1]})])
+        self.assertEqual(rd["check"]["keep"], [0, 1])     # the R9 pattern: claim 2 kept by 1 of 3 is dropped
+        self.assertEqual(rd["model_fail"], [])
+
+    def test_too_few_usable_replies_is_a_failure(self):
+        rd = self.run_read([None, "not json", json.dumps({"keep": [0]})])
+        self.assertEqual(rd["check"]["keep"], None)
+        self.assertTrue(rd["model_fail"])
