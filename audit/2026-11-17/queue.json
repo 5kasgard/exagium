@@ -1013,7 +1013,7 @@
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "next": "Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time. Update 2026-11-18 (P1, transfer/results/2026-11-18/): for the gate network, the digits-only lead did not carry over: on text and UCI Adult it used 2.1x and 1.3x mlp16's instructions and was less accurate, so on the first two non-digit tasks this family weakens the hypothesis (sizes grew with the class count: 50 output gates per class). Lookup-table and constraint-propagation families are still untested; add them in P3.",
+   "next": "Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time. Update 2026-11-18 (P1, transfer/results/2026-11-18/): for the gate network, the digits-only lead did not carry over: on text and UCI Adult it used 2.1x and 1.3x mlp16's instructions and was less accurate, so on the first two non-digit tasks this family weakens the hypothesis (sizes grew with the class count: 50 output gates per class). Lookup-table and constraint-propagation families are still untested; add them in P3. P3 step 1 (2026-11-19, runner/results/2026-11-19-p3-step1/): WiSARD (lookup tables) not matched on any task (-3.1, -25.5, -7.0 paired SE vs the better of linear/mlp16) and more instructions per item on all three: rule 3 verdict WEAKENED. With the logic-gate network (transfer step 1), no family of this kind supports the hypothesis so far. Remaining untested: constraint propagation, Tsetlin, cellular automata, event-driven; narrow or drop if the next one also fails.",
    "refs": [
     "project doc claude/forge-hypothesis-process-is-computation.md",
     "loop/results/scale-2026-11-18/",
@@ -1090,7 +1090,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tasks are the bottleneck, not candidates: a standing task-intake path (new tasks from P16 sources and the research worker), difficulty calibrated by item response theory (shared with P20b and P6), and held-out splits that cannot have leaked (with Q25). Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 11 accepted narrowly: tasks with people data (UCI Adult has sex and race columns) record per-group outcomes alongside per-item ones, so gaps between groups are visible; no separate gate. 2026-11-19 07:45Z: owner says this chat owns P3 (then P5); claimed by chat.",
+   "next": "Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tasks are the bottleneck, not candidates: a standing task-intake path (new tasks from P16 sources and the research worker), difficulty calibrated by item response theory (shared with P20b and P6), and held-out splits that cannot have leaked (with Q25). Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 11 accepted narrowly: tasks with people data (UCI Adult has sex and race columns) record per-group outcomes alongside per-item ones, so gaps between groups are visible; no separate gate. 2026-11-19 07:45Z: owner says this chat owns P3 (then P5); claimed by chat. Step 1 DONE 2026-11-19 (main 8408ef2 plan, 8f46c37 families, a9887fc/06b2bb9 result; run 44486290814): label-gbdt, label-knn, label-wisard added, tuning split in every label card; trees beat linear/mlp16 on text (+10.4 SE) and adult (+2.4 SE), not optdigits, at 3-18x the instructions; WiSARD less accurate and dearer on all 3; all reproduce, also across two machines; outside check 44498301665 applied (4/4 wording). Forecast Brier 0.152 over 4. Limitations: kNN k at grid edge (15) on text and adult; old families untuned. NEXT (step 2): new task kinds (MNIST under a plan, audio KWS, time-series anomaly, control, harder SAT, rule-as-code), a PFN, and wider grids for kNN/trees as a follow-up only if cheap.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1128,7 +1128,7 @@
    "id": "P5",
    "title": "Free proposer: free models write candidates around the clock; CI scores them",
    "kind": "build",
-   "status": "open",
+   "status": "in progress",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1142,7 +1142,7 @@
     "Q56",
     "Q56b"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): allocate compute by expected information per unit of cost across hypotheses and candidates (search with exploration), not by fixed order; its claims at volume go through P23. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 7 accepted: P23 no longer blocks P5; proposing can start without it, only P5's first test-set claim waits on P23 (a gate, to become a typed link under P21). Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): P23 deferred behind P5 (claims at low volume use per-plan pre-registration as now).",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): allocate compute by expected information per unit of cost across hypotheses and candidates (search with exploration), not by fixed order; its claims at volume go through P23. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 7 accepted: P23 no longer blocks P5; proposing can start without it, only P5's first test-set claim waits on P23 (a gate, to become a typed link under P21). Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): P23 deferred behind P5 (claims at low volume use per-plan pre-registration as now). STARTED 2026-11-19 (main 97c1f72 plan, d4337b0/4fa9601 proposer, propose.yml; review 44486820706: 2 of 9 applied). First 6 proposals (runs 44487103640 rescored by 44489049328, 44492370928): 4 valid (Wilson 0.30-0.90); prop-44492370928-2 (two-layer MLP 64-32) 0.9864 on optdigits dev, above every built family; one reply cut off by the output limit (no C block). Batch 3 running (44498548453). Continue to 20 proposals, then apply the keep/switch rule (PLAN.md). Manual dispatch, 3 per batch; NVIDIA calls share the worker ledger's cap.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1153,7 +1153,9 @@
     "router/engines.py",
     "runner/proposals/"
    ],
-   "informs": []
+   "informs": [],
+   "claimed_by": "chat-session_01DdaGg2fEE15KprU8RKSruw",
+   "claimed_at": "2026-11-19T08:40:00Z"
   },
   {
    "id": "P6",
@@ -1692,7 +1694,7 @@
    "batch": "B3",
    "blocked_by": [],
    "title": "Queue worker release test 2 (after the acceptance fixes)",
-   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused. 2026-11-19 07:20Z (chat): the chain stopped at 06:09Z after 20 items: ledger fault, Cloudflare reserved as the drafter's fallback on every run, the cap counted reservations (20) not calls made (1); fixed on main 14a9bfa (pending_calls settle on record, 3 tests, mutation-checked). The 06:17 and 07:17 crons did not fire, so the worker stayed stalled: the 'carries itself without manual dispatch' criterion FAILED before any further dispatch. Third manual dispatch at 07:20Z (deviation from 'at most 2', recorded here and in the results) so acceptance can still be graded on the remaining 10 items.",
+   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused. 2026-11-19 07:20Z (chat): the chain stopped at 06:09Z after 20 items: ledger fault, Cloudflare reserved as the drafter's fallback on every run, the cap counted reservations (20) not calls made (1); fixed on main 14a9bfa (pending_calls settle on record, 3 tests, mutation-checked). The 06:17 and 07:17 crons did not fire, so the worker stayed stalled: the 'carries itself without manual dispatch' criterion FAILED before any further dispatch. Third manual dispatch at 07:20Z (deviation from 'at most 2', recorded here and in the results) so acceptance can still be graded on the remaining 10 items. 2026-11-19 09:30Z: 26 of 30 items finished; the chain stopped at its designed cap (24 chained runs per UTC day) at 07:29Z with R5-R8 open; R4 ended 'waiting on the owner' correctly (no claim survived both checks, card to a PR). No further manual dispatch without the owner (asked 2026-11-19). Grade when all 30 finish.",
    "refs": [
     "worker/RESULTS-release-test-1.md on main",
     "worker/RELEASE-TEST.md on main"
@@ -3228,7 +3230,7 @@
    "refs": [
     "queue P20"
    ],
-   "next": "Cards per (pool, model[, harness]) from provider docs (sourced) and from ledger/calls.jsonl, Q22 router logs and graded release-test outcomes; a pre-call check refuses or splits prompts past the measured safe size. Then the offline replay test in P20.",
+   "next": "Cards per (pool, model[, harness]) from provider docs (sourced) and from ledger/calls.jsonl, Q22 router logs and graded release-test outcomes; a pre-call check refuses or splits prompts past the measured safe size. Then the offline replay test in P20. Evidence 2026-11-19 (P5): one of 6 Nemotron proposals was cut off mid-code at max_tokens 16000 (reasoning first), so output budget per job is a real limit to record in worker cards.",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3673,7 +3675,28 @@
     "queue P8r, Q57",
     "main 14a9bfa"
    ],
-   "next": "Found in release test 2 (2026-11-19): 20 items done by 06:09Z, then a budget stop (a ledger fault, fixed in 14a9bfa) ended the chain; crons at 06:17 and 07:17 did not fire (1 schedule fired all day). Any future budget stop (a real cap, a pool outage) will stall the same way. Options to test: the chain job also runs after a budget stop and dispatches one retry when the earliest cap resets (UTC midnight) through a delayed dispatch; or a second, independent schedule (another workflow at a different minute); measure which restarts reliably over a week. Not a loop: at most one pending run, as now."
+   "next": "Found in release test 2 (2026-11-19): 20 items done by 06:09Z, then a budget stop (a ledger fault, fixed in 14a9bfa) ended the chain; crons at 06:17 and 07:17 did not fire (1 schedule fired all day). Any future budget stop (a real cap, a pool outage) will stall the same way. Options to test: the chain job also runs after a budget stop and dispatches one retry when the earliest cap resets (UTC midnight) through a delayed dispatch; or a second, independent schedule (another workflow at a different minute); measure which restarts reliably over a week. Not a loop: at most one pending run, as now. Also: CHAIN_CAP 24/day is below a 30-item test plus retries; release test 2 hit it at 07:29Z (26 of 30 done)."
+  },
+  {
+   "id": "P5a",
+   "title": "Check and promote the first model-written candidate that beat the suite (prop-44492370928-2, two-layer MLP 64-32), then test it on text and adult",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B1",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "touches": [
+    "runner/candidates/label-mlp2l/"
+   ],
+   "refs": [
+    "proposals branch: proposals/prop-44492370928-2",
+    "runner/proposals/PLAN.md"
+   ],
+   "next": "0.9864 on optdigits dev (CI, jail), above gbdt 0.979 and mlp16 0.977. PLAN.md: no proposal enters runner/candidates on main without a separate check by Claude or the owner. Check (2026-11-19, Claude, first read): a deeper MLP, reads only train data, own falsifier stated; likely a capacity effect (P1's lesson) rather than a new structure. Next: copy as label-mlp2l, run on text and adult with paired SE against mlp16 and gbdt, report whether depth helps beyond digits."
   }
  ],
  "batches": [
