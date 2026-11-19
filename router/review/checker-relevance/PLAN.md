@@ -13,3 +13,14 @@ review.yml has no NIM key; 3 calls per prompt; a claim is kept by a strict major
 - B-R4.md: R4's three original overstated claims -> expected DROP (the change must not loosen fidelity).
 Rule: the checker change stays only if all 6 expectations hold. The reader change is tested live on R4's redo (its claims
 must not carry such clauses); it cannot make the checker looser.
+
+## Result 1 (review runs 44633382554, 44633386797): the checker change fails its rule
+B-R4: 0 of 3 votes on each claim, as expected. A-R10: 0 of 3 votes on every claim, including the two expected KEEPs; all
+three notes say the claims do not address the (whole) question. 4 of 6 expectations held; the rule needed 6. The checker
+prompt stays as it was (not committed). The model does not apply a "one part counts" instruction to a six-part question.
+
+## Test 2, fixed before replies: is the question's breadth the cause?
+A2-R10-narrow.md: the same three claims and the unchanged checker prompt, with one narrow question that R10's S12 claims
+answer ("How do the property-graph and RDF data models relate, and can data be converted between them without loss?").
+Expect KEEP 0 and 1, DROP 2. If all 3 hold, breadth is the cause and the fix is one question per card (R10 redone narrow;
+multi-part cards split before they run); if not, the S12 claims are the problem and R10 escalates with this record.
