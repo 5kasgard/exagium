@@ -179,7 +179,7 @@ class RejectedNotOffered(unittest.TestCase):
             open(os.path.join(repo, "docs/a.md"), "w").write(text)
             item = {"id": "X1", "title": "t", "next": "n", "targets": [{"path": "docs/a.md", "lines": [2, 2]}]}
             json.dump({"item": item, "files": {"docs/a.md": text}}, open(os.path.join(out, "bundle.json"), "w"))
-            edit = {"path": "docs/a.md", "line": 2, "old": "Results can never be changed.", "new": "Results are expected not to change."}
+            edit = {"path": "docs/a.md", "line": 2, "old": "Results can never be changed.", "new": "Results can never be altered."}
             json.dump({"proposal": {"edits": [edit], "note": "x"}, "review": {"verdict": verdict, "reason": "r"}},
                       open(os.path.join(out, "draft.json"), "w"))
             D.apply(repo, out)
@@ -193,7 +193,7 @@ class RejectedNotOffered(unittest.TestCase):
     def test_approve_merges(self):
         res, now, before = self.run_apply("approve")
         self.assertEqual(res["result"], "merge")
-        self.assertIn("expected not to change", now)
+        self.assertIn("never be altered", now)
 
 
 class GuaranteeWords(unittest.TestCase):
