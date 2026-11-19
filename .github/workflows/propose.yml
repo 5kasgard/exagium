@@ -11,12 +11,17 @@ on:
       start:
         description: "task rotation start (0 optdigits, 1 text, 2 adult)"
         default: "0"
+      rescore:
+        description: "run id of an earlier propose run: score its saved replies again, with no new calls"
+        default: ""
 permissions: {}
 concurrency:
   group: propose
   cancel-in-progress: false
 env:
   RUN: propose-${{ github.run_id }}
+  SRC: ${{ github.event.inputs.rescore || github.run_id }}   # the run whose replies are scored and named
+  RESCORE: ${{ github.event.inputs.rescore }}
 jobs:
   reserve:
     runs-on: ubuntu-24.04
@@ -36,6 +41,7 @@ jobs:
         run: |
           case "$N_IN" in 1|2|3) ;; *) echo "n must be 1, 2 or 3"; exit 1 ;; esac
           case "$START_IN" in 0|1|2) ;; *) echo "start must be 0, 1 or 2"; exit 1 ;; esac
+          case "$RESCORE" in "") ;; *[!0-9]*) echo "rescore must be a run id"; exit 1 ;; *) { echo "n=$N_IN"; echo "start=$START_IN"; } >> "$GITHUB_OUTPUT"; echo "rescore: no calls reserved"; exit 0 ;; esac
           if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; exit 1; fi
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
@@ -43,6 +49,7 @@ jobs:
           { echo "n=$N_IN"; echo "start=$START_IN"; } >> "$GITHUB_OUTPUT"
   propose:
     needs: reserve
+    if: ${{ github.event.inputs.rescore == '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -64,10 +71,12 @@ jobs:
           path: out/
   score:
     needs: [reserve, propose]
+    if: ${{ always() && needs.reserve.result == 'success' && (needs.propose.result == 'success' || needs.propose.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 330
     permissions:
       contents: read
+      actions: read   # the replies artifact of an earlier run when rescoring
     env:
       N: ${{ needs.reserve.outputs.n }}
     steps:
@@ -78,6 +87,8 @@ jobs:
         with:
           name: replies
           path: out
+          run-id: ${{ env.SRC }}
+          github-token: ${{ github.token }}
       - name: tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq valgrind bubblewrap
@@ -88,8 +99,9 @@ jobs:
         run: |
           PY="$RUNNER_TEMP/venv/bin/python"
           for k in $(seq 0 $((N - 1))); do
+            [ -f "out/$k/task" ] || continue
             task=$(cat "out/$k/task"); case "$task" in optdigits|text|adult) ;; *) echo "bad task"; exit 1 ;; esac
-            name="prop-${GITHUB_RUN_ID}-$k"
+            name="prop-$SRC-$k"
             st=$(python3 -I runner/proposals/extract.py "out/$k/reply.md" "runner/candidates/$name" | tail -1) || true
             echo "$name ($task): $st"
             if [ "$st" = extracted ]; then
@@ -98,7 +110,7 @@ jobs:
                 --out "out/$k/reproduce.json" > "out/$k/reproduce.txt" 2>&1 || true
               "$PY" runner/run.py evaluate --data "$RUNNER_TEMP/built" --task "$task" --cand majority label-linear "$name" \
                 --split dev --rounds 3 --out "out/$k/dev.json" > "out/$k/dev.txt" 2>&1 || true
-              tail -5 "out/$k/reproduce.txt" "out/$k/dev.txt"
+              tail -n 5 "out/$k/reproduce.txt" "out/$k/dev.txt" || true
             fi
             python3 -I runner/proposals/judge.py one "$name" "$st" "out/$k/reproduce.json" "out/$k/dev.json" "out/$k/result.json"
           done
@@ -114,6 +126,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write   # the proposals branch and the ledger
+      actions: read     # the replies artifact of an earlier run when rescoring
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no artifact
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
@@ -126,13 +139,15 @@ jobs:
         with:
           name: replies
           path: replies
+          run-id: ${{ env.SRC }}
+          github-token: ${{ github.token }}
       - name: ledger, proposals branch and leaderboard
         env:
           N: ${{ needs.reserve.outputs.n }}
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
-          if [ -f replies/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" replies/calls.jsonl || echo "ledger record exit $?"; fi
+          if [ -z "$RESCORE" ] && [ -f replies/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" replies/calls.jsonl || echo "ledger record exit $?"; fi
           src=scored; [ -d scored ] || src=replies
           for t in 1 2 3; do
             if git ls-remote --exit-code origin proposals >/dev/null; then
@@ -142,11 +157,12 @@ jobs:
             fi
             P="$RUNNER_TEMP/p$t"
             for k in $(seq 0 $((N - 1))); do
-              d="$P/proposals/prop-${GITHUB_RUN_ID}-$k"; mkdir -p "$d"
+              [ -f "replies/$k/task" ] || continue
+              d="$P/proposals/prop-$SRC-$k"; mkdir -p "$d"
               for f in task prompt.md reply.md reproduce.txt dev.txt result.json; do   # at most 2 MB each (review 44486820706, 6)
                 [ -f "$src/$k/$f" ] && [ "$(stat -c %s "$src/$k/$f")" -le 2000000 ] && cp "$src/$k/$f" "$d/" || true
               done
-              [ -f "$d/result.json" ] || python3 -I runner/proposals/judge.py one "prop-${GITHUB_RUN_ID}-$k" "not scored" x x "$d/result.json"
+              [ -f "$src/$k/result.json" ] || python3 -I runner/proposals/judge.py one "prop-$SRC-$k" "not scored" x x "$d/result.json"
             done
             python3 -I runner/proposals/judge.py board "$P/proposals"
             git -C "$P" add -A && git -C "$P" commit -qm "proposals: $RUN" && git -C "$P" push -q origin HEAD:proposals && break

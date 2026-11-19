@@ -31,9 +31,10 @@ def extract(reply, dst):
     if "def " not in b["python"] or "main" not in b["c"]:
         return "train.py has no function or infer.c has no main"
     os.makedirs(dst, exist_ok=True)
-    open(os.path.join(dst, "train.py"), "w").write(b["python"])
-    open(os.path.join(dst, "infer.c"), "w").write(b["c"])
-    open(os.path.join(dst, "README.md"), "w").write("# Proposal (model-written, untrusted)\n\n" + b["hypothesis"].strip() + "\n")
+    for f, text in (("train.py", b["python"]), ("infer.c", b["c"]),
+                    ("README.md", "# Proposal (model-written, untrusted)\n\n" + b["hypothesis"].strip() + "\n")):
+        with open(os.path.join(dst, f), "w") as fh:
+            fh.write(text)
     return None
 
 
