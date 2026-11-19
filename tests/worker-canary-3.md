@@ -6,3 +6,4 @@ Each numbered line is the target of one replay item. The expected outcome of eac
 2. The daily cap for the NIM pool is 400 calls.
 3. Results cannot be changed or deleted once recorded.
 4. Each card lists its sources and the quote that supports each claim.
+5. A verdict can never be removed from the record by anyone, including the owner, for any reason at all.
