@@ -21,7 +21,7 @@ on:
         default: "0"
 permissions: {}
 concurrency:
-  group: propose
+  group: propose${{ github.event.inputs.dry == '1' && '-dry' || '' }}   # a dry run never waits behind, or displaces, a real batch
   cancel-in-progress: false
 env:
   FIRST_N: 20   # PLAN.md: the keep/switch rule is applied after the first 20 proposals; the chain stops there
