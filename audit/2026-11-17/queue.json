@@ -1141,7 +1141,7 @@
     "Q56",
     "Q56b"
    ],
-   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): allocate compute by expected information per unit of cost across hypotheses and candidates (search with exploration), not by fixed order; its claims at volume go through P23. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 7 accepted: P23 no longer blocks P5; proposing can start without it, only P5's first test-set claim waits on P23 (a gate, to become a typed link under P21).",
+   "next": "Three jobs (propose with key, no code run; score jailed, no secrets, dev only; record, no secrets). Valid-rate switch rule fixed first. Starts on the contract's first tasks and widens with the suite. Waits also on Q10 (it runs generated code in the jail), P4 and Q22 (same file, router/engines.py) and Q07 (new workflow follows the cleaned pattern): from the touches check, 2026-11-18. Waits also on Q56 (generated C must be compiled inside the jail), 2026-11-18. Outside review 2026-11-19 (finding 9): optdigits test labels are public, so a proposed candidate could embed answers; P5 scores dev only, and no P5 candidate goes to the test gate on a public set before fresh held-out data (Q25). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): allocate compute by expected information per unit of cost across hypotheses and candidates (search with exploration), not by fixed order; its claims at volume go through P23. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 7 accepted: P23 no longer blocks P5; proposing can start without it, only P5's first test-set claim waits on P23 (a gate, to become a typed link under P21). Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): P23 deferred behind P5 (claims at low volume use per-plan pre-registration as now).",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -1151,7 +1151,8 @@
     ".github/workflows/propose.yml",
     "router/engines.py",
     "runner/proposals/"
-   ]
+   ],
+   "informs": []
   },
   {
    "id": "P6",
@@ -3295,7 +3296,7 @@
     "audit/2026-11-17/web/ on this branch",
     "skill: honest-views"
    ],
-   "next": "Owner 2026-11-19: dependency- or prerequisite-based work, a web where nodes, connections and flows are easy to see and manipulate. v0 built (audit/2026-11-17/web/build.py: reads queue.json only; 75 live items form one piece of 93 nodes, one of 12, and 24 small ones incl. 14 items with no link at all: check each for a missing link). Next: (1) link kinds in queue.json: gate (go/no-go; a no closes everything downstream), better-after, alongside blocked_by; render.py enforces them; today 3 'only if' gates live only in prose (D21, P20d, P20e) plus B10's P14->P15; (2) a cycle is resolved, not just refused: split off the smallest working version of one side; (3) each prerequisite states the smallest version needed and a cost limit, past which it goes to the owner; (4) a worker that hits a missing piece files it and waits on it; (5) a changed upstream result flags its dependents for recheck; (6) everything waiting on the owner is gathered into one request; (7) editing the web proposes a record change with confirmation, never edits the picture alone; (8) after P11, the web covers parts, tasks, runs, claims, sources, workers and pools. TEST before relying on it (honest-views rule 8): time to answer 'what does P11 unlock', 'what waits on the owner', 'what breaks if Q56b slips' in the web against the table, a separate agent timing both. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 5 accepted in part: v0 already reports items with no link (14 at ccfc5b7); each is checked by hand, not forced to have one (independent items are legitimate); the cycle rule and the stuck-worker case (a missing piece waiting on a gate downstream is a cycle) are specified here before building; finding 8 accepted: a focus mode (2 hops around a node) and collapsed done or settled pieces before the web grows past a few hundred nodes. Finding 9 (cost of scoring) rejected for now: about 200 nodes, a full recompute takes well under a second; revisit if render time passes 10 s. Started 2026-11-19 (owner: follow the data): link kind 'informs' added (render.py checks it; it never blocks or counts as unlocking) and set where an item's own text names what it feeds: R3-R8 -> P3, Q54, P5, P19, Q25; P17 -> P10; P18 -> P5; P23 -> P5, P11; P11 -> P21. The web now draws owner decisions (needs the owner) apart from worker escalations (waiting on the owner after failed attempts), since an owner link means 'waits on the same person', not shared work. Data at 5cb52ea: the owner was the only node whose removal splits the web; of 5 owner links, 2 were escalations (D16, Q38) and 1 is now cleared (P7b). Owner 2026-11-19: the system needs a way to build a graph of anything on demand; which graphs matter can't be fixed in advance, only seen as questions come up. Design (hypothesis): (1) extractors turn each record (queue, repo imports, workflow files and branches, ledger, research cards, worker ledger, per-item outcomes) into one stream of typed triples: node, link kind, node, with source file, commit and time on every triple; every link kind says why it exists (needs, informs, writes, imports, reads secret, derived from, supports, contradicts, ran on); (2) a question becomes a query over the triples (node kinds, link kinds, time window, hops), written by hand or by a free model, and the query is shown and saved with the graph; (3) one generic builder lays out and draws any query result, every node opening to its source; (4) usage decides what stays: queries asked again become saved views; none is built ahead of a question. Cheapest test: with the queue extractor plus two more (code imports, workflows), can 5 real questions from the owner be answered as graphs with no new drawing code, and faster than reading files (a separate agent times both)? The triples later move into P11's store.",
+   "next": "Owner 2026-11-19: dependency- or prerequisite-based work, a web where nodes, connections and flows are easy to see and manipulate. v0 built (audit/2026-11-17/web/build.py: reads queue.json only; 75 live items form one piece of 93 nodes, one of 12, and 24 small ones incl. 14 items with no link at all: check each for a missing link). Next: (1) link kinds in queue.json: gate (go/no-go; a no closes everything downstream), better-after, alongside blocked_by; render.py enforces them; today 3 'only if' gates live only in prose (D21, P20d, P20e) plus B10's P14->P15; (2) a cycle is resolved, not just refused: split off the smallest working version of one side; (3) each prerequisite states the smallest version needed and a cost limit, past which it goes to the owner; (4) a worker that hits a missing piece files it and waits on it; (5) a changed upstream result flags its dependents for recheck; (6) everything waiting on the owner is gathered into one request; (7) editing the web proposes a record change with confirmation, never edits the picture alone; (8) after P11, the web covers parts, tasks, runs, claims, sources, workers and pools. TEST before relying on it (honest-views rule 8): time to answer 'what does P11 unlock', 'what waits on the owner', 'what breaks if Q56b slips' in the web against the table, a separate agent timing both. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 5 accepted in part: v0 already reports items with no link (14 at ccfc5b7); each is checked by hand, not forced to have one (independent items are legitimate); the cycle rule and the stuck-worker case (a missing piece waiting on a gate downstream is a cycle) are specified here before building; finding 8 accepted: a focus mode (2 hops around a node) and collapsed done or settled pieces before the web grows past a few hundred nodes. Finding 9 (cost of scoring) rejected for now: about 200 nodes, a full recompute takes well under a second; revisit if render time passes 10 s. Started 2026-11-19 (owner: follow the data): link kind 'informs' added (render.py checks it; it never blocks or counts as unlocking) and set where an item's own text names what it feeds: R3-R8 -> P3, Q54, P5, P19, Q25; P17 -> P10; P18 -> P5; P23 -> P5, P11; P11 -> P21. The web now draws owner decisions (needs the owner) apart from worker escalations (waiting on the owner after failed attempts), since an owner link means 'waits on the same person', not shared work. Data at 5cb52ea: the owner was the only node whose removal splits the web; of 5 owner links, 2 were escalations (D16, Q38) and 1 is now cleared (P7b). Owner 2026-11-19: the system needs a way to build a graph of anything on demand; which graphs matter can't be fixed in advance, only seen as questions come up. Design (hypothesis): (1) extractors turn each record (queue, repo imports, workflow files and branches, ledger, research cards, worker ledger, per-item outcomes) into one stream of typed triples: node, link kind, node, with source file, commit and time on every triple; every link kind says why it exists (needs, informs, writes, imports, reads secret, derived from, supports, contradicts, ran on); (2) a question becomes a query over the triples (node kinds, link kinds, time window, hops), written by hand or by a free model, and the query is shown and saved with the graph; (3) one generic builder lays out and draws any query result, every node opening to its source; (4) usage decides what stays: queries asked again become saved views; none is built ahead of a question. Cheapest test: with the queue extractor plus two more (code imports, workflows), can 5 real questions from the owner be answered as graphs with no new drawing code, and faster than reading files (a separate agent times both)? The triples later move into P11's store. Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): KEEP, scoped: do the timing test before any further extension.",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3318,7 +3319,7 @@
     "queue P21",
     "skill: weigh-the-evidence"
    ],
-   "next": "Needs P21's gate links. Rule fixed before running (outside review finding 6: 'top 5 differ' alone is unsound): compute both orders over ready items; if Kendall tau >= 0.8 keep the current rule. If tau < 0.8, run the two orders in alternate weeks for 4 weeks and adopt the new key only if decisions per worker-hour (items closed or gated out) are higher with it by more than the week-to-week spread.",
+   "next": "Needs P21's gate links. Rule fixed before running (outside review finding 6: 'top 5 differ' alone is unsound): compute both orders over ready items; if Kendall tau >= 0.8 keep the current rule. If tau < 0.8, run the two orders in alternate weeks for 4 weeks and adopt the new key only if decisions per worker-hour (items closed or gated out) are higher with it by more than the week-to-week spread. Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): DEFER (already behind P21): also needs enough closed items to compare orders.",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3331,7 +3332,9 @@
    "title": "Claims at volume: a test-set budget per data set, false-discovery control, and a forecast on every plan",
    "kind": "build",
    "batch": "B1",
-   "blocked_by": [],
+   "blocked_by": [
+    "P5"
+   ],
    "touches": [
     "runner/run.py",
     "runner/CONTRACT.md"
@@ -3340,7 +3343,7 @@
     "queue P5, P11, Q25",
     "skills: test-design, adversarial-review"
    ],
-   "next": "Whole-system review 2026-11-19: pre-registering each plan works for a dozen claims, not for thousands of proposed candidates. Add to the runner's test gate: (1) each test split has a use count and budget; past it, the split refreshes or claims go to a fresh holdout (reusable-holdout method); (2) claims from one search are corrected for many comparisons (false-discovery control) before a verdict; (3) every plan states the claimant's probability of a pass before running, kept in the ledger, scored by P11 for calibration per source. Gates P5's first test-set claim, not P5 itself. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 3 accepted in part: the design must say how error is controlled across tasks and across iterations of one search, not only within one search; the method and its numbers are chosen in this item from the literature (research card first), not fixed here.",
+   "next": "Whole-system review 2026-11-19: pre-registering each plan works for a dozen claims, not for thousands of proposed candidates. Add to the runner's test gate: (1) each test split has a use count and budget; past it, the split refreshes or claims go to a fresh holdout (reusable-holdout method); (2) claims from one search are corrected for many comparisons (false-discovery control) before a verdict; (3) every plan states the claimant's probability of a pass before running, kept in the ledger, scored by P11 for calibration per source. Gates P5's first test-set claim, not P5 itself. Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 3 accepted in part: the design must say how error is controlled across tasks and across iterations of one search, not only within one search; the method and its numbers are chosen in this item from the literature (research card first), not fixed here. Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): DEFER accepted: with a handful of claims, per-plan pre-registration is enough; now waits on P5 and starts when P5 has produced its first 20 scored candidates.",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -3348,7 +3351,6 @@
    "value": "high",
    "origin": "new",
    "informs": [
-    "P5",
     "P11"
    ]
   },
@@ -3431,7 +3433,7 @@
    "title": "Research card: when a model can replace a human reviewer: LLM judges, scalable oversight and weak-to-strong, with measured agreement and failure modes",
    "kind": "test",
    "severity": "minor",
-   "status": "open",
+   "status": "parked",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -3445,7 +3447,7 @@
     "P8",
     "P10"
    ],
-   "next": "Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P20c, P8, P10 and P24.",
+   "next": "Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P20c, P8, P10 and P24. Blind cut review 2026-11-19 (gpt-oss-120b, sources of ideas stripped; router-runs reviews/44474101680): CUT accepted: named the item most likely born from discussion rather than data; no current decision waits on it. Reopen if P20c's cascade test needs a model-as-judge step.",
    "research": {
     "question": "When can a language model stand in for a human reviewer or decision-maker (LLM-as-a-judge, scalable oversight, debate, weak-to-strong generalisation), how well do such judges agree with humans, and what failure modes (self-preference, position bias, reward hacking) are measured?",
     "queries": [
