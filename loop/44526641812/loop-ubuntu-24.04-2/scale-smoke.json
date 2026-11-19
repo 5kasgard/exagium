@@ -1,0 +1,289 @@
+{
+ "tool": "loop/scale.py",
+ "sizes": [
+  0,
+  956,
+  4096
+ ],
+ "rounds": 2,
+ "seed": 1,
+ "pool": {
+  "source": "first 3/4 of optdigits.tra, originals + copies with 4 pixels moved by 1, distinct",
+  "n": 4096,
+  "sha256": "605968a5bff6baa19064863eed67798e5a100fcdba36bac28f80afe81c536715"
+ },
+ "host": {
+  "cpu": "Intel(R) Xeon(R) 6975P-C",
+  "jail": "bwrap",
+  "versions": {
+   "python": "3.12.3",
+   "numpy": "2.5.3",
+   "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "valgrind": "valgrind-3.22.0",
+   "machine": "x86_64",
+   "cpu": "Intel(R) Xeon(R) 6975P-C",
+   "kernel": "7.0.0-1014-aws"
+  }
+ },
+ "digests": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "b7239c74ea2812c10789a11109fb02a120a350c373959d6ecebd7cd4425f956b"
+  },
+  {
+   "name": "loop/timer.c",
+   "sha256": "8b6b1906e4fe40b99539e899af0643b6f7236c17b4f5c9efa8bb22357c45ea8d"
+  },
+  {
+   "name": "loop/confine.c",
+   "sha256": "0b38041e5b16718f95ed289b6c415a4a09d68f6b134707e76c4815067a7b3dd2"
+  },
+  {
+   "name": "loop/seccomp_filter.h",
+   "sha256": "339b5da4af90efc8c5d3c3f913e3d7f90ce06e7dc16b3a51b48eeb4e20ef8582"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "cc80b6452f9784abfaee699f023e50d0a0afe8c004054f8ef85a6feee7a93268"
+  },
+  {
+   "name": "record/record.py",
+   "sha256": "a313e6b910207faa513b0bef5a23ee37f5a389f3afc21120febc45aedfce1472"
+  },
+  {
+   "name": "loop/candidates/mlp16/train.py",
+   "sha256": "f403927fe58bd63f9112b59bf573a4f7eb75b39a9dba54fce180536cc4186bc1"
+  },
+  {
+   "name": "loop/candidates/mlp16/infer.c",
+   "sha256": "aa30ab3243983d6eb9b861048bd47a03670bb68b446488d514e3af5fba42e27d"
+  },
+  {
+   "name": "loop/candidates/mlp16/weights.bin",
+   "sha256": "1f3f035ca9cb3bca1e5130faa11bb16fc1d38830ebce22dab7f4355b3de934b0"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/scale.py",
+   "sha256": "28353a9ce89e7bf2cdb46cfa985c3633381e29e2b47bc32ef86ab500bd402ead"
+  }
+ ],
+ "candidates": {
+  "mlp16": {
+   "fixed_ns_t0": [
+    445423.0,
+    10683.0
+   ],
+   "marginal_ns_per_image_large_n": [
+    58.47181528662421,
+    15.114808917197452
+   ],
+   "marginal_ns_per_image_large_n_median": 58.47181528662421,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      154.42154811715483,
+      65.2907949790795
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      58.47181528662421,
+      15.114808917197452
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      445423.0,
+      10683.0
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      593050.0,
+      51735.0
+     ],
+     "ns_per_image": [
+      620.3451882845188,
+      54.11610878661087
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      776651.5,
+      4274.5
+     ],
+     "ns_per_image": [
+      189.6121826171875,
+      1.0435791015625
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    154.42154811715483,
+    65.2907949790795
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9872611464968153
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9872611464968153
+   }
+  },
+  "linear": {
+   "fixed_ns_t0": [
+    448109.5,
+    9889.5
+   ],
+   "marginal_ns_per_image_large_n": [
+    165.85716560509553,
+    18.882006369426744
+   ],
+   "marginal_ns_per_image_large_n_median": 165.85716560509553,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      185.36035564853557,
+      11.40533472803348
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      165.85716560509553,
+      18.882006369426744
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      448109.5,
+      9889.5
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      625314.0,
+      20792.999999999996
+     ],
+     "ns_per_image": [
+      654.0941422594142,
+      21.75
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      1146105.5,
+      38496.5
+     ],
+     "ns_per_image": [
+      279.8109130859375,
+      9.3985595703125
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    185.36035564853557,
+    11.40533472803348
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9843949044585987
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9843949044585987
+   }
+  }
+ },
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "mlp16",
+   "marginal_diff_ns": 107.38535031847134,
+   "marginal_diff_se": 33.99681528662419,
+   "ratio_of_means": 2.836531836613535,
+   "n956_diff_ns": 30.93880753138074,
+   "n956_diff_se": 76.69612970711297
+  }
+ ],
+ "raw_ns": {
+  "mlp16": [
+   {
+    "4096": 772377,
+    "0": 456106,
+    "956": 541315
+   },
+   {
+    "0": 434740,
+    "956": 644785,
+    "4096": 780926
+   }
+  ],
+  "linear": [
+   {
+    "0": 457999,
+    "4096": 1107609,
+    "956": 646107
+   },
+   {
+    "956": 604521,
+    "4096": 1184602,
+    "0": 438220
+   }
+  ]
+ },
+ "problems": [],
+ "provenance": null
+}

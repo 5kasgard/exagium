@@ -1,0 +1,289 @@
+{
+ "tool": "loop/scale.py",
+ "sizes": [
+  0,
+  956,
+  4096
+ ],
+ "rounds": 2,
+ "seed": 1,
+ "pool": {
+  "source": "first 3/4 of optdigits.tra, originals + copies with 4 pixels moved by 1, distinct",
+  "n": 4096,
+  "sha256": "605968a5bff6baa19064863eed67798e5a100fcdba36bac28f80afe81c536715"
+ },
+ "host": {
+  "cpu": "Intel(R) Xeon(R) 6975P-C",
+  "jail": "bwrap",
+  "versions": {
+   "python": "3.12.3",
+   "numpy": "2.5.3",
+   "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "valgrind": "valgrind-3.22.0",
+   "machine": "x86_64",
+   "cpu": "Intel(R) Xeon(R) 6975P-C",
+   "kernel": "7.0.0-1014-aws"
+  }
+ },
+ "digests": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "b7239c74ea2812c10789a11109fb02a120a350c373959d6ecebd7cd4425f956b"
+  },
+  {
+   "name": "loop/timer.c",
+   "sha256": "8b6b1906e4fe40b99539e899af0643b6f7236c17b4f5c9efa8bb22357c45ea8d"
+  },
+  {
+   "name": "loop/confine.c",
+   "sha256": "0b38041e5b16718f95ed289b6c415a4a09d68f6b134707e76c4815067a7b3dd2"
+  },
+  {
+   "name": "loop/seccomp_filter.h",
+   "sha256": "339b5da4af90efc8c5d3c3f913e3d7f90ce06e7dc16b3a51b48eeb4e20ef8582"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "cc80b6452f9784abfaee699f023e50d0a0afe8c004054f8ef85a6feee7a93268"
+  },
+  {
+   "name": "record/record.py",
+   "sha256": "a313e6b910207faa513b0bef5a23ee37f5a389f3afc21120febc45aedfce1472"
+  },
+  {
+   "name": "loop/candidates/mlp16/train.py",
+   "sha256": "f403927fe58bd63f9112b59bf573a4f7eb75b39a9dba54fce180536cc4186bc1"
+  },
+  {
+   "name": "loop/candidates/mlp16/infer.c",
+   "sha256": "aa30ab3243983d6eb9b861048bd47a03670bb68b446488d514e3af5fba42e27d"
+  },
+  {
+   "name": "loop/candidates/mlp16/weights.bin",
+   "sha256": "1f3f035ca9cb3bca1e5130faa11bb16fc1d38830ebce22dab7f4355b3de934b0"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/scale.py",
+   "sha256": "28353a9ce89e7bf2cdb46cfa985c3633381e29e2b47bc32ef86ab500bd402ead"
+  }
+ ],
+ "candidates": {
+  "mlp16": {
+   "fixed_ns_t0": [
+    444056.0,
+    36403.99999999999
+   ],
+   "marginal_ns_per_image_large_n": [
+    101.27770700636943,
+    1.080254777070067
+   ],
+   "marginal_ns_per_image_large_n_median": 101.27770700636943,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      40.72751046025105,
+      27.073744769874477
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      101.27770700636943,
+      1.080254777070067
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      444056.0,
+      36403.99999999999
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      482991.5,
+      10521.5
+     ],
+     "ns_per_image": [
+      505.22123430962347,
+      11.005753138075335
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      801003.5,
+      13913.499999999998
+     ],
+     "ns_per_image": [
+      195.5574951171875,
+      3.3968505859374996
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    40.72751046025105,
+    27.073744769874477
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9872611464968153
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9872611464968153
+   }
+  },
+  "linear": {
+   "fixed_ns_t0": [
+    401245.5,
+    24978.499999999996
+   ],
+   "marginal_ns_per_image_large_n": [
+    158.02101910828026,
+    11.112101910828017
+   ],
+   "marginal_ns_per_image_large_n_median": 158.02101910828026,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      222.63702928870293,
+      66.95920502092049
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      158.02101910828026,
+      11.112101910828017
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      401245.5,
+      24978.499999999996
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      614086.5,
+      39034.5
+     ],
+     "ns_per_image": [
+      642.3498953974895,
+      40.83106694560666
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      1110272.5,
+      4142.499999999999
+     ],
+     "ns_per_image": [
+      271.0626220703125,
+      1.0113525390624998
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    222.63702928870293,
+    66.95920502092049
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9843949044585987
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9843949044585987
+   }
+  }
+ },
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "mlp16",
+   "marginal_diff_ns": 56.74331210191083,
+   "marginal_diff_se": 10.031847133757948,
+   "ratio_of_means": 1.5602744550520107,
+   "n956_diff_ns": 181.9095188284519,
+   "n956_diff_se": 39.88546025104601
+  }
+ ],
+ "raw_ns": {
+  "mlp16": [
+   {
+    "4096": 787090,
+    "0": 407652,
+    "956": 472470
+   },
+   {
+    "0": 480460,
+    "956": 493513,
+    "4096": 814917
+   }
+  ],
+  "linear": [
+   {
+    "0": 376267,
+    "4096": 1114415,
+    "956": 653121
+   },
+   {
+    "956": 575052,
+    "4096": 1106130,
+    "0": 426224
+   }
+  ]
+ },
+ "problems": [],
+ "provenance": null
+}
