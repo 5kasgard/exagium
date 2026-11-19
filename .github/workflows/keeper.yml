@@ -4,6 +4,7 @@
 # then dispatches is reliable. A job lasts at most 6 hours, so a longer wait hands over to a new keeper run.
 # Started by worker.yml when a run stops for budget (wake job), with the time the daily caps reset.
 name: keeper
+run-name: keeper for ${{ github.event.inputs.workflow }}   # lets a caller count only its own waiting keepers
 on:
   workflow_dispatch:
     inputs:

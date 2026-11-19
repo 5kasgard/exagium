@@ -25,3 +25,14 @@ scheduler already known to be unreliable (Q57): the rules and the design did not
 
 Items released in this window are graded for acceptance with release test 2's other items, by its unchanged rules
 (blind grading agent, acceptable-outcome column), and labelled as run under this test.
+
+## Result (written 2026-11-19 20:40Z, from the Actions API and the queue record)
+**PASS by its rules, on thin evidence.** Started by one keeper dispatch at 10:59Z; four chained runs by github-actions[bot]
+(11:01, 11:04, 11:07, 11:11Z) claimed and landed R5–R8; the run at 11:11Z found no ready item, which ends the test early by its rule.
+1. manual dispatches after the start: 0. 2. every ready item claimed within minutes. 3. no budget stop occurred, so the keeper's
+budget path was not exercised. 4. no run while paused; never more than one waiting.
+What it does not show: 11 minutes and 4 items; no budget stop, no keeper hand-over past 5h40m.
+**Fault found after the end:** the worker then sat idle for about 8 h with budget left: nothing was ready until P8r was graded,
+and only the unreliable cron could restart it (one scheduled run, 19:29Z). Owner, 2026-11-20: workers always run; a stop means
+something is wrong. Fix (this commit): a run that finds nothing ready re-polls in 30 minutes through the keeper; keeper runs are
+named by their target so the worker counts only its own waiting keepers.

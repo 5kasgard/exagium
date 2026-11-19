@@ -227,7 +227,9 @@ jobs:
     # Queue Q58: a run that stopped for budget hands over to keeper.yml, which starts the worker when the daily caps reset
     # (00:05 UTC), so the worker never depends on GitHub's scheduler (measured unreliable on this repo, 2026-11-19).
     needs: claim
-    if: ${{ always() && needs.claim.outputs.stopped == 'budget' }}
+    # Also when nothing was ready while budget remained (owner 2026-11-20: workers always run; a stop means a fault): poll again in
+    # 30 minutes through the keeper, since the hourly cron fired 3 times in about 16 h (2026-11-19). An idle poll spends no model call.
+    if: ${{ always() && needs.claim.result == 'success' && (needs.claim.outputs.stopped == 'budget' || needs.claim.outputs.item == '') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:
@@ -239,11 +241,14 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       R: ${{ github.repository }}
     steps:
-      - name: start a keeper for the next budget reset, unless one is already waiting
+      - name: start a keeper (budget reset, or an idle re-poll), unless one is already waiting or the worker is paused
+        env:
+          STOPPED: ${{ needs.claim.outputs.stopped }}
         run: |
-          waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed")] | length')
-          if [ "$waiting" -gt 0 ]; then echo "a keeper is already waiting ($waiting)"; exit 0; fi
-          at=$(date -u -d "tomorrow 00:05" +%s)
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: no keeper"; exit 0; fi
+          waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
+          if [ "$waiting" -gt 0 ]; then echo "a worker keeper is already waiting ($waiting)"; exit 0; fi
+          if [ "$STOPPED" = budget ]; then at=$(date -u -d "tomorrow 00:05" +%s); else at=$(( $(date +%s) + 1800 )); echo "nothing ready: re-poll in 30 min"; fi
           gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
           echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"
 
