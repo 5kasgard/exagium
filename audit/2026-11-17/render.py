@@ -19,6 +19,8 @@ if len(ids) != len(set(ids)):
     errs.append('duplicate ids: ' + ', '.join(sorted({x for x in ids if ids.count(x) > 1})))
 by = {i['id']: i for i in items}
 for i in items:
+    if 'origin' in i and i['origin'] not in ('follow-up', 'new'):   # follow-up: from finishing or checking work; new: a new direction
+        errs.append(f"{i.get('id')}: origin must be follow-up or new")
     for f, allowed in (('kind', KIND), ('status', STATUS), ('needs', NEEDS), ('value', set(VALUE)), ('severity', SEV)):
         if i.get(f) not in allowed:
             errs.append(f"{i['id']}: bad {f} {i.get(f)!r}")

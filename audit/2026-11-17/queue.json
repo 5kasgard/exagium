@@ -1698,7 +1698,8 @@
     "gh run list -w worker.yml (15 dispatch, 0 schedule)",
     "record.yml cron 17 3 * * * vs run at 2026-11-18T11:53Z",
     "project doc claude/HANDOFF-worker-P8.md"
-   ]
+   ],
+   "origin": "follow-up"
   },
   {
    "id": "P7e",
@@ -1740,7 +1741,8 @@
    "touches": [
     "store/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: compartments, hidden connections, composition, tool-making and void-finding all need every result in one place with per-item detail; today results are JSON files across loop/results, runs/, bench and research. Smallest version: one schema (SQLite or JSONL plus an index), filled by a script from existing results, never hand-edited; ledger stays the source of truth and the store is rebuilt from it. Ingest P3's per-item output when it lands. First test: can one query answer 'which family wins on which items of which task, at what cost' for optdigits plus P1's tasks? Debt check for the auditor: count of result files the store does not ingest.",
+   "origin": "new"
   },
   {
    "kind": "build",
@@ -1763,7 +1765,8 @@
    "touches": [
     "compose/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: heterogeneous parts beat any single model on accuracy per unit cost where per-item data shows different families win on different items. First test: a two-stage cascade on optdigits from existing candidates, with the confidence threshold chosen on training data only; report accuracy and the meters against the best single candidate."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Hypothesis: heterogeneous parts beat any single model on accuracy per unit cost where per-item data shows different families win on different items. First test: a two-stage cascade on optdigits from existing candidates, with the confidence threshold chosen on training data only; report accuracy and the meters against the best single candidate.",
+   "origin": "new"
   },
   {
    "kind": "build",
@@ -1786,7 +1789,8 @@
    "touches": [
     "tools/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Evidence: AlphaEvolve-style loops (LLM proposes, evaluator scores, archive keeps diversity) found published kernel and algorithm gains; the evaluator is the load-bearing part. Rule that cannot bend: a tool never writes or changes the check that judges it (same split as API key vs generated code). First test: pick one gap the store shows (e.g. a meter for memory traffic) and see whether the free proposer can build it to pass checks against known answers."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Evidence: AlphaEvolve-style loops (LLM proposes, evaluator scores, archive keeps diversity) found published kernel and algorithm gains; the evaluator is the load-bearing part. Rule that cannot bend: a tool never writes or changes the check that judges it (same split as API key vs generated code). First test: pick one gap the store shows (e.g. a meter for memory traffic) and see whether the free proposer can build it to pass checks against known answers.",
+   "origin": "new"
   },
   {
    "kind": "test",
@@ -1809,7 +1813,8 @@
     ".github/workflows/machines.yml",
     "loop/results/machines-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it). Finding 2026-11-19: loop.yml and counter.yml already run on ubuntu-24.04 and ubuntu-24.04-arm (run 44395229919: 6 runs plus docker on both), so the x86-vs-arm half of this test may be answerable from ci-runs data without a new workflow; check that first."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Free on a public repo: ubuntu-24.04 (x86), ubuntu-24.04-arm, macos-14 (M1). Pass rule set before running: hardware-aware search moves up if the rank order of the top candidates by native ns differs between machines beyond 3 SE. Known gaps: macOS has no bwrap (the jail) and valgrind does not run on Apple Silicon, so M1 gives native ns only and needs a jail decision, or drop M1 from round one. Also check whether hosted VMs expose hardware counters (one run of perf stat). New workflow follows Q07's cleaned pattern (same reason P7 and P10 wait on it). Finding 2026-11-19: loop.yml and counter.yml already run on ubuntu-24.04 and ubuntu-24.04-arm (run 44395229919: 6 runs plus docker on both), so the x86-vs-arm half of this test may be answerable from ci-runs data without a new workflow; check that first.",
+   "origin": "new"
   },
   {
    "kind": "build",
@@ -1834,7 +1839,8 @@
     "meters/",
     "loop/results/hardware-*/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Waits on P14's result. Reachable free hardware: x86, arm64 and M1 runners (unlimited on a public repo); Kaggle about 30 GPU h and 20 TPU h per week (wall-clock counted, so budget it); Lightning about 80 GPU h per month; HF ZeroGPU minutes per day. Simulators (gem5 and similar) only where real hardware is out of reach, with their accuracy measured. Note: loop.py is frozen by plan 2, so changes land as new meters or a new plan. Writes new meters only; any new compute pool (Kaggle etc.) is registered through the router after P4's spend caps, not edited here.",
+   "origin": "new"
   },
   {
    "kind": "build",
@@ -1857,7 +1863,8 @@
    "touches": [
     "external/"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only; the owner is working out how to frame part of this request, so do not start until they say. Scope as discussed: closed systems (AlphaEvolve) enter as published results a candidate must beat on our checker; open weights (AlphaFold2, open models) as parts or task domains; open re-implementations of evolve loops as the proposer pattern. Do not rebuild what others do better; adapt their outputs. The sandbox stays a safety boundary for generated code: hardened, never subverted."
+   "next": "Owner, 2026-11-19: add to the queue only; the owner is working out how to frame part of this request, so do not start until they say. Scope as discussed: closed systems (AlphaEvolve) enter as published results a candidate must beat on our checker; open weights (AlphaFold2, open models) as parts or task domains; open re-implementations of evolve loops as the proposer pattern. Do not rebuild what others do better; adapt their outputs. The sandbox stays a safety boundary for generated code: hardened, never subverted.",
+   "origin": "new"
   },
   {
    "kind": "doc",
@@ -1877,7 +1884,8 @@
    "touches": [
     "docs/capability-map.md"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md.",
+   "origin": "new"
   },
   {
    "id": "P18",
@@ -1899,7 +1907,8 @@
     "runner/jail.py, loop/confine.c, loop/seccomp_filter.h on main",
     "runner/results/2026-11-18-q10-q55/ (Q10 jail runs)",
     "skills: careful-live-changes, security-code-review, adversarial-review"
-   ]
+   ],
+   "origin": "new"
   },
   {
    "id": "Q56b",
@@ -1920,7 +1929,8 @@
     "project doc claude/forge-directional-omni-2026-11-19.md (outside review, 6 Sonnet directions plus a fresh reviewer)",
     "loop/scale.py:156 L.build(src, ...) on the host"
    ],
-   "next": "scale.py line 156 builds candidates with host gcc (L.build); switch to runner/jail.py compile_candidate (same CFLAGS plus -pipe, which does not change code generation), keep the timer build (trusted) as is, and confirm on CI that scale's reference predictions and per-segment checks still pass. loop.py:370 stays frozen by plan 2: fix in plan 3. Blocks P5, because proposed candidates will be metered by scale.py."
+   "next": "scale.py line 156 builds candidates with host gcc (L.build); switch to runner/jail.py compile_candidate (same CFLAGS plus -pipe, which does not change code generation), keep the timer build (trusted) as is, and confirm on CI that scale's reference predictions and per-segment checks still pass. loop.py:370 stays frozen by plan 2: fix in plan 3. Blocks P5, because proposed candidates will be metered by scale.py.",
+   "origin": "follow-up"
   },
   {
    "id": "P19",
@@ -1941,7 +1951,8 @@
    "refs": [
     "project doc claude/forge-directional-omni-2026-11-19.md (outside review, 6 Sonnet directions plus a fresh reviewer)"
    ],
-   "next": "Owner, 2026-11-19: add to the queue only, no work yet. A core goal with no item until now (outside review finding 7). First test, when started: distil the best optdigits candidate into straight-line C (or a lookup or rule set), check per-item agreement on dev with the original, and meter both; the store (P11) records the pair as one function in two forms."
+   "next": "Owner, 2026-11-19: add to the queue only, no work yet. A core goal with no item until now (outside review finding 7). First test, when started: distil the best optdigits candidate into straight-line C (or a lookup or rule set), check per-item agreement on dev with the original, and meter both; the store (P11) records the pair as one function in two forms.",
+   "origin": "new"
   }
  ],
  "batches": [
