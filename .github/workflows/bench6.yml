@@ -1,0 +1,79 @@
+# Queue P28: SWE-Bench Illusion probe (router/bench6/illusion/PLAN.md). reserve (ledger, no key) -> probe (key, read-only;
+# samples, asks, grades) -> record (no key; the ledger). dry=1 makes no call and reserves nothing (known-answer control).
+name: bench6
+on:
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "1 = no model call (known answers; grading must read 0.50 in both sets)"
+        default: "1"
+permissions: {}
+concurrency:
+  group: bench6${{ github.event.inputs.dry == '1' && '-dry' || '' }}
+  cancel-in-progress: false
+env:
+  DRY: ${{ github.event.inputs.dry }}
+  RUN: bench6-${{ github.run_id }}
+  CALLS: "80"   # PLAN.md: 40 + 40 tasks, one call each
+jobs:
+  reserve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write   # the ledger on worker-runs
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes the ledger with the checkout token and uploads no artifact
+      - name: reserve the calls
+        run: |
+          case "$DRY" in 0|1) ;; *) echo "dry must be 0 or 1"; exit 1 ;; esac
+          if [ "$DRY" = 1 ]; then echo "dry run: no calls reserved"; exit 0; fi
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$RUN" "nvidia:$CALLS"
+  probe:
+    needs: reserve
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150   # 80 calls, 4 at a time, each up to engines.TIMEOUT 600 s
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: known-answer tests
+        run: python3 -m unittest router/bench6/illusion/test_illusion.py
+      - name: sample, ask, grade
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: |
+          set -o pipefail
+          cd router/bench6/illusion
+          python3 -I illusion.py sample "$GITHUB_WORKSPACE/out/sample.json"
+          if [ "$DRY" = 1 ]; then python3 -I illusion.py ask "$GITHUB_WORKSPACE/out/sample.json" "$GITHUB_WORKSPACE/out" --dry
+          else python3 -I illusion.py ask "$GITHUB_WORKSPACE/out/sample.json" "$GITHUB_WORKSPACE/out"; fi
+          python3 -I illusion.py grade "$GITHUB_WORKSPACE/out/sample.json" "$GITHUB_WORKSPACE/out"
+          if [ "$DRY" = 1 ]; then python3 -c "import json,sys;r=json.load(open(sys.argv[1]));assert r['fresh']['top1']==0.5 and r['verified']['top1']==0.5, 'dry control failed';print('dry control ok')" "$GITHUB_WORKSPACE/out/RESULT.json"; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: illusion
+          path: out/
+  record:
+    needs: [reserve, probe]
+    if: ${{ always() && needs.reserve.result == 'success' && github.event.inputs.dry != '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write   # the ledger on worker-runs
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes the ledger with the checkout token
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: illusion
+          path: out
+      - name: record actual use
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
+          if [ -f out/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" out/calls.jsonl
+          else : > "$RUNNER_TEMP/empty.jsonl"; python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" "$RUNNER_TEMP/empty.jsonl"; fi
