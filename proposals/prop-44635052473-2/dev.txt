@@ -1,0 +1,15 @@
+FAILED: prop-44635052473-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 219, in <module>
+    main()
+  File "/w/train.py", line 199, in main
+    embeddings, W1, b1, W2, b2 = train_model(X_train, y_train, d, vocab_size, C, D, H, rng, n_train)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 135, in train_model
+    logits = forward(embeddings, W1, b1, W2, b2, tokens_batch, H)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 59, in forward
+    x = embeddings[np.arange(d), tokens.T].transpose(1, 0, 2)  # (n, d, D)
+        ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (16,) (16,64) 
+
