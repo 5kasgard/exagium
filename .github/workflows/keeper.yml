@@ -1,0 +1,49 @@
+# Starts a workflow at a set time, reliably (queue Q58). GitHub's scheduler on this repo is not a usable backup:
+# measured 2026-11-19, the hourly worker cron fired 3 times in about 30 hours and the daily record cron runs 7-9 hours
+# late every day. A dispatch made with the job's own token does start a run, so a job that sleeps until the time and
+# then dispatches is reliable. A job lasts at most 6 hours, so a longer wait hands over to a new keeper run.
+# Started by worker.yml when a run stops for budget (wake job), with the time the daily caps reset.
+name: keeper
+on:
+  workflow_dispatch:
+    inputs:
+      at:
+        description: "start time, Unix seconds UTC"
+        required: true
+      workflow:
+        description: "workflow to start"
+        default: worker.yml
+permissions: {}
+concurrency:
+  group: keeper-${{ github.event.inputs.workflow }}   # one waiting keeper per workflow; a newer request queues behind it
+  cancel-in-progress: false
+jobs:
+  wait-then-start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 355
+    permissions:
+      actions: write   # dispatch the workflow, or the next keeper
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: ${{ github.repository }}
+      AT: ${{ github.event.inputs.at }}
+      WF: ${{ github.event.inputs.workflow }}
+    steps:
+      - name: sleep until the time, then start the workflow (or hand over to the next keeper)
+        run: |
+          case "$WF" in worker.yml|propose.yml) ;; *) echo "workflow not allowed: $WF"; exit 1 ;; esac
+          case "$AT" in ''|*[!0-9]*) echo "at must be Unix seconds"; exit 1 ;; esac
+          now=$(date +%s); wait=$((AT - now))
+          if [ "$wait" -gt 172800 ]; then echo "at is more than 2 days ahead: refused"; exit 1; fi
+          if [ "$wait" -gt 20400 ]; then   # more than 5h40m: sleep 5h30m, then hand over
+            sleep 19800
+            gh workflow run keeper.yml -R "$R" --ref main -f at="$AT" -f workflow="$WF"
+            echo "handed over to the next keeper (start at $(date -u -d "@$AT" +%FT%TZ))"; exit 0
+          fi
+          [ "$wait" -gt 0 ] && sleep "$wait"
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: not starting $WF"; exit 0; fi
+          busy=$(gh api "repos/$R/actions/workflows/$WF/runs?per_page=20" \
+            -q '[.workflow_runs[] | select(.status!="completed")] | length')
+          if [ "$busy" -gt 0 ]; then echo "$WF already has $busy run(s) not completed: not starting another"; exit 0; fi
+          gh workflow run "$WF" -R "$R" --ref main
+          echo "started $WF at $(date -u +%FT%TZ)"

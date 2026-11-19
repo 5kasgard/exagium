@@ -25,6 +25,7 @@ jobs:
     outputs:
       item: ${{ steps.out.outputs.item }}
       type: ${{ steps.out.outputs.type }}
+      stopped: ${{ steps.out.outputs.stopped }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only claim.json from RUNNER_TEMP, never .git
       - name: pause switch
@@ -39,7 +40,7 @@ jobs:
           if git ls-remote --exit-code origin worker-runs >/dev/null; then
             git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r0" FETCH_HEAD
             rc=0; python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:400,nvidia:1 || rc=$?
-            if [ "$rc" = 2 ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
+            if [ "$rc" = 2 ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
       - name: claim the top ready item
         id: claim
@@ -66,14 +67,15 @@ jobs:
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
             python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" open "$RUNNER_TEMP/note.json"
-            echo "ITEM=" >> "$GITHUB_ENV"
+            echo "ITEM=" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"
           fi
           echo "reserve exit $rc"
       - id: out
         name: outputs, written once (a second write of a job output doesn't replace the first; release test, R2)
-        if: always() && env.PAUSED != '1'
+        if: always()
         run: |
-          echo "item=${ITEM:-}" >> "$GITHUB_OUTPUT"; echo "type=${ITEM:+$TYPE}" >> "$GITHUB_OUTPUT"; echo "item=${ITEM:-none}"
+          echo "item=${ITEM:-}" >> "$GITHUB_OUTPUT"; echo "type=${ITEM:+$TYPE}" >> "$GITHUB_OUTPUT"; echo "stopped=${STOPPED:-}" >> "$GITHUB_OUTPUT"
+          echo "item=${ITEM:-none} stopped=${STOPPED:-no}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: env.ITEM != ''
         with:
@@ -221,6 +223,30 @@ jobs:
           path: |
             job/
             note.json
+  wake:
+    # Queue Q58: a run that stopped for budget hands over to keeper.yml, which starts the worker when the daily caps reset
+    # (00:05 UTC), so the worker never depends on GitHub's scheduler (measured unreliable on this repo, 2026-11-19).
+    needs: claim
+    if: ${{ always() && needs.claim.outputs.stopped == 'budget' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    concurrency:
+      group: worker-wake
+      cancel-in-progress: false
+    permissions:
+      actions: write   # dispatch keeper.yml; list keeper runs
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: ${{ github.repository }}
+    steps:
+      - name: start a keeper for the next budget reset, unless one is already waiting
+        run: |
+          waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed")] | length')
+          if [ "$waiting" -gt 0 ]; then echo "a keeper is already waiting ($waiting)"; exit 0; fi
+          at=$(date -u -d "tomorrow 00:05" +%s)
+          gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
+          echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"
+
   chain:
     # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that
     # found work starts the next run itself. A workflow_dispatch made with the job's own token does start a new run.
@@ -241,7 +267,8 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       R: ${{ github.repository }}
-      CHAIN_CAP: 24
+      CHAIN_CAP: 200   # a backstop for a bug only: the chain runs only after an item lands (no loop without progress) and the
+                       # ledger's daily budget caps bind far earlier (2026-11-19: 24 stopped release test 2 at 26 of 30 items)
     steps:
       - name: start the next run if the guards allow
         run: |
