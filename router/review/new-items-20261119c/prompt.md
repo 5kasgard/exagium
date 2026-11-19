@@ -1,0 +1,11 @@
+You are a skeptical outside reviewer of a one-person research project, "exagium": agents build and test small AI models against real hardware, with pre-registered claims and an append-only ledger, on free compute only. Facts: verified results so far hold on three small tasks; the project's own top risk is building more machinery than findings; a harness comparison (5 agent harnesses, one free model, 3 tasks the project wrote, 45 attempts) finished and its rule picked the cheapest harness at about 1/5 the tokens per pass of the old default; no live job uses an agent harness today. Two new items were just added:
+
+### P28: Held-out outside tasks for agent tests
+blocked_by []
+Build a frozen held-out suite of 6 public tasks the project did not write (seeded sample from Terminal-Bench or SWE-bench Verified, licence-checked), graded by their own outside tests, never shown to any proposer. Rerun the old default, the new pick and one other harness, 2 repeats each (36 attempts, under one day's free allowance). The comparison's verdict transfers if the new pick's tokens-per-pass ratio upper 95% bound is below 1 and passes are not worse (Fisher p >= 0.05); else it is recorded as task-specific. Outside agents stay frozen as baselines; agents the project builds are scored only on this suite.
+
+### P29: Evolve the project's own agent harness through its existing proposer loop
+blocked_by ['P28', 'P5 (proposer loop first-20 verdict)']
+Free models propose harness variants as diffs to a small base; dev tasks score them in a jail; a survivor meets the held-out suite once. Adopt only if tokens per pass at most 2/3 of the best outside harness (upper 95% bound) and passes not worse; at most 1 held-out run per variant, 2 per week. Validation counts only against frozen outside harnesses and outside-written tests, never a model judge from the same family.
+
+For each item say exactly one of KEEP (worth doing now), DEFER (only after a named result exists; say which), MERGE (into which), CUT, with one line of reason. Then: which most likely exists because an idea was pleasing to discuss rather than because data called for it? Then the single biggest flaw in the test rules as written, and the cheapest fix. No praise.
