@@ -40,6 +40,9 @@ def extract(reply, dst):
 
 if __name__ == "__main__":
     why = extract(open(sys.argv[1], encoding="utf-8", errors="replace").read(), sys.argv[2])
+    fin = os.path.join(os.path.dirname(sys.argv[1]), "finish")
+    if why and os.path.exists(fin) and open(fin).read().strip() == "length":
+        why = "cut off by the model's output limit; " + why   # a model limit, recorded as such (P20a)
     if why:
         print(f"not extracted: {why}")
         sys.exit(1)

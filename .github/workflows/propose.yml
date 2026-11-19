@@ -14,6 +14,9 @@ on:
       rescore:
         description: "run id of an earlier propose run: score its saved replies again, with no new calls"
         default: ""
+      dry:
+        description: "1 = no model call: the reply is a known-good example; tests the path, writes no leaderboard or ledger"
+        default: "0"
 permissions: {}
 concurrency:
   group: propose
@@ -22,6 +25,7 @@ env:
   RUN: propose-${{ github.run_id }}
   SRC: ${{ github.event.inputs.rescore || github.run_id }}   # the run whose replies are scored and named
   RESCORE: ${{ github.event.inputs.rescore }}
+  DRY: ${{ github.event.inputs.dry }}
 jobs:
   reserve:
     runs-on: ubuntu-24.04
@@ -41,7 +45,9 @@ jobs:
         run: |
           case "$N_IN" in 1|2|3) ;; *) echo "n must be 1, 2 or 3"; exit 1 ;; esac
           case "$START_IN" in 0|1|2) ;; *) echo "start must be 0, 1 or 2"; exit 1 ;; esac
+          case "$DRY" in 0|1) ;; *) echo "dry must be 0 or 1"; exit 1 ;; esac
           case "$RESCORE" in "") ;; *[!0-9]*) echo "rescore must be a run id"; exit 1 ;; *) { echo "n=$N_IN"; echo "start=$START_IN"; } >> "$GITHUB_OUTPUT"; echo "rescore: no calls reserved"; exit 0 ;; esac
+          if [ "$DRY" = 1 ]; then { echo "n=$N_IN"; echo "start=$START_IN"; } >> "$GITHUB_OUTPUT"; echo "dry run: no calls reserved"; exit 0; fi
           if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; exit 1; fi
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
@@ -63,7 +69,9 @@ jobs:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           N: ${{ needs.reserve.outputs.n }}
           START: ${{ needs.reserve.outputs.start }}
-        run: python3 -I runner/proposals/propose.py out "$N" "$START"
+        run: |
+          if [ "$DRY" = 1 ]; then python3 -I runner/proposals/propose.py out "$N" "$START" --dry
+          else python3 -I runner/proposals/propose.py out "$N" "$START"; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -121,7 +129,7 @@ jobs:
           path: out/
   record:
     needs: [reserve, propose, score]
-    if: ${{ always() && needs.reserve.result == 'success' }}
+    if: ${{ always() && needs.reserve.result == 'success' && github.event.inputs.dry != '1' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

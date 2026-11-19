@@ -1,7 +1,9 @@
 """Ask a free model for new candidates (queue P5). Holds the key; runs no generated code.
-python3 -I runner/proposals/propose.py OUT_DIR N START
-Writes OUT_DIR/<k>/{task, prompt.md, reply.md} for k in 0..N-1 (task k is TASKS[(START + k) % 3]) and appends one line
-per call to OUT_DIR/calls.jsonl (for worker/ledger.py record). One call per proposal, no retry (PLAN.md)."""
+python3 -I runner/proposals/propose.py OUT_DIR N START [--dry]
+Writes OUT_DIR/<k>/{task, prompt.md, reply.md, finish} for k in 0..N-1 (task k is TASKS[(START + k) % 3]) and appends one line
+per call to OUT_DIR/calls.jsonl (for worker/ledger.py record). One call per proposal, no retry (PLAN.md).
+--dry makes no call: the reply is the example candidate itself, a known-good answer, so the score and record path can be
+tested end to end before real calls are spent (2026-11-19: a shell bug lost the first real run's scoring)."""
 import glob, json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -92,8 +94,15 @@ lower cost per item. Answer with exactly three fenced blocks, in this order and 
 """
 
 
+def dry_reply():
+    ex = os.path.join(ROOT, "runner", "candidates", EXAMPLE)
+    return ("```hypothesis\nDry run: the example candidate itself (no model call).\n```\n```python\n"
+            + open(os.path.join(ex, "train.py")).read() + "```\n```c\n" + open(os.path.join(ex, "infer.c")).read() + "```\n")
+
+
 def main():
     out, n, start = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+    dry = "--dry" in sys.argv[4:]
     engines.TIMEOUT = 600   # Nemotron reasons before answering (worker release test 1)
     for k in range(n):
         task = TASKS[(start + k) % len(TASKS)]
@@ -102,11 +111,17 @@ def main():
         p = prompt(task)
         open(os.path.join(d, "task"), "w").write(task)
         open(os.path.join(d, "prompt.md"), "w").write(p)
-        r = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)
-        open(os.path.join(d, "reply.md"), "w").write(r.get("text") or f"(no reply: status {r.get('status')}: {r.get('error')})")
-        with open(os.path.join(out, "calls.jsonl"), "a") as f:
-            f.write(json.dumps({k2: r.get(k2) for k2 in ("t", "engine", "model", "ok", "status", "latency_s", "usage")}) + "\n")
-        print(f"proposal {k}: task {task}, call ok {r.get('ok')}, status {r.get('status')}")
+        if dry:
+            r = {"ok": True, "status": 200, "text": dry_reply(), "finish": "dry"}
+        else:
+            r = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)
+            with open(os.path.join(out, "calls.jsonl"), "a") as f:
+                f.write(json.dumps({k2: r.get(k2) for k2 in ("t", "engine", "model", "ok", "status", "latency_s", "usage")}) + "\n")
+        with open(os.path.join(d, "reply.md"), "w") as f:
+            f.write(r.get("text") or f"(no reply: status {r.get('status')}: {r.get('error')})")
+        with open(os.path.join(d, "finish"), "w") as f:
+            f.write(str(r.get("finish") or ""))
+        print(f"proposal {k}: task {task}, call ok {r.get('ok')}, status {r.get('status')}, finish {r.get('finish')}")
 
 
 if __name__ == "__main__":

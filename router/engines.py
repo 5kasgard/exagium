@@ -152,8 +152,10 @@ def compat_call(name, model, prompt, max_tokens=64):
                                  headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
     st, j, h = _send_h(req)
     text = (j.get("choices") or [{}])[0].get("message", {}).get("content") if st == 200 else None
+    finish = (j.get("choices") or [{}])[0].get("finish_reason") if st == 200 else None   # "length" = cut off (P5, 2026-11-19)
     return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": name, "model": model,
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": j.get("usage"),
+            "finish": finish,
             "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
 
 
