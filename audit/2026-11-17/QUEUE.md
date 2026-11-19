@@ -17,7 +17,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7, P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (26)
+## Can run now (25)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -36,7 +36,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R6 | B7 |  | minor | high | test | Research card (release test 2): How are trained neural networks distilled into readable programs, rules or code, and how much accuracy is kept? | Worker job (research) for P19; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P19 |
 | R7 | B7 |  | minor | high | test | Research card (release test 2): How often do LLM-written machine-learning programs run and beat baselines? | Worker job (research) for P5; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P5 |
 | R8 | B7 |  | minor | high | test | Research card (release test 2): How do benchmarks keep models from memorising public test labels? | Worker job (research) for Q25; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue Q25 |
-| D18 | B3 |  | minor | medium | doc | Worker release test 2: canary line 19 | In tests/worker-canary-2.md, line 23 (canary line 19): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D19 | B3 |  | minor | medium | doc | Worker release test 2: canary line 20 | In tests/worker-canary-2.md, line 24 (canary line 20): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D20 | B3 |  | minor | medium | doc | Worker release test 2: canary line 21 | In tests/worker-canary-2.md, line 25 (canary line 21): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D21 | B3 |  | minor | medium | doc | Worker release test 2: canary line 22 | In tests/worker-canary-2.md, line 26 (canary line 22): check this line is accurate against worker/README.md, which says the worker never writes workflows, its own files or registered plans; change it only if it is wrong. | worker/RELEASE-TEST-2.md on main |
@@ -107,7 +106,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (53)
+## Done (54)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -137,6 +136,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D14 | B3 |  | minor | medium | doc | Worker release test 2: canary line 14 | In tests/worker-canary-2.md, line 18 (canary line 14): replace 'labelled' with 'marked'. | worker/RELEASE-TEST-2.md on main |
 | D15 | B3 |  | minor | medium | doc | Worker release test 2: canary line 15 | In tests/worker-canary-2.md, line 19 (canary line 15): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D17 | B3 |  | minor | medium | doc | Worker release test 2: canary line 18 | In tests/worker-canary-2.md, line 22 (canary line 18): fix the spelling. | worker/RELEASE-TEST-2.md on main |
+| D18 | B3 |  | minor | medium | doc | Worker release test 2: canary line 19 | In tests/worker-canary-2.md, line 23 (canary line 19): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D2 | B3 |  | minor | medium | doc | Worker release test 2: canary line 2 | In tests/worker-canary-2.md, line 6 (canary line 2): make the line shorter without changing its meaning. | worker/RELEASE-TEST-2.md on main |
 | D3 | B3 |  | minor | medium | doc | Worker release test 2: canary line 3 | In tests/worker-canary-2.md, line 7 (canary line 3): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D4 | B3 |  | minor | medium | doc | Worker release test 2: canary line 4 | In tests/worker-canary-2.md, line 8 (canary line 4): fix the grammar. | worker/RELEASE-TEST-2.md on main |
