@@ -17,7 +17,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7, P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (28)
+## Can run now (27)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -36,7 +36,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R6 | B7 |  | minor | high | test | Research card (release test 2): How are trained neural networks distilled into readable programs, rules or code, and how much accuracy is kept? | Worker job (research) for P19; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P19 |
 | R7 | B7 |  | minor | high | test | Research card (release test 2): How often do LLM-written machine-learning programs run and beat baselines? | Worker job (research) for P5; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P5 |
 | R8 | B7 |  | minor | high | test | Research card (release test 2): How do benchmarks keep models from memorising public test labels? | Worker job (research) for Q25; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue Q25 |
-| D16 | B3 |  | minor | medium | doc | Worker release test 2: canary line 16 | In tests/worker-canary-2.md, line 20 (canary line 16): change the number on canary line 17 to 9. | worker/RELEASE-TEST-2.md on main |
 | D17 | B3 |  | minor | medium | doc | Worker release test 2: canary line 18 | In tests/worker-canary-2.md, line 22 (canary line 18): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D18 | B3 |  | minor | medium | doc | Worker release test 2: canary line 19 | In tests/worker-canary-2.md, line 23 (canary line 19): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D19 | B3 |  | minor | medium | doc | Worker release test 2: canary line 20 | In tests/worker-canary-2.md, line 24 (canary line 20): fix the grammar. | worker/RELEASE-TEST-2.md on main |
@@ -78,12 +77,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Needs the owner (3)
+## Needs the owner (4)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | Q38 | B5 | 2 | minor | medium | doc | README "Results can't be lied about" reads as a guarantee (known 11-13) | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Retarget: README:22 is already hedged. Fix the guarantee wording at record/experiments/anchors/VERIFY-anchors.md:10 ('results can never be lied about') and record/README:3. Worker attempt (branch worker/Q38-44293175153) graded not acceptable: redundant 'currently ... today'; 'should not be lied about' is vague. Left waiting on the owner; it goes into P8r after the reviewer fix. | repo-audit-2026-11-13 (known); A M5 |
 | P16 | B9 |  | none | high | build | Consume external outputs: published results as baselines, open-weight models as parts or tasks, published methods as patterns, all behind our checkers and meters | Owner, 2026-11-19: add to the queue only; the owner is working out how to frame part of this request, so do not start until they say. Scope as discussed: closed systems (AlphaEvolve) enter as published results a candidate must beat on our checker; open weights (AlphaFold2, open models) as parts or task domains; open re-implementations of evolve loops as the proposer pattern. Do not rebuild what others do better; adapt their outputs. The sandbox stays a safety boundary for generated code: hardened, never subverted. (blocked by P11) | chat 2026-11-19 (ten-ability map plus abilities 11 and 12); project doc claude/forge-next-item-2026-11-18.md |
+| D16 | B3 |  | minor | medium | doc | Worker release test 2: canary line 16 | In tests/worker-canary-2.md, line 20 (canary line 16): change the number on canary line 17 to 9. | worker/RELEASE-TEST-2.md on main |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
 ## Parked (17)
