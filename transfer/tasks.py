@@ -9,7 +9,7 @@ Each task becomes OUT_DIR/<task>/ with:
 Every download is checked against the sha256 pinned below before use; a mismatch stops the build (exit 1).
 The build is deterministic: the same inputs give the same bytes (eval items are a seeded sample, seed 1).
 """
-import argparse, hashlib, json, os, sys, urllib.request
+import ssl, urllib.error, argparse, hashlib, json, os, sys, urllib.request
 
 import numpy as np
 
@@ -40,8 +40,20 @@ def fetch(name, cache):
         path = os.path.join(cache, name)
         if not os.path.exists(path):
             os.makedirs(cache, exist_ok=True)
-            with urllib.request.urlopen(url, timeout=120) as r, open(path + ".part", "wb") as f:
-                f.write(r.read())
+            try:
+                with urllib.request.urlopen(url, timeout=120) as r:
+                    data = r.read()
+            except urllib.error.URLError as e:
+                # The file is pinned by sha256 below, so transport trust adds nothing to integrity: when the host's TLS
+                # certificate has expired (UCI, 2026-11-19 20:29Z: 3 P5 proposals unscored), fetch without it and let the
+                # hash decide. Any other error is raised as before.
+                if not isinstance(getattr(e, "reason", None), ssl.SSLCertVerificationError):
+                    raise
+                print(f"{name}: TLS certificate check failed ({e.reason}); fetching anyway, accepted only if sha256 matches", file=sys.stderr)
+                with urllib.request.urlopen(url, timeout=120, context=ssl._create_unverified_context()) as r:
+                    data = r.read()
+            with open(path + ".part", "wb") as f:
+                f.write(data)
             os.replace(path + ".part", path)
     got = hashlib.sha256(open(path, "rb").read()).hexdigest()
     if got != want:
