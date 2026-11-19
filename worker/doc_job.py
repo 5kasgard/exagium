@@ -27,6 +27,8 @@ Reply with JSON only, no prose, in this form:
  "note": "<one sentence: what you changed and why>"}}
 Each edit replaces one whole line. "old" must equal the shown line exactly (without the number prefix).
 If the item cannot be done within these lines, reply {{"edits": [], "note": "<why>"}}.
+If the item asks you to check a line and change it only if it is wrong, a line that is true stays as it is, even when
+its wording differs from the source: reply with no edits and say it is accurate (release test 2, D21).
 
 ITEM {id}: {title}
 WHAT TO DO: {next}
@@ -38,7 +40,9 @@ TARGET LINES (number | text):
 REVIEW_PROMPT = """You review a proposed documentation fix. Approve only if the change does what the item asks, changes nothing else,
 adds no fact or number that the item or the original lines do not support, and keeps the meaning correct. Also reject
 wording that is redundant (e.g. "currently ... today"), vague, or weaker than the item asks: a careful maintainer must be
-able to merge the line as it is (release test 2026-11-18, Q38).
+able to merge the line as it is (release test 2026-11-18, Q38). Reject any change that softens a guarantee or a rule
+(for example "can never" -> "are expected to"). If the item says to change a line only if it is wrong, approve an edit only
+if the original line states something false; rewording a true line to match the source is not a fix (release test 2, D21).
 
 Reply with JSON only: {{"verdict": "approve" or "reject", "reason": "<one or two sentences>"}}
 
@@ -230,6 +234,10 @@ def apply(repo, out):
             why.append(f"agent-facing file(s), merged only by a person: {', '.join(pr_only)}")
         res = {"result": "merge" if not why else "pr", "why": why, "edits": len(edits),
                "note": d["proposal"].get("note"), "review": d.get("review")}
+        if edits and verdict == "reject":   # a change the reviewer rejected is not offered to a person as a PR (release test 2, Q38; Q59)
+            for p in files:
+                open(os.path.join(repo, p), "w", encoding="utf-8").write(files[p])
+            res.update(result="rejected", edits=0)
     json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
     print(json.dumps(res)[:600])
     return 0

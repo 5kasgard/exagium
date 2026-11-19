@@ -1,5 +1,5 @@
 """Tests for the queue worker's decisions: python3 -m unittest worker/test_worker.py (stdlib only)."""
-import datetime as dt, os, sys, unittest
+import datetime as dt, json, os, sys, unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import digest  # noqa: E402
@@ -167,3 +167,30 @@ class Ledger(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RejectedNotOffered(unittest.TestCase):
+    """Q59 (release test 2, Q38): an edit the reviewer rejected is restored, not turned into a PR."""
+    def run_apply(self, verdict):
+        import tempfile
+        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as out:
+            os.makedirs(os.path.join(repo, "docs"))
+            text = "one\nResults can never be changed.\nthree\n"
+            open(os.path.join(repo, "docs/a.md"), "w").write(text)
+            item = {"id": "X1", "title": "t", "next": "n", "targets": [{"path": "docs/a.md", "lines": [2, 2]}]}
+            json.dump({"item": item, "files": {"docs/a.md": text}}, open(os.path.join(out, "bundle.json"), "w"))
+            edit = {"path": "docs/a.md", "line": 2, "old": "Results can never be changed.", "new": "Results are expected not to change."}
+            json.dump({"proposal": {"edits": [edit], "note": "x"}, "review": {"verdict": verdict, "reason": "r"}},
+                      open(os.path.join(out, "draft.json"), "w"))
+            D.apply(repo, out)
+            return json.load(open(os.path.join(out, "result.json"))), open(os.path.join(repo, "docs/a.md")).read(), text
+
+    def test_reject_restores(self):
+        res, now, before = self.run_apply("reject")
+        self.assertEqual(res["result"], "rejected")
+        self.assertEqual(now, before)
+
+    def test_approve_merges(self):
+        res, now, before = self.run_apply("approve")
+        self.assertEqual(res["result"], "merge")
+        self.assertIn("expected not to change", now)
