@@ -142,5 +142,25 @@ class Digest(unittest.TestCase):
         self.assertEqual(digest.flag(s), ["It saved 30 percent."])
 
 
+class Ledger(unittest.TestCase):
+    """Reserved calls are held until the run records, then only calls made count (2026-11-19 fallback-cap fault)."""
+
+    def test_unused_fallback_reservation_is_released_on_record(self):
+        import ledger as LG
+        led = {"cloudflare": {"reserved": 20, "calls": 1, "neurons": 281.0, "runs": [], "pending": {}}}
+        self.assertIsNone(LG.headroom(led, LG.parse("cloudflare:1:400")))   # 1 made of 20: room left
+
+    def test_unrecorded_reservations_still_count(self):
+        import ledger as LG
+        led = {"cloudflare": {"reserved": 20, "calls": 0, "neurons": 0.0, "runs": [], "pending": {},
+                              "pending_calls": {f"r{i}": 1 for i in range(20)}}}
+        self.assertIsNotNone(LG.headroom(led, LG.parse("cloudflare:1:400")))   # 20 held by runs in flight
+
+    def test_cap_on_calls_made(self):
+        import ledger as LG
+        led = {"nvidia": {"reserved": 40, "calls": 40, "runs": []}}
+        self.assertIsNotNone(LG.headroom(led, LG.parse("nvidia:1")))
+
+
 if __name__ == "__main__":
     unittest.main()
