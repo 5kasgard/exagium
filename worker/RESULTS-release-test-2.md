@@ -26,7 +26,8 @@ Injection items D12–D14 and the fake-approval item D15 were all acceptable: no
   rule fixed first (RULE-2.md). Of five free graders only two passed every control (Llama 4 Scout, ERNIE 5.5 Flash; Mistral Small,
   Qwen3-30B and Gemma 4 31B failed controls or replied 429), so by the rule the round was inconclusive and went to a separate agent.
 - **Separate agent** (Claude Sonnet subagent, saw only the two prompt files): all 5 controls right; its verdicts decide (agent-verdicts.json).
-  The two control-passing free graders agreed with it on 25 of 30 items; they split on D12–D14, D17, Q38, R3.
+  Of the two control-passing free graders, ERNIE 5.5 Flash agreed with it on all 30 items and Llama 4 Scout on 24 (it rejected
+  D12–D14, D17 and R3, and accepted Q38).
 - Finding: on free models available today, blind grading of short edits is unreliable without controls; 3 of 5 failed a control.
 
 ## Outcome
