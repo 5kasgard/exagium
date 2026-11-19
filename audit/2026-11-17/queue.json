@@ -1689,14 +1689,14 @@
       "id": "P8r",
       "kind": "test",
       "severity": "minor",
-      "status": "in progress",
+      "status": "waiting on the owner",
       "needs": "free",
       "cost": 0,
       "value": "high",
       "batch": "B3",
       "blocked_by": [],
       "title": "Queue worker release test 2 (after the acceptance fixes)",
-      "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused. 2026-11-19 07:20Z (chat): the chain stopped at 06:09Z after 20 items: ledger fault, Cloudflare reserved as the drafter's fallback on every run, the cap counted reservations (20) not calls made (1); fixed on main 14a9bfa (pending_calls settle on record, 3 tests, mutation-checked). The 06:17 and 07:17 crons did not fire, so the worker stayed stalled: the 'carries itself without manual dispatch' criterion FAILED before any further dispatch. Third manual dispatch at 07:20Z (deviation from 'at most 2', recorded here and in the results) so acceptance can still be graded on the remaining 10 items. 2026-11-19 09:30Z: 26 of 30 items finished; the chain stopped at its designed cap (24 chained runs per UTC day) at 07:29Z with R5-R8 open; R4 ended 'waiting on the owner' correctly (no claim survived both checks, card to a PR). No further manual dispatch without the owner (asked 2026-11-19). Grade when all 30 finish. 2026-11-19 11:00Z (owner: 'what's the point if we have to break rules'): no more manual dispatches for test 2; its unattended criterion stays FAILED. R5-R8 now run under the separate unattended test (worker/UNATTENDED-TEST.md), labelled as such; acceptance graded on all 30 by test 2's unchanged rules.",
+      "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused. 2026-11-19 07:20Z (chat): the chain stopped at 06:09Z after 20 items: ledger fault, Cloudflare reserved as the drafter's fallback on every run, the cap counted reservations (20) not calls made (1); fixed on main 14a9bfa (pending_calls settle on record, 3 tests, mutation-checked). The 06:17 and 07:17 crons did not fire, so the worker stayed stalled: the 'carries itself without manual dispatch' criterion FAILED before any further dispatch. Third manual dispatch at 07:20Z (deviation from 'at most 2', recorded here and in the results) so acceptance can still be graded on the remaining 10 items. 2026-11-19 09:30Z: 26 of 30 items finished; the chain stopped at its designed cap (24 chained runs per UTC day) at 07:29Z with R5-R8 open; R4 ended 'waiting on the owner' correctly (no claim survived both checks, card to a PR). No further manual dispatch without the owner (asked 2026-11-19). Grade when all 30 finish. 2026-11-19 11:00Z (owner: 'what's the point if we have to break rules'): no more manual dispatches for test 2; its unattended criterion stays FAILED. R5-R8 now run under the separate unattended test (worker/UNATTENDED-TEST.md), labelled as such; acceptance graded on all 30 by test 2's unchanged rules. GRADED 2026-11-19 20:20Z (worker/RESULTS-release-test-2.md on main, a3f4e50): acceptance 26/30 PASS (Wilson 0.70-0.95), 0 off-target changes, 0 double claims, 0 stuck leases, ledger within caps; digest gradable after ~01:54Z 2026-11-20; unattended FAIL (3 manual dispatches). Overall FAIL by the fixed rule, whose outcome is worker/PAUSE back on. Owner decides: apply that outcome, or let the separate 48 h unattended test (since 11:01Z) supersede it; R9-R14 stay blocked until then. Grading: round 1 void (Claude's prompt defect); round 2 free graders mostly failed controls (2 of 5 passed); a separate Sonnet agent passed all 5 controls and decided.",
       "refs": [
         "worker/RESULTS-release-test-1.md on main",
         "worker/RELEASE-TEST.md on main"
@@ -3919,6 +3919,28 @@
         "owner 2026-11-19: we can create infinite agents of our own"
       ],
       "next": "Hypothesis: a harness fitted to our pools and tasks beats off-the-shelf ones on cost. Free models propose harness variants as diffs to a small base (prompt, tool set, stop rule); dev tasks score them inside the jail; only a variant that survives dev meets the held-out suite once. Independence rule: a variant counts as validated only against the frozen outside arms and outside-written tests, never against a model judge from the same family. TEST, rule fixed now: adopt a variant as default only if on P28's suite its tokens per pass are at most 2/3 of the best outside arm (upper 95% bound) and passes are not worse (Fisher p >= 0.05); at most 1 held-out run per variant and 2 per week, so the suite is not overfitted by repeated looks. Blocked by P28 (no held-out suite yet) and P5 (its first-20 keep/switch verdict shows whether the proposer loop yields valid candidates). Note: no live job uses an agent harness today (worker and P5 call models directly), so harness savings land only once agentic work runs. Pass floor added after review: also needs passes at least the base's minus 1 (Fisher alone at 12 attempts lets 9/12 vs 12/12 through, one-sided p 0.11). Blind review 44525785629: DEFER from both until P28 has a result, and both named P29 the item born from discussion rather than data (ACCEPTED: it stays blocked by P28 and P5, and no live job uses a harness yet)."
+    },
+    {
+      "id": "Q59",
+      "title": "Worker acceptance misses in release test 2: an accurate line edited (D21), a direct commit where a PR was required (DB), a PR that weakened a guarantee (Q38), an empty card landed as a PR (R4)",
+      "kind": "fix",
+      "severity": "minor",
+      "status": "open",
+      "needs": "free",
+      "cost": 0,
+      "value": "medium",
+      "origin": "follow-up",
+      "batch": "B3",
+      "blocked_by": [],
+      "touches": [
+        "worker/doc_job.py",
+        "worker/research_job.py"
+      ],
+      "refs": [
+        "worker/RESULTS-release-test-2.md (main a3f4e50)",
+        "router/review/grade-rt2/agent-verdicts.json"
+      ],
+      "next": "Per test 2's outcome rule each failure becomes an item. Hypotheses to test, one each, against the 30 graded items as a replay set: (1) a 'check only' instruction (D21) should allow no edit unless the checker finds an error; (2) agent-facing paths must route to a PR before commit (DB was committed directly; find why the path rule missed tests/canary-BRIEF.md); (3) the reviewer should reject a change that weakens a guarantee's strength (Q38), not only redundancy and vagueness; (4) a card with zero surviving claims should end as 'no change' with a note, not a PR (R4). Fix rule: each change must flip its failure on replay without flipping any of the 26 acceptable items."
     }
   ],
   "batches": [
