@@ -53,7 +53,8 @@ PROPOSED CHANGE (unified diff):
 # Never written by the worker: workflows, the worker and its records, git internals, registered plans.
 REFUSE = re.compile(r"^\.github/|^worker/|^ledger/|(^|/)\.git(/|$)|PREREG|REGISTERED", re.I)
 # Written only through a PR (a person decides): anything an agent reads as instructions (review N3: an allow-list for merge).
-PR_ONLY = re.compile(r"(^|/)(AGENTS|CLAUDE|GEMINI|VERIFY|BRIEF|SKILL|copilot-instructions)[^/]*\.md$|HANDOFF|(^|/)\.(claude|cursor)/", re.I)
+# the keyword may sit anywhere in the file name: tests/canary-BRIEF.md was committed directly in release test 2 (DB, Q59)
+PR_ONLY = re.compile(r"(^|/)[^/]*(AGENTS|CLAUDE|GEMINI|VERIFY|BRIEF|SKILL|copilot-instructions)[^/]*\.md$|HANDOFF|(^|/)\.(claude|cursor)/", re.I)
 TOKENS = re.compile(r"https?://\S+|www\.\S+|<[^>]*>|@[A-Za-z0-9][\w-]*|\]\([^)]*\)|javascript:\S*", re.I)
 
 

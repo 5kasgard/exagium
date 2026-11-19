@@ -122,10 +122,12 @@ class DocSafety(unittest.TestCase):
     def test_paths_and_new_lines(self):
         for p in (".github/a.md", "worker/README.md", "../a.md", "/etc/a.md", "a.py", ["a.md"], "router/bench4/PREREG.md"):
             self.assertFalse(D.safe_path(p), p)
-        for p in ("AGENTS.md", "x/HANDOFF-a.md", "VERIFY.md", "explore/BRIEF.md", ".claude/x.md", "a/SKILL.md"):
+        for p in ("AGENTS.md", "x/HANDOFF-a.md", "VERIFY.md", "explore/BRIEF.md", ".claude/x.md", "a/SKILL.md",
+                  "tests/canary-BRIEF.md", "record/experiments/anchors/VERIFY-anchors.md"):
             self.assertTrue(D.safe_path(p), p)
             self.assertFalse(D.merge_ok(p), p)
         self.assertTrue(D.merge_ok("record/README.md"))
+        self.assertTrue(D.merge_ok("tests/worker-canary-2.md"))   # Q59: the wider rule must not catch ordinary files
         self.assertFalse(D.safe_new("[a](https://good.org/x)", "[a](https://evil.com/y)"))   # review N2
         self.assertFalse(D.safe_new("see https://a.b/c", "see https://a.b/c and https://d.e"))
         self.assertTrue(D.safe_new("see https://a.b/c here", "see https://a.b/c there"))

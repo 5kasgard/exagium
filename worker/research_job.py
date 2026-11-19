@@ -415,6 +415,12 @@ def card(repo, out):
         kinds[s_["kind"]] = kinds.get(s_["kind"], 0) + 1
     L += [f"Sources read: {len(d['sources'])} ({', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}). "
           f"Claims dropped by the script check: {len(rd['script_dropped'])}; by the second model: {len(kept) - len(final)}."]
+    if not final:   # an empty card answers nothing: keep it out of the repo, record why (release test 2, R4; Q59)
+        open(os.path.join(out, "empty-card.md"), "w").write("\n".join(L) + "\n")
+        res = {"result": "no claims", "why": ["no claim survived both checks; the card was not written"], "claims": 0, "path": rel, "edits": 0}
+        json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
+        print(json.dumps(res))
+        return 0
     os.makedirs(os.path.dirname(path), exist_ok=True)
     open(path, "w").write("\n".join(L) + "\n")
     untrusted = sorted({by[c["source"]]["kind"] for c in final if by[c["source"]]["kind"] in UNTRUSTED})
