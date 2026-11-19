@@ -8,12 +8,14 @@ Nothing a model writes is executed: its reply is parsed as JSON and applied as t
 An edit is accepted only if its file is one of the item's targets, its line is inside a target range, its "old" text
 equals that line exactly, and the file is Markdown. The result is "merge" (self-merge, as P8's spec allows for doc
 items) only if every edit is accepted, there is at least one, and the reviewer approves; else "pr" (a human or Claude
-decides) with the reasons. Drafter: gpt-oss-120b (Cloudflare). Reviewer: Nemotron 3 Ultra (NVIDIA NIM), another family.
+decides) with the reasons. Drafter: gpt-oss-120b (Groq; Cloudflare if Groq fails). Reviewer: Nemotron 3 Ultra (NVIDIA NIM),
+another family.
 """
 import difflib, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DRAFTER = ("cloudflare", "@cf/openai/gpt-oss-120b")
+DRAFTER = ("groq", "openai/gpt-oss-120b")             # same model on Groq's free tier, so Cloudflare's neurons go to research (P8r)
+DRAFTER_FALLBACK = ("cloudflare", "@cf/openai/gpt-oss-120b")
 REVIEWER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
 MARGIN = 3   # context lines shown around each target range
 
@@ -191,6 +193,8 @@ def write_calls(out, calls):
 
 def _draft(out, b, item, files, calls, ask):
     d = ask(*DRAFTER, b["prompt"])
+    if not d["ok"]:
+        d = ask(*DRAFTER_FALLBACK, b["prompt"])
     proposal = parse_json(d["text"]) or {"edits": [], "note": "drafter reply was not JSON"}
     edits, reasons = check_edits(item, files, proposal.get("edits"))
     review = None

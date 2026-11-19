@@ -116,6 +116,9 @@ def record(wt, run, calls_path):
             e["tokens"] += int(u.get("total_tokens") or 0)
             e["neurons"] += float(u.get("neurons") or 0)
             (e.get("pending") or {}).pop(run, None)   # the projection gives way to the actual (release test, R2)
+        for e in led.values():   # a reserved pool the run never called (a fallback not needed) releases its projection
+            if isinstance(e, dict):
+                (e.get("pending") or {}).pop(run, None)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         with open(log, "a") as f:
             for c in calls:
