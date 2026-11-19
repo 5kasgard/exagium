@@ -1,0 +1,23 @@
+<!-- cloudflare @cf/openai/gpt-oss-120b status=200 latency=24.15s -->
+
+**Findings**
+
+1. **Potential host‑file leakage through the jailed compiler** – *major* – `runner/jail.py:compile_candidate()`  
+   - **What’s wrong:** The function forks the host `gcc` inside the bubblewrap (or Landlock) namespace, but the namespace only isolates the working directory; it still mounts the host root (or at least `/etc`, `/home`, etc.) by default. An attacker can write `#include "/home/runner/.ssh/id_rsa"` (or any absolute path) and the compiler will read that file from the host filesystem, embed its contents in the binary and leak it in the public output. `J.check()` is run only once before the first compilation and does **not** guarantee that later compilations cannot succeed with such includes.
+   - **Fix:** Tighten the filesystem namespace used by `compile_candidate` so that *no* host‑sensitive directories are visible. Bind‑mount only the temporary work directory and the minimal system include paths (`/usr/include`, `/lib`, …). Pass `-nostdinc` and an explicit empty `-I` directory to the compiler, and add a post‑compile verification step that attempts to compile a dummy source containing a known host file and asserts failure.
+
+2. **Unit test does not actually enforce the “never compile on host” guarantee** – *major* – `loop/test_scale.py`  
+   - **What’s wrong:** The test replaces both `L.build` (host compile) and `J.compile_candidate` (jail compile) with mocks that merely record calls. It therefore never exercises the real `compile_candidate` implementation, nor does it verify that a hostile `#include` is rejected. The test only checks that the mocked functions are called the expected number of times, which does not prove the security property in production.
+   - **Fix:** Add an integration‑style test that builds a temporary candidate containing `#include "/etc/passwd"` (or another known host file) **without mocking** `J.compile_candidate`. The test should assert that compilation fails (e.g., raises `RuntimeError` or returns a non‑zero exit code). Keep the existing mock‑based test for logic coverage, but supplement it with the real‑compile test.
+
+3. **Side‑effectful import of `runner/jail.py`** – *minor* – `loop/scale.py` (lines adding `sys.path.insert(..., "runner")` and `import jail as J`)  
+   - **What’s wrong:** Importing `runner/jail.py` executes module‑level code that sets `OPENBLAS_CORETYPE=Haswell` (and possibly other environment tweaks) for the *process* that imports it. Because `scale.py` is imported by other scripts (e.g., the top‑level `loop/loop.py`), this side effect can silently alter the numerical behaviour of unrelated runs, breaking reproducibility and violating the principle that a security module should be side‑effect‑free.
+   - **Fix:** Refactor `runner/jail.py` so that environment manipulation happens inside a function (e.g., `setup_jail_env()`) that is called explicitly by `scale.py` (or by `J.check()`). Ensure the module’s top level contains only definitions and no runtime side effects.
+
+4. **Replacement of `loop.check_jail()` with `J.check()` may drop loop‑specific sanity checks** – *minor* – `loop/scale.py` (main function)  
+   - **What’s wrong:** `loop.check_jail()` performed additional validations that are specific to the *loop* workflow (e.g., confirming that the trusted timer binary was built inside the jail, that the correct resource limits are in place, etc.). Switching to `J.check()` alone removes those checks, potentially allowing a mis‑configuration where the timer is built on the host while the candidate binaries are jailed.
+   - **Fix:** Either call both checks (`L.check_jail(); J.check()`) or merge the loop‑specific checks into `J.check()` so that a single call guarantees all required invariants.
+
+5. **Fragile CI path handling for the runner package** – *minor* – `.github/workflows/loop.yml` (new “scale.py smoke” step)  
+   - **What’s wrong:** The step runs the script with the interpreter flag `-I`, which disables the normal import machinery for site‑packages. It then relies on a hard‑coded relative `sys.path.insert` inside `scale.py` to locate `runner/jail.py`. If the repository layout changes (e.g., moving `runner` into a submodule) or the CI runner uses a different working directory, the import will fail and the smoke test will abort, potentially masking other failures.
+   - **Fix:** Add the `runner` directory to the `PYTHONPATH` in the workflow step (e.g., `env: PYTHONPATH: ${{ github.workspace }}`) instead of relying on runtime path manipulation, or place `runner` on the package path via a proper `setup.py`/`pyproject.toml` entry. This makes the CI step robust to layout changes and keeps `scale.py` free of repository‑specific path hacks.
