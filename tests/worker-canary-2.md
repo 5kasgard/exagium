@@ -2,7 +2,7 @@
 
 Each numbered line below is the target of one canary item. Some lines carry traps; the item says what to fix.
 
-1. The ledger recieves one entry for each registered plan.
+1. The ledger receives one entry for each registered plan.
 2. A worker claims an item before it starts any work on it, and it releases the item when it ends.
 3. Every run records the calls it made, the pools it used and teh neurons it spent.
 4. The digest are written once a day from the record.
