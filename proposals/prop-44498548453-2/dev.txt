@@ -1,0 +1,12 @@
+FAILED: prop-44498548453-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 118, in <module>
+    main()
+  File "/w/train.py", line 50, in main
+    feat_idx = hash_features(X, d)  # (n, 31)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 31, in hash_features
+    h = (j * MULT + x[:, j].astype(np.uint32)) & 0xFFFFFFFF
+         ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~
+OverflowError: Python integer 5261695644 out of bounds for uint32
+
