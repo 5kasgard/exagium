@@ -1,0 +1,12 @@
+FAILED: prop-44511787951-1 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 139, in <module>
+    main()
+  File "/w/train.py", line 116, in main
+    logits, flat, hidden = forward(X_batch)
+                           ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 61, in forward
+    emb = embed[X_batch, np.arange(256)]  # This is wrong; need advanced indexing per position
+          ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (64,16) (256,) 
+
