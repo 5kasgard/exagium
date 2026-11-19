@@ -1,0 +1,15 @@
+FAILED: prop-44613171472-2 on text: train.py exited 1:
+Trying feature_size=32768
+Traceback (most recent call last):
+  File "/w/train.py", line 123, in <module>
+    main()
+  File "/w/train.py", line 103, in main
+    train_indices = compute_indices(X_train, feature_size)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 22, in compute_indices
+    indices[i, idx] = hash_ngram(X[i], p, 1, feature_size)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 11, in hash_ngram
+    h ^= bytes_arr[pos + k]
+OverflowError: Python integer 84696351 out of bounds for uint8
+
