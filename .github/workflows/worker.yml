@@ -233,7 +233,7 @@ jobs:
     needs: claim
     # Also when nothing was ready while budget remained (owner 2026-11-20: workers always run; a stop means a fault): poll again in
     # 30 minutes through the keeper, since the hourly cron fired 3 times in about 16 h (2026-11-19). An idle poll spends no model call.
-    if: ${{ always() && needs.claim.result == 'success' && (needs.claim.outputs.stopped == 'budget' || needs.claim.outputs.item == '') }}
+    if: ${{ always() && needs.claim.result == 'success' && needs.claim.outputs.stopped == 'budget' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:
@@ -252,9 +252,35 @@ jobs:
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: no keeper"; exit 0; fi
           waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
           if [ "$waiting" -gt 0 ]; then echo "a worker keeper is already waiting ($waiting)"; exit 0; fi
-          if [ "$STOPPED" = budget ]; then at=$(date -u -d "tomorrow 00:05" +%s); else at=$(( $(date +%s) + 1800 )); echo "nothing ready: re-poll in 30 min"; fi
+          at=$(date -u -d "tomorrow 00:05" +%s)
           gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
           echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"
+
+  idle:
+    # Nothing ready while budget remained (owner 2026-11-20: workers always run; a stop with work possible is a fault): wait
+    # 30 minutes on this runner, then start the worker again. Its own job, not the keeper: a keeper already waiting for the
+    # budget reset would block an idle re-poll for hours (2026-11-19 20:34Z, E5 ready). An idle poll makes no model call.
+    needs: claim
+    if: ${{ always() && needs.claim.result == 'success' && needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    concurrency:   # one idle poll waiting at a time
+      group: worker-idle
+      cancel-in-progress: false
+    permissions:
+      actions: write   # dispatch the worker; list worker runs
+      contents: read   # read worker/PAUSE
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: ${{ github.repository }}
+    steps:
+      - name: wait 30 minutes, then start the worker unless paused or already started
+        run: |
+          sleep 1800
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused"; exit 0; fi
+          busy=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=10" -q '[.workflow_runs[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or (.status=="in_progress" and .id != ${{ github.run_id }}))] | length')
+          if [ "$busy" -gt 0 ]; then echo "a worker run is already queued or running ($busy)"; exit 0; fi
+          gh workflow run worker.yml -R "$R" --ref main && echo "idle re-poll: worker started"
 
   chain:
     # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that
