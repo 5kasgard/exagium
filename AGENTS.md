@@ -19,5 +19,6 @@ See the README's "Who does what". Measurement and scoring run on CI. Reviews and
    Remove claims the evidence no longer supports. Say what failed or was dropped, not only what worked. Keep the direction clear: what comes next and why.
 2. **Update the queue** (`audit/2026-11-17/queue.json` on the pilot branch, until it moves to `main`): done items with where, new items with a next step.
    - Every new item says what it writes (`touches`: files, paths, branches).
+   - Every new item says where it came from (`origin`: `follow-up` if finishing or checking work produced it, `new` if it is a new direction). The weekly indicators use it to tell healthy growth (depth) from breadth outrunning what gets built.
    - `render.py` then lists any other item that writes the same place with no dependency between them. Put such items in one batch, or add a blocker, so related work lands together and nothing is edited twice.
 3. **Write a handoff:** what was done, decided, tested or still hypothesis; the open list in order; anything left running; and spend.
