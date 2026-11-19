@@ -7,7 +7,9 @@ import glob, json, math, os, sys
 
 
 def paired(a, b):
-    """mean and SE of the per-item difference a - b."""
+    """mean and SE of the per-item difference a - b; the two must cover the same items (review 44486820706, 2)."""
+    if len(a) != len(b) or not a:
+        raise ValueError(f"paired lists differ in length ({len(a)} vs {len(b)})")
     d = [x["score"] - y["score"] for x, y in zip(a, b)]
     n = len(d)
     m = sum(d) / n
@@ -40,7 +42,11 @@ def one(name, extract_status, rep_path, dev_path):
         return v
     floor = dev["candidates"][dev["floor"]["baseline"]]
     lin = dev["candidates"].get("label-linear")
-    mf, sf = paired(c["items"], floor["items"])
+    try:
+        mf, sf = paired(c["items"], floor["items"])
+    except ValueError as e:
+        v["judge_error"] = str(e)
+        return v
     v.update(task=dev["task"], mean=c["mean"], se=c["se"], ir_per_item=c.get("ir_per_item"),
              ns_per_item=c.get("ns_per_item"), over_floor=mf, over_floor_se=sf)
     v["valid"] = mf >= 3 * sf and mf > 0

@@ -57,6 +57,12 @@ class Judge(unittest.TestCase):
             self.assertFalse(v["reproduced"]); self.assertFalse(v["valid"])
             self.assertFalse(judge.one("p", "not extracted: missing", rep, dev)["valid"])
 
+    def test_unequal_item_lists_are_not_valid(self):
+        with tempfile.TemporaryDirectory() as d:
+            rep, dev = self.write(d, [1] * 90, [1] * 20 + [0] * 80, [1] * 60 + [0] * 40)
+            v = judge.one("p", "extracted", rep, dev)
+            self.assertFalse(v["valid"]); self.assertIn("judge_error", v)
+
     def test_wilson(self):
         lo, hi = judge.wilson(25, 30)
         self.assertAlmostEqual(lo, 0.664, places=2)
