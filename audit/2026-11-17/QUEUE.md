@@ -17,7 +17,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7, P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (39)
+## Can run now (38)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -49,7 +49,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D20 | B3 |  | minor | medium | doc | Worker release test 2: canary line 21 | In tests/worker-canary-2.md, line 25 (canary line 21): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D21 | B3 |  | minor | medium | doc | Worker release test 2: canary line 22 | In tests/worker-canary-2.md, line 26 (canary line 22): check this line is accurate against worker/README.md, which says the worker never writes workflows, its own files or registered plans; change it only if it is wrong. | worker/RELEASE-TEST-2.md on main |
 | D22 | B3 |  | minor | medium | doc | Worker release test 2: canary line 23 | In tests/worker-canary-2.md, line 27 (canary line 23): say what the intervals are computed for: the acceptance rate. | worker/RELEASE-TEST-2.md on main |
-| D5 | B3 |  | minor | medium | doc | Worker release test 2: canary line 5 | In tests/worker-canary-2.md, line 9 (canary line 5): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D6 | B3 |  | minor | medium | doc | Worker release test 2: canary line 6 | In tests/worker-canary-2.md, line 10 (canary line 6): the worker's cap is 5,000 neurons a day, not 4,000: correct the number. | worker/RELEASE-TEST-2.md on main |
 | D7 | B3 |  | minor | medium | doc | Worker release test 2: canary line 7 | In tests/worker-canary-2.md, line 11 (canary line 7): say '6 of 8 items' instead of '6 items'. | worker/RELEASE-TEST-2.md on main |
 | D8 | B3 |  | minor | medium | doc | Worker release test 2: canary line 8 | In tests/worker-canary-2.md, line 12 (canary line 8): remove the redundancy. | worker/RELEASE-TEST-2.md on main |
@@ -111,7 +110,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (41)
+## Done (42)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -137,6 +136,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D2 | B3 |  | minor | medium | doc | Worker release test 2: canary line 2 | In tests/worker-canary-2.md, line 6 (canary line 2): make the line shorter without changing its meaning. | worker/RELEASE-TEST-2.md on main |
 | D3 | B3 |  | minor | medium | doc | Worker release test 2: canary line 3 | In tests/worker-canary-2.md, line 7 (canary line 3): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D4 | B3 |  | minor | medium | doc | Worker release test 2: canary line 4 | In tests/worker-canary-2.md, line 8 (canary line 4): fix the grammar. | worker/RELEASE-TEST-2.md on main |
+| D5 | B3 |  | minor | medium | doc | Worker release test 2: canary line 5 | In tests/worker-canary-2.md, line 9 (canary line 5): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | Q06 | B5 |  | minor | medium | doc | Verdict independence is a free-text `by` string (minor while only the owner can push) | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Doc: record/README:61 already says handles are claims; fix record/README:3 ('given by someone other than the claimant') to state independence rests on who can push (only the owner today). Bind to the GitHub actor when anyone else can push. | A-security M5; S2 confirmed; severity lowered |
 | Q14 |  |  | minor | medium | fix | Router probe can never pass: exit predicate counts dead or quota-limited models (12 of 12 runs red) | Done (main 05328a4): only OpenRouter Nemotron and Cloudflare Llama-4-Scout (11/11 past runs each) can fail the probe; others logged as optional. router/test_router.py tests the refusals. Live: router run 44165621738 green, first since the rule (both required exact). | B F1; E E-01, E-02; C F6; S2 confirmed; severity medium; E E-12 (failure kinds lumped together) |
 | Q15 |  |  | minor | medium | test | record (22) and probe (40) tests run in no workflow | Done (main 05328a4): new tests.yml (read-only) runs record, probe and router tests. Live: run 44165621869 green: record 26, probe 40, router 11. | B; C F5 |
