@@ -70,7 +70,7 @@ jobs:
           rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
-            python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" open "$RUNNER_TEMP/note.json"
+            python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" budget "$RUNNER_TEMP/note.json" || echo "release exit $? (the lease will expire)"   # review of Q60, 7
             echo "ITEM=" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"
           fi
           echo "reserve exit $rc"
@@ -170,20 +170,26 @@ jobs:
           RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           if [ ! -f job/draft.json ] && [ ! -f job/read.json ]; then
             python3 -I worker/note.py note.json "failed: no draft (prepare or draft job did not finish)" "" "$RUN_URL"
-            echo "STATUS=open" >> "$GITHUB_ENV"; exit 0
+            echo "OUTCOME=failed" >> "$GITHUB_ENV"; exit 0
           fi
           rc=0
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job || rc=$?; else python3 -I worker/research_job.py card . job || rc=$?; fi
           if [ "$rc" != 0 ] || [ ! -f job/result.json ]; then
             python3 -I worker/note.py note.json "failed: the check or apply step exited $rc" "" "$RUN_URL"
-            echo "STATUS=open" >> "$GITHUB_ENV"; exit 0
+            echo "OUTCOME=failed" >> "$GITHUB_ENV"; exit 0
           fi
           res=$(python3 -c "import json;print(json.load(open('job/result.json')).get('result',''))")
           msg=$(python3 -I worker/note.py msg "$ITEM" "$TYPE" job/result.json)
           git add -A -- '*.md' ':!job/**'   # job/ holds run files, never content (Q59: job/empty-card.md went into PRs #5, #6); stage first: a research card is a new file, which plain git diff would not see
           if git diff --cached --quiet; then
             python3 -I worker/note.py note.json "no accepted edit" "$RUN_URL" "$RUN_URL" job/result.json
-            echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"; exit 0
+            echo "OUTCOME=$(python3 -I worker/transitions.py classify job/result.json 1 none)" >> "$GITHUB_ENV"; exit 0
+          fi
+          # the lease may have run out while the jobs queued: check it right before any change leaves the runner (review of Q60, 5)
+          git worktree add -q --detach "$RUNNER_TEMP/h" HEAD
+          if ! python3 -I worker/queue_ops.py held "$RUNNER_TEMP/h" "$WORKER" "$ITEM"; then
+            echo "OUTCOME=retry" >> "$GITHUB_ENV"
+            python3 -I worker/note.py note.json "lease lost before landing: nothing pushed" "" "$RUN_URL" job/result.json || true; exit 0
           fi
           if [ "$res" = merge ]; then
             git commit -qm "$msg" -m "$TYPE job: drafted by gpt-oss-120b (Cloudflare), checked by Nemotron 3 Ultra (NIM) and by worker/${TYPE}_job.py. Run: $RUN_URL"
@@ -193,8 +199,8 @@ jobs:
               git rebase --abort 2>/dev/null || true; sleep 5
             done
             if [ "$pushed" = 1 ]; then
-              python3 -I worker/note.py note.json merged "main $(git rev-parse --short HEAD)" "$RUN_URL" job/result.json
-              echo "STATUS=done" >> "$GITHUB_ENV"; exit 0
+              echo "OUTCOME=merged" >> "$GITHUB_ENV"   # recorded before the note: a note failure must not turn a merge into a failure (review of Q60, 6)
+              python3 -I worker/note.py note.json merged "main $(git rev-parse --short HEAD)" "$RUN_URL" job/result.json || true; exit 0
             fi
             echo "push to main failed 3 times: falling back to a PR (review M2)"
             git reset -q --soft HEAD~1
@@ -202,23 +208,25 @@ jobs:
           b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"; git push -q origin "$b"
           body="Queue item $ITEM ($TYPE), drafted by the worker and not merged. Reasons are in the run note on the queue branch. Run: $RUN_URL"
           if url=$(gh pr create --base main --head "$b" --title "$msg" --body "$body" 2>pr.err); then
-            python3 -I worker/note.py note.json pr "$url" "$RUN_URL" job/result.json
+            echo "OUTCOME=pr" >> "$GITHUB_ENV"; python3 -I worker/note.py note.json pr "$url" "$RUN_URL" job/result.json || true
           else
-            python3 -I worker/note.py note.json "pr not created; branch pushed (Actions may not be allowed to create PRs)" "branch $b" "$RUN_URL" job/result.json
+            echo "OUTCOME=pr_not_created" >> "$GITHUB_ENV"; python3 -I worker/note.py note.json "pr not created; branch pushed (Actions may not be allowed to create PRs)" "branch $b" "$RUN_URL" job/result.json || true
           fi
-          echo "STATUS=waiting on the owner" >> "$GITHUB_ENV"
           cat note.json
       - name: record usage and release the claim
         id: release
         if: always()
         run: |
-          echo "status=${STATUS:-open}" >> "$GITHUB_OUTPUT"
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
-          [ -f note.json ] || python3 -I worker/note.py note.json "failed before a note was written" "" "$GITHUB_RUN_ID"
+          [ -f note.json ] || python3 -I worker/note.py note.json "failed before a note was written" "" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
           if [ -f job/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$WORKER" job/calls.jsonl || echo "ledger record exit $?"; fi
           git worktree add -q --detach "$RUNNER_TEMP/q" HEAD
-          rc=0; python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" "${STATUS:-open}" note.json || rc=$?
+          rc=0; python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" "${OUTCOME:-failed}" note.json > release.out || rc=$?
+          cat release.out
+          # the chain reads the status release actually wrote, not a prediction (review of Q60, 8); unknown -> open, which never chains
+          st=$(sed -n 's/^released-status=//p' release.out | tail -1)
+          echo "status=${st:-open}" >> "$GITHUB_OUTPUT"
           echo "release exit $rc"; exit $rc
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
@@ -231,8 +239,6 @@ jobs:
     # Queue Q58: a run that stopped for budget hands over to keeper.yml, which starts the worker when the daily caps reset
     # (00:05 UTC), so the worker never depends on GitHub's scheduler (measured unreliable on this repo, 2026-11-19).
     needs: claim
-    # Also when nothing was ready while budget remained (owner 2026-11-20: workers always run; a stop means a fault): poll again in
-    # 30 minutes through the keeper, since the hourly cron fired 3 times in about 16 h (2026-11-19). An idle poll spends no model call.
     if: ${{ always() && needs.claim.result == 'success' && needs.claim.outputs.stopped == 'budget' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -290,7 +296,7 @@ jobs:
     needs: [claim, land]
     # only after a run whose item did not go back to open: land exits 0 on a failed item and releases it as open, so a
     # failing item would otherwise be retried up to the cap (review 44392240031, 2; the check is on the status, not the job result)
-    if: ${{ always() && needs.claim.outputs.item != '' && needs.land.result == 'success' && needs.land.outputs.status != 'open' }}
+    if: ${{ always() && needs.claim.outputs.item != '' && needs.land.result == 'success' && contains(fromJSON('["done", "review", "escalated"]'), needs.land.outputs.status) }}   # chain only after progress (Q60)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     concurrency:   # serialise check-then-dispatch across runs, so two chains can't both see 0 waiting (review 44392240031, 2)

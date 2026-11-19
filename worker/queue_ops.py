@@ -17,13 +17,16 @@ Exit codes: 0 done (claim: an item was claimed, or none was ready, see OUT_JSON)
 """
 import datetime as dt, json, os, re, subprocess, sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import transitions as T  # noqa: E402  the only place an item's next status is decided (Q60)
+
 QUEUE = "audit/2026-11-17/queue.json"
 RENDER = "audit/2026-11-17/render.py"
 QUEUE_MD = "audit/2026-11-17/QUEUE.md"
 BRANCH = "pilot/lgn-20261115"
 LEASE_HOURS = 2
 TRIES = 5
-MAX_FAILURES = 2   # an item that fails twice waits on the owner, not on the next hourly run (review M4)
+MAX_FAILURES = T.MAX_FAILURES   # kept for readers; the rule lives in transitions.py
 ID = re.compile(r"[A-Za-z0-9._-]+")
 
 
@@ -77,8 +80,8 @@ def expire(q, t):
     out = []
     for i in q["items"]:
         if i.get("status") == "in progress" and str(i.get("claimed_by", "")).startswith("worker-") and not live_claim(i, t):
-            i["status"] = "open"
-            i.setdefault("runs", []).append({"at": iso(t), "worker": i["claimed_by"], "result": "lease expired"})
+            i["status"] = T.next_status("in progress", "lease_expired")
+            i.setdefault("runs", []).append({"at": iso(t), "worker": i["claimed_by"], "result": "lease expired", "outcome": "lease_expired"})
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])
@@ -126,11 +129,13 @@ def failures(i):
     n = 0
     for r in reversed(i.get("runs", [])):
         res = str(r.get("result", ""))
-        if res.startswith("not started") or r.get("result") == "lease expired":
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry"):
             continue
-        if not res.startswith("failed"):
-            break
-        n += 1
+        if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
+            n += 1; continue
+        if r.get("outcome") == "failed" or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
+            n += 1; continue
+        break
     return n
 
 
@@ -156,7 +161,7 @@ def claim(wt, worker, out, types=None):
             json.dump({"item": None, "expired": expired, "attempts": attempt + 1}, open(out, "w"))
             return 0
         i = r[0]
-        i.update(status="in progress", claimed_by=worker, claimed_at=iso(t), lease_until=iso(t + dt.timedelta(hours=LEASE_HOURS)))
+        i.update(status=T.next_status(i["status"], "claim"), claimed_by=worker, claimed_at=iso(t), lease_until=iso(t + dt.timedelta(hours=LEASE_HOURS)))
         save(wt, q)
         if commit_push(wt, f"worker: {worker} claims {i['id']}" + (f" (leases expired {expired})" if expired else "")):
             json.dump({"item": i, "expired": expired, "attempts": attempt + 1}, open(out, "w"), indent=1)
@@ -165,7 +170,10 @@ def claim(wt, worker, out, types=None):
     return 1
 
 
-def release(wt, worker, item_id, status, note_path):
+def release(wt, worker, item_id, outcome, note_path):
+    """outcome: one of transitions.WORKER; the next status comes from transitions.next_status, never from the caller."""
+    if outcome not in T.WORKER:
+        raise ValueError(f"not a worker outcome: {outcome!r}")
     try:
         note = json.load(open(note_path))
         assert isinstance(note, dict)
@@ -179,17 +187,31 @@ def release(wt, worker, item_id, status, note_path):
             raise RuntimeError(f"no item {item_id}")
         lost = i.get("claimed_by") != worker
         i.setdefault("runs", []).append(dict(note, worker=worker, at=iso(now()), lost_lease=lost))
+        i["runs"][-1]["outcome"] = outcome
+        status = i["status"]
         if not lost:
-            if status == "open" and failures(i) >= MAX_FAILURES:
-                status = "waiting on the owner"
-                i["runs"][-1]["parked"] = f"failed {failures(i)} times"
+            try:
+                status = T.next_status(i["status"], outcome, failures(i))
+            except T.NotAllowed as e:   # someone moved the item while this run held it: record, do not overwrite
+                i["runs"][-1]["refused"] = str(e)
+                status = i["status"]
+            if outcome in ("failed", "lease_expired") and status == "escalated" and "refused" not in i["runs"][-1]:
+                i["runs"][-1]["escalated"] = f"failed {failures(i)} times in a row"
             i["status"] = status
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
         save(wt, q)
         if commit_push(wt, f"worker: {worker} {'releases' if not lost else 'records (lease lost)'} {item_id} -> {status}"):
+            print(f"released-status={status if not lost else 'lease lost'}")   # the chain reads the real outcome (review of Q60, 8)
             return 0
     return 1
+
+
+def held(wt, worker, item_id):
+    """0 if this worker still holds a live claim on the item: checked right before a merge or PR (review of Q60, 5)."""
+    sync(wt)
+    i = next((x for x in load(wt)["items"] if x["id"] == item_id), None)
+    return 0 if i and i.get("claimed_by") == worker and live_claim(i, now()) else 1
 
 
 def main(a):
@@ -197,6 +219,8 @@ def main(a):
         return claim(a[1], a[2], a[3], a[4].split(",") if len(a) > 4 and a[4] else None)
     if a[0] == "release":
         return release(a[1], a[2], a[3], a[4], a[5])
+    if a[0] == "held":
+        return held(a[1], a[2], a[3])
     if a[0] == "ready":
         for i in ready(load(a[1]), now()):
             print(i["id"], i["title"][:100])

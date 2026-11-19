@@ -351,15 +351,23 @@ def read(out):
 
 def _read(out, d, q, calls, ask):
     src = "\n\n".join(f"[{s['sid']}] ({s['kind']}, {s['via']}) {s['title']} ({s['year']}). {s['abstract'][:1500]}" for s in d["sources"])
+    model_fail = []   # infrastructure, not evidence: "no claims" must mean the sources held none (review of Q60, 1)
     r = ask(*READER, READ_PROMPT.format(question=q, sources=src))
-    reading = parse_json(r["text"]) or {"claims": [], "open_questions": [], "error": "reader reply was not JSON"}
+    reading = parse_json(r["text"]) if r["ok"] else None
+    if reading is None:
+        model_fail.append("reader call failed" if not r["ok"] else "reader reply was not JSON")
+        reading = {"claims": [], "open_questions": [], "error": model_fail[-1]}
     kept, dropped = verified(reading.get("claims"), d["sources"])
     check = None
     if kept:
         lines = "\n".join(f"{i}. [{c['source']}] GRADE: {c.get('evidence')} CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(kept))
         c2 = ask(*CHECKER, CHECK_PROMPT.format(question=q, claims=lines))
-        check = parse_json(c2["text"]) or {"keep": None, "notes": "checker reply was not JSON: " + str(c2["error"])[:200]}
-    json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check},
+        check = parse_json(c2["text"]) if c2["ok"] else None
+        if check is None:
+            model_fail.append("checker call failed" if not c2["ok"] else "checker reply was not JSON")
+            check = {"keep": None, "notes": model_fail[-1] + ": " + str(c2["error"])[:200]}
+    json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check,
+               "model_fail": model_fail},
               open(os.path.join(out, "read.json"), "w"), indent=1)
     print(f"reader ok={r['ok']} claims={len(reading.get('claims') or [])} script-verified={len(kept)} "
           f"checker kept={None if not check else check.get('keep')}")
@@ -373,8 +381,12 @@ def card(repo, out):
     path = os.path.join(repo, rel)
     if not re.fullmatch(r"[A-Za-z0-9._-]+", item["id"]) or rel not in item.get("touches", []):
         raise SystemExit(f"refused: item id {item['id']!r} or its touches don't allow {rel}")
+    if rd.get("model_fail"):
+        res = {"result": "failed_call", "why": rd["model_fail"], "claims": 0, "path": rel}
+        json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
+        print(json.dumps(res)); return 0
     if os.path.exists(path):
-        res = {"result": "pr", "why": [f"{rel} exists already; a card is never overwritten by the worker"], "claims": 0, "path": rel}
+        res = {"result": "duplicate", "why": [f"{rel} exists already; a card is never overwritten by the worker"], "claims": 0, "path": rel}
         json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
         print(json.dumps(res)); return 0
     kept, _ = verified(rd["script_kept"], d["sources"])   # re-checked here, with no keys

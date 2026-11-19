@@ -55,7 +55,7 @@ PROPOSED CHANGE (unified diff):
 
 
 # Never written by the worker: workflows, the worker and its records, git internals, registered plans.
-REFUSE = re.compile(r"^\.github/|^worker/|^ledger/|(^|/)\.git(/|$)|PREREG|REGISTERED", re.I)
+REFUSE = re.compile(r"^\.github/|^worker/|^ledger/|^job/|(^|/)\.git(/|$)|PREREG|REGISTERED", re.I)
 # Written only through a PR (a person decides): anything an agent reads as instructions (review N3: an allow-list for merge).
 # the keyword may sit anywhere in the file name: tests/canary-BRIEF.md was committed directly in release test 2 (DB, Q59)
 PR_ONLY = re.compile(r"(^|/)[^/]*(AGENTS|CLAUDE|GEMINI|VERIFY|BRIEF|SKILL|copilot-instructions)[^/]*\.md$|HANDOFF|(^|/)\.(claude|cursor)/", re.I)
@@ -212,14 +212,22 @@ def _draft(out, b, item, files, calls, ask):
     d = ask(*DRAFTER, b["prompt"])
     if not d["ok"]:
         d = ask(*DRAFTER_FALLBACK, b["prompt"])
-    proposal = parse_json(d["text"]) or {"edits": [], "note": "drafter reply was not JSON"}
+    model_fail = []   # a failed model call is an infrastructure failure, never a judgement on the item (review of Q60, 1)
+    proposal = parse_json(d["text"]) if d["ok"] else None
+    if proposal is None:
+        model_fail.append("drafter call failed" if not d["ok"] else "drafter reply was not JSON")
+        proposal = {"edits": [], "note": model_fail[-1]}
     edits, reasons = check_edits(item, files, proposal.get("edits"))
     review = None
     if edits:
         dd = diff(files, apply_edits(files, edits))
         r = ask(*REVIEWER, REVIEW_PROMPT.format(id=item["id"], title=item["title"], next=item["next"], diff=dd))
-        review = parse_json(r["text"]) or {"verdict": "none", "reason": "reviewer reply was not JSON: " + str(r["error"])[:200]}
-    json.dump({"proposal": proposal, "review": review, "pre_check": reasons}, open(os.path.join(out, "draft.json"), "w"), indent=1)
+        review = parse_json(r["text"]) if r["ok"] else None
+        if review is None:
+            model_fail.append("reviewer call failed" if not r["ok"] else "reviewer reply was not JSON")
+            review = {"verdict": "none", "reason": model_fail[-1] + ": " + str(r["error"])[:200]}
+    json.dump({"proposal": proposal, "review": review, "pre_check": reasons, "model_fail": model_fail},
+              open(os.path.join(out, "draft.json"), "w"), indent=1)
     print(f"drafter ok={d['ok']} edits={len(edits)} rejected={len(reasons)} review={review and review.get('verdict')}")
     return 0
 
@@ -228,10 +236,14 @@ def apply(repo, out):
     b = json.load(open(os.path.join(out, "bundle.json")))
     item = b["item"]
     files = {p: open(os.path.join(repo, p), encoding="utf-8").read() for p in b["files"]}
+    d = json.load(open(os.path.join(out, "draft.json")))
+    proposed = d["proposal"].get("edits")
+    proposed = len(proposed) if isinstance(proposed, list) else 0
     if files != b["files"]:
-        res = {"result": "pr", "why": ["a target file changed since the bundle was made"], "edits": 0}
+        res = {"result": "stale", "why": ["a target file changed since the bundle was made"], "edits": 0}
+    elif d.get("model_fail"):
+        res = {"result": "failed_call", "why": d["model_fail"], "edits": 0}
     else:
-        d = json.load(open(os.path.join(out, "draft.json")))
         edits, reasons = check_edits(item, files, d["proposal"].get("edits"))   # checked again here, with no keys
         verdict = (d.get("review") or {}).get("verdict")
         why = reasons + ([] if edits else ["no accepted edit: " + str(d["proposal"].get("note", ""))[:300]]) \
@@ -244,8 +256,8 @@ def apply(repo, out):
         pr_only = sorted({e["path"] for e in edits if not merge_ok(e["path"])})
         if pr_only:
             why.append(f"agent-facing file(s), merged only by a person: {', '.join(pr_only)}")
-        res = {"result": "merge" if not why else "pr", "why": why, "edits": len(edits),
-               "note": d["proposal"].get("note"), "review": d.get("review")}
+        res = {"result": "merge" if not why else "pr", "why": why, "edits": len(edits), "proposed": proposed,
+               "accepted": len(edits), "refused": len(reasons), "note": d["proposal"].get("note"), "review": d.get("review")}
         if edits and verdict == "reject":   # a change the reviewer rejected is not offered to a person as a PR (release test 2, Q38; Q59)
             for p in files:
                 open(os.path.join(repo, p), "w", encoding="utf-8").write(files[p])
