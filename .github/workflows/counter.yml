@@ -22,7 +22,7 @@ jobs:
         with:
           persist-credentials: false   # this job only reads
       - name: install valgrind
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+        run: sudo apt-get -o Acquire::Retries=5 update -qq && sudo apt-get -o Acquire::Retries=5 install -y -qq valgrind
       - name: build workloads
         working-directory: counter/workloads
         run: gcc -O2 -o mlp mlp.c && sha256sum mlp && gcc --version | head -1

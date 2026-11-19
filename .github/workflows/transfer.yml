@@ -39,7 +39,7 @@ jobs:
       - name: setup
         run: |
           case "$TASK" in optdigits|text|adult) ;; *) echo "bad task"; exit 1 ;; esac
-          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind
+          sudo apt-get -o Acquire::Retries=5 update -qq && sudo apt-get -o Acquire::Retries=5 install -y -qq valgrind
           python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy==2.5.3
       - name: compare with the registered plan
         env:

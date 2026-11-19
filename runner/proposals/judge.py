@@ -57,7 +57,11 @@ def one(name, extract_status, rep_path, dev_path, task=""):
 
 
 def board(d):
-    rs = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(d, "*", "result.json")))]
+    allr = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(d, "*", "result.json")))]
+    # "not scored" means the scoring job failed (e.g. a package mirror returned 503), not the proposal: it is pending a
+    # rescore and stays out of the counts, so infrastructure faults can't lower the valid rate (2026-11-19, runs 44520331877, 44522134169)
+    rs = [r for r in allr if r.get("extract") != "not scored"]
+    pending = [r["name"] for r in allr if r.get("extract") == "not scored"]
     n, k = len(rs), sum(r["valid"] for r in rs)
     lo, hi = wilson(k, n)
     calls = sum(r.get("calls", 1) for r in rs)
@@ -65,6 +69,8 @@ def board(d):
              f"Proposals: {n}. Valid: {k} (rate {k / n if n else 0:.2f}, 95% Wilson {lo:.2f}-{hi:.2f}). "
              f"Beat label-linear: {sum(r['beats_linear'] for r in rs)}. Free calls per valid: "
              f"{calls / k if k else float('inf'):.1f}.", ""]
+    if pending:
+        lines += [f"Not scored (scoring job failed; pending a rescore, not counted): {', '.join(pending)}.", ""]
     if n >= 20:
         first = rs[:20]
         kv = sum(r["valid"] for r in first)

@@ -33,7 +33,7 @@ jobs:
           persist-credentials: false   # no token left in .git/config
       - name: tools
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq valgrind bubblewrap
+          sudo apt-get -o Acquire::Retries=5 update -qq && sudo apt-get -o Acquire::Retries=5 install -y -qq valgrind bubblewrap
           # Ubuntu 24.04 blocks unprivileged user namespaces, which the jail needs
           sudo sysctl -q -w kernel.apparmor_restrict_unprivileged_userns=0
           python3 -m venv "$RUNNER_TEMP/venv"
@@ -92,7 +92,7 @@ jobs:
     steps:
       - name: tools
         run: |
-          apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git gcc valgrind bubblewrap python3 python3-venv >/dev/null
+          apt-get -o Acquire::Retries=5 update -qq && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=5 install -y -qq git gcc valgrind bubblewrap python3 python3-venv >/dev/null
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0

@@ -70,3 +70,18 @@ class Judge(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBoardPending(unittest.TestCase):
+    def test_not_scored_is_excluded_and_listed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            for name, extract, valid in [("a", "extracted", True), ("b", "not scored", False), ("c", "not extracted: x", False)]:
+                os.makedirs(os.path.join(d, name))
+                json.dump({"name": name, "extract": extract, "extracted": extract == "extracted", "reproduced": valid,
+                           "valid": valid, "beats_linear": False}, open(os.path.join(d, name, "result.json"), "w"))
+            self.assertEqual(judge.board(d), (2, 1))
+            text = open(os.path.join(d, "LEADERBOARD.md")).read()
+            self.assertIn("Proposals: 2. Valid: 1", text)
+            self.assertIn("pending a rescore, not counted): b.", text)
+
