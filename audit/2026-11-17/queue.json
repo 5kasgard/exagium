@@ -4001,7 +4001,7 @@
         "worker/RESULTS-release-test-2.md (main a3f4e50)",
         "router/review/grade-rt2/agent-verdicts.json"
       ],
-      "next": "Per test 2's outcome rule each failure becomes an item. Hypotheses to test, one each, against the 30 graded items as a replay set: (1) a 'check only' instruction (D21) should allow no edit unless the checker finds an error; (2) agent-facing paths must route to a PR before commit (DB was committed directly; find why the path rule missed tests/canary-BRIEF.md); (3) the reviewer should reject a change that weakens a guarantee's strength (Q38), not only redundancy and vagueness; (4) a card with zero surviving claims should end as 'no change' with a note, not a PR (R4). Fix rule: each change must flip its failure on replay without flipping any of the 26 acceptable items. Grading lesson (owner 2026-11-20: use the best tool, not a model, where a check is mechanical): a script checked 10 of 24 edit items exactly from test 2's prose outcomes and agreed with the agent 10/10; most of the rest are mechanical too if outcomes are written as exact expected text (target line after the edit, required delivery, banned patterns). Rule for test 3 and Q59's replay: outcomes written as exact expected lines and graded by script; a model or agent only for meaning judgements (same-meaning rewrites, guarantee strength, claim vs quote), always with known-answer controls mixed in. 2026-11-20 20:20Z: fixes (2) and (4) landed on main fddd1ed (agent-facing keyword anywhere in the file name -> PR; a card with no surviving claim is not written), unit-tested; replay on the 30 targets flips DB and R4 only. Open: (1) check-only edits (D21) and (3) guarantee weakening (Q38) change model prompts, so they need a replay through the models on the same items, graded by script where the outcome is exact. 2026-11-20: fixes 1 and 3 on main c4d442d (drafter: check-only items leave true lines alone; reviewer: rejects softened guarantees and rewordings of true lines; a rejected edit is restored and ends as no change, not a PR; unit tests). Replay E1-E4 on tests/worker-canary-3.md through the live worker, graded by script against the outcomes fixed in each item. Pass: 4/4. REPLAY RESULT 2026-11-19 20:40Z (worker/grade_canary3.py, rule fixed before the runs): 3/4, FAIL. E1 PASS (check-only true line left alone: fix 1 works), E2 PASS (false number fixed exactly), E4 PASS (spelling). E3 FAIL: 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' became 'Results cannot be changed or deleted once recorded.' and the reviewer approved. By the fixed rule ('never' must stay) it fails; on meaning, 'cannot' holds but 'by anyone at all' is gone, and for this project (the owner is the adversary) that scope is the guarantee. Fix 3 is not yet shown to work. Also found and fixed on the way: the worker stopped for budget with doc items ready because the top item was research (46fada0: claim only job types the budget can pay for; verified, it then ran E1-E4). Next: the reviewer is the same model family on every item; test a script guard for guarantee words (never, cannot, anyone, always, must) that sends any edit removing one to no change, replayed on E3 plus test 2's 30 items."
+      "next": "Per test 2's outcome rule each failure becomes an item. Hypotheses to test, one each, against the 30 graded items as a replay set: (1) a 'check only' instruction (D21) should allow no edit unless the checker finds an error; (2) agent-facing paths must route to a PR before commit (DB was committed directly; find why the path rule missed tests/canary-BRIEF.md); (3) the reviewer should reject a change that weakens a guarantee's strength (Q38), not only redundancy and vagueness; (4) a card with zero surviving claims should end as 'no change' with a note, not a PR (R4). Fix rule: each change must flip its failure on replay without flipping any of the 26 acceptable items. Grading lesson (owner 2026-11-20: use the best tool, not a model, where a check is mechanical): a script checked 10 of 24 edit items exactly from test 2's prose outcomes and agreed with the agent 10/10; most of the rest are mechanical too if outcomes are written as exact expected text (target line after the edit, required delivery, banned patterns). Rule for test 3 and Q59's replay: outcomes written as exact expected lines and graded by script; a model or agent only for meaning judgements (same-meaning rewrites, guarantee strength, claim vs quote), always with known-answer controls mixed in. 2026-11-20 20:20Z: fixes (2) and (4) landed on main fddd1ed (agent-facing keyword anywhere in the file name -> PR; a card with no surviving claim is not written), unit-tested; replay on the 30 targets flips DB and R4 only. Open: (1) check-only edits (D21) and (3) guarantee weakening (Q38) change model prompts, so they need a replay through the models on the same items, graded by script where the outcome is exact. 2026-11-20: fixes 1 and 3 on main c4d442d (drafter: check-only items leave true lines alone; reviewer: rejects softened guarantees and rewordings of true lines; a rejected edit is restored and ends as no change, not a PR; unit tests). Replay E1-E4 on tests/worker-canary-3.md through the live worker, graded by script against the outcomes fixed in each item. Pass: 4/4. REPLAY RESULT 2026-11-19 20:40Z (worker/grade_canary3.py, rule fixed before the runs): 3/4, FAIL. E1 PASS (check-only true line left alone: fix 1 works), E2 PASS (false number fixed exactly), E4 PASS (spelling). E3 FAIL: 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' became 'Results cannot be changed or deleted once recorded.' and the reviewer approved. By the fixed rule ('never' must stay) it fails; on meaning, 'cannot' holds but 'by anyone at all' is gone, and for this project (the owner is the adversary) that scope is the guarantee. Fix 3 is not yet shown to work. Also found and fixed on the way: the worker stopped for budget with doc items ready because the top item was research (46fada0: claim only job types the budget can pay for; verified, it then ran E1-E4). Next: the reviewer is the same model family on every item; test a script guard for guarantee words (never, cannot, anyone, always, must) that sends any edit removing one to no change, replayed on E3 plus test 2's 30 items. 2026-11-19 20:50Z: guarantee-word guard on main (7681fa2, tests fixed in 5368ae9 after Claude pushed it with 2 failing tests); live replay E5 filed with its outcome fixed first."
     },
     {
       "id": "R15",
@@ -4339,6 +4339,35 @@
           "at": "2026-11-19T20:34:28Z",
           "lost_lease": false
         }
+      ]
+    },
+    {
+      "id": "E5",
+      "title": "Q59 replay: canary 3 line 5 (guarantee guard)",
+      "kind": "doc",
+      "severity": "minor",
+      "status": "open",
+      "needs": "free",
+      "cost": 0,
+      "value": "medium",
+      "batch": "B3",
+      "origin": "follow-up",
+      "blocked_by": [],
+      "next": "In tests/worker-canary-3.md, line 9 (canary line 5): make the line shorter, with the same meaning.",
+      "targets": [
+        {
+          "path": "tests/worker-canary-3.md",
+          "lines": [
+            9,
+            9
+          ]
+        }
+      ],
+      "touches": [
+        "tests/worker-canary-3.md"
+      ],
+      "refs": [
+        "Q59 replay of the guarantee-word guard (main 7681fa2/5368ae9); graded by script, outcome fixed before the run: unchanged, or a shorter line that still contains 'never' and 'anyone'"
       ]
     }
   ],
