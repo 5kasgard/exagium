@@ -25,3 +25,7 @@ not excluded; the split removes selection on dev, which is the bias measured abo
    (both splits differ in size and items, so baselines are the control).
 Forecast (Claude, before running): rule 1 holds for 0 of 5 (p = 0.7); rule 2 for at most 1 (p = 0.6); the five drop more
 than the baselines (p = 0.75).
+
+**Run log.** 2026-11-20 run 44626779359 produced no result: runner/run.py refused the derived data because the card's
+digests are the original split's, and the workflow hid the failure behind `tail`. Fixed before any score was seen
+(split.py writes an `optdigits-confirm` card with the new digests; `set -o pipefail`). Rules, candidates and seed unchanged.

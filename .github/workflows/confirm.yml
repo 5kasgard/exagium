@@ -35,11 +35,12 @@ jobs:
           git show FETCH_HEAD:proposals/LEADERBOARD.md > "$RUNNER_TEMP/LEADERBOARD.md"
       - name: build digits, make the confirmation split, evaluate (3 rounds), decide
         run: |
+          set -o pipefail   # a failed evaluate must fail the job (first run hid it behind tail)
           PY="$RUNNER_TEMP/venv/bin/python"
           "$PY" -I tasks/build.py "$RUNNER_TEMP/built" --cache "$RUNNER_TEMP/dl" --only optdigits
-          python3 -I runner/proposals/confirm/split.py "$RUNNER_TEMP/built" optdigits "$RUNNER_TEMP/conf" 20261120
+          python3 -I runner/proposals/confirm/split.py "$RUNNER_TEMP/built" optdigits "$RUNNER_TEMP/conf" 20261120 tasks
           mkdir -p out
-          "$PY" runner/run.py evaluate --data "$RUNNER_TEMP/conf" --task optdigits --split dev --rounds 3 \
+          "$PY" runner/run.py evaluate --data "$RUNNER_TEMP/conf" --task optdigits-confirm --split dev --rounds 3 \
             --cand majority label-linear label-mlp16 label-gbdt \
                    prop-44492370928-2 prop-44587812936-1 prop-44610648477-1 prop-44549931886-1 prop-44601956368-1 \
             --out out/confirm.json 2>&1 | tail -n 20
