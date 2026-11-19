@@ -170,6 +170,7 @@ jobs:
           github-token: ${{ github.token }}
       - name: ledger, proposals branch and leaderboard
         env:
+          PROPOSE_RESULT: ${{ needs.propose.result }}
           N: ${{ needs.reserve.outputs.n }}
           START: ${{ needs.reserve.outputs.start }}
         run: |
@@ -180,7 +181,8 @@ jobs:
           fi
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
-          if [ -z "$RESCORE" ] && [ -f replies/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" replies/calls.jsonl || echo "ledger record exit $?"; fi
+          if [ -z "$RESCORE" ] && [ -f replies/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" replies/calls.jsonl || echo "ledger record exit $?"
+          elif [ -z "$RESCORE" ]; then : > "$RUNNER_TEMP/none.jsonl"; python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$RUN" "$RUNNER_TEMP/none.jsonl" || echo "ledger release exit $?"; fi   # no call made: release the reservation (2026-11-19: 26 crashed runs held 78 calls)
           src=scored; [ -d scored ] || src=replies
           for t in 1 2 3; do
             if git ls-remote --exit-code origin proposals >/dev/null; then
@@ -208,7 +210,9 @@ jobs:
           # (owner 2026-11-19: work 24/7 without a chat): KEEP continues, SWITCH stops and waits for the agent-harness step.
           # runner/proposals/PAUSE on main stops it at any time. No chain from a rescore.
           verdict=$(grep -oE "KEEP|SWITCH" "$P/proposals/LEADERBOARD.md" | head -1 || true)
-          if [ -n "$RESCORE" ] || [ -f runner/proposals/PAUSE ]; then
+          if [ "$PROPOSE_RESULT" = failure ]; then
+            echo "propose step failed: not chaining (2026-11-19: a crash looped 26 times in 24 minutes)"; exit 1
+          elif [ -n "$RESCORE" ] || [ -f runner/proposals/PAUSE ]; then
             echo "$have proposals: not chaining (rescore or paused)"
           elif [ "$have" -lt "$FIRST_N" ] || [ "$verdict" = KEEP ]; then
             n=3; [ "$have" -lt "$FIRST_N" ] && n=$(( FIRST_N - have < 3 ? FIRST_N - have : 3 ))

@@ -27,7 +27,10 @@ def families():
         name = os.path.basename(d)
         if name.startswith("sat-"):
             continue
-        doc = open(os.path.join(d, "train.py")).read().split('"""')[1].strip().split("\n")[0]
+        parts = open(os.path.join(d, "train.py")).read().split('"""')
+        # a model-written candidate admitted as is may have no docstring (label-mlp2l, P5a): 26 propose runs crashed
+        # here on 2026-11-19 22:43-23:07Z, each holding 3 reserved calls
+        doc = parts[1].strip().split("\n")[0] if len(parts) > 2 else "(no description in train.py)"
         out.append(f"- {name}: {doc}")
     return "\n".join(out)
 
