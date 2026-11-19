@@ -1,0 +1,30 @@
+# Health check of every research source with no model call and no key but the job's own token (queue P7): calls,
+# results, zero hits, errors and skips per source. Run before a source change goes live, and when a card looks thin.
+name: search-probe
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "queries, separated by |"
+        default: "LLM cascade routing cost|knowledge distillation decision tree|weightless neural network WiSARD|gradient boosting tabular data deep learning"
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: probe every source
+        env:
+          QUERIES: ${{ github.event.inputs.queries }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import os, subprocess, sys
+          qs = [q.strip() for q in os.environ["QUERIES"].split("|") if q.strip()][:8]
+          sys.exit(subprocess.call([sys.executable, "-I", "worker/research_job.py", "probe", *qs]))
+          PY
