@@ -1689,7 +1689,7 @@
    "batch": "B3",
    "blocked_by": [],
    "title": "Queue worker release test 2 (after the acceptance fixes)",
-   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused.",
+   "next": "Same fixed criteria as worker/RELEASE-TEST.md (acceptance >= 4 of 5 by blind grading, 0 double claims, 0 changes outside targets, ledger matches, no stuck leases, digest counts match). Items: reopen Q38 (wording trap), new canaries C4 (a fix that tempts redundancy) and C5 (a vague request where weakening is wrong), and two new research items on open questions (e.g. Q54's lookup-table family; P3's PFN choice). Delete worker/PAUSE, dispatch races of two, grade blind. Pass: unpaused, hourly. Fail: paused again, failures become items. Sample size (2026-11-19): release test 1 graded 8 items; 6/8 has a 95% Wilson interval of about 0.41-0.93, so it cannot separate a 75% worker from an 80% one, and a re-test of the same size will be as inconclusive. Either grade about 30+ items (interval about +-0.15), or set the pass rule on the interval's lower bound, fixed before the run. Started 2026-11-19 (chat claim): worker/RELEASE-TEST-2.md on main 72dde83 fixes 30 items and the rule (Wilson lower bound >= 0.65, i.e. >= 25/30); unpaused. 2026-11-19 07:20Z (chat): the chain stopped at 06:09Z after 20 items: ledger fault, Cloudflare reserved as the drafter's fallback on every run, the cap counted reservations (20) not calls made (1); fixed on main 14a9bfa (pending_calls settle on record, 3 tests, mutation-checked). The 06:17 and 07:17 crons did not fire, so the worker stayed stalled: the 'carries itself without manual dispatch' criterion FAILED before any further dispatch. Third manual dispatch at 07:20Z (deviation from 'at most 2', recorded here and in the results) so acceptance can still be graded on the remaining 10 items.",
    "refs": [
     "worker/RESULTS-release-test-1.md on main",
     "worker/RELEASE-TEST.md on main"
@@ -3577,6 +3577,29 @@
     "owner 2026-11-19 (static and dynamic heterogeneous)"
    ],
    "next": "Owner 2026-11-19: the whole thing is a static and dynamic heterogeneous system and much of the queue overlaps. Measured 2026-11-19 (TF-IDF over 49 live non-canary items): word overlap between substantive items is low (highest P20c-P20d 0.60; the 0.5-0.76 scores among R3-R8 come from shared boilerplate), so the overlap is conceptual, not in wording, and a word measure cannot see it. Hypothesis: compartments (P6), the store (P11), worker orchestration (P20), graphs on demand (P21), ordering (P22) and claims at volume (P23) are one engine seen from different sides: typed nodes and links over time; abilities fitted from outcomes (item response theory for parts, tasks and workers alike); allocation by value of information. Test after R10-R14: write the shared model in docs/system-model.md, map every live item to it, and count items whose design shrinks or merges (target: a separate agent confirms at least 3 merges or removed duplicate designs); if none, keep them separate."
+  },
+  {
+   "id": "Q58",
+   "title": "Worker can stall: a run stopped by budget does not chain, and GitHub drops most hourly crons, so nothing restarts it",
+   "kind": "fix",
+   "severity": "major",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B3",
+   "origin": "follow-up",
+   "blocked_by": [
+    "P8r"
+   ],
+   "touches": [
+    ".github/workflows/worker.yml"
+   ],
+   "refs": [
+    "queue P8r, Q57",
+    "main 14a9bfa"
+   ],
+   "next": "Found in release test 2 (2026-11-19): 20 items done by 06:09Z, then a budget stop (a ledger fault, fixed in 14a9bfa) ended the chain; crons at 06:17 and 07:17 did not fire (1 schedule fired all day). Any future budget stop (a real cap, a pool outage) will stall the same way. Options to test: the chain job also runs after a budget stop and dispatches one retry when the earliest cap resets (UTC midnight) through a delayed dispatch; or a second, independent schedule (another workflow at a different minute); measure which restarts reliably over a week. Not a loop: at most one pending run, as now."
   }
  ],
  "batches": [
