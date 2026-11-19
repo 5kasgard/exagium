@@ -6,7 +6,7 @@ Order: can run now (by optional priority, then how many open items it unlocks, d
 import json, sys
 
 KIND = {'test', 'build', 'fix', 'doc', 'infra', 'decision'}
-STATUS = {'open', 'in progress', 'blocked', 'waiting on the owner', 'scheduled', 'parked', 'done'}
+STATUS = {'open', 'in progress', 'blocked', 'review', 'escalated', 'waiting on the owner', 'scheduled', 'parked', 'done'}   # review/escalated: worker/transitions.py (Q60)
 NEEDS = {'free', 'paid API', 'subscription usage', 'the owner', 'other people'}
 VALUE = {'high': 0, 'medium': 1, 'low': 2}
 SEV = {'critical', 'major', 'minor', 'none'}
@@ -49,7 +49,7 @@ def cyc(n, seen):
 for i in items:
     if cyc(i['id'], set()):
         errs.append(f"{i['id']}: blocker cycle")
-LIVE = ('open', 'in progress', 'blocked', 'waiting on the owner', 'scheduled')
+LIVE = ('open', 'in progress', 'blocked', 'review', 'escalated', 'waiting on the owner', 'scheduled')
 for i in items:
     if i['status'] in LIVE and not i.get('touches'):
         errs.append(f"{i['id']}: open items must say what they touch (files, paths, branches): add 'touches'")
@@ -83,6 +83,8 @@ def unlocks(i, memo={}):
 
 groups = [('Can run now', lambda i: i['status'] in ('open', 'in progress') and not open_blockers(i) and i['needs'] != 'the owner'),
           ('Waiting on a blocker', lambda i: i['status'] in ('open', 'in progress', 'blocked') and open_blockers(i)),
+          ('Review by the next tier (a worker result to confirm: no change, or a PR)', lambda i: i['status'] == 'review' and i['needs'] != 'the owner'),
+          ('Escalated (a check failed; the next tier takes it)', lambda i: i['status'] == 'escalated' and i['needs'] != 'the owner'),
           ('Needs the owner', lambda i: i['status'] == 'waiting on the owner' or (i['needs'] == 'the owner' and i['status'] not in ('done', 'parked', 'scheduled'))),
           ('Scheduled', lambda i: i['status'] == 'scheduled'),
           ('Parked', lambda i: i['status'] == 'parked'),
