@@ -1,0 +1,37 @@
+name: decisions-probe
+# Queue P31: score an OpenRouter Decisions model on the known-answer grading set. Sends prompt text only; no generated code runs.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Decisions model id"
+        default: "perplexity/pplx-decider-v1.3:free"
+      parts:
+        description: "which halves: docs2, cards2 or both (free models allow 50 requests a day: 27 + 8)"
+        default: "cards2"
+permissions: {}
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: run both halves of the grading set
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MODEL: ${{ github.event.inputs.model }}
+          PARTS: ${{ github.event.inputs.parts }}
+        run: |
+          case "$MODEL" in *[!A-Za-z0-9._:/-]*|'') echo "bad model id"; exit 1 ;; esac
+          mkdir -p out
+          case "$PARTS" in docs2|cards2) list="$PARTS" ;; both) list="docs2 cards2" ;; *) echo "bad parts"; exit 1 ;; esac
+          for p in $list; do python3 -I router/decisions_probe.py "$MODEL" "router/review/grade-rt2/$p.md" "out/$p.json"; done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: decisions
+          path: out/
