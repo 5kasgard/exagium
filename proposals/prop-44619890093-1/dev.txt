@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "/home/runner/work/exagium/exagium/runner/run.py", line 312, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/runner/work/exagium/exagium/runner/run.py", line 304, in main
+    (cmd_evaluate if a.cmd == "evaluate" else cmd_reproduce)(a)
+  File "/home/runner/work/exagium/exagium/runner/run.py", line 242, in cmd_evaluate
+    w = train(c, t)
+        ^^^^^^^^^^^
+  File "/home/runner/work/exagium/exagium/runner/run.py", line 103, in train
+    r = J.jail([sys.executable, "-s", "-P", "train.py", "card.json", "train.in", "train.key", "weights.bin"],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/exagium/exagium/runner/jail.py", line 104, in jail
+    return subprocess.run(a, capture_output=True, timeout=timeout, preexec_fn=L._fresh_keyring)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/subprocess.py", line 2116, in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+  File "/usr/lib/python3.12/subprocess.py", line 1253, in _check_timeout
+    raise TimeoutExpired(
+subprocess.TimeoutExpired: Command '['bwrap', '--size', '2147483648', '--tmpfs', '/tmp', '--ro-bind', '/usr', '/usr', '--symlink', 'usr/lib', '/lib', '--symlink', 'usr/lib64', '/lib64', '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/sbin', '/sbin', '--proc', '/proc', '--dev', '/dev', '--unshare-all', '--uid', '65534', '--gid', '65534', '--cap-drop', 'ALL', '--die-with-parent', '--new-session', '--clearenv', '--unshare-user', '--disable-userns', '--ro-bind', '/etc/ld.so.cache', '/etc/ld.so.cache', '--ro-bind', '/home/runner/work/_temp/venv', '/home/runner/work/_temp/venv', '--ro-bind', '/usr', '/usr', '--bind', '/tmp/exagium-rtrain-dd8ygro0', '/w', '--ro-bind', '/tmp/exagium-limits-qo_oesfj', '/run/exagium', '--setenv', 'PATH', '/usr/local/bin:/usr/bin:/bin', '--setenv', 'LC_ALL', 'C', '--setenv', 'LANG', 'C', '--setenv', 'TZ', 'UTC', '--setenv', 'PYTHONHASHSEED', '0', '--setenv', 'PYTHONDONTWRITEBYTECODE', '1', '--setenv', 'OMP_NUM_THREADS', '1', '--setenv', 'OPENBLAS_NUM_THREADS', '1', '--setenv', 'MKL_NUM_THREADS', '1', '--setenv', 'HOME', '/tmp', '--setenv', 'TMPDIR', '/tmp', '--setenv', 'OPENBLAS_CORETYPE', 'Haswell', '--chdir', '/w', '--', '/run/exagium/limits', '--as', '8589934592', '--fsize', '1073741824', '--nofile', '256', '--cpu', '1800', '--seccomp', '--', '/home/runner/work/_temp/venv/bin/python', '-s', '-P', 'train.py', 'card.json', 'train.in', 'train.key', 'weights.bin']' timed out after 1800 seconds
