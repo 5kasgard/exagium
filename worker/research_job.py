@@ -37,7 +37,7 @@ and how it was made; "reported" if it states a result without its method; "exper
 says what happened to them) or "opinion" otherwise. The source's kind is shown in brackets; a forum comment is rarely
 "measured".
 Extract only claims that directly answer the question, not claims from the same field that don't; return no claims
-rather than off-topic ones (release test 2026-11-18, R1). Each claim must say exactly what its quote says, no broader. For each, copy an exact quote from the abstract (verbatim, 8 to 40 words)
+rather than off-topic ones (release test 2026-11-18, R1). Each claim must say exactly what its quote says, no broader. Add no interpretation, comparison or conclusion the quote does not state (no "indicating", "showing" or "suggesting" clause: on 2026-11-19 every claim of R4 was dropped for one). For each, copy an exact quote from the abstract (verbatim, 8 to 40 words)
 that states it; a claim without such a quote is not allowed. Prefer measured results, numbers to beat, known failure modes
 and prior art. Do not add anything the abstracts don't say.
 
