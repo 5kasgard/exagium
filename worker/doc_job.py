@@ -123,6 +123,16 @@ def parse_json(text):
         return None
 
 
+GUARANTEE = re.compile(r"\b(never|cannot|can't|anyone|no one|always|must|every|only)\b", re.I)
+
+
+def lost_guarantee(old, new):
+    """Words that carry a guarantee's strength or scope, present in the old line and gone from the new one. A script, not the
+    reviewer, holds this line: the reviewer approved 'can never ... by anyone at all' -> 'cannot ... once recorded' (Q59 replay
+    E3). Replay on release test 2's 30 items: catches Q38 and E3, blocks none of the 26 acceptable."""
+    return sorted({w.lower() for w in GUARANTEE.findall(old)} - {w.lower() for w in GUARANTEE.findall(new)})
+
+
 def check_edits(item, files, edits):
     """(accepted edits, reasons for any rejection). Pure: no model output is executed."""
     reasons, ok = [], []
@@ -146,6 +156,8 @@ def check_edits(item, files, edits):
             reasons.append(f"{p}:{n}: 'old' does not match the line"); continue
         if "\n" in e["new"] or "\r" in e["new"] or e["new"] == e["old"]:
             reasons.append(f"{p}:{n}: 'new' is not one changed line"); continue
+        if lost_guarantee(e["old"], e["new"]):
+            reasons.append(f"{p}:{n}: drops a guarantee word ({', '.join(lost_guarantee(e['old'], e['new']))})"); continue
         if not safe_new(e["old"], e["new"]):
             reasons.append(f"{p}:{n}: 'new' adds a link, HTML or mention, or is too long"); continue
         if (p, n) in seen:

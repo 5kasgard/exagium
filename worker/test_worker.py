@@ -194,3 +194,10 @@ class RejectedNotOffered(unittest.TestCase):
         res, now, before = self.run_apply("approve")
         self.assertEqual(res["result"], "merge")
         self.assertIn("expected not to change", now)
+
+
+class GuaranteeWords(unittest.TestCase):
+    def test_lost(self):
+        self.assertEqual(D.lost_guarantee("Results can never be changed, by anyone.", "Results cannot be changed."), ["anyone", "never"])
+        self.assertEqual(D.lost_guarantee("The cap is 4,000.", "The cap is 5,000."), [])
+        self.assertEqual(D.lost_guarantee("It must run.", "It must always run."), [])
