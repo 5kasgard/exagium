@@ -1,5 +1,5 @@
-# Queue P5: free models propose candidates; rules in runner/proposals/PLAN.md. Self-continuing until the plan's first 20
-# proposals exist: each finished batch starts the next; a batch stopped by the free-call budget hands over to keeper.yml,
+# Queue P5: free models propose candidates; rules in runner/proposals/PLAN.md. Self-continuing: each finished batch starts
+# the next; after the plan's first 20 the keep/switch rule decides whether it goes on (KEEP) or stops (SWITCH); a batch stopped by the free-call budget hands over to keeper.yml,
 # which starts this workflow again when the daily caps reset (no dependence on GitHub's scheduler, queue Q58).
 # reserve (ledger, no key) -> propose (key, runs no generated code) -> score (no secrets, read-only, generated code runs
 # only in the jail) -> record (no key; writes the proposals branch and the ledger).
@@ -204,10 +204,17 @@ jobs:
           cat "$P/proposals/LEADERBOARD.md" >> "$GITHUB_STEP_SUMMARY"
           # continue until the plan's first FIRST_N proposals exist (no chain from a rescore)
           have=$(find "$P/proposals" -maxdepth 1 -type d -name 'prop-*' | wc -l)
-          if [ -z "$RESCORE" ] && [ "$have" -lt "$FIRST_N" ]; then
-            n=$(( FIRST_N - have < 3 ? FIRST_N - have : 3 )); start=$(( (START + N) % 3 ))
+          # Up to the plan's first FIRST_N: always continue. After that, PLAN.md's keep/switch rule decides by itself
+          # (owner 2026-11-19: work 24/7 without a chat): KEEP continues, SWITCH stops and waits for the agent-harness step.
+          # runner/proposals/PAUSE on main stops it at any time. No chain from a rescore.
+          verdict=$(grep -oE "KEEP|SWITCH" "$P/proposals/LEADERBOARD.md" | head -1 || true)
+          if [ -n "$RESCORE" ] || [ -f runner/proposals/PAUSE ]; then
+            echo "$have proposals: not chaining (rescore or paused)"
+          elif [ "$have" -lt "$FIRST_N" ] || [ "$verdict" = KEEP ]; then
+            n=3; [ "$have" -lt "$FIRST_N" ] && n=$(( FIRST_N - have < 3 ? FIRST_N - have : 3 ))
+            start=$(( (START + N) % 3 ))
             GH_TOKEN="${{ github.token }}" gh workflow run propose.yml -R "${{ github.repository }}" --ref main -f n="$n" -f start="$start"
-            echo "next batch started: $n proposals from task $start ($have of $FIRST_N so far)"
+            echo "next batch started: $n proposals from task $start ($have so far; first-$FIRST_N verdict: ${verdict:-pending})"
           else
-            echo "$have proposals: not chaining (first $FIRST_N reached, or a rescore)"
+            echo "$have proposals; first-$FIRST_N verdict $verdict: not chaining (the plan's switch rule)"
           fi
