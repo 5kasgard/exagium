@@ -275,11 +275,23 @@ jobs:
       cancel-in-progress: false
     permissions:
       actions: write   # dispatch the worker; list worker runs
-      contents: read   # read worker/PAUSE
+      contents: write  # read worker/PAUSE; push facts/status.json to worker-runs (P30)
     env:
       GH_TOKEN: ${{ github.token }}
       R: ${{ github.repository }}
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes facts/status.json with the checkout token and uploads no artifact
+        with:
+          fetch-depth: 1
+      - name: check due changing facts by script (P30; no model call), while idle
+        id: facts
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/fr" FETCH_HEAD
+          mkdir -p "$RUNNER_TEMP/fr/facts"
+          rc=0; python3 -I facts/check.py facts/register.json "$RUNNER_TEMP/fr/facts/status.json" || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          cd "$RUNNER_TEMP/fr" && git add facts/status.json && { git diff --cached --quiet || { git commit -qm "facts: check, run $GITHUB_RUN_ID (rc $rc)" && git push -q origin HEAD:worker-runs || echo "status push failed (next idle run retries)"; }; }
       - name: wait 30 minutes, then start the worker unless paused or already started
         run: |
           sleep 1800
@@ -287,6 +299,10 @@ jobs:
           busy=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=10" -q '[.workflow_runs[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or (.status=="in_progress" and .id != ${{ github.run_id }}))] | length')
           if [ "$busy" -gt 0 ]; then echo "a worker run is already queued or running ($busy)"; exit 0; fi
           gh workflow run worker.yml -R "$R" --ref main && echo "idle re-poll: worker started"
+      - name: a changed fact fails this run (after the worker restart, so work continues); the Claude shift sees it in its health check
+        if: steps.facts.outputs.rc == '2'
+        run: |
+          echo "::error::a registered fact changed: see the facts step and worker-runs facts/status.json (queue P30)"; exit 1
 
   chain:
     # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that

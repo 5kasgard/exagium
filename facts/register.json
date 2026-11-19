@@ -1,0 +1,23 @@
+{
+ "about": "Facts that change, checked by script (queue P30). A changed value is a failure: facts/check.py exits 2 and names the dependants. Only facts that something in the repo cites are registered; each entry says what cites it.",
+ "facts": [
+  {"id": "uci-adult-data", "probe": {"kind": "sha256_url", "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"},
+   "value": "5b00264637dbfec36bdeaab5676b0b309ff9eb788d63554ca0a249491c86603d", "recheck_days": 1,
+   "cited_by": ["transfer/tasks.py SOURCES", "tasks adult (P3, P5 scoring)"]},
+  {"id": "uci-adult-test", "probe": {"kind": "sha256_url", "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test"},
+   "value": "a2a9044bc167a35b2361efbabec64e89d69ce82d9790d2980119aac5fd7e9c05", "recheck_days": 1,
+   "cited_by": ["transfer/tasks.py SOURCES", "tasks adult (P3, P5 scoring)"]},
+  {"id": "uci-tls", "probe": {"kind": "tls_valid", "host": "archive.ics.uci.edu"}, "value": true, "recheck_days": 1,
+   "cited_by": ["transfer/tasks.py fetch (falls back to the sha256 pin when false, e96ba04)"]},
+  {"id": "or-nemotron-free", "probe": {"kind": "openrouter_listed", "model": "nvidia/nemotron-3-ultra-550b-a55b:free"}, "value": true, "recheck_days": 1,
+   "cited_by": ["router/bench4 (model held fixed)", "router/review/checker-consistency"]},
+  {"id": "or-ernie-free", "probe": {"kind": "openrouter_listed", "model": "baidu/ernie-5.5-flash-preview:free"}, "value": true, "recheck_days": 1,
+   "cited_by": ["blind reviews and graders (grade-rt2, new-items-20261120)"]},
+  {"id": "or-gemma4-31b-free", "probe": {"kind": "openrouter_listed", "model": "google/gemma-4-31b-it:free"}, "value": true, "recheck_days": 1,
+   "cited_by": ["grade-rt2 round 2 grader list"]},
+  {"id": "hf-swe-rebench-license", "probe": {"kind": "hf_dataset_license", "dataset": "nebius/SWE-rebench"}, "value": "cc-by-4.0", "recheck_days": 7,
+   "cited_by": ["queue P28 (primary task source)"]},
+  {"id": "hf-tb2-license", "probe": {"kind": "hf_dataset_license", "dataset": "harborframework/terminal-bench-2.0"}, "value": "apache-2.0", "recheck_days": 7,
+   "cited_by": ["queue P28 (secondary task source)"]}
+ ]
+}
