@@ -1,5 +1,5 @@
 """Judge proposals by PLAN.md's fixed measures, and write the leaderboard (queue P5). No secrets; reads JSON only.
-python3 -I judge.py one NAME EXTRACT_STATUS REPRODUCE.json DEV.json OUT.json   -> one proposal's verdict
+python3 -I judge.py one NAME EXTRACT_STATUS REPRODUCE.json DEV.json OUT.json [TASK]   -> one proposal's verdict
 python3 -I judge.py board DIR                                                 -> DIR/LEADERBOARD.md from DIR/*/result.json
 Valid: extracted, trained twice to identical weights, and dev accuracy above the floor by at least 3 SE (paired with the
 floor's items). Beats a baseline: above label-linear by more than 2 paired SE."""
@@ -26,8 +26,8 @@ def wilson(k, n, z=1.96):
     return max(0.0, c - h), min(1.0, c + h)
 
 
-def one(name, extract_status, rep_path, dev_path):
-    v = {"name": name, "extracted": extract_status == "extracted", "extract": extract_status,
+def one(name, extract_status, rep_path, dev_path, task=""):
+    v = {"name": name, "task": task, "extracted": extract_status == "extracted", "extract": extract_status,
          "reproduced": False, "valid": False, "beats_linear": False}
     if not v["extracted"]:
         return v
@@ -85,7 +85,7 @@ def board(d):
 if __name__ == "__main__":
     a = sys.argv[1:]
     if a[0] == "one":
-        v = one(a[1], a[2], a[3], a[4])
+        v = one(a[1], a[2], a[3], a[4], a[6] if len(a) > 6 else "")
         json.dump(v, open(a[5], "w"), indent=1)
         print(json.dumps(v))
     else:

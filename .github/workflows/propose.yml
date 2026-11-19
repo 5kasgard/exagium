@@ -1,4 +1,6 @@
-# Queue P5: free models propose candidates; rules in runner/proposals/PLAN.md. Manual for now.
+# Queue P5: free models propose candidates; rules in runner/proposals/PLAN.md. Self-continuing until the plan's first 20
+# proposals exist: each finished batch starts the next; a batch stopped by the free-call budget hands over to keeper.yml,
+# which starts this workflow again when the daily caps reset (no dependence on GitHub's scheduler, queue Q58).
 # reserve (ledger, no key) -> propose (key, runs no generated code) -> score (no secrets, read-only, generated code runs
 # only in the jail) -> record (no key; writes the proposals branch and the ledger).
 name: propose
@@ -22,6 +24,7 @@ concurrency:
   group: propose
   cancel-in-progress: false
 env:
+  FIRST_N: 20   # PLAN.md: the keep/switch rule is applied after the first 20 proposals; the chain stops there
   RUN: propose-${{ github.run_id }}
   SRC: ${{ github.event.inputs.rescore || github.run_id }}   # the run whose replies are scored and named
   RESCORE: ${{ github.event.inputs.rescore }}
@@ -32,6 +35,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write   # the ledger on worker-runs
+      actions: write    # hand over to keeper.yml when the budget is used up
     outputs:
       n: ${{ steps.res.outputs.n }}
       start: ${{ steps.res.outputs.start }}
@@ -51,11 +55,17 @@ jobs:
           if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; exit 1; fi
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
-          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$RUN" "nvidia:$N_IN"
+          rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$RUN" "nvidia:$N_IN" || rc=$?
+          if [ "$rc" != 0 ]; then
+            echo "no budget for $N_IN calls today (ledger exit $rc): handing over to keeper.yml for 00:05 UTC"
+            GH_TOKEN="${{ github.token }}" gh workflow run keeper.yml -R "${{ github.repository }}" --ref main \
+              -f at="$(date -u -d 'tomorrow 00:05' +%s)" -f workflow=propose.yml
+            echo "n=0" >> "$GITHUB_OUTPUT"; exit 0
+          fi
           { echo "n=$N_IN"; echo "start=$START_IN"; } >> "$GITHUB_OUTPUT"
   propose:
     needs: reserve
-    if: ${{ github.event.inputs.rescore == '' }}
+    if: ${{ github.event.inputs.rescore == '' && needs.reserve.outputs.n != '0' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -79,7 +89,7 @@ jobs:
           path: out/
   score:
     needs: [reserve, propose]
-    if: ${{ always() && needs.reserve.result == 'success' && (needs.propose.result == 'success' || needs.propose.result == 'skipped') }}
+    if: ${{ always() && needs.reserve.result == 'success' && needs.reserve.outputs.n != '0' && (needs.propose.result == 'success' || needs.propose.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 330
     permissions:
@@ -120,7 +130,7 @@ jobs:
                 --split dev --rounds 3 --out "out/$k/dev.json" > "out/$k/dev.txt" 2>&1 || true
               tail -n 5 "out/$k/reproduce.txt" "out/$k/dev.txt" || true
             fi
-            python3 -I runner/proposals/judge.py one "$name" "$st" "out/$k/reproduce.json" "out/$k/dev.json" "out/$k/result.json"
+            python3 -I runner/proposals/judge.py one "$name" "$st" "out/$k/reproduce.json" "out/$k/dev.json" "out/$k/result.json" "$task"
           done
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
@@ -129,12 +139,12 @@ jobs:
           path: out/
   record:
     needs: [reserve, propose, score]
-    if: ${{ always() && needs.reserve.result == 'success' && github.event.inputs.dry != '1' }}
+    if: ${{ always() && needs.reserve.result == 'success' && needs.reserve.outputs.n != '0' && github.event.inputs.dry != '1' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: write   # the proposals branch and the ledger
-      actions: read     # the replies artifact of an earlier run when rescoring
+      actions: write    # the replies artifact of an earlier run when rescoring; start the next batch
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no artifact
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
@@ -152,6 +162,7 @@ jobs:
       - name: ledger, proposals branch and leaderboard
         env:
           N: ${{ needs.reserve.outputs.n }}
+          START: ${{ needs.reserve.outputs.start }}
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
@@ -177,3 +188,12 @@ jobs:
             echo "push failed, retrying"; sleep 5
           done
           cat "$P/proposals/LEADERBOARD.md" >> "$GITHUB_STEP_SUMMARY"
+          # continue until the plan's first FIRST_N proposals exist (no chain from a rescore)
+          have=$(find "$P/proposals" -maxdepth 1 -type d -name 'prop-*' | wc -l)
+          if [ -z "$RESCORE" ] && [ "$have" -lt "$FIRST_N" ]; then
+            n=$(( FIRST_N - have < 3 ? FIRST_N - have : 3 )); start=$(( (START + N) % 3 ))
+            GH_TOKEN="${{ github.token }}" gh workflow run propose.yml -R "${{ github.repository }}" --ref main -f n="$n" -f start="$start"
+            echo "next batch started: $n proposals from task $start ($have of $FIRST_N so far)"
+          else
+            echo "$have proposals: not chaining (first $FIRST_N reached, or a rescore)"
+          fi

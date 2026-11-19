@@ -11,13 +11,18 @@ second concurrent push, so two runs can't both take the last share). Calls made 
 pending, so one run can overshoot by the difference between its projection and its use. Caps are half of each pool's measured daily allowance, so the other half stays for
 chats, reviews and probes (P8, "coexists with chat sessions"):
   cloudflare 10,000 neurons/day (measured: 560-780 per long review, router-runs reviews/44253058538, 44257135013)
-  -> cap 5,000 neurons and 20 calls; nvidia (NIM) shape unmeasured (bench-5: about 30/min, then refusals) -> cap
-  40 calls; groq 1,000 requests/day -> cap 500. Paid pools are not listed, so the worker can't reserve them.
+  -> cap 5,000 neurons; its calls are not limited by Cloudflare, so the call cap is only a backstop (500);
+  nvidia (NIM): no daily limit is published and the credit system ended (NVIDIA staff, Sep 2025); the stated limit is
+  about 40 requests a minute per key (forum, Jun 2026); bench-5 measured a bucket of about 220 that refills at about 8 a
+  minute (project doc forge-free-pools). The old cap of 40 a day read a per-minute figure as daily and stopped both
+  the worker and P5 (2026-11-19, 36 of 40 used by midday). Cap 400 a day: far under the measured refill (about
+  11,000 a day), kept low because the terms are for development and evaluation; groq 1,000 requests/day -> cap 500.
+  Paid pools are not listed, so the worker can't reserve them.
 """
 import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
-CAPS = {"cloudflare": {"calls": 20, "neurons": 5000}, "nvidia": {"calls": 40}, "groq": {"calls": 500}}
+CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500}}
 EST_NEURONS = 1000   # default per Cloudflare call when the caller gives none (long reviews measured 560-780)
 
 

@@ -152,13 +152,14 @@ class Ledger(unittest.TestCase):
 
     def test_unrecorded_reservations_still_count(self):
         import ledger as LG
-        led = {"cloudflare": {"reserved": 20, "calls": 0, "neurons": 0.0, "runs": [], "pending": {},
-                              "pending_calls": {f"r{i}": 1 for i in range(20)}}}
+        n = LG.CAPS["cloudflare"]["calls"]
+        led = {"cloudflare": {"reserved": n, "calls": 0, "neurons": 0.0, "runs": [], "pending": {},
+                              "pending_calls": {f"r{i}": 1 for i in range(n)}}}
         self.assertIsNotNone(LG.headroom(led, LG.parse("cloudflare:1:400")))   # 20 held by runs in flight
 
     def test_cap_on_calls_made(self):
         import ledger as LG
-        led = {"nvidia": {"reserved": 40, "calls": 40, "runs": []}}
+        led = {"nvidia": {"reserved": LG.CAPS["nvidia"]["calls"], "calls": LG.CAPS["nvidia"]["calls"], "runs": []}}
         self.assertIsNotNone(LG.headroom(led, LG.parse("nvidia:1")))
 
 
