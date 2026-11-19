@@ -60,7 +60,8 @@ def save(wt, q):
     with open(p, "w") as f:
         json.dump(q, f, indent=1, ensure_ascii=False)
         f.write("\n")
-    r = subprocess.run([sys.executable, "-I", os.path.join(wt, RENDER), p], capture_output=True, text=True)
+    env = dict(os.environ, EXAGIUM_TRANSITIONS=os.path.join(os.path.dirname(os.path.abspath(__file__)), "transitions.py"))
+    r = subprocess.run([sys.executable, "-I", os.path.join(wt, RENDER), p], capture_output=True, text=True, env=env)
     if r.returncode:
         raise RuntimeError(f"render.py refused the queue: {r.stderr[-500:]}")
     open(os.path.join(wt, QUEUE_MD), "w").write(r.stdout)
@@ -214,6 +215,31 @@ def held(wt, worker, item_id):
     return 0 if i and i.get("claimed_by") == worker and live_claim(i, now()) else 1
 
 
+TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "decide_done", "decide_open", "park", "decide_blocked",
+                 "decide_scheduled", "decide_owner"}
+
+
+def move(wt, actor, item_id, outcome, reason):
+    """The tier above the workers (the Claude session, the owner's chat) moves an item: the same table, the same record.
+    Chat edits used to set status by hand, past transitions.py (Q60 open point)."""
+    if outcome not in TIER_OUTCOMES:
+        raise SystemExit(f"not a tier or owner outcome: {outcome!r} (worker outcomes go through release)")
+    for _ in range(TRIES):
+        sync(wt)
+        q = load(wt)
+        i = next((x for x in q["items"] if x["id"] == item_id), None)
+        if i is None:
+            raise SystemExit(f"no item {item_id}")
+        to = T.next_status(i["status"], outcome)   # raises NotAllowed for a move the table does not have
+        i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": reason, "outcome": outcome})
+        i["status"] = to
+        save(wt, q)
+        if commit_push(wt, f"{actor}: {item_id} {outcome} -> {to}"):
+            print(f"{item_id}: {to}")
+            return 0
+    return 1
+
+
 def main(a):
     if a[0] == "claim":
         return claim(a[1], a[2], a[3], a[4].split(",") if len(a) > 4 and a[4] else None)
@@ -221,6 +247,8 @@ def main(a):
         return release(a[1], a[2], a[3], a[4], a[5])
     if a[0] == "held":
         return held(a[1], a[2], a[3])
+    if a[0] == "move":
+        return move(a[1], a[2], a[3], a[4], a[5])
     if a[0] == "ready":
         for i in ready(load(a[1]), now()):
             print(i["id"], i["title"][:100])
