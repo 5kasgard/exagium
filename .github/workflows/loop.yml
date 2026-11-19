@@ -51,6 +51,13 @@ jobs:
           shopt -s nullglob; dirs=(loop/baselines/*/ loop/candidates/*/); [ ${#dirs[@]} -gt 0 ] || { echo "no candidate directories"; exit 1; }
           set +e; "$RUNNER_TEMP/venv/bin/python" loop/loop.py evaluate "${dirs[@]}" --test dev --records out/records --out out/dev.json > out/dev.txt 2>&1; rc=$?; set -e
           cat out/dev.txt; echo "exit $rc" | tee -a out/dev.txt; exit $rc
+      - name: scale.py smoke (queue Q56b, candidates compiled in the jail)
+        if: ${{ !cancelled() }}
+        run: |
+          # small sizes, 2 rounds: checks the jailed compile, the reference predictions and the per-segment checks, not costs
+          set +e; "$RUNNER_TEMP/venv/bin/python" -I loop/scale.py loop/candidates/mlp16 loop/baselines/linear --sizes 0,956,4096 --rounds 2 \
+            --out out/scale-smoke.json > out/scale-smoke.txt 2>&1; rc=$?; set -e
+          cat out/scale-smoke.txt; echo "exit $rc" | tee -a out/scale-smoke.txt; exit $rc
       - name: score requested plans on the test set
         if: ${{ !cancelled() }}
         run: |
