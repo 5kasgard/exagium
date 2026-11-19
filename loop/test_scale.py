@@ -109,18 +109,30 @@ class AccuracyMiddle(unittest.TestCase):
 class Measure(unittest.TestCase):
     """measure() with the jail, compiler and timer faked: the checks must fire."""
 
-    def run_measure(self, behaviour):
+    def run_measure(self, behaviour, built=None):
         calls = {"n": 0}
+        built = [] if built is None else built
 
         def fake_timed(c, rows, timer, cpu):
             calls["n"] += 1
             return behaviour(rows, calls["n"]), 1_000_000 + 50 * len(rows)
 
-        with mock.patch.object(L, "build", lambda src, out: None), \
+        with mock.patch.object(L, "build", lambda src, out: built.append(("host", src))), \
+             mock.patch.object(scale.J, "compile_candidate", lambda src, out: built.append(("jail", src))), \
              mock.patch.object(L, "timed", fake_timed), \
              mock.patch.dict(L.JAIL, {"mode": "confine"}), \
              mock.patch.object(L, "versions", lambda: {}):
             return scale.measure([MLP16], [0, 956, 4096], 2, 1)
+
+    def test_candidates_compile_in_the_jail_and_only_the_timer_on_the_host(self):
+        """Q56b: candidate C is untrusted, so it never reaches the host gcc; the trusted timer still does."""
+        built = []
+        self.run_measure(lambda rows, k: self.labels_for(rows), built)
+        self.assertEqual([w for w, s in built if w == "host"], ["host"])
+        self.assertEqual([s for w, s in built if w == "host"], [L.TIMER])
+        jailed = [s for w, s in built if w == "jail"]
+        self.assertEqual(len(jailed), 1)
+        self.assertTrue(jailed[0].endswith(os.path.join("mlp16", "infer.c")))
 
     def labels_for(self, rows):
         imgs, labels = scale.pool(4096, 1)

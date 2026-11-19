@@ -28,7 +28,8 @@ input (one big buffer, blocks, mmap). That is part of the candidate. Every candi
 
 Not measured: block steps. One extra image costs 0.03-0.3 us; single runs vary by 75-3,800 us here.
 
-Reuses loop.py (frozen by plan 2) by import; changes nothing in it.
+Reuses loop.py (frozen by plan 2) by import; changes nothing in it. Candidate C is compiled inside the jail by
+runner/jail.py (queue Q56b), never on the host; only the trusted timer is built on the host.
 Usage: python3 loop/scale.py DIR... [--sizes 0,956,4096,16384,65536] [--rounds 9] [--seed 1] [--out F]
        [--provenance TEXT]   (where candidates outside this repo came from: branch and commit)
 Exit codes: 0 done, no problems; 1 a check failed or problems were found; 3 failure.
@@ -38,6 +39,8 @@ import argparse, json, math, os, random, shutil, statistics, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)  # python3 -I drops the script's directory
 import loop as L  # noqa: E402
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "runner"))
+import jail as J  # noqa: E402  (Q56b: compile candidates in the jail; imports loop itself, the same module)
 
 DEFAULT_SIZES = (0, 956, 4096, 16384, 65536)
 NUDGES = 4
@@ -153,7 +156,7 @@ def measure(dirs, sizes, rounds, seed):
             src = os.path.join(work, name, "infer.c")
             shutil.copyfile(os.path.join(d, "infer.c"), src)
             c = {"name": name, "dir": d, "exe": os.path.join(work, name, "infer")}
-            L.build(src, c["exe"])
+            J.compile_candidate(src, c["exe"])   # Q56b: never compile candidate code on the host
             c["ref"], _ = L.timed(c, imgs, timer, cpu)  # reference predictions on the whole pool (not a timing)
             acc[name] = accuracy_check(c["ref"], labels, sizes)
             if acc[name]["problem"]:
@@ -221,7 +224,7 @@ def main(argv=None):
         if a.rounds < 2:
             ap.error("--rounds must be >= 2")
         dirs = [L.candidate(d) for d in a.dirs]
-        L.check_jail()
+        J.check()   # loop's jail mode, then fail closed unless limits hold and the jailed compiler refuses host files
         s = measure(dirs, sizes, a.rounds, a.seed)
         s["provenance"] = a.provenance
         show(s)
