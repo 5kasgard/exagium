@@ -33,7 +33,7 @@ def p_yes(resp):
     """Find the probability of yes for 'acceptable' wherever the response puts it (alpha API; shape not fixed in our record)."""
     def walk(x):
         if isinstance(x, dict):
-            for k in ("p_yes", "probability", "yes", "p"):
+            for k in ("noul", "p_yes", "probability", "yes", "p"):   # "noul" is what Decider V1.3 returns (run 44640108993)
                 if isinstance(x.get(k), (int, float)):
                     return float(x[k])
             for v in x.values():
