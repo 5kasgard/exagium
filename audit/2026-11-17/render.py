@@ -18,6 +18,53 @@ ids = [i['id'] for i in items]
 if len(ids) != len(set(ids)):
     errs.append('duplicate ids: ' + ', '.join(sorted({x for x in ids if ids.count(x) > 1})))
 by = {i['id']: i for i in items}
+
+
+def transition_check():
+    """Every status change against the last commit must be a move worker/transitions.py allows, recorded as a run with its
+    outcome (Q60: chat edits used to bypass the table). A claim (open -> in progress with claimed_by) needs no run entry."""
+    import os, subprocess, importlib.util
+    here = os.path.dirname(os.path.abspath(sys.argv[1]))
+    rel = subprocess.run(['git', '-C', here, 'ls-files', '--full-name', os.path.basename(sys.argv[1])], capture_output=True, text=True).stdout.strip()
+    prev = subprocess.run(['git', '-C', here, 'show', f'HEAD:{rel}'], capture_output=True, text=True) if rel else None
+    if not prev or prev.returncode:
+        return ['note: no committed queue to compare with; transition check skipped']
+    src = os.environ.get('EXAGIUM_TRANSITIONS')
+    if not src:
+        t = subprocess.run(['git', '-C', here, 'show', 'origin/main:worker/transitions.py'], capture_output=True, text=True)
+        if t.returncode:   # a clone of the queue branch only: fetch main's file; fail closed if it cannot be had
+            subprocess.run(['git', '-C', here, 'fetch', '-q', '--depth', '1', 'origin', 'main'], capture_output=True)
+            t = subprocess.run(['git', '-C', here, 'show', 'FETCH_HEAD:worker/transitions.py'], capture_output=True, text=True)
+        if t.returncode:
+            return ['worker/transitions.py not reachable (origin/main): the transition check cannot run, so the queue is refused']
+        src = os.path.join(os.environ.get('TMPDIR', '/tmp'), 'exagium_transitions.py')
+        open(src, 'w').write(t.stdout)
+    spec = importlib.util.spec_from_file_location('exagium_transitions', src)
+    T = importlib.util.module_from_spec(spec); spec.loader.exec_module(T)
+    old = {i['id']: i for i in json.loads(prev.stdout)['items']}
+    bad = []
+    for i in items:
+        o = old.get(i['id'])
+        if not o or o['status'] == i['status']:
+            continue
+        if o['status'] == 'open' and i['status'] == 'in progress' and i.get('claimed_by'):
+            continue
+        last = (i.get('runs') or [{}])[-1]
+        oc = last.get('outcome')
+        if len(i.get('runs') or []) <= len(o.get('runs') or []) or not oc:
+            bad.append(f"{i['id']}: {o['status']} -> {i['status']} with no new run entry carrying an outcome")
+            continue
+        if (o['status'], oc) not in T.TABLE:
+            bad.append(f"{i['id']}: {o['status']} -> {i['status']} on {oc!r}: not a move in transitions.py")
+            continue
+        allowed = {T.TABLE[(o['status'], oc)]} | ({'escalated'} if oc in ('failed', 'lease_expired') else set())
+        if i['status'] not in allowed:
+            bad.append(f"{i['id']}: {o['status']} on {oc!r} gives {sorted(allowed)}, not {i['status']!r}")
+    return bad
+
+
+for m in transition_check():
+    (print(m, file=sys.stderr) if m.startswith('note:') else errs.append(m))
 for i in items:
     if 'origin' in i and i['origin'] not in ('follow-up', 'new'):   # follow-up: from finishing or checking work; new: a new direction
         errs.append(f"{i.get('id')}: origin must be follow-up or new")
