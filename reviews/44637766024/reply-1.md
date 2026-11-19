@@ -1,0 +1,3 @@
+<!-- openrouter inclusionai/ling-3.2-flash:free status=429 latency=0.77s -->
+
+{"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"inclusionai/ling-3.2-flash:free is temporarily rate-limited upstream. Please retry shortly, or add your own provider key to use your own limits: https://openrouter.ai/workspaces/default/byok","provider_name":"Ant Digital","is_byok":false,"provider_error_code":"tpm_limit_exceeded","limit_source":"upstream_provider_shared_pool","remedy_hint":"Retry shortly, add your own provider key to use your own limits (https://openrouter.ai/workspaces/default/byok), or route to another provider with provider routing: https://openrout
