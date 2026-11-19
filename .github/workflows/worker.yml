@@ -39,8 +39,12 @@ jobs:
         run: |
           if git ls-remote --exit-code origin worker-runs >/dev/null; then
             git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r0" FETCH_HEAD
-            rc=0; python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:400,nvidia:1 || rc=$?
-            if [ "$rc" = 2 ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
+            # which job types today's budget can still pay for (same specs as the reserve step); claim only those
+            types=""
+            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" groq:1,cloudflare:1:400,nvidia:1 && types="doc"
+            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:1500,nvidia:1 && types="${types:+$types,}research"
+            echo "TYPES=$types" >> "$GITHUB_ENV"; echo "job types with budget today: ${types:-none}"
+            if [ -z "$types" ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
       - name: claim the top ready item
         id: claim
@@ -48,7 +52,7 @@ jobs:
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git worktree add -q --detach "$RUNNER_TEMP/q" HEAD
-          rc=0; python3 -I worker/queue_ops.py claim "$RUNNER_TEMP/q" "$WORKER" "$RUNNER_TEMP/claim.json" || rc=$?; echo "claim exit $rc"
+          rc=0; python3 -I worker/queue_ops.py claim "$RUNNER_TEMP/q" "$WORKER" "$RUNNER_TEMP/claim.json" "${TYPES:-}" || rc=$?; echo "claim exit $rc"
           cat "$RUNNER_TEMP/claim.json"
           id=$(python3 -c "import json;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(i['id'] if i else '')")
           typ=$(python3 -c "import json,sys;sys.path.insert(0,'worker');import queue_ops as Q;i=json.load(open('$RUNNER_TEMP/claim.json')).get('item');print(Q.job_type(i) if i else '')")

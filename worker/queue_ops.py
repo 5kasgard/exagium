@@ -140,12 +140,14 @@ def commit_push(wt, msg):
     return git(wt, "push", "-q", "origin", f"HEAD:{BRANCH}", check=False).returncode == 0
 
 
-def claim(wt, worker, out):
+def claim(wt, worker, out, types=None):
+    """types: job types the budget can still pay for today (None = any). A research item short of Cloudflare neurons must
+    not stop doc items that run on other pools (2026-11-19 20:24Z: the worker stopped with E1-E4 ready; Q59)."""
     for attempt in range(TRIES):
         sync(wt)
         q, t = load(wt), now()
         expired = expire(q, t)
-        r = ready(q, t)
+        r = [i for i in ready(q, t) if types is None or job_type(i) in types]
         if not r:
             if expired:
                 save(wt, q)
@@ -192,7 +194,7 @@ def release(wt, worker, item_id, status, note_path):
 
 def main(a):
     if a[0] == "claim":
-        return claim(a[1], a[2], a[3])
+        return claim(a[1], a[2], a[3], a[4].split(",") if len(a) > 4 and a[4] else None)
     if a[0] == "release":
         return release(a[1], a[2], a[3], a[4], a[5])
     if a[0] == "ready":
