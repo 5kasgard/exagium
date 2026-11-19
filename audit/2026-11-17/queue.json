@@ -3753,7 +3753,7 @@
   },
   {
    "id": "P7f",
-   "title": "Research depth: full text instead of abstracts, citation following, and source routing by measured yield",
+   "title": "Research depth: the scan finds, a drill restructures full text into a queryable store, models query only what fits their context",
    "kind": "build",
    "severity": "minor",
    "status": "open",
@@ -3767,14 +3767,18 @@
     "P8"
    ],
    "touches": [
-    "worker/research_job.py"
+    "worker/research_job.py",
+    "worker/drill.py",
+    "research/store/"
    ],
    "refs": [
     "queue P7, P20a",
     "research/cards/R1-R8 (1-3 claims each)"
    ],
-   "next": "Cards keep 1-3 verified claims because the checker needs a verbatim quote with numbers and the reader sees only abstracts, which rarely carry measurements. Steps, each kept only if its test shows more verified claims per card at an equal or better verification rate: (1) full text of the top papers (arXiv HTML, open-access PDFs from OpenAlex's oa_url), the reader seeing the results sections within the model's measured context (P20a); (2) one round of citation following (OpenAlex referenced_works and cited_by) and refined queries from first-pass results; (3) per-source cards (hit rate, errors, verified claims per call) from the logs, used to order and skip sources per question kind, the same engine as P20's worker cards. Also missing: general web search (no reliable keyless option from CI; candidates need an owner key and a check of current free tiers). Related: P7e (source discovery and per-source credibility from track record) covers finding niche communities; step 3 here (per-source cards by measured yield) shares its data, so P7f's step 3 is done there if P7e lands first.",
+   "next": "Cards keep 1-3 verified claims because the checker needs a verbatim quote with numbers and the reader sees only abstracts, which rarely carry measurements. Steps, each kept only if its test shows more verified claims per card at an equal or better verification rate: (1) full text of the top papers (arXiv HTML, open-access PDFs from OpenAlex's oa_url), the reader seeing the results sections within the model's measured context (P20a); (2) one round of citation following (OpenAlex referenced_works and cited_by) and refined queries from first-pass results; (3) per-source cards (hit rate, errors, verified claims per call) from the logs, used to order and skip sources per question kind, the same engine as P20's worker cards. Also missing: general web search (no reliable keyless option from CI; candidates need an owner key and a check of current free tiers). Related: P7e (source discovery and per-source credibility from track record) covers finding niche communities; step 3 here (per-source cards by measured yield) shares its data, so P7f's step 3 is done there if P7e lands first. Owner 2026-11-19 21:41: 'depth injection': search is the scan; a drill grows through the content and restructures it into a queryable form that works with context limits, not against them. Design (hypothesis): (1) the drill takes the scan's top sources with full text (arXiv HTML, open-access PDFs via OpenAlex oa_url); (2) restructures each into a store: sections, every results-table row, and claims with numbers and conditions, each with exact character offsets in the source (typed triples with provenance, the P11/P21 format); (3) readers query the store (filters or SQL) and get only matching rows, sized to the reading model's measured context (P20a), instead of reading documents; every returned row is checked against the text by script; (4) a claim missing its method or baseline triggers a drill into the cited paper, within a fixed per-card budget. TEST, rule fixed now: rebuild the R1-R8 cards drilled vs abstract-only (same questions, same reading models); adopt if verified claims of grade 'measured' per card at least double, the script verification rate is not lower, and free calls per verified claim do not rise by more than half.",
    "informs": [
+    "P11",
+    "P21",
     "P7e"
    ]
   }
