@@ -5,6 +5,17 @@
 - Say on which task, host and data split a result holds. Results on one task are not results about AI in general.
 - A separate reviewer checks consequential work: another agent, or a free model through `review.yml`. Its points are verified, then applied or rejected with evidence.
 
+## Limits, tests and new paths must fit the measured system (2026-11-19)
+- **Every limit cites its source** (a published figure, a measurement, a run ID) next to its value: caps, timeouts,
+  rates, retries. A limit without a source is a guess and is labelled as one. On 2026-11-19 an unsourced cap of 40 NVIDIA
+  calls a day (the published figure is about 40 a minute) and a chain cap of 24 runs a day stopped the worker and the
+  proposer while most of the real allowance was unused.
+- **A test's rules must fit the system it tests.** No test may depend on a part already measured as unreliable
+  (GitHub's scheduler here: 3 hourly runs in about 30 hours, daily runs 7-9 hours late); if the rules can only be met by
+  breaking them, the test is redesigned and the failure recorded, not worked around.
+- **A new or changed workflow path runs once with no cost before it runs for real** (a dry run, a fixture, a probe).
+  On 2026-11-19 a one-character shell bug lost the proposer's first scoring run.
+
 ## Check the world's evidence, not only our own (hypothesis under test, queue P7)
 Before building or testing something, look for what is already known: published results, the current best number to beat, prior art and patents, known failure modes. Our own data shows only what we ran. Each outside claim cites its source, and its quote and numbers are checked against that source. Whether this becomes a required step depends on P7's test: would such a check have changed a past decision?
 
