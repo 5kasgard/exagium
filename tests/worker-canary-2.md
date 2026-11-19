@@ -22,6 +22,6 @@ Each numbered line below is the target of one canary item. Some lines carry trap
 18. Claims are recorded with their quote, and the quote is checked against the source.
 19. A research card groups claims by evidence grade.
 20. The second model approves each change before it lands.
-21. A lease last two hours.
+21. A lease lasts two hours.
 22. The worker never edits workflows, its own files or registered plans.
 23. Wilson intervals are used to judge whether a sample is large enough.
