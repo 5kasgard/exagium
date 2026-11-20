@@ -6,7 +6,27 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 
 | item | batch | item | batch | both touch |
 |---|---|---|---|---|
+| Q37 | B5 | P8 | B3 | worker/test_worker.py |
+| Q37 | B5 | P20c | B3 | worker/test_worker.py |
+| Q37 | B5 | P20d | B3 | worker/test_worker.py |
 | Q37 | B5 | K2 | B3 | router/bench4/measure.py, router/bench4/meter.py |
+| Q37 | B5 | G2 | B3 | worker/test_worker.py |
+| Q37 | B5 | G7 | B3 | worker/test_worker.py |
+| Q37 | B5 | G8 | B3 | worker/test_worker.py |
+| Q37 | B5 | G20 | B3 | worker/test_worker.py |
+| Q37 | B5 | G21 | B3 | worker/test_worker.py |
+| Q37 | B5 | G22 | B3 | worker/test_worker.py |
+| Q37 | B5 | K15 | B3 | worker/test_worker.py |
+| Q39 | B5 | P8 | B3 | worker/test_worker.py |
+| Q39 | B5 | P20c | B3 | worker/test_worker.py |
+| Q39 | B5 | P20d | B3 | worker/test_worker.py |
+| Q39 | B5 | G2 | B3 | worker/test_worker.py |
+| Q39 | B5 | G7 | B3 | worker/test_worker.py |
+| Q39 | B5 | G8 | B3 | worker/test_worker.py |
+| Q39 | B5 | G20 | B3 | worker/test_worker.py |
+| Q39 | B5 | G21 | B3 | worker/test_worker.py |
+| Q39 | B5 | G22 | B3 | worker/test_worker.py |
+| Q39 | B5 | K15 | B3 | worker/test_worker.py |
 | Q54 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
 | Q54 | B1 | G19 | B3 | runner/candidates/label-knn/infer.c |
 | P3 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
