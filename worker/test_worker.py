@@ -781,5 +781,28 @@ class CoderRepair(unittest.TestCase):
         self.assertIn("import json", r["proposal"]["edits"][0]["new"])
 
 
+class DigestBudgetWindow(unittest.TestCase):
+    """F029: --hours other than 24 must read every day's ledger, not just the endpoints."""
+    def test_f029_every_day_in_window(self):
+        import digest as D
+        from unittest import mock
+        t = dt.datetime(2026, 11, 21, 12, 0, tzinfo=dt.timezone.utc)
+        with tempfile.TemporaryDirectory() as d:
+            runs = os.path.join(d, "runs")
+            os.makedirs(os.path.join(runs, "ledger"))
+            for day in ("2026-11-19", "2026-11-20", "2026-11-21"):
+                json.dump({"pool": {"usd": 1}}, open(os.path.join(runs, "ledger", day + ".json"), "w"))
+            out = os.path.join(d, "out")
+            with mock.patch.object(D.Q, "now", return_value=t), \
+                    mock.patch.object(D.Q, "load", return_value={"items": []}), \
+                    mock.patch.object(D, "queue_at", return_value=(None, "none")), \
+                    mock.patch.object(D, "git", return_value=""), \
+                    mock.patch.object(D, "metrics", return_value=[]), \
+                    mock.patch.object(D, "loop_metrics", return_value=[]):
+                D.facts(d, d, runs, out, 48)
+            text = open(os.path.join(out, "facts.md")).read()
+            self.assertIn("2026-11-20 pool", text)
+
+
 if __name__ == "__main__":
     unittest.main()

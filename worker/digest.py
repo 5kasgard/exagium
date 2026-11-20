@@ -47,10 +47,13 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
     runs = [(i["id"], r) for i in q["items"] for r in i.get("runs", []) if r.get("at", "") >= since]
     commits = git(main_wt, "log", f"--since={since}", "--format=%h %s").strip().splitlines()
     ledgers = {}
-    for d in sorted({(t - dt.timedelta(hours=h)).strftime("%Y-%m-%d") for h in (0, hours)}):
+    day = (t - dt.timedelta(hours=hours)).date()
+    while day <= t.date():
+        d = day.strftime("%Y-%m-%d")
         p = os.path.join(runs_wt, "ledger", d + ".json")
         if os.path.exists(p):
             ledgers[d] = {k: {x: v.get(x, 0) for x in ("reserved", "calls", "tokens", "neurons", "usd")} for k, v in json.load(open(p)).items()}
+        day += dt.timedelta(days=1)
     by = {i["id"]: i for i in q["items"]}
     open_list = [i for i in q["items"] if i.get("status") in ("open", "in progress")]
     lines = [f"# Digest {t.strftime('%Y-%m-%d')} (facts by script, {hours} h to {Q.iso(t)})", "",
