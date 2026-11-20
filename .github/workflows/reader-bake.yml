@@ -15,7 +15,26 @@ concurrency:
   group: reader-bake
   cancel-in-progress: false
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      readers: ${{ steps.p.outputs.readers }}
+    steps:
+      - id: p
+        env:
+          READERS: ${{ github.event.inputs.readers }}
+        run: |
+          python3 -c "import json,os;print('readers='+json.dumps(os.environ['READERS'].split()))" >> "$GITHUB_OUTPUT"
   bake:
+    # one job per reader, all at once (owner 2026-11-20: run in parallel within limits; the ledger reservation is the limit)
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        reader: ${{ fromJSON(needs.plan.outputs.readers) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
@@ -25,7 +44,7 @@ jobs:
       - name: bundles and reservation
         env:
           ARM: ${{ github.event.inputs.arm_run }}
-          READERS: ${{ github.event.inputs.readers }}
+          READERS: ${{ matrix.reader }}
         run: |
           case "$ARM" in ''|*[!0-9]*) echo "arm_run must be a run id"; exit 1;; esac
           git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -35,10 +54,10 @@ jobs:
           nor=0; nnv=0
           for r in $READERS; do case "$r" in openrouter,*:free) nor=$((nor + nb * 2));; nvidia,*) nnv=$((nnv + nb)); nor=$((nor + nb));; *) echo "only free OpenRouter models and NIM here: $r"; exit 1;; esac; done
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
-          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID" "openrouter:$nor,nvidia:$((nnv + 1))"
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID-$GITHUB_JOB-${{ strategy.job-index }}" "openrouter:$nor,nvidia:$((nnv + 1))"
       - name: read
         env:
-          READERS: ${{ github.event.inputs.readers }}
+          READERS: ${{ matrix.reader }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
@@ -48,17 +67,17 @@ jobs:
         if: ${{ always() }}
         run: |
           [ -s "$RUNNER_TEMP/bake/usage.jsonl" ] || exit 0
-          python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID" "$RUNNER_TEMP/bake/usage.jsonl" || echo "ledger record failed"
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID-$GITHUB_JOB-${{ strategy.job-index }}" "$RUNNER_TEMP/bake/usage.jsonl" || echo "ledger record failed"
       - name: save on router-runs
         if: ${{ always() }}
         run: |
           [ -d "$RUNNER_TEMP/bake" ] || exit 0
           cp "$RUNNER_TEMP/bake.log" "$RUNNER_TEMP/bake/" 2>/dev/null || true
-          echo "$GITHUB_SHA arm=${{ github.event.inputs.arm_run }}" > "$RUNNER_TEMP/bake/source.txt"
+          echo "$GITHUB_SHA arm=${{ github.event.inputs.arm_run }} reader=${{ matrix.reader }}" > "$RUNNER_TEMP/bake/source.txt"
           for i in 1 2 3 4 5 6; do
             git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
-            mkdir -p bakes && rm -rf "bakes/$GITHUB_RUN_ID" && cp -r "$RUNNER_TEMP/bake" "bakes/$GITHUB_RUN_ID"
-            git add bakes && git commit -qm "reader bake $GITHUB_RUN_ID"
+            mkdir -p "bakes/$GITHUB_RUN_ID" && rm -rf "bakes/$GITHUB_RUN_ID/${{ strategy.job-index }}" && cp -r "$RUNNER_TEMP/bake" "bakes/$GITHUB_RUN_ID/${{ strategy.job-index }}"
+            git add bakes && git commit -qm "reader bake $GITHUB_RUN_ID part ${{ strategy.job-index }}"
             git push -q origin router-runs && { echo "pushed on try $i"; exit 0; }
             sleep $((i * 7))
           done
