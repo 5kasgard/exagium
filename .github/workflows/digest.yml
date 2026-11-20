@@ -16,12 +16,15 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: read
+      actions: read   # loop measures: worker runs that found no ready item
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: false
       - name: facts
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
           if git fetch -q origin worker-runs; then git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD; else mkdir -p "$RUNNER_TEMP/r"; fi

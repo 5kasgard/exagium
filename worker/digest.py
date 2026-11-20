@@ -50,7 +50,7 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
     for d in sorted({(t - dt.timedelta(hours=h)).strftime("%Y-%m-%d") for h in (0, hours)}):
         p = os.path.join(runs_wt, "ledger", d + ".json")
         if os.path.exists(p):
-            ledgers[d] = {k: {x: v[x] for x in ("reserved", "calls", "tokens", "neurons")} for k, v in json.load(open(p)).items()}
+            ledgers[d] = {k: {x: v.get(x, 0) for x in ("reserved", "calls", "tokens", "neurons", "usd")} for k, v in json.load(open(p)).items()}
     by = {i["id"]: i for i in q["items"]}
     open_list = [i for i in q["items"] if i.get("status") in ("open", "in progress")]
     lines = [f"# Digest {t.strftime('%Y-%m-%d')} (facts by script, {hours} h to {Q.iso(t)})", "",
@@ -68,6 +68,7 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
         lines.append(f"- {i['id']} [{i.get('status')}{', claimed by ' + i['claimed_by'] if i.get('claimed_by') else ''}"
                      f"{', waits on ' + ', '.join(waits) if waits else ''}{', worker-ready' if i.get('targets') and not waits else ''}]: {i['title'][:120]}")
     lines += ["", "## Worker measures (queue P9: measured by script every day)"] + metrics(queue_wt, since, q)
+    lines += ["", "## Loop measures (owner 2026-11-20: is it getting faster, and who still has to step in?)"] + loop_metrics(q, since, ledgers)
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, "facts.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines[:40]))
@@ -109,6 +110,57 @@ def metrics(queue_wt, since, q):
             f"lease-expiry commits {expired}",
             f"- results: {', '.join(f'{k} {v}' for k, v in sorted(results.items())) or 'none'}",
             "- spot-check acceptance (Claude or the owner): recorded per item when checked; not measured by script"]
+
+
+LANDED = {"merged", "confirm", "solved", "decide_done"}
+PAID_POOLS = ("openrouter_paid", "anthropic")
+
+
+def actor(w):
+    w = str(w or "")
+    return ("free worker" if w.startswith("worker-") else "Claude API tier" if w.startswith("tier-")
+            else "generator" if w.startswith("generator") else "Claude session" if w.startswith("claude") else "owner or chat")
+
+
+def idle_runs(since):
+    """Worker runs in the window that claimed nothing although not stopped for budget (needs GH_TOKEN; else None)."""
+    if not os.environ.get("GH_TOKEN"):
+        return None
+    repo = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
+    ids = subprocess.run(["gh", "api", f"repos/{repo}/actions/workflows/worker.yml/runs?per_page=100&created=>={since[:10]}",
+                          "-q", f'.workflow_runs[] | select(.created_at >= "{since}") | .id'], capture_output=True, text=True).stdout.split()
+    n = 0
+    for rid in ids:
+        jobs = subprocess.run(["gh", "api", f"repos/{repo}/actions/runs/{rid}/jobs", "-q",
+                               '[.jobs[] | select(.name=="land" or .name=="idle") | "\(.name)=\(.conclusion)"] | join(",")'],
+                              capture_output=True, text=True).stdout
+        n += "land=skipped" in jobs and "idle=" in jobs and "idle=skipped" not in jobs
+    return n, len(ids)
+
+
+def loop_metrics(q, since, ledgers):
+    """Throughput, who acted, outcome classes, spend and cost per landed item, idle runs with budget left. By script."""
+    acts, outcomes, landed = {}, {}, 0
+    for i in q["items"]:
+        for r in i.get("runs", []):
+            if r.get("at", "") >= since:
+                a = actor(r.get("worker"))
+                acts[a] = acts.get(a, 0) + 1
+                o = r.get("outcome") or "none"
+                outcomes[o] = outcomes.get(o, 0) + 1
+                landed += o in LANDED
+    usd = sum(float((v or {}).get("usd", 0) or 0) for l in ledgers.values() for k, v in l.items() if k in PAID_POOLS)
+    calls = {}
+    for l in ledgers.values():
+        for k, v in l.items():
+            calls[k] = calls.get(k, 0) + int((v or {}).get("calls", 0) or 0)
+    idle = idle_runs(since)
+    return [f"- items landed (merged, confirmed, solved or decided done): {landed}",
+            f"- moves by actor: {', '.join(f'{k} {v}' for k, v in sorted(acts.items())) or 'none'}",
+            f"- outcomes: {', '.join(f'{k} {v}' for k, v in sorted(outcomes.items())) or 'none'}",
+            f"- paid spend: ${usd:.4f}" + (f" (${usd / landed:.4f} per landed item)" if landed else "")
+            + f"; calls by pool: {', '.join(f'{k} {v}' for k, v in sorted(calls.items())) or 'none'}",
+            f"- worker runs that found no ready item with budget left: " + (f"{idle[0]} of {idle[1]}" if idle else "not measured (no GH_TOKEN)")]
 
 
 def flag(summary):

@@ -1,5 +1,5 @@
 """Tests for the queue worker's decisions: python3 -m unittest worker/test_worker.py (stdlib only)."""
-import datetime as dt, json, os, sys, unittest
+import datetime as dt, json, os, sys, unittest, unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import digest  # noqa: E402
@@ -405,3 +405,18 @@ class Tier(unittest.TestCase):
         self.assertIn("DROPPED by script (quote not found): c1", s["claims"])
         self.assertIn("DROPPED by checker (p=0.20): c2", s["claims"])
         self.assertEqual((s["n"], s["log"]), (1, "arxiv:3"))
+
+
+class LoopMetrics(unittest.TestCase):
+    def test_loop(self):
+        q = {"items": [{"id": "A", "runs": [{"at": "2026-11-20T01:00:00Z", "worker": "worker-1", "outcome": "merged"},
+                                             {"at": "2026-11-20T02:00:00Z", "worker": "tier-claude-haiku-5-5", "outcome": "redo"},
+                                             {"at": "2026-11-19T01:00:00Z", "worker": "claude-shift-x", "outcome": "redo"}]}]}
+        led = {"2026-11-20": {"anthropic": {"calls": 3, "usd": 0.006}, "nvidia": {"calls": 40}}}
+        with unittest.mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GH_TOKEN", None)
+            out = digest.loop_metrics(q, "2026-11-20T00:00:00Z", led)
+        self.assertIn("items landed (merged, confirmed, solved or decided done): 1", out[0])
+        self.assertIn("Claude API tier 1, free worker 1", out[1])
+        self.assertIn("$0.0060 ($0.0060 per landed item)", out[3])
+        self.assertIn("not measured", out[4])
