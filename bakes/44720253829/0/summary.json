@@ -1,0 +1,15 @@
+{
+ "baseline": "nvidia,nvidia/nemotron-3-ultra-550b-a55b",
+ "rule": "(queue P32, reader fallback): a reader qualifies if, over the bundles, it fails no call,\nits replies parse every time, and its decision-kept claims are at least 80% of the baseline's (the first POOL,MODEL\ngiven). Among those that qualify, the free one with the most kept claims is the fallback; ties go to the cheaper pool\n(the one with more headroom in the ledger).",
+ "readers": {
+  "nvidia,nvidia/nemotron-3-ultra-550b-a55b": {
+   "bundles": 6,
+   "reader_fail": 0,
+   "claims": 50,
+   "script_kept": 30,
+   "decider_kept": 21,
+   "model_fail": [],
+   "qualifies": true
+  }
+ }
+}

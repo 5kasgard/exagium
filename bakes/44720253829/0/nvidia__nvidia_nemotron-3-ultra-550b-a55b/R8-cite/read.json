@@ -1,0 +1,256 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S3",
+    "claim": "Kaggle competitions use a holdout set for public rankings and a separate test set used once for final rankings, and a meta-analysis of over one hundred competitions found little evidence of substantial overfitting to the holdout set.",
+    "quote": "In each competition, numerous practitioners repeatedly evaluated their progress against a holdout set that forms the basis of a public ranking available throughout the competition. Performance on a separate test set used only once determined the final ranking.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "The authors call for the community to actively develop fresh one-time exams to evaluate models accurately because string matching decontamination is insufficient and paraphrased test data can bypass it.",
+    "quote": "We urge the community to adopt stronger decontamination approaches when using public benchmarks. Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+    "kind": "frontier",
+    "evidence": "expert view"
+   },
+   {
+    "source": "S5",
+    "claim": "A differential-privacy-based algorithm enables reuse of a holdout set to validate many adaptively chosen hypotheses while provably avoiding overfitting to the holdout set itself.",
+    "quote": "We give a simple and practical method for reusing a holdout (or testing) set to validate the accuracy of hypotheses produced by a learning algorithm operating on a training set. Reusing a holdout set adaptively multiple times can easily lead to overfitting to the holdout set itself. We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "LiveBench maintains contamination-free evaluation by using frequently updated questions from recent math competitions, arXiv papers, news articles, and datasets, with questions added and updated monthly.",
+    "quote": "LiveBench contains questions that are based on recently-released math competitions, arXiv papers, news articles, and datasets, and it contains harder, contamination-free versions of tasks from previous benchmarks. Questions will be added and updated on a monthly basis.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   {
+    "source": "S11",
+    "claim": "Overtraining with fresh data reduces the effects of test set contamination on generative evaluations, whereas supervised fine-tuning on the training set can increase or decrease performance depending on pretraining contamination amount.",
+    "quote": "Using scaling laws, we make a surprising discovery: including even a single test set replica enables models to achieve lower loss than the irreducible error of training on the uncontaminated corpus. We then study further training: overtraining with fresh data reduces the effects of contamination.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S20",
+    "claim": "N-Day-Bench pulls fresh vulnerability cases monthly from GitHub security advisories, checks out repositories at the last commit before the patch, and uses a monthly refresh to keep the test set ahead of contamination.",
+    "quote": "Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest.",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   {
+    "source": "S25",
+    "claim": "Decontamination efforts typically use n-gram matching to remove overlapping sentences and also translate test sets to delete translations from the training corpus, but semantic duplicates remain prevalent in training data.",
+    "quote": "By default this is just one level above string matching (\"n-gram matching\" - if sentences overlap in (say) a 13-token window, remove them from the training corpus). But you're actually trying, so you also translate the test sets and delete translations of test from train",
+    "kind": "method",
+    "evidence": "expert view"
+   },
+   {
+    "source": "S27",
+    "claim": "AGI Gauntlet uses obfuscated, non-web prompt vectors to bypass dataset contamination and stress-test true executive reasoning past memorized training data.",
+    "quote": "Using obfuscated, non-web prompt vectors, it bypasses dataset contamination to stress-test true executive reasoning\u2014pushing models past memorized training data to the precise point where their logic collapses.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   {
+    "source": "S2",
+    "claim": "TED (Trustworthy Evaluation via output Distribution) mitigates performance improvements from data contamination by correcting the LLM's output distribution, achieving up to 66.9% reduction in contamination-attributed gains.",
+    "quote": "To mitigate the impact of data contamination in evaluation, we also present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM's output distribution. TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Multiclass prediction problems are significantly more robust to overfitting from test set reuse than binary problems, with a new upper bound showing worst-case bias decreases with the number of classes.",
+    "quote": "We show a new upper bound of $\\tilde O(\\max\\{\\sqrt{k\\log(n)/(mn)},k/n\\})$ on the worst-case bias that any attack can achieve in a prediction problem with $m$ classes. Our experiments show that the additional uncertainty of prediction with a large number of classes indeed mitigates the effect of our best attacks.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "New test sets built for CIFAR-10 and ImageNet by replicating the original data collection process reveal that all models experience an accuracy drop, indicating current benchmarks are susceptible to overfitting from dataset reuse.",
+    "quote": "We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "String matching decontamination (n-gram overlap) is insufficient because simple variations like paraphrasing and translation of test data can bypass these measures and allow a 13B model to overfit benchmarks.",
+    "quote": "While most data decontamination efforts apply string matching (e.g., n-gram overlap) to remove benchmark data, we show that these methods are insufficient, and simple variations of test data (e.g., paraphrasing, translation) can easily bypass these decontamination measures.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S1",
+    "claim": "A controlled method quantifies memorization and exploitation by pretraining BERT models on joint corpora of Wikipedia and labeled downstream datasets, then comparing performance on samples seen versus unseen during pretraining.",
+    "quote": "We pretrain BERT models on joint corpora of Wikipedia and labeled downstream datasets, and fine-tune them on the relevant task. Comparing performance between samples seen and unseen during pretraining enables us to define and quantify levels of memorization and exploitation.",
+    "kind": "method",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "How do benchmark organizers coordinate fresh data collection at scale across diverse domains beyond coding and math?",
+   "What are the long-term dynamics of contamination as models train on synthetic data generated by other contaminated models?",
+   "How can held-out practices be standardized for agent benchmarks that involve multi-step interactions rather than static test sets?",
+   "What economic or governance models sustain continuous fresh benchmark creation given the cost of human annotation?",
+   "How do decontamination methods handle semantic equivalence that evades n-gram and translation-based filtering?"
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S3",
+   "claim": "Kaggle competitions use a holdout set for public rankings and a separate test set used once for final rankings, and a meta-analysis of over one hundred competitions found little evidence of substantial overfitting to the holdout set.",
+   "quote": "In each competition, numerous practitioners repeatedly evaluated their progress against a holdout set that forms the basis of a public ranking available throughout the competition. Performance on a separate test set used only once determined the final ranking.",
+   "kind": "method",
+   "evidence": "measured"
+  },
+  {
+   "source": "S4",
+   "claim": "The authors call for the community to actively develop fresh one-time exams to evaluate models accurately because string matching decontamination is insufficient and paraphrased test data can bypass it.",
+   "quote": "We urge the community to adopt stronger decontamination approaches when using public benchmarks. Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+   "kind": "frontier",
+   "evidence": "expert view"
+  },
+  {
+   "source": "S27",
+   "claim": "AGI Gauntlet uses obfuscated, non-web prompt vectors to bypass dataset contamination and stress-test true executive reasoning past memorized training data.",
+   "quote": "Using obfuscated, non-web prompt vectors, it bypasses dataset contamination to stress-test true executive reasoning\u2014pushing models past memorized training data to the precise point where their logic collapses.",
+   "kind": "method",
+   "evidence": "reported"
+  },
+  {
+   "source": "S1",
+   "claim": "A controlled method quantifies memorization and exploitation by pretraining BERT models on joint corpora of Wikipedia and labeled downstream datasets, then comparing performance on samples seen versus unseen during pretraining.",
+   "quote": "We pretrain BERT models on joint corpora of Wikipedia and labeled downstream datasets, and fine-tune them on the relevant task. Comparing performance between samples seen and unseen during pretraining enables us to define and quantify levels of memorization and exploitation.",
+   "kind": "method",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S5",
+    "claim": "A differential-privacy-based algorithm enables reuse of a holdout set to validate many adaptively chosen hypotheses while provably avoiding overfitting to the holdout set itself.",
+    "quote": "We give a simple and practical method for reusing a holdout (or testing) set to validate the accuracy of hypotheses produced by a learning algorithm operating on a training set. Reusing a holdout set adaptively multiple times can easily lead to overfitting to the holdout set itself. We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S9",
+    "claim": "LiveBench maintains contamination-free evaluation by using frequently updated questions from recent math competitions, arXiv papers, news articles, and datasets, with questions added and updated monthly.",
+    "quote": "LiveBench contains questions that are based on recently-released math competitions, arXiv papers, news articles, and datasets, and it contains harder, contamination-free versions of tasks from previous benchmarks. Questions will be added and updated on a monthly basis.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S11",
+    "claim": "Overtraining with fresh data reduces the effects of test set contamination on generative evaluations, whereas supervised fine-tuning on the training set can increase or decrease performance depending on pretraining contamination amount.",
+    "quote": "Using scaling laws, we make a surprising discovery: including even a single test set replica enables models to achieve lower loss than the irreducible error of training on the uncontaminated corpus. We then study further training: overtraining with fresh data reduces the effects of contamination.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S20",
+    "claim": "N-Day-Bench pulls fresh vulnerability cases monthly from GitHub security advisories, checks out repositories at the last commit before the patch, and uses a monthly refresh to keep the test set ahead of contamination.",
+    "quote": "Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest.",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S25",
+    "claim": "Decontamination efforts typically use n-gram matching to remove overlapping sentences and also translate test sets to delete translations from the training corpus, but semantic duplicates remain prevalent in training data.",
+    "quote": "By default this is just one level above string matching (\"n-gram matching\" - if sentences overlap in (say) a 13-token window, remove them from the training corpus). But you're actually trying, so you also translate the test sets and delete translations of test from train",
+    "kind": "method",
+    "evidence": "expert view"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S2",
+    "claim": "TED (Trustworthy Evaluation via output Distribution) mitigates performance improvements from data contamination by correcting the LLM's output distribution, achieving up to 66.9% reduction in contamination-attributed gains.",
+    "quote": "To mitigate the impact of data contamination in evaluation, we also present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM's output distribution. TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S10",
+    "claim": "Multiclass prediction problems are significantly more robust to overfitting from test set reuse than binary problems, with a new upper bound showing worst-case bias decreases with the number of classes.",
+    "quote": "We show a new upper bound of $\\tilde O(\\max\\{\\sqrt{k\\log(n)/(mn)},k/n\\})$ on the worst-case bias that any attack can achieve in a prediction problem with $m$ classes. Our experiments show that the additional uncertainty of prediction with a large number of classes indeed mitigates the effect of our best attacks.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S8",
+    "claim": "New test sets built for CIFAR-10 and ImageNet by replicating the original data collection process reveal that all models experience an accuracy drop, indicating current benchmarks are susceptible to overfitting from dataset reuse.",
+    "quote": "We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S4",
+    "claim": "String matching decontamination (n-gram overlap) is insufficient because simple variations like paraphrasing and translation of test data can bypass these measures and allow a 13B model to overfit benchmarks.",
+    "quote": "While most data decontamination efforts apply string matching (e.g., n-gram overlap) to remove benchmark data, we show that these methods are insufficient, and simple variations of test data (e.g., paraphrasing, translation) can easily bypass these decontamination measures.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ]
+ ],
+ "check": {
+  "keep": [
+   2,
+   3
+  ],
+  "grades": {},
+  "decider": {
+   "keep": [
+    2,
+    3
+   ],
+   "p_keep": [
+    0.0293,
+    0.0777,
+    0.9245,
+    0.7701
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": null,
+   "grades": {},
+   "votes": [
+    [],
+    []
+   ],
+   "notes": ""
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}

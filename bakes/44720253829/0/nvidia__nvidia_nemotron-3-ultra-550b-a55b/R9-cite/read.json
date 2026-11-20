@@ -1,0 +1,153 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S2",
+    "claim": "Models claiming 32K-token context windows often fail to maintain satisfactory performance at that length.",
+    "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "Few state-of-the-art LLMs maintain consistent RAG accuracy above 64k context tokens.",
+    "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S1",
+    "claim": "Model performance degrades significantly when relevant information appears in the middle of long contexts.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S5",
+    "claim": "Most LLMs fail to capture long dependencies even when the entire document fits in their context window.",
+    "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Some models show gentle performance degradation across lengths but their absolute performance may not exceed shorter-context models.",
+    "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Reasoning models exhibit stronger overthinking tendencies, and higher overthinking correlates with decreased performance.",
+    "quote": "higher overthinking scores correlate with decreased performance, with reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "Adversarial inputs can increase reasoning token generation by 13x to 46x on reasoning models.",
+    "quote": "We evaluate Overthink on proprietary and open-source reasoning models across the FreshQA, SQuAD, and MuSR datasets, where we observe 13x, 46x, and 12x increases, respectively",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "Token budget choice critically affects compression effectiveness of reasoning token usage.",
+    "quote": "the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt, but the choice of token budget plays a crucial role",
+    "kind": "result",
+    "evidence": "reported"
+   }
+  ],
+  "open_questions": [
+   "How reliability drops vary across specific task categories (multi-hop QA, summarization, code, multimodal) at each context length",
+   "What the precise effective context length is for each major model family at different reliability thresholds",
+   "How reasoning token budgets interact with input context length when both compete for the output window",
+   "Whether positional encoding fixes like Ms-PoE eliminate middle-context degradation across all task types",
+   "How often real-world agentic workflows hit output budget limits due to reasoning token expansion",
+   "Whether multimodal long-context reliability follows the same patterns as text-only models"
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S2",
+   "claim": "Models claiming 32K-token context windows often fail to maintain satisfactory performance at that length.",
+   "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S9",
+   "claim": "Few state-of-the-art LLMs maintain consistent RAG accuracy above 64k context tokens.",
+   "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S1",
+   "claim": "Model performance degrades significantly when relevant information appears in the middle of long contexts.",
+   "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S5",
+   "claim": "Most LLMs fail to capture long dependencies even when the entire document fits in their context window.",
+   "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S10",
+   "claim": "Some models show gentle performance degradation across lengths but their absolute performance may not exceed shorter-context models.",
+   "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S6",
+   "claim": "Reasoning models exhibit stronger overthinking tendencies, and higher overthinking correlates with decreased performance.",
+   "quote": "higher overthinking scores correlate with decreased performance, with reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2,
+   3,
+   5
+  ],
+  "grades": {},
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2,
+    3,
+    5
+   ],
+   "p_keep": [
+    0.7423,
+    0.5427,
+    0.7803,
+    0.8514,
+    0.3954,
+    0.7812
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": null,
+   "grades": {},
+   "votes": [
+    [],
+    []
+   ],
+   "notes": ""
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
