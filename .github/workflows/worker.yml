@@ -105,7 +105,13 @@ jobs:
         run: |
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused"; exit 0; fi
           ready=$(python3 -I worker/queue_ops.py ready "$RUNNER_TEMP/q" | grep -c . || true)
-          live=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=50" -q '[.workflow_runs[] | select(.status=="queued" or .status=="waiting" or .status=="pending" or .status=="requested" or .status=="in_progress")] | length')
+          # live = runs doing work: a run whose only unfinished job is its idle wait (or a pending idle) is not a lane (2026-11-20 11:40Z:
+          # two idle runs counted as live, so R20 and R21 sat ready while one lane worked)
+          live=0
+          for id in $(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=30" -q '.workflow_runs[] | select(.status!="completed") | .id'); do
+            busy=$(gh api "repos/$R/actions/runs/$id/jobs" -q '[.jobs[] | select(.status!="completed" and .name!="idle")] | length')
+            [ "${busy:-0}" -gt 0 ] && live=$((live + 1))
+          done
           add=$(( ready < LANES - live ? ready : LANES - live )); [ "$add" -gt 0 ] || { echo "ready $ready, live runs $live: no new lane"; exit 0; }
           for k in $(seq 1 "$add"); do gh workflow run worker.yml -R "$R" --ref main; done
           echo "ready $ready, live runs $live: started $add more"
