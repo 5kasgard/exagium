@@ -59,6 +59,14 @@ class Verdict(unittest.TestCase):
             self.assertFalse(probe.required(r), r)
 
 
+class ProbeDocstring(unittest.TestCase):
+    def test_f048_cost_mentions_probe_compat_calls(self):
+        doc = probe.__doc__ or ""
+        self.assertIn("probe_compat()", doc)
+        self.assertIn("per keyed OpenAI-compatible pool", doc)
+        self.assertIn("up-to-4 candidate calls", doc)
+
+
 class Transport(unittest.TestCase):
     def test_every_request_names_its_agent(self):
         # Groq's Cloudflare front refuses the default Python-urllib agent with 403 / 1010 (2026-11-18)

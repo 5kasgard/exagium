@@ -2,7 +2,7 @@
 
 Writes one JSON line per call to the file given as argv[1]. Exit 0 if every required engine
 (see verdict()) answered exactly, 1 otherwise; optional engines are logged but never fail the run.
-Costs: 1 OpenRouter request (of 1,000/day for this account), ~2 Cloudflare neurons, 1 Gemini request plus a model list.
+Costs: 1 OpenRouter request (of 1,000/day for this account), ~2 Cloudflare neurons, 1 Gemini request plus a model list; probe_compat() adds one model-list call per keyed OpenAI-compatible pool and up-to-4 candidate calls per pool.
 """
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python3 -I drops the script dir
