@@ -62,11 +62,12 @@ def build():
 
 def counter_confine(tool_dst):
     """count.py arguments that start valgrind (and so the candidate) inside loop's confine (Landlock + the filter),
-    from inside the bubblewrap jail: count.py itself forks, so the filter goes one level down (review 44257135013)."""
+    from inside the bubblewrap jail: count.py itself forks, so the filter goes one level down (review 44257135013).
+    In confine mode count.py runs outside the jail, so we wrap the confine invocation with limits.c to apply rlimits."""
     a = ["--confine", "/run/exagium/confine", "--confine-ro", tool_dst, "--confine-ro", "/run/exagium"]
     for flag, p in L.read_allow():
         a += ["--confine-ro" if flag == "--ro" else "--confine-ls", p]
-    return a
+    return _limits_args(120, False) + a
 
 
 def jail(cmd, binds, timeout, cwd="/w", seccomp=True):
