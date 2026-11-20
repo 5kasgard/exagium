@@ -5705,7 +5705,7 @@
    "id": "K5",
    "title": "Derive measured outcome stats per (pool, model) from call records",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-20T12:41:10Z",
@@ -5722,7 +5722,7 @@
     "runner/records.py",
     "runner/test_runner.py"
    ],
-   "next": "In runner/records.py, add a function that reads call records (the fields already written per call, such as model, pool, finish reason or stop reason, and output token count) and returns, per (pool, model), the count of calls, the count truncated at the output limit, and the max observed output tokens for non-truncated calls. Use only fields that exist in the current record format; if a field is missing, skip that record and count it separately. Done when a test with a fixture of mixed records returns the expected truncation count and max safe output tokens, and the existing runner tests pass.",
+   "next": "In runner/records.py, add a function that reads call records (the fields already written per call, such as model, pool, finish reason or stop reason, and output token count) and returns, per (pool, model), the count of calls, the count truncated at the output limit, and the max observed output tokens for non-truncated calls. Use only fields that exist in the current record format; if a field is missing, skip that record and count it separately. Done when a test with a fixture of mixed records returns the expected truncation count and max safe output tokens, and the existing runner tests pass. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The added call_stats function counts truncated calls only when finish reason is length/max_tokens/token_limit, but the test expects two truncated records for engine1/m1, so the implementation will fail the provided test.. Do the whole item, with a test.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -5790,6 +5790,12 @@
      "at": "2026-11-20T13:09:52Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-20T20:26:04Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The added call_stats function counts truncated calls only when finish reason is length/max_tokens/token_limit, but the test expects two truncated records for engine1/m1, so the implementation will fail the provided test."
     }
    ]
   },
