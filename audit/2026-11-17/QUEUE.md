@@ -6,19 +6,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 
 | item | batch | item | batch | both touch |
 |---|---|---|---|---|
-| Q37 | B5 | P8 | B3 | worker/test_worker.py |
-| Q37 | B5 | P20c | B3 | worker/test_worker.py |
-| Q37 | B5 | P20d | B3 | worker/test_worker.py |
-| Q37 | B5 | K2 | B3 | router/bench4/measure.py, router/bench4/meter.py |
-| Q37 | B5 | G2 | B3 | worker/test_worker.py |
-| Q37 | B5 | G7 | B3 | worker/test_worker.py |
-| Q37 | B5 | G8 | B3 | worker/test_worker.py |
-| Q37 | B5 | G20 | B3 | worker/test_worker.py |
-| Q37 | B5 | G21 | B3 | worker/test_worker.py |
-| Q37 | B5 | G22 | B3 | worker/test_worker.py |
-| Q37 | B5 | K15 | B3 | worker/test_worker.py |
-| Q37 | B5 | K18 | B3 | worker/test_worker.py |
-| Q37 | B5 | K19 | B3 | worker/test_worker.py |
 | Q39 | B5 | P8 | B3 | worker/test_worker.py |
 | Q39 | B5 | P20c | B3 | worker/test_worker.py |
 | Q39 | B5 | P20d | B3 | worker/test_worker.py |
@@ -84,7 +71,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B3 Free workers (queue worker, proposer, process manager) | P5, P8, P9 | P5, P8 | 12 | One scheduled-worker machinery: claims and leases in the queue, key and generated code in separate jobs. The proposer (P5) is one job type of the queue worker (P8), so they are built once. | Claude designs once; a separate agent reviews (it holds a key); after that free models and CI run it on a schedule. |
 | B7 Research worker | P7, P7e | P7 | 3 | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 | B1 Task suite (new runner) | Q54, P3, Q25, P18, P23, P5c | Q54, P3, P18, P5c | 2 | All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data. | Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs. |
-| B5 Doc truthfulness | Q38, Q39, Q36, Q37, Q44 | Q38, Q39, Q36, Q37, Q44 | 2 | Wording fixes with known targets (file and line in each item): one pass, one free review, no code risk. | A free model drafts from the item text; a second free model checks against the cited lines; Claude spot-checks. |
+| B5 Doc truthfulness | Q38, Q39, Q36, Q44 | Q38, Q39, Q36, Q44 | 2 | Wording fixes with known targets (file and line in each item): one pass, one free review, no code risk. | A free model drafts from the item text; a second free model checks against the cited lines; Claude spot-checks. |
 | B9 Knowledge store and what builds on it | P11, P17, P12, P13, P16, P19, P21, P22 | P11, P17, P21 | 2 | P12, P13 and P16 all read from the store P11 creates, and P6 now waits on it too; one schema, one ingest script, one review. P17 names what the store must answer. | Claude designs the schema once; a script fills it from the ledger; free models review; later items can go to the free proposer once P5 runs. |
 | B10 Hardware as a search dimension | P14, P15 | P14 |  | P14 is a cheap go/no-go on free runners; P15 only proceeds if rankings change across machines. | CI runners measure; a script compares rankings; free review. |
 | B4 Repo and workflow hygiene | Q28, Q09, Q29 | Q29 |  | All .github/workflows and branch settings: one actionlint and zizmor pass (zizmor --fix does much of Q07 mechanically), one review, one round of CI runs. | Mostly mechanical: linters and auto-fix on CI; a free review; Claude only for the /activity-log test design. |
@@ -165,7 +152,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (13)
+## Review by the next tier (a worker result to confirm: no change, or a PR) (12)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -193,7 +180,6 @@ same artifact scores differently through the runner than through a direct run (t
 | G23 | B3 |  | minor | medium | fix | Leaderboard counts distinct designs: hash each proposal's train.py and infer.c pair and report duplicates | GLM's analysis report (recommendation 5): the board counts identical designs more than once, so its diversity numbers overstate how many distinct designs the proposer makes. In judge.py board(), compute sha256 over the bytes of each proposal folder's train.py followed by infer.c when both exist, and add one summary line 'Distinct designs: N (of M valid)' and a 'dup of' column naming the first proposal with the same hash. Do not change validity or ranking. Add a test with three folders, two identical, that expects 'Distinct designs: 2'. | exagium-analysis-report (project files), Assessment and Recommendations, 5; runner/proposals/judge.py |
 | G8 | B3 |  | minor | medium | fix | F035: The worker spec card predates 2026-11-20 and contradicts the code: 'Paid pools can't be reserved' while worker | Fix review finding glm-20261120:F035 (doc-drift, low). Claim: The worker spec card predates 2026-11-20 and contradicts the code: 'Paid pools can't be reserved' while worker.yml reserves openrouter_paid:3:8 per research/code run, the Files list omits code_job/transitions/tier/generate/split/diagnose/note, and 'Not yet: code items' although the code job ran (K1, PR #9). Evidence at worker/README.md lines [37, 37]:   half each free pool's daily allowance. Calls are counted exactly; Cloudflare neurons are projected (1,000 per call)
   and checked against recorded use, so one run can overshoot by the difference. Paid pools can't be reserved. Proposed fix: Regenerate the worker spec card's Status/Files/Not-yet sections from the current subsystem (paid pools are reserved; code items ran; workers always run since 2026-11-20). Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
-| Q37 | B5 |  | minor | low | doc | Scaffold Effect (arXiv 2607.22585) is a workshop preprint, called published; its direction differs from bench-4 | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: erratum next to the registered bench-4 plan: arXiv 2607.22585 is under review at the 5th DL4C Workshop @ ICML 2026 (not published), and its direction differs from bench-4's. | D-claims citations |
 
 ## Escalated (a check failed; the next tier takes it) (12)
 
@@ -271,7 +257,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (85)
+## Done (86)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -359,6 +345,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q08 |  |  | minor | low | fix | review.yml copies a dispatcher-chosen path onto a public branch | Done (main 05328a4): review.yml copies only a tracked regular file under router/review/ (no '..', no symlink); refusals checked by the pre-merge reviewer. | A-security m3; main:.github/workflows/review.yml:33-34 |
 | Q11 |  |  | minor | low | fix | Committed unused ELF loop/confine (20,712 B) | Done (main 05328a4): loop/confine deleted; loop.py builds its own copy. | A-security m6; C-structure F10; S2 confirmed |
 | Q18 |  |  | minor | low | fix | Single unretried pushes to router-runs / ci-runs | Done (main 05328a4): pushes to router-runs (router.yml) and ci-runs (loop, counter, record orphan step) retry 5 times on the newest tip, then fail; race and all-fail cases tested locally. Bench pushes left alone (benches complete, dispatch only). | B F8; E E-08 |
+| Q37 | B5 |  | minor | low | doc | Scaffold Effect (arXiv 2607.22585) is a workshop preprint, called published; its direction differs from bench-4 | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: erratum next to the registered bench-4 plan: arXiv 2607.22585 is under review at the 5th DL4C Workshop @ ICML 2026 (not published), and its direction differs from bench-4's. | D-claims citations |
 | Q40 |  |  | minor | low | doc | README leads with word history, omits router/ and benches from the status table | Done (main 643943f/867d150): README rewritten status-first, with router/ and benches in the status table. | E E-16; C F7 |
 | Q46 |  |  | minor | low | test | rfc8785 oracle test skipped everywhere (package never installed) | Done (main 05328a4): rfc8785==0.1.4 installed by hash in tests.yml; a skipped record test fails the step (0 skipped live). | B |
 | Q47 |  |  | minor | low | fix | loop.yml:106 unguarded empty-glob line (same cause as the 11-05 failure) | Done (main 05328a4): candidate globs use nullglob and fail loudly when empty. | B |
