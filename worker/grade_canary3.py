@@ -18,7 +18,25 @@ def ok(item, before, after, result):
         return after == "4. Each card lists its sources and the quote that supports each claim." and result == "merged"
 
 
+def run_controls():
+    """Run built-in known-answer control cases. Returns True if all pass, False otherwise."""
+    controls = [
+        # (item, before, after, result, expected_ok)
+        ("E1", "1. Line one", "1. Line one", "check", True),  # check-only, unchanged -> pass
+        ("E3", "The line can never be changed or deleted by anyone", "The line cannot be modified once recorded", "merged", False),  # weakened guarantee -> fail
+        ("E2", "2. The daily cap for the NIM pool is 300 calls.", "2. The daily cap for the NIM pool is 400 calls.", "merged", True),  # false number corrected -> pass
+    ]
+    for item, before, after, result, expected in controls:
+        got = ok(item, before, after, result)
+        if got != expected:
+            print(f"CONTROL FAIL: {item} before={before!r} after={after!r} result={result!r} expected={expected} got={got}", file=sys.stderr)
+            return False
+    return True
+
+
 def main(orig, cur, queue):
+    if not run_controls():
+        return 1
     o, c = open(orig).read().split("\n"), open(cur).read().split("\n")
     by = {i["id"]: i for i in json.load(open(queue))["items"]}
     n = 0

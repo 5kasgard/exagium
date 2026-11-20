@@ -926,5 +926,28 @@ class SplitTypes(unittest.TestCase):
         self.assertIsNone(SP.check(dict(base, experiment="other"), lines, tests)[0])
 
 
+class CanaryGraderControls(unittest.TestCase):
+    """Test the known-answer controls in grade_canary3.py."""
+    def test_controls_pass_with_current_ok(self):
+        import grade_canary3 as G
+        # Control 1: check-only unchanged line must pass
+        self.assertTrue(G.ok("E1", "1. Line one", "1. Line one", "check"))
+        # Control 2: weakened E3 guarantee must fail
+        self.assertFalse(G.ok("E3", "The line can never be changed or deleted by anyone", "The line cannot be modified once recorded", "merged"))
+        # Control 3: false number corrected exactly must pass
+        self.assertTrue(G.ok("E2", "2. The daily cap for the NIM pool is 300 calls.", "2. The daily cap for the NIM pool is 400 calls.", "merged"))
+
+    def test_broken_ok_caught_by_controls(self):
+        import grade_canary3 as G
+        original_ok = G.ok
+        try:
+            # Monkey-patch ok to always return True (broken grader)
+            G.ok = lambda *a, **k: True
+            # run_controls should return False because control 2 expects False but gets True
+            self.assertFalse(G.run_controls())
+        finally:
+            G.ok = original_ok
+
+
 if __name__ == "__main__":
     unittest.main()
