@@ -836,5 +836,25 @@ class SecondDraft(unittest.TestCase):
             self.assertEqual(open(os.path.join(repo, "pkg", "m.py")).read(), "X = 2\n")
 
 
+class Canary3Grading(unittest.TestCase):
+    """F105: E2 is graded by meaning, not by a fixed line and exact wording."""
+    def test_e2_semantic_and_not_fixed_line(self):
+        import grade_canary3 as G
+        with tempfile.TemporaryDirectory() as d:
+            orig = os.path.join(d, "orig.md")
+            cur = os.path.join(d, "cur.md")
+            queue = os.path.join(d, "queue.json")
+            before = ["x", "x", "x", "x", "E1 same", "old E2", "E3 same",
+                      "4. Each card lists its sources and the quote that supports each claim.", "E5 same", "x"]
+            after = ["x", "x", "x", "x", "E1 same", "old E2", "E3 same",
+                     "4. Each card lists its sources and the quote that supports each claim.", "E5 same",
+                     "2. Daily cap for NIM pool is 400 calls."]
+            open(orig, "w").write("\n".join(before))
+            open(cur, "w").write("\n".join(after))
+            json.dump({"items": [{"id": i, "runs": [{"result": "merged"}]}
+                                 for i in ("E1", "E2", "E3", "E4", "E5")]}, open(queue, "w"))
+            self.assertEqual(G.main(orig, cur, queue), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
