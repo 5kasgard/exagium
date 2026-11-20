@@ -262,3 +262,50 @@ class Rerank(unittest.TestCase):
             s, err = R.rerank_scores("q", self.pool[:3], calls)
         self.assertEqual((s, err), ([0.5, 0.5, 0.5], None))
         self.assertEqual(len(calls), 5)   # one request per batch
+
+
+class Generate(unittest.TestCase):
+    """P27 generator: script checks and the gate's controls (no model call)."""
+
+    def test_check(self):
+        import generate as G
+        ok, why = G.check({"question": "How well do cascades of cheap and strong language models trade cost for accuracy?",
+                           "queries": ["LLM cascade cost accuracy", "FrugalGPT", "model routing benchmark"]})
+        self.assertIsNone(why); self.assertEqual(len(ok["queries"]), 3)
+        for bad in ({"question": "short?", "queries": ["a b c"] * 3},
+                    {"question": "How does the Forge queue worker decide what to claim next in practice?", "queries": ["x y z"] * 3},
+                    {"question": "What does https://example.com say about model routing and cascades?", "queries": ["abc"] * 3},
+                    {"question": "How well do cascades trade cost for accuracy in practice today?", "queries": ["abc"]},
+                    "not a dict"):
+            self.assertIsNone(G.check(bad)[0])
+
+    def test_near_dup_and_ids(self):
+        import generate as G
+        self.assertTrue(G.near_dup("How strong are tuned gradient-boosted trees against MLPs on tabular data?",
+                                   ["How strong are tuned gradient-boosted decision trees against MLPs on tabular data?"]))
+        self.assertFalse(G.near_dup("How reliable are LLM judges?", ["What limits CPU inference of TabPFN?"]))
+        self.assertEqual(G.next_rid({"items": [{"id": "R9"}, {"id": "R19"}, {"id": "P5"}]}), 20)
+
+    def test_gate_controls(self):
+        import generate as G
+        self.assertEqual(G.gate_outcomes([0.9, 0.1, 0.7, 0.2], 2), ["accept", "reject"])
+        self.assertIsNone(G.gate_outcomes([0.4, 0.1, 0.9], 1))   # the useful control failed: decide nothing
+        self.assertIsNone(G.gate_outcomes([0.9, 0.6, 0.9], 1))   # the off-topic control passed: decide nothing
+        self.assertIsNone(G.gate_outcomes(None, 1))
+
+    def test_candidates(self):
+        import generate as G
+        q = {"items": [{"id": "P1", "status": "open", "kind": "build", "value": "low"},
+                       {"id": "P2", "status": "open", "kind": "build", "value": "high"},
+                       {"id": "P3", "status": "open", "kind": "doc", "value": "high"},
+                       {"id": "P4", "status": "open", "kind": "build", "value": "high", "needs": "the owner"},
+                       {"id": "R9", "status": "open", "kind": "test", "research": {"question": "q"}},
+                       {"id": "R10", "status": "proposed", "generated_from": "P1"}]}
+        self.assertEqual([i["id"] for i in G.candidates(q)], ["P2"])
+
+    def test_transitions(self):
+        import transitions as TR
+        self.assertEqual(TR.next_status("proposed", "accept"), "open")
+        self.assertEqual(TR.next_status("proposed", "reject"), "parked")
+        with self.assertRaises(TR.NotAllowed):
+            TR.next_status("proposed", "claim")

@@ -12,6 +12,8 @@ Pipelines, from the 2026-11-19 trace (10 items sat in "waiting on the owner"; on
             failed (a step crashed) ............................ -> open, and escalated after MAX_FAILURES in a row
             lease_expired (the run was killed) ................. -> open, counted as a failure
   wait      budget, retry (target changed under the run) ........ -> open (not a failure)
+  generated proposed (worker/generate.py, P27) ................ -> open on accept, parked on reject (a gate with
+            known-answer controls decides; the worker never claims a proposed item)
 Escalation goes one tier at a time and stops where a check passes: free worker -> scheduled Claude session -> owner.
 Research basis: cascades escalate only when a check on the answer fails (FrugalGPT, AutoMix); another model's opinion is a
 weak gate, so the gates here are scripts first (guard words, target lines, quote match), and a human is the last tier.
@@ -20,7 +22,8 @@ python3 -I worker/transitions.py next STATUS OUTCOME [FAILURES]   -> prints the 
 """
 import sys
 
-STATES = ("open", "in progress", "review", "escalated", "done", "waiting on the owner", "parked", "blocked", "scheduled")
+STATES = ("open", "in progress", "review", "escalated", "done", "waiting on the owner", "parked", "blocked", "scheduled",
+          "proposed")
 MAX_FAILURES = 2   # same as queue_ops before this module (review M4): a second failure in a row climbs a tier
 
 # (from, outcome) -> to. Outcomes by actor:
@@ -36,6 +39,7 @@ WORKER = {"merged": "done", "unchanged": "review", "pr": "review", "pr_not_creat
 TABLE = {("open", "claim"): "in progress"}
 TABLE.update({("in progress", o): s for o, s in WORKER.items()})
 TABLE.update({("review", "confirm"): "done", ("review", "redo"): "open", ("review", "escalate"): "waiting on the owner",
+              ("proposed", "accept"): "open", ("proposed", "reject"): "parked",
               ("escalated", "solved"): "done", ("escalated", "redo"): "open", ("escalated", "escalate"): "waiting on the owner"})
 for s in STATES:   # the owner may settle any item, from any state; nothing else is implied
     TABLE.update({(s, "decide_done"): "done", (s, "decide_open"): "open", (s, "park"): "parked",

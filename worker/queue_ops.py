@@ -215,7 +215,7 @@ def held(wt, worker, item_id):
     return 0 if i and i.get("claimed_by") == worker and live_claim(i, now()) else 1
 
 
-TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "decide_done", "decide_open", "park", "decide_blocked",
+TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
                  "decide_scheduled", "decide_owner"}
 
 
