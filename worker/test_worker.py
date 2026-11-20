@@ -904,5 +904,27 @@ class MergeAgentTexts(unittest.TestCase):
         self.assertTrue(ok)
 
 
+
+class SplitTypes(unittest.TestCase):
+    def test_candidates_by_type_and_finished_children(self):
+        import split as SP
+        q = {"items": [
+            {"id": "P1", "status": "open", "kind": "build", "work_types": {"held": 0.97, "build": 0.6}},
+            {"id": "P2", "status": "open", "kind": "test", "work_types": {"experiment": 0.7}},
+            {"id": "P3", "status": "open", "kind": "build"},
+            {"id": "K1", "status": "open", "split_from": "P3", "code": {"files": ["a.py"]}},
+            {"id": "P4", "status": "open", "kind": "build"},
+            {"id": "K2", "status": "done", "split_from": "P4", "code": {"files": ["a.py"]}}]}
+        self.assertEqual([i["id"] for i in SP.candidates(q)], ["P2", "P4"])   # held skipped; P3 busy; P4 next step
+
+    def test_experiment_subitem_shape(self):
+        import split as SP
+        lines, tests = {"experiments/run_one.py": 40}, ["experiments/test_experiments.py"]
+        base = {"title": "Write the measurement for a rule", "files": ["experiments/q_x.py"], "new": ["experiments/q_x.py"],
+                "test": "experiments/test_experiments.py", "next": "x" * 30}
+        self.assertEqual(SP.check(dict(base, experiment="q_x"), lines, tests)[0]["experiment"], "q_x")
+        self.assertIsNone(SP.check(dict(base, experiment="other"), lines, tests)[0])
+
+
 if __name__ == "__main__":
     unittest.main()

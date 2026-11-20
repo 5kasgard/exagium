@@ -25,7 +25,7 @@ MODEL = "claude-haiku-5-5"
 MAX_PARENTS = 6   # items asked per run (about $0.0007 each); an item judged not worker-sized is skipped for RETRY_DAYS
 RETRY_DAYS = 7
 MAX_SUB = 3
-DIRS = ("worker", "router", "runner", "facts", "transfer")
+DIRS = ("worker", "router", "runner", "facts", "transfer", "experiments")
 
 PROMPT = """Split one queue item into at most 3 small code changes, each doable by one model call that edits 1 or 2
 files (existing, or at most one new file of under 80 lines in an existing folder: the merge gate takes 80 changed lines) and keeps the tests passing. Only steps that move the item's NEXT STEP forward. If no part of the item can
@@ -48,6 +48,11 @@ get data formats and interfaces right ("context"); it sees nothing else. Say in 
 
 A sub-item that creates a file lists it in "files" and in "new". Building something new is fine when it is small: a new
 module of a few functions, with its tests, is one sub-item.
+
+If the item is a measurement or test with a rule (an experiment), one sub-item may write experiments/<name>.py (new) with
+PLAN (what is measured, on what, and the pass rule, in words), run() returning a JSON-able dict and rule(result) returning
+{{"verdict": "holds"|"fails"|"invalid", "why": "..."}}, test experiments/test_experiments.py; give it "experiment": "<name>"
+(lowercase letters, digits, underscores). Once it lands, the experiment runs by itself with no secrets.
 
 Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "new": [], "test": "path/test_x.py", "context": ["path.py"],
 "next": "exactly what to change, and the test that shows it is right"}}]}}"""
@@ -109,7 +114,11 @@ def check(sub, lines, tests):
     if not 10 <= len(sub["title"]) <= 160 or len(sub["next"]) < 20:
         return None, "title or next too short"
     ctx = [c for c in (sub.get("context") or []) if isinstance(c, str) and c in lines and CJ.allowed(c) and c not in files][:2]
-    return {"title": " ".join(sub["title"].split()), "files": files, "new": new, "test": test, "context": ctx, "next": sub["next"][:1500]}, None
+    exp = sub.get("experiment")
+    if exp is not None and not (isinstance(exp, str) and re.fullmatch(r"[a-z0-9_]+", exp) and f"experiments/{exp}.py" in new):
+        return None, "an experiment sub-item must create experiments/<name>.py"
+    return {"title": " ".join(sub["title"].split()), "files": files, "new": new, "test": test, "context": ctx, "next": sub["next"][:1500],
+            "experiment": exp}, None
 
 
 def recently_tried(i):
@@ -135,11 +144,30 @@ def mark_tried(wt, ids):
             return
 
 
+SPLITTABLE = ("build", "code_change", "experiment")   # worker/classify.py types the splitter can move a rung
+NOT_NOW = ("held", "owner_action", "already_done", "sandbox_or_workflow")
+
+
+def splittable(i):
+    """By the classifier's types when it has judged the item (owner 2026-11-21: work types, not three job kinds); by the
+    item's kind otherwise."""
+    wt = i.get("work_types")
+    if wt:
+        top = max(wt.items(), key=lambda kv: kv[1])[0]
+        return any(wt.get(t, 0) >= 0.5 for t in SPLITTABLE) and top not in NOT_NOW
+    return i.get("kind") in ("build", "fix")
+
+
 def candidates(q):
     by = {i["id"]: i for i in q["items"]}
-    used = {i.get("split_from") for i in q["items"] if i.get("split_from")}
-    out = [i for i in q["items"] if i.get("status") == "open" and i.get("kind") in ("build", "fix") and not Q.job_type(i)
-           and i["id"] not in used and i.get("needs") != "the owner" and not recently_tried(i)
+    kids = {}
+    for i in q["items"]:
+        if i.get("split_from"):
+            kids.setdefault(i["split_from"], []).append(i.get("status"))
+    # a parent is split again once every earlier sub-item is finished (done or parked): its next step, not a repeat
+    busy = {p for p, ss in kids.items() if any(s not in ("done", "parked") for s in ss)}
+    out = [i for i in q["items"] if i.get("status") == "open" and splittable(i) and not Q.job_type(i)
+           and not i.get("experiment") and i["id"] not in busy and i.get("needs") != "the owner" and not recently_tried(i)
            and all(by.get(b, {}).get("status") == "done" for b in i.get("blocked_by", []))]
     return sorted(out, key=lambda i: ({"high": 0, "medium": 1, "low": 2}.get(i.get("value"), 3), i["id"]))
 
@@ -153,16 +181,23 @@ def regate(wt, decide_fn, calls):
     Q.sync(wt)
     q = Q.load(wt)
     by = {i["id"]: i for i in q["items"]}
-    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("split_from") in by][:6]
+    follow = []   # a run item follows its code item's gate: accepted with it, rejected with it
+    for i in q["items"]:
+        if i.get("status") == "proposed" and i.get("experiment") and i.get("blocked_by"):
+            st = by.get(i["blocked_by"][0], {}).get("status")
+            if st and st != "proposed":
+                follow.append((i["id"], "reject" if st == "parked" else "accept"))
+    moved = G.move_all(wt, [a for a, _ in follow], [o for _, o in follow], [1.0, 0.0] + [1.0] * len(follow)) if follow else []
+    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("split_from") in by and i.get("code")][:6]
     if not pend:
-        return []
+        return moved
     pairs = [(CONTROL_GOOD, *CONTROL_PARENT), (CONTROL_BAD, *CONTROL_PARENT)]
     pairs += [(f"{i['title']} (files: {', '.join(i['code']['files'])})", by[i["split_from"]]["title"], by[i["split_from"]].get("next", ""))
               for i in pend]
     ps, err = decide_fn(pairs)
     outcomes = G.gate_outcomes(ps, len(pend))
     print(f"split regate: {[i['id'] for i in pend]} p={ps} err={err}")
-    return G.move_all(wt, [i["id"] for i in pend], outcomes, ps) if outcomes else []
+    return moved + (G.move_all(wt, [i["id"] for i in pend], outcomes, ps) if outcomes else [])
 
 
 def run(wt, repo, out, ask=None, decide_fn=None):
@@ -213,12 +248,12 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         pairs += [(f"{s['title']} (files: {', '.join(s['files'])})", p["title"], p.get("next", "")) for p, s in subs]
         ps, err = (decide_fn or gate_fn(calls))(pairs)
         outcomes = G.gate_outcomes(ps, len(subs))
-        made = []
+        made, runs = [], {}
         for _ in range(Q.TRIES):
             Q.sync(wt)
             q = Q.load(wt)
             n = max([int(m.group(1)) for i in q["items"] for m in [re.fullmatch(r"K(\d+)", str(i["id"]))] if m] or [0]) + 1
-            made = []
+            made, runs = [], {}
             for p, s in subs:
                 kid = f"K{n}"; n += 1
                 q["items"].append({"id": kid, "title": s["title"], "kind": "fix", "status": "proposed", "origin": "generated",
@@ -229,10 +264,25 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                                    "needs": "free", "cost": 0, "value": p.get("value", "medium"), "blocked_by": [],
                                    "batch": p.get("batch", "B3")})
                 made.append(kid)
+                if s.get("experiment"):   # the run itself: waits for the code item, then the dispatcher starts it
+                    rid = f"K{n}"; n += 1
+                    q["items"].append({"id": rid, "title": f"Run experiment {s['experiment']} ({p['id']})", "kind": "test",
+                                       "status": "proposed", "origin": "generated", "split_from": p["id"], "generated_at": Q.iso(Q.now()),
+                                       "experiment": {"name": s["experiment"]}, "touches": [], "next": f"Runs experiments/{s['experiment']}.py "
+                                       f"once {kid} lands; its own rule decides.", "refs": [f"queue {kid}", "experiments/README.md"],
+                                       "severity": "minor", "needs": "free", "cost": 0, "value": p.get("value", "medium"),
+                                       "blocked_by": [kid], "batch": p.get("batch", "B3")})
+                    runs[kid] = rid
             Q.save(wt, q)
             if Q.commit_push(wt, f"splitter: {', '.join(made)} proposed from {', '.join(sorted({p['id'] for p, _ in subs}))}"):
                 break
-        moved = G.move_all(wt, made, outcomes, ps) if outcomes else []
+        if outcomes:   # a run item takes its code item's gate outcome
+            ids = made + [runs[k] for k in made if k in runs]
+            outs = outcomes + [outcomes[made.index(k)] for k in made if k in runs]
+            pss = list(ps[:2]) + list(ps[2:]) + [ps[2 + made.index(k)] for k in made if k in runs]
+            moved = G.move_all(wt, ids, outs, pss)
+        else:
+            moved = []
         log.append({"gate": {"p": ps, "error": err, "controls_ok": outcomes is not None}, "made": made, "moved": moved})
         print(f"split: proposed {made}; gate {'ran' if outcomes else 'withheld'} p={ps}; moved {moved}")
         return 0

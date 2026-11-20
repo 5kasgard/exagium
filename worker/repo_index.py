@@ -9,7 +9,7 @@ the splitter saw only file names).
 Nothing is executed: modules are read with ast."""
 import ast, math, os, re, sys
 
-DIRS = ("worker", "router", "runner", "facts", "transfer", "record", "counter", "probe", "loop", "audit", "tasks")
+DIRS = ("worker", "router", "runner", "facts", "transfer", "record", "counter", "probe", "loop", "audit", "tasks", "experiments")
 WORD = re.compile(r"[a-z][a-z0-9]{2,}")
 STOP = set("the and for with that this from not are was were has have its into when then than each only any all one two "
            "new add use used make run runs def self return none true false import file files item items test tests".split())
