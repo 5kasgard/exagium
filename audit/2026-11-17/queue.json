@@ -1094,7 +1094,7 @@
    "id": "P3",
    "title": "Mixed first suite, incl. verifier-scored tasks and PFNs",
    "kind": "build",
-   "status": "in progress",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1112,8 +1112,14 @@
     "tasks/",
     "runner/candidates/"
    ],
-   "claimed_by": "chat-session_01DdaGg2fEE15KprU8RKSruw",
-   "claimed_at": "2026-11-19T07:40:53Z"
+   "runs": [
+    {
+     "at": "2026-11-20T20:26:49Z",
+     "worker": "chat-session_01DdaGg2fEE15KprU8RKSruw",
+     "result": "chat claim older than 24 h",
+     "outcome": "lease_expired"
+    }
+   ]
   },
   {
    "id": "P4",
@@ -1140,7 +1146,7 @@
    "id": "P5",
    "title": "Free proposer: free models write candidates around the clock; CI scores them",
    "kind": "build",
-   "status": "in progress",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -1166,8 +1172,14 @@
     "runner/proposals/"
    ],
    "informs": [],
-   "claimed_by": "chat-session_01DdaGg2fEE15KprU8RKSruw",
-   "claimed_at": "2026-11-19T08:40:00Z"
+   "runs": [
+    {
+     "at": "2026-11-20T20:26:49Z",
+     "worker": "chat-session_01DdaGg2fEE15KprU8RKSruw",
+     "result": "chat claim older than 24 h",
+     "outcome": "lease_expired"
+    }
+   ]
   },
   {
    "id": "P6",
@@ -4067,7 +4079,7 @@
    "title": "Worker can stall: a run stopped by budget does not chain, and GitHub drops most hourly crons, so nothing restarts it",
    "kind": "fix",
    "severity": "major",
-   "status": "in progress",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -4081,7 +4093,15 @@
     "queue P8r, Q57",
     "main 14a9bfa"
    ],
-   "next": "Found in release test 2 (2026-11-19): 20 items done by 06:09Z, then a budget stop (a ledger fault, fixed in 14a9bfa) ended the chain; crons at 06:17 and 07:17 did not fire (1 schedule fired all day). Any future budget stop (a real cap, a pool outage) will stall the same way. Options to test: the chain job also runs after a budget stop and dispatches one retry when the earliest cap resets (UTC midnight) through a delayed dispatch; or a second, independent schedule (another workflow at a different minute); measure which restarts reliably over a week. Not a loop: at most one pending run, as now. Also: CHAIN_CAP 24/day is below a 30-item test plus retries; release test 2 hit it at 07:29Z (26 of 30 done). 2026-11-19 11:00Z (chat): measured GitHub's scheduler here: hourly worker cron 3 fires in ~30 h; record.yml daily cron 7-9 h late on 12 of 12 days. FIXED on main a12188a: keeper.yml (sleeps until a time, hands over past 5h40m, then dispatches) and a wake job (a run stopped for budget starts a keeper for 00:05 UTC); chain cap 24 -> 200 backstop (chain only after an item lands). Keeper verified end to end: dispatched for 11:01:14Z, started the worker at 11:01:18Z. Unattended test running under worker/UNATTENDED-TEST.md (rules fixed before the start; 48 h, 0 manual dispatches). Also 6466b9c: NVIDIA cap 40 -> 400/day (40 was a per-minute figure read as daily; sources in worker/ledger.py), Cloudflare call cap 20 -> 500 (neurons stay the real cap). Fallback if the unattended test shows a missed restart (owner asked about Cloudflare, 2026-11-19): a $0 watchdog on Cloudflare's free plan (official limits: 5 cron triggers per account; Durable Objects allowed on Free since 2025-04; 10 ms CPU per invocation, enough for one dispatch call), Axiom's pattern (P26), needing an owner-made GitHub token limited to Actions: write on this repo, stored as a Cloudflare secret. Not built ahead of that data. Cloudflare Sandboxes (agent code execution) not adopted: Workers Paid only (billing is off by the owner's choice) and they duplicate free GitHub Actions runners. 2026-11-19 20:40Z: unattended test PASS by its rules, thin (4 items, 11 min, no budget stop). Then idle ~8 h with budget left: fixed in 2189550 (a run with nothing ready re-polls in 30 min via the keeper). 2026-11-19 22:45Z (Claude shift, main 07211d6): research was held back all evening with 1,359 of 5,000 Cloudflare neurons unused, because its claim check projected an unsourced 1,500 neurons per call; measured max 438 over all 23 Cloudflare calls; now 600. Live: the next run claimed R4 (worker 44631291461)."
+   "next": "Found in release test 2 (2026-11-19): 20 items done by 06:09Z, then a budget stop (a ledger fault, fixed in 14a9bfa) ended the chain; crons at 06:17 and 07:17 did not fire (1 schedule fired all day). Any future budget stop (a real cap, a pool outage) will stall the same way. Options to test: the chain job also runs after a budget stop and dispatches one retry when the earliest cap resets (UTC midnight) through a delayed dispatch; or a second, independent schedule (another workflow at a different minute); measure which restarts reliably over a week. Not a loop: at most one pending run, as now. Also: CHAIN_CAP 24/day is below a 30-item test plus retries; release test 2 hit it at 07:29Z (26 of 30 done). 2026-11-19 11:00Z (chat): measured GitHub's scheduler here: hourly worker cron 3 fires in ~30 h; record.yml daily cron 7-9 h late on 12 of 12 days. FIXED on main a12188a: keeper.yml (sleeps until a time, hands over past 5h40m, then dispatches) and a wake job (a run stopped for budget starts a keeper for 00:05 UTC); chain cap 24 -> 200 backstop (chain only after an item lands). Keeper verified end to end: dispatched for 11:01:14Z, started the worker at 11:01:18Z. Unattended test running under worker/UNATTENDED-TEST.md (rules fixed before the start; 48 h, 0 manual dispatches). Also 6466b9c: NVIDIA cap 40 -> 400/day (40 was a per-minute figure read as daily; sources in worker/ledger.py), Cloudflare call cap 20 -> 500 (neurons stay the real cap). Fallback if the unattended test shows a missed restart (owner asked about Cloudflare, 2026-11-19): a $0 watchdog on Cloudflare's free plan (official limits: 5 cron triggers per account; Durable Objects allowed on Free since 2025-04; 10 ms CPU per invocation, enough for one dispatch call), Axiom's pattern (P26), needing an owner-made GitHub token limited to Actions: write on this repo, stored as a Cloudflare secret. Not built ahead of that data. Cloudflare Sandboxes (agent code execution) not adopted: Workers Paid only (billing is off by the owner's choice) and they duplicate free GitHub Actions runners. 2026-11-19 20:40Z: unattended test PASS by its rules, thin (4 items, 11 min, no budget stop). Then idle ~8 h with budget left: fixed in 2189550 (a run with nothing ready re-polls in 30 min via the keeper). 2026-11-19 22:45Z (Claude shift, main 07211d6): research was held back all evening with 1,359 of 5,000 Cloudflare neurons unused, because its claim check projected an unsourced 1,500 neurons per call; measured max 438 over all 23 Cloudflare calls; now 600. Live: the next run claimed R4 (worker 44631291461).",
+   "runs": [
+    {
+     "at": "2026-11-20T20:26:49Z",
+     "worker": "nobody",
+     "result": "no claim held",
+     "outcome": "lease_expired"
+    }
+   ]
   },
   {
    "id": "P5a",
@@ -5708,7 +5728,7 @@
    "id": "K5",
    "title": "Derive measured outcome stats per (pool, model) from call records",
    "kind": "fix",
-   "status": "open",
+   "status": "in progress",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-20T12:41:10Z",
@@ -5800,7 +5820,10 @@
      "outcome": "redo",
      "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The added call_stats function counts truncated calls only when finish reason is length/max_tokens/token_limit, but the test expects two truncated records for engine1/m1, so the implementation will fail the provided test."
     }
-   ]
+   ],
+   "claimed_by": "worker-44811392590",
+   "claimed_at": "2026-11-20T20:26:49Z",
+   "lease_until": "2026-11-20T22:26:49Z"
   },
   {
    "id": "K6",
