@@ -884,5 +884,14 @@ class Experiments(unittest.TestCase):
             self.assertEqual(DE.ready(q, d), [("E1", "x1")])
 
 
+
+class SplitParse(unittest.TestCase):
+    def test_first_json(self):
+        import split as SP
+        t = 'Here: {"subitems": [{"title": "a {b}"}]}\nNote: {not json}'
+        self.assertEqual(SP.first_json(t), {"subitems": [{"title": "a {b}"}]})
+        self.assertEqual(SP.first_json("no json"), {})
+
+
 if __name__ == "__main__":
     unittest.main()

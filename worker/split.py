@@ -73,6 +73,20 @@ def repo_files(repo):
     return lines, sorted(tests)
 
 
+def first_json(text):
+    """The first JSON object in a reply that parses (a greedy {...} match failed on 4 of 6 replies on 2026-11-21, run
+    44820822737: replies with prose or a second brace after the object). {} if none."""
+    dec = json.JSONDecoder()
+    for m in re.finditer(r"\{", text):
+        try:
+            d, _ = dec.raw_decode(text[m.start():])
+            if isinstance(d, dict) and "subitems" in d:
+                return d
+        except json.JSONDecodeError:
+            continue
+    return {}
+
+
 def check(sub, lines, tests):
     if not isinstance(sub, dict) or not isinstance(sub.get("title"), str) or not isinstance(sub.get("next"), str):
         return None, "not the asked shape"
@@ -158,7 +172,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         import engines
 
         def ask(prompt):
-            r = engines.anthropic_call(MODEL, prompt, max_tokens=2000)
+            r = engines.anthropic_call(MODEL, prompt, max_tokens=4000)   # replies with more context ran longer
             calls.append({k: r.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")})
             return r.get("text")
     try:
@@ -177,11 +191,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
             parts = RI.show(RI.rank(mods, parent["title"] + " " + parent.get("next", ""), 8))
             reply = ask(PROMPT.format(id=parent["id"], title=parent["title"], next=parent.get("next", "")[:3000],
                                       files=listing, tests=", ".join(tests), parts=parts or "(none matched)"))
-            m = re.search(r"\{.*\}", reply or "", re.S)
-            try:
-                d = json.loads(m.group(0)) if m else {}
-            except json.JSONDecodeError:
-                d = {}
+            d = first_json(reply or "")
             if not isinstance(d, dict) or not isinstance(d.get("subitems"), list):
                 log.append({"parent": parent["id"], "ok": False, "why": "reply not the asked JSON", "raw": (reply or "")[:2500]})
                 d = {}
