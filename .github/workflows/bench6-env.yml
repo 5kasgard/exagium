@@ -1,0 +1,63 @@
+# Queue P28 pilot, environment check (router/bench6/pilot/PLAN.md). No model call, no secret: pulls each candidate's
+# SWE-rebench image and runs its own tests without and with the gold patch (known-answer negative and positive).
+name: bench6-env
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "comma-separated instance ids, or all (the 12 frozen candidates)"
+        required: true
+permissions: {}
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      ids: ${{ steps.m.outputs.ids }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - id: m
+        env:
+          IDS: ${{ github.event.inputs.ids }}
+        run: |
+          python3 -I - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          known = [c["instance_id"] for c in json.load(open("router/bench6/pilot/candidates.json"))["candidates"]]
+          want = known if os.environ["IDS"] == "all" else [x.strip() for x in os.environ["IDS"].split(",") if x.strip()]
+          bad = [x for x in want if x not in known]
+          if bad or not want:
+              raise SystemExit(f"not frozen candidates: {bad}")
+          print("ids=" + json.dumps(want))
+          PY
+  check:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30   # PLAN.md
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        id: ${{ fromJSON(needs.plan.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: free disk for the image
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc; df -h / | tail -1
+      - name: check
+        env:
+          ID: ${{ matrix.id }}
+        run: python3 -I router/bench6/pilot/envcheck.py run router/bench6/pilot/candidates.json "$ID" "$RUNNER_TEMP/out"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ always() }}
+        with:
+          name: env-${{ strategy.job-index }}
+          path: |
+            ${{ runner.temp }}/out/result-*.json
+            ${{ runner.temp }}/out/log-*.txt
