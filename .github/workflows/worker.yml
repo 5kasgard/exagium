@@ -467,6 +467,14 @@ jobs:
       CHAIN_CAP: 200   # a backstop for a bug only: the chain runs only after an item lands (no loop without progress) and the
                        # ledger's daily budget caps bind far earlier (2026-11-19: 24 stopped release test 2 at 26 of 30 items)
     steps:
+      - name: a PR is waiting - start the tier now, not at its next 3-hourly slot (event-driven; tier.yml keeps one run pending)
+        if: needs.land.outputs.status == 'review'
+        run: |
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused"; exit 0; fi
+          # batched: at most one start per 30 minutes, since every tier run spends 4 Haiku control calls before any PR ($0.30/day cap)
+          last=$(gh api "repos/$R/actions/workflows/tier.yml/runs?per_page=1" -q '.workflow_runs[0].created_at' 2>/dev/null)
+          if [ $(( $(date -u +%s) - $(date -u -d "${last:-1970-01-01T00:00:00Z}" +%s) )) -lt 1800 ]; then echo "tier ran at $last: the PR waits for the next batch"; exit 0; fi
+          gh workflow run tier.yml -R "$R" --ref main && echo "tier started for the waiting PR" || echo "tier dispatch failed (its schedule still runs)"
       - name: start the next run if the guards allow
         run: |
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: not chaining"; exit 0; fi
