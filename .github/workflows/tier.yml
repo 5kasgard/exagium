@@ -17,8 +17,7 @@ jobs:
     permissions:
       contents: write   # the queue branch, the ledger, and merging approved code PRs
       pull-requests: write   # merge a code PR only when every check agrees (worker/tier.py drain_code)
-      actions: write         # start the worker at once when this run sends an item back to open (events, not polling)
-      actions: read     # the worker runs' artifacts; failed runs' logs (diagnose)
+      actions: write         # the worker runs' artifacts, failed runs' logs (diagnose), and starting the worker at once
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the queue and ledger with the checkout token; no artifact
       - name: reserve, drain, record
