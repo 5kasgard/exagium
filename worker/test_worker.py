@@ -744,6 +744,9 @@ class NewFiles(unittest.TestCase):
         lines, tests = {"worker/a.py": 10, "worker/test_worker.py": 50}, ["worker/test_worker.py"]
         base = {"title": "Add a small helper module", "test": "worker/test_worker.py", "next": "x" * 30}
         self.assertIsNotNone(SP.check(dict(base, files=["worker/nu.py"], new=["worker/nu.py"]), lines, tests)[0])
+        self.assertIsNotNone(SP.check(dict(base, files=["worker/nu.py"], new=["worker/nu.py", "worker/test_nu.py"],
+                                           test="worker/test_nu.py"), lines, tests)[0])   # with its own new tests file
+        self.assertIsNone(SP.check(dict(base, files=["worker/a.py"], test="worker/test_nu.py"), lines, tests)[0])   # not declared new
         for files, new in ((["other/nu.py"], ["other/nu.py"]), (["worker/nu.py"], []), (["worker/b.py", "worker/c.py"], ["worker/b.py", "worker/c.py"]),
                            ([".github/x.py"], [".github/x.py"])):
             self.assertIsNone(SP.check(dict(base, files=files, new=new), lines, tests)[0], files)
@@ -773,7 +776,7 @@ class CoderRepair(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             json.dump({"item": {"id": "K1", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n"}, "prompt": "P"},
                       open(os.path.join(d, "bundle.json"), "w"))
-            with mock.patch.object(slots, "run", fake_run):
+            with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
                 C.draft(d)
             r = json.load(open(os.path.join(d, "draft.json")))
         self.assertEqual(r["static"], [])
@@ -802,6 +805,35 @@ class DigestBudgetWindow(unittest.TestCase):
                 D.facts(d, d, runs, out, 48)
             text = open(os.path.join(out, "facts.md")).read()
             self.assertIn("2026-11-20 pool", text)
+
+
+
+class SecondDraft(unittest.TestCase):
+    """Arm "two": the test job keeps an approved second draft that passes when the first does not."""
+    def test_second_draft_chosen_when_first_fails(self):
+        import code_job as C
+        with tempfile.TemporaryDirectory() as d:
+            repo, out = os.path.join(d, "r"), os.path.join(d, "o"); os.makedirs(os.path.join(repo, "pkg")); os.makedirs(out)
+            open(os.path.join(repo, "pkg", "m.py"), "w").write("X = 1\n")
+            open(os.path.join(repo, "pkg", "__init__.py"), "w").write("")
+            t = "import unittest\nfrom pkg import m\nclass T(unittest.TestCase):\n    def test(self):\n        self.assertEqual(m.X, 2)\n"
+            open(os.path.join(repo, "pkg", "test_m.py"), "w").write(t)
+            files = {"pkg/m.py": "X = 1\n", "pkg/test_m.py": t}
+            json.dump({"files": files, "test": "pkg/test_m.py"}, open(os.path.join(out, "bundle.json"), "w"))
+            bad = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 3"}]}
+            good = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 2"}]}
+            json.dump({"proposal": bad, "review": {"verdict": "approve"}, "arm": "two",
+                       "alt": {"proposal": good, "review": {"verdict": "approve"}}}, open(os.path.join(out, "draft.json"), "w"))
+            from unittest import mock
+            with mock.patch.object(C, "CI_TESTS", []):
+                C.test(repo, out)
+            r = json.load(open(os.path.join(out, "test.json")))
+            self.assertEqual((r["chosen"], r["passed"]), ("second", True))
+            open(os.path.join(repo, "pkg", "m.py"), "w").write("X = 1\n")   # the land job starts from the bundle's files
+            C.apply(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+            self.assertEqual((res["result"], res["chosen"]), ("pr", "second"))
+            self.assertEqual(open(os.path.join(repo, "pkg", "m.py")).read(), "X = 2\n")
 
 
 if __name__ == "__main__":

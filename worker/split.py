@@ -76,8 +76,8 @@ def check(sub, lines, tests):
     if not isinstance(files, list) or not 1 <= len(files) <= 2:
         return None, "1 or 2 files"
     new = sub.get("new") or []
-    if not isinstance(new, list) or len(new) > 1 or any(f not in files for f in new):
-        return None, "at most one new file, and it must be in files"
+    if not isinstance(new, list) or len([f for f in new if f != test]) > 1 or any(f not in files and f != test for f in new):
+        return None, "at most one new file (plus a new tests file), each in files or the test"
     dirs = {os.path.dirname(p) for p in lines}
     for f in files:
         if f in new:   # owner 2026-11-21: the worker builds, not only edits; a new file in a folder that already exists
@@ -85,7 +85,8 @@ def check(sub, lines, tests):
                 return None, f"new file not allowed: {f}"
         elif f not in lines or not CJ.allowed(f) or lines[f] > CJ.MAX_LINES:
             return None, f"file not allowed, missing or too long: {f}"
-    if test not in tests:
+    if test not in tests and not (test in new and isinstance(test, str) and CJ.TEST.fullmatch(test) and CJ.allowed(test)
+                                  and os.path.dirname(test) in dirs):
         return None, f"no such tests file: {test}"
     if not 10 <= len(sub["title"]) <= 160 or len(sub["next"]) < 20:
         return None, "title or next too short"

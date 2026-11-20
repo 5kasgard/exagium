@@ -86,7 +86,8 @@ def context(item_path, repo, out):
     files, test, new = c.get("files") or [], c.get("test", ""), set(c.get("new") or [])
     bad = [p for p in files if not allowed(p) or p not in item.get("touches", [])
            or not (os.path.isfile(os.path.join(repo, p)) or (p in new and new_ok(repo, p)))]
-    if bad or not files or not TEST.fullmatch(test) or not os.path.isfile(os.path.join(repo, test)):
+    test_new = test in new and TEST.fullmatch(test or "") and new_ok(repo, test)   # a new tests file (splitter gap, 2026-11-21)
+    if bad or not files or not TEST.fullmatch(test) or not (os.path.isfile(os.path.join(repo, test)) or test_new):
         raise SystemExit(f"code item refused (files must exist, be listed in touches, not be refused paths; test must be "
                          f"an existing tests file): files {bad or files}, test {test!r}")
     # the item's test file is editable too: sub-items say "add a test", and the coder could not (PRs #10-#12, 2026-11-20)
@@ -97,7 +98,7 @@ def context(item_path, repo, out):
     ctx_src = {p: open(os.path.join(repo, p), encoding="utf-8").read()[:20000] for p in ctx}
     if any(s.count("\n") > MAX_LINES for p, s in src.items() if p != test):
         raise SystemExit(f"a file is over {MAX_LINES} lines: split the item (worker-sized work only)")
-    tsrc = open(os.path.join(repo, test), encoding="utf-8").read()
+    tsrc = open(os.path.join(repo, test), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, test)) else ""
     os.makedirs(out, exist_ok=True)
     json.dump({"item": item, "files": src, "test": test,
                "prompt": PROMPT.format(id=item["id"], title=item["title"], next=item["next"][:2000], test=test,
@@ -194,6 +195,13 @@ def static_problems(files, new):
     return out
 
 
+def arm(item_id):
+    """Speculative drafts, measured (owner 2026-11-21: test every scaling shape where it could fit): items whose id hashes
+    odd get a second draft from the next coder in the chain; the test job keeps whichever approved draft passes."""
+    import hashlib
+    return "two" if int(hashlib.sha256(str(item_id).encode()).hexdigest(), 16) % 2 else "one"
+
+
 REPAIR = """{prompt}
 
 YOUR PREVIOUS REPLY:
@@ -252,8 +260,24 @@ def draft(out):
                 fail.append("reviewer gave no usable reply")
         if not edits and proposal.get("edits") and problems:
             proposal = dict(proposal, edits=[])   # nothing that fails the static check reaches the test or land jobs
+        alt = None
+        if arm(item["id"]) == "two":
+            chain = [f for f in slots.SLOTS["coder"] if f[0] != "openrouter_paid" or os.environ.get("PAID_FALLBACK") == "1"]
+            other = [f for f in chain if not tries or (f[0], f[1]) != (tries[0].get("pool"), tries[0].get("model"))][:1]
+            if other:
+                try:
+                    r2 = ask(other[0][0], other[0][1], b["prompt"])
+                except Exception as x:   # the second draft is optional: its failure never costs the first
+                    r2 = {"ok": False, "error": f"{type(x).__name__}: {str(x)[:200]}"}
+                p2 = parse_reply(r2.get("text")) if r2.get("ok") else None
+                e2, w2, n2, s2 = checked(p2) if p2 else ([], [], None, ["no usable reply"])
+                rv2 = None
+                if e2 and not s2:
+                    rv2, _, _ = slots.run("code_reviewer", REVIEW.format(id=item["id"], title=item["title"], next=item["next"][:1500],
+                                                                         diff=D.diff(b["files"], n2)[:20000]), ask, obj)
+                alt = {"filler": list(other[0]), "proposal": p2 if e2 and not s2 else {"edits": []}, "review": rv2, "static": s2}
         json.dump({"proposal": proposal, "review": review, "pre_check": why, "model_fail": fail, "coder_tries": tries,
-                   "static": problems, "repair": repaired},
+                   "static": problems, "repair": repaired, "arm": arm(item["id"]), "alt": alt},
                   open(os.path.join(out, "draft.json"), "w"), indent=1)
         print(f"coder edits={len(edits)} refused={len(why)} review={(review or {}).get('verdict')}")
         return 0
@@ -262,27 +286,50 @@ def draft(out):
 
 
 def test(repo, out):
-    """Runs where no secret is: apply the accepted edits to the checkout and run the item's test, then the CI suite."""
+    """Runs where no secret is: apply the accepted edits to the checkout and run the item's test, then the CI suite. With
+    a second draft (arm "two"), an approved second draft is tested when the first did not pass and was not approved, and
+    the one that passes is chosen ("chosen" in test.json; the land job applies that one)."""
     b = json.load(open(os.path.join(out, "bundle.json")))
     d = json.load(open(os.path.join(out, "draft.json")))
-    edits, why = check_edits(b["files"], d["proposal"].get("edits"))
+    res = _test_one(repo, b, d["proposal"], d.get("model_fail"))
+    res["chosen"] = "first"
+    alt = d.get("alt") or {}
+    first_ok = res["passed"] and (d.get("review") or {}).get("verdict") == "approve"
+    if not first_ok and (alt.get("review") or {}).get("verdict") == "approve" and alt.get("proposal", {}).get("edits"):
+        for p, s in b["files"].items():   # back to the bundle's files before the second draft
+            path = os.path.join(repo, p)
+            if s == "" and os.path.exists(path):
+                os.remove(path)
+            elif s != "":
+                open(path, "w", encoding="utf-8").write(s)
+        r2 = _test_one(repo, b, alt["proposal"], None)
+        if r2["passed"]:
+            res = dict(r2, chosen="second", first=res)
+        else:
+            res["second"] = r2
+    json.dump(res, open(os.path.join(out, "test.json"), "w"), indent=1)
+    print(json.dumps({k: v for k, v in res.items() if k not in ("runs", "first", "second")}), [(x["test"], x["rc"]) for x in res["runs"]])
+    return 0
+
+
+def _test_one(repo, b, proposal, model_fail):
+    edits, why = check_edits(b["files"], proposal.get("edits"))
     res = {"passed": False, "edits": len(edits), "why": why, "runs": []}
     try:
         applied = apply_edits(b["files"], edits) if edits else None
     except ValueError as e:
         applied, res["why"] = None, why + [str(e)]
-    if applied and not d.get("model_fail"):
+    if applied and not model_fail:
         for p, s in applied.items():
             open(os.path.join(repo, p), "w", encoding="utf-8").write(s)
         ok = True
         for t in [b["test"]] + [x for x in CI_TESTS if x != b["test"]]:
-            r = subprocess.run([sys.executable, "-m", "unittest", t], cwd=repo, capture_output=True, text=True, timeout=600)
+            r = subprocess.run([sys.executable, "-m", "unittest", t], cwd=repo, capture_output=True, text=True, timeout=600,
+                               env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))   # no stale .pyc between two drafts of one size
             res["runs"].append({"test": t, "rc": r.returncode, "tail": (r.stdout + r.stderr)[-1500:]})
             ok = ok and r.returncode == 0
         res["passed"] = ok
-    json.dump(res, open(os.path.join(out, "test.json"), "w"), indent=1)
-    print(json.dumps({k: v for k, v in res.items() if k != "runs"}), [(x["test"], x["rc"]) for x in res["runs"]])
-    return 0
+    return res
 
 
 def apply(repo, out):
@@ -290,6 +337,8 @@ def apply(repo, out):
     b = json.load(open(os.path.join(out, "bundle.json")))
     d = json.load(open(os.path.join(out, "draft.json")))
     t = json.load(open(os.path.join(out, "test.json"))) if os.path.exists(os.path.join(out, "test.json")) else {}
+    if t.get("chosen") == "second" and d.get("alt"):   # the second draft passed where the first did not
+        d = dict(d, proposal=d["alt"]["proposal"], review=d["alt"]["review"])
     files = {p: open(os.path.join(repo, p), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, p)) else ""
              for p in b["files"]}   # a file the item creates is still absent here (and must be: else it is stale)
     if files != b["files"]:
@@ -320,7 +369,8 @@ def apply(repo, out):
             open(os.path.join(out, "change.diff"), "w").write(D.diff(files, new))
             # code always lands as a PR: "pr" result with the reviewer's verdict and the test record for the next tier
             res = {"result": "pr", "proposed": len(edits), "why": ["code change: tests passed; a PR for the next tier"],
-                   "edits": len(edits), "review": d.get("review"), "tests": [(x["test"], x["rc"]) for x in t["runs"]], "code": True}
+                   "edits": len(edits), "review": d.get("review"), "tests": [(x["test"], x["rc"]) for x in t["runs"]], "code": True,
+                   "arm": d.get("arm"), "chosen": t.get("chosen")}
     json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
     print(json.dumps(res)[:600])
     return 0
