@@ -1,0 +1,1340 @@
+{
+ "item": {
+  "id": "R8",
+  "title": "Research card (release test 2): How do benchmarks keep models from memorising public test labels?",
+  "kind": "test",
+  "severity": "minor",
+  "status": "done",
+  "needs": "free",
+  "cost": 0,
+  "value": "high",
+  "batch": "B7",
+  "origin": "follow-up",
+  "blocked_by": [],
+  "next": "Worker job (research) for Q25; graded in worker/RELEASE-TEST-2.md.",
+  "research": {
+   "question": "How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?",
+   "queries": [
+    "benchmark contamination test set memorization",
+    "adaptive overfitting holdout reuse",
+    "fresh test sets benchmark reliability CIFAR-10.1"
+   ]
+  },
+  "touches": [
+   "research/cards/R8.md"
+  ],
+  "refs": [
+   "worker/RELEASE-TEST-2.md on main",
+   "queue Q25"
+  ],
+  "informs": [
+   "Q25"
+  ],
+  "runs": [
+   {
+    "result": "merged",
+    "where": "main dae3eda",
+    "run": "https://github.com/5kasgard/exagium/actions/runs/44512002602",
+    "edits": 2,
+    "why": [],
+    "worker": "worker-44512002602",
+    "at": "2026-11-19T11:11:45Z",
+    "lost_lease": false
+   }
+  ]
+ },
+ "sources": [
+  {
+   "id": "W4221145126",
+   "title": "Data Contamination: From Memorization to Exploitation",
+   "year": 2022,
+   "url": "https://doi.org/10.18653/v1/2022.acl-short.18",
+   "cited_by": 379,
+   "abstract": "Pretrained language models are typically trained on massive web-based datasets, which are often \"contaminated\" with downstream test sets. It is not clear to what extent models exploit the contaminated data for downstream tasks. We present a principled method to study this question. We pretrain BERT models on joint corpora of Wikipedia and labeled downstream datasets, and fine-tune them on the relevant task. Comparing performance between samples seen and unseen during pretraining enables us to define and quantify levels of memorization and exploitation. Experiments with two models and three downstream tasks show that exploitation exists in some cases, but in others the models memorize the contaminated data, but do not exploit it. We show that these two measures are affected by different factors such as the number of duplications of the contaminated data and the model size. Our results highlight the importance of analyzing massive web-scale datasets to verify that progress in NLP is obtained by better language understanding and not better data exploitation.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S1"
+  },
+  {
+   "id": "W4402670101",
+   "title": "Generalization or Memorization: Data Contamination and Trustworthy Evaluation for Large Language Models",
+   "year": 2024,
+   "url": "https://doi.org/10.18653/v1/2024.findings-acl.716",
+   "cited_by": 313,
+   "abstract": "Recent statements about the impressive capabilities of large language models (LLMs) are usually supported by evaluating on open-access benchmarks.Considering the vast size and wide-ranging sources of LLMs' training data, it could explicitly or implicitly include test data, leading to LLMs being more susceptible to data contamination.However, due to the opacity of training data, the black-box access of models, and the rapid growth of synthetic training data, detecting and mitigating data contamination for LLMs faces significant challenges.In this paper, we propose CDD, which stands for Contamination Detection via output Distribution for LLMs.CDD necessitates only the sampled texts to detect data contamination, by identifying the peakedness of LLM's output distribution.To mitigate the impact of data contamination in evaluation, we also present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM's output distribution.To facilitate this study, we introduce two benchmarks, i.e., DET-CON and COMIEVAL, for data contamination detection and contamination mitigation evaluation tasks.Extensive experimental results show that CDD achieves the average relative improvements of 21.8%-30.2%over other contamination detection approaches in terms of Accuracy, F1 Score, and AUC metrics, and can effectively detect implicit contamination.TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups.In realworld applications, we reveal that ChatGPT exhibits a high potential to suffer from data contamination on HumanEval benchmark.1",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S2"
+  },
+  {
+   "id": "W2991486856",
+   "title": "A Meta-Analysis of Overfitting in Machine Learning",
+   "year": 2019,
+   "url": "https://openalex.org/W2991486856",
+   "cited_by": 286,
+   "abstract": "We conduct the first large meta-analysis of overfitting due to test set reuse in the machine learning community. Our analysis is based on over one hundred machine learning competitions hosted on the Kaggle platform over the course of several years. In each competition, numerous practitioners repeatedly evaluated their progress against a holdout set that forms the basis of a public ranking available throughout the competition. Performance on a separate test set used only once determined the final ranking. By systematically comparing the public ranking with the final ranking, we assess how much participants adapted to the holdout set over the course of a competition. Our study shows, somewhat surprisingly, little evidence of substantial overfitting. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S3"
+  },
+  {
+   "id": "W4388555916",
+   "title": "Rethinking Benchmark and Contamination for Language Models with Rephrased Samples",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2311.04850",
+   "cited_by": 273,
+   "abstract": "Large language models are increasingly trained on all the data ever produced by humans. Many have raised concerns about the trustworthiness of public benchmarks due to potential contamination in pre-training or fine-tuning datasets. While most data decontamination efforts apply string matching (e.g., n-gram overlap) to remove benchmark data, we show that these methods are insufficient, and simple variations of test data (e.g., paraphrasing, translation) can easily bypass these decontamination measures. Furthermore, we demonstrate that if such variation of test data is not eliminated, a 13B model can easily overfit a test benchmark and achieve drastically high performance, on par with GPT-4. We validate such observations in widely used benchmarks such as MMLU, GSK8k, and HumanEval. To address this growing risk, we propose a stronger LLM-based decontamination method and apply it to widely used pre-training and fine-tuning datasets, revealing significant previously unknown test overlap. For example, in pre-training sets such as RedPajama-Data-1T and StarCoder-Data, we identified that 8-18\\% of the HumanEval benchmark overlaps. Interestingly, we also find such contamination in synthetic dataset generated by GPT-3.5/4, suggesting a potential risk of unintentional contamination. We urge the community to adopt stronger decontamination approaches when using public benchmarks. Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately. Our decontamination tool is publicly available at https://github.com/lm-sys/llm-decontaminator.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S4"
+  },
+  {
+   "id": "W1663583528",
+   "title": "Generalization in Adaptive Data Analysis and Holdout Reuse",
+   "year": 2015,
+   "url": "https://doi.org/10.48550/arxiv.1506.02629",
+   "cited_by": 254,
+   "abstract": "Overfitting is the bane of data analysts, even when data are plentiful. Formal approaches to understanding this problem focus on statistical inference and generalization of individual analysis procedures. Yet the practice of data analysis is an inherently interactive and adaptive process: new analyses and hypotheses are proposed after seeing the results of previous ones, parameters are tuned on the basis of obtained results, and datasets are shared and reused. An investigation of this gap has recently been initiated by the authors in (Dwork et al., 2014), where we focused on the problem of estimating expectations of adaptively chosen functions. In this paper, we give a simple and practical method for reusing a holdout (or testing) set to validate the accuracy of hypotheses produced by a learning algorithm operating on a training set. Reusing a holdout set adaptively multiple times can easily lead to overfitting to the holdout set itself. We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting. We illustrate the advantages of our algorithm over the standard use of the holdout set via a simple synthetic experiment. We also formalize and address the general problem of data reuse in adaptive data analysis. We show how the differential-privacy based approach given in (Dwork et al., 2014) is applicable much more broadly to adaptive data analysis. We then show that a simple approach based on description length can also be used to give guarantees of statistical validity in adaptive settings. Finally, we demonstrate that these incomparable approaches can be unified via the notion of approximate max-information that we introduce.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S5"
+  },
+  {
+   "id": "W4387994765",
+   "title": "Proving Test Set Contamination in Black Box Language Models",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2310.17623",
+   "cited_by": 226,
+   "abstract": "Large language models are trained on vast amounts of internet data, prompting concerns and speculation that they have memorized public benchmarks. Going from speculation to proof of contamination is challenging, as the pretraining data used by proprietary models are often not publicly accessible. We show that it is possible to provide provable guarantees of test set contamination in language models without access to pretraining data or model weights. Our approach leverages the fact that when there is no data contamination, all orderings of an exchangeable benchmark should be equally likely. In contrast, the tendency for language models to memorize example order means that a contaminated language model will find certain canonical orderings to be much more likely than others. Our test flags potential contamination whenever the likelihood of a canonically ordered benchmark dataset is significantly higher than the likelihood after shuffling the examples. We demonstrate that our procedure is sensitive enough to reliably prove test set contamination in challenging situations, including models as small as 1.4 billion parameters, on small test sets of only 1000 examples, and datasets that appear only a few times in the pretraining corpus. Using our test, we audit five popular publicly accessible language models for test set contamination and find little evidence for pervasive contamination.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S6"
+  },
+  {
+   "id": "W4402552759",
+   "title": "In Search of Lost Online Test-Time Adaptation: A Survey",
+   "year": 2024,
+   "url": "https://doi.org/10.1007/s11263-024-02213-5",
+   "cited_by": 96,
+   "abstract": "Abstract This article presents a comprehensive survey of online test-time adaptation (OTTA), focusing on effectively adapting machine learning models to distributionally different target data upon batch arrival. Despite the recent proliferation of OTTA methods, conclusions from previous studies are inconsistent due to ambiguous settings, outdated backbones, and inconsistent hyperparameter tuning, which obscure core challenges and hinder reproducibility. To enhance clarity and enable rigorous comparison, we classify OTTA techniques into three primary categories and benchmark them using a modern backbone, the Vision Transformer. Our benchmarks cover conventional corrupted datasets such as CIFAR-10/100-C and ImageNet-C, as well as real-world shifts represented by CIFAR-10.1, OfficeHome, and CIFAR-10-Warehouse. The CIFAR-10-Warehouse dataset includes a variety of variations from different search engines and synthesized data generated through diffusion models. To measure efficiency in online scenarios, we introduce novel evaluation metrics, including GFLOPs, wall clock time, and GPU memory usage, providing a clearer picture of the trade-offs between adaptation accuracy and computational overhead. Our findings diverge from existing literature, revealing that (1) transformers demonstrate heightened resilience to diverse domain shifts, (2) the efficacy of many OTTA methods relies on large batch sizes, and (3) stability in optimization and resistance to perturbations are crucial during adaptation, particularly when the batch size is 1. Based on these insights, we highlight promising directions for future research. Our benchmarking toolkit and source code are available at https://github.com/Jo-wang/OTTA_ViT_survey .",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S7"
+  },
+  {
+   "id": "W2989932438",
+   "title": "Measuring Generalization and Overfitting in Machine Learning",
+   "year": 2019,
+   "url": "https://openalex.org/W2989932438",
+   "cited_by": 45,
+   "abstract": "Due to the prevalence of machine learning algorithms and the potential for their decisions to profoundly impact billions of human lives, it is crucial that they are robust, reliable, and understandable. This thesis examines key theoretical pillars of machine learning surrounding generalization and overfitting, and tests the extent to which empirical behavior matches existing theory. We develop novel methods for measuring overfitting and generalization, and we characterize how reproducible observed behavior is across differences in optimization algorithm, dataset, task, evaluation metric, and domain.First, we examine how optimization algorithms bias machine learning models towards solutions with varying generalization properties. We show that adaptive gradient methods empirically find solutions with inferior generalization behavior compared to those found by stochastic gradient descent. We then construct an example using a simple overparameterized model that corroborates the algorithms\u2019 empirical behavior on neural networks. Next, we study the extent to which machine learning models have overfit to commonly reused datasets in both academic benchmarks and machine learning competitions. We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution. Surprisingly, despite several years of adaptively selecting the models to perform well on these competitive benchmarks, we find no evidence of overfitting. We then analyze data from the machine learning platform Kaggle and find little evidence of substantial overfitting in ML competitions. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.Overall, our work suggests that the true concern for robust machine learning is distribution shift rather than overfitting, and designing models that still work reliably in dynamic environments is a challenging but necessary undertaking.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S8"
+  },
+  {
+   "id": "HF:2406.19314",
+   "title": "LiveBench: A Challenging, Contamination-Free LLM Benchmark",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2406.19314",
+   "cited_by": 24,
+   "abstract": "Test set contamination, wherein test data from a benchmark ends up in a newer model's training set, is a well-documented obstacle for fair LLM evaluation and can quickly render benchmarks obsolete. To mitigate this, many recent benchmarks crowdsource new prompts and evaluations from human or LLM judges; however, these can introduce significant biases, and break down when scoring hard questions. In this work, we introduce a new benchmark for LLMs designed to be immune to both test set contamination and the pitfalls of LLM judging and human crowdsourcing. We release LiveBench, the first benchmark that (1) contains frequently-updated questions from recent information sources, (2) scores answers automatically according to objective ground-truth values, and (3) contains a wide variety of challenging tasks, spanning math, coding, reasoning, language, instruction following, and data analysis. To achieve this, LiveBench contains questions that are based on recently-released math competitions, arXiv papers, news articles, and datasets, and it contains harder, contamination-free versions of tasks from previous benchmarks such as Big-Bench Hard, AMPS, and IFEval. We evaluate many prominent closed-source models, as well as dozens of open-source models ranging from 0.5B to 110B in size. LiveBench is difficult, with top models achieving below 65% accuracy. We release all questions, code, and model answers. Questions will be added and updated on a monthly basis, and we will release new tasks and harder versions of tasks over time so that LiveBench can distinguish between the capabilities of LLMs as they improve in the future. We welcome community engagement and collaboration for expanding the benchmark tasks and models.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S9"
+  },
+  {
+   "id": "W2946813150",
+   "title": "The advantages of multiple classes for reducing overfitting from test set reuse",
+   "year": 2019,
+   "url": "https://doi.org/10.48550/arxiv.1905.10360",
+   "cited_by": 23,
+   "abstract": "Excessive reuse of holdout data can lead to overfitting. However, there is little concrete evidence of significant overfitting due to holdout reuse in popular multiclass benchmarks today. Known results show that, in the worst-case, revealing the accuracy of $k$ adaptively chosen classifiers on a data set of size $n$ allows to create a classifier with bias of $\u0398(\\sqrt{k/n})$ for any binary prediction problem. We show a new upper bound of $\\tilde O(\\max\\{\\sqrt{k\\log(n)/(mn)},k/n\\})$ on the worst-case bias that any attack can achieve in a prediction problem with $m$ classes. Moreover, we present an efficient attack that achieve a bias of $\u03a9(\\sqrt{k/(m^2 n)})$ and improves on previous work for the binary setting ($m=2$). We also present an inefficient attack that achieves a bias of $\\tilde\u03a9(k/n)$. Complementing our theoretical work, we give new practical attacks to stress-test multiclass benchmarks by aiming to create as large a bias as possible with a given number of queries. Our experiments show that the additional uncertainty of prediction with a large number of classes indeed mitigates the effect of our best attacks. Our work extends developments in understanding overfitting due to adaptive data analysis to multiclass prediction problems. It also bears out the surprising fact that multiclass prediction problems are significantly more robust to overfitting when reusing a test (or holdout) dataset. This offers an explanation as to why popular multiclass prediction benchmarks, such as ImageNet, may enjoy a longer lifespan than what intuition from literature on binary classification suggests.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S10"
+  },
+  {
+   "id": "W7119916356",
+   "title": "Quantifying the Effect of Test Set Contamination on Generative Evaluations",
+   "year": 2026,
+   "url": "https://doi.org/10.48550/arxiv.2601.04301",
+   "cited_by": 11,
+   "abstract": "As frontier AI systems are pretrained on web-scale data, test set contamination has become a critical concern for accurately assessing their capabilities. While research has thoroughly investigated the impact of test set contamination on discriminative evaluations like multiple-choice question-answering, comparatively little research has studied the impact of test set contamination on generative evaluations. In this work, we quantitatively assess the effect of test set contamination on generative evaluations through the language model lifecycle. We pretrain language models on mixtures of web data and the MATH benchmark, sweeping model sizes and number of test set replicas contaminating the pretraining corpus; performance improves with contamination and model size. Using scaling laws, we make a surprising discovery: including even a single test set replica enables models to achieve lower loss than the irreducible error of training on the uncontaminated corpus. We then study further training: overtraining with fresh data reduces the effects of contamination, whereas supervised finetuning on the training set can either increase or decrease performance on test data, depending on the amount of pretraining contamination. Finally, at inference, we identify factors that modulate memorization: high sampling temperatures mitigate contamination effects, and longer solutions are exponentially more difficult to memorize than shorter ones, presenting a contrast with discriminative evaluations, where solutions are only a few tokens in length. By characterizing how generation and memorization interact, we highlight a new layer of complexity for trustworthy evaluation of AI systems.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S11"
+  },
+  {
+   "id": "W4393148875",
+   "title": "Frequency Shuffling and Enhancement for Open Set Recognition",
+   "year": 2024,
+   "url": "https://doi.org/10.1609/aaai.v38i4.28157",
+   "cited_by": 10,
+   "abstract": "Open-Set Recognition (OSR) aims to accurately identify known classes while effectively rejecting unknown classes to guarantee reliability. Most existing OSR methods focus on learning in the spatial domain, where subtle texture and global structure are potentially intertwined. Empirical studies have shown that DNNs trained in the original spatial domain are inclined to over-perceive subtle texture. The biased semantic perception could lead to catastrophic over-confidence when predicting both known and unknown classes. To this end, we propose an innovative approach by decomposing the spatial domain to the frequency domain to separately consider global (low-frequency) and subtle (high-frequency) information, named Frequency Shuffling and Enhancement (FreSH). To alleviate the overfitting of subtle texture, we introduce the High-Frequency Shuffling (HFS) strategy that generates diverse high-frequency information and promotes the capture of low-frequency invariance. Moreover, to enhance the perception of global structure, we propose the Low-Frequency Residual (LFR) learning procedure that constructs a composite feature space, integrating low-frequency and original spatial features. Experiments on various benchmarks demonstrate that the proposed FreSH consistently trumps the state-of-the-arts by a considerable margin.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S12"
+  },
+  {
+   "id": "HF:2610.22466",
+   "title": "Harness-Delta Attribution: Dissecting Gains From Harness Evolution",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2610.22466",
+   "cited_by": 5,
+   "abstract": "Harness evolution automatically optimizes the prompts, skills, tools, and orchestration code around a fixed-weight model, offering a way to improve agentic systems without updating model weights. The agent harness is iteratively optimized to achieve higher performance on the search set. But how much of this gain reflects benchmark-specific overfitting or additional inference-time compute, and how much may generalize beyond the search set? In this work, we introduce Harness-Delta Attribution (HDA), an evaluation protocol that dissects an evolution gain into artifact-driven overfitting, gains explained by test-time scaling, and the remainder, which gives an upper bound on residual generalizable improvement. We apply HDA to 11 executor models and three harness-evolution frameworks across math, coding, creativity, and agentic tasks. In 21 of these settings that show statistically significant search-set gains, we find that a large share of the improvement is explained by overfitting or test-time scaling. Specifically, among these 21 settings, overfitting and test-time scaling account for 54% and 14% of the gain on average; their combined share exceeds 50% in 14 settings. The residual and held-out transfer vary substantially across tasks, models, and frameworks. Importantly, search-set gains often fail to transfer to held-out tasks, and provide limited evidence that they will persist under practical distribution shifts. Moreover, validation-based signals are insufficient to prevent overfitting. These results motivate attribution-aware evaluation in future harness evolution research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S13"
+  },
+  {
+   "id": "W7139070169",
+   "title": "Continual Test-Time Adaptation: A Comprehensive Survey",
+   "year": 2026,
+   "url": "https://doi.org/10.20944/preprints202603.1578.v1",
+   "cited_by": 5,
+   "abstract": "Deep neural networks achieve remarkable performance when training and test data share the same distribution, but this assumption often fails in real-world scenarios where data experiences continual distributional shifts. Continual Test-Time Adaptation (CTTA) tackles this challenge by adapting pretrained models to non-stationary target distributions on-the-fly, without access to source data or labeled targets, while addressing two critical failure modes: catastrophic forgetting of source knowledge and error accumulation from noisy pseudo-labels over time. In this comprehensive survey, we formally define the CTTA problem, analyze the diverse continual domain shift patterns that arise under different evaluation protocols, and propose a hierarchical taxonomy categorizing existing methods into three families: optimization-based strategies (entropy minimization, pseudo-labeling, parameter restoration), parameter-efficient methods (normalization layer adaptation, adaptive parameter selection), and architecture-based approaches (teacher-student frameworks, adapters, visual prompting, masked modeling). We systematically review representative methods in each category and provide comparative benchmarks and experimental results across standard evaluation settings. Finally, we discuss the limitations of current approaches and highlight emerging research directions, including adaptation of foundation models and black-box systems, offering a roadmap for future work in robust continual test-time adaptation, with further resources available at https://github.com/sarthaxxxxx/Awesome-Continual-Test-Time-Adaptation.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S14"
+  },
+  {
+   "id": "HF:2509.26468",
+   "title": "fev-bench: A Realistic Benchmark for Time Series Forecasting",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2509.26468",
+   "cited_by": 5,
+   "abstract": "Benchmark quality is critical for meaningful evaluation and sustained progress in time series forecasting, particularly given the recent rise of pretrained models. Existing benchmarks often have narrow domain coverage or overlook important real-world settings, such as tasks with covariates. Additionally, their aggregation procedures often lack statistical rigor, making it unclear whether observed performance differences reflect true improvements or random variation. Many benchmarks also fail to provide infrastructure for consistent evaluation or are too rigid to integrate into existing pipelines. To address these gaps, we propose fev-bench, a benchmark comprising 100 forecasting tasks across seven domains, including 46 tasks with covariates. Supporting the benchmark, we introduce fev, a lightweight Python library for benchmarking forecasting models that emphasizes reproducibility and seamless integration with existing workflows. Usingfev, fev-bench employs principled aggregation methods with bootstrapped confidence intervals to report model performance along two complementary dimensions: win rates and skill scores. We report results on fev-bench for various pretrained, statistical and baseline models, and identify promising directions for future research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S15"
+  },
+  {
+   "id": "HF:2606.13120",
+   "title": "EvoBrowseComp: Benchmarking Search Agents on Evolving Knowledge",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2606.13120",
+   "cited_by": 4,
+   "abstract": "Search Agents -- large language models augmented with search tools -- have intensified the need for future-proof evaluation benchmarks. Existing benchmarks such as BrowseComp rely on static knowledge, making them vulnerable to test-set contamination and parametric memorization. Consequently, models can achieve high scores through fact recall rather than genuine retrieval, obscuring true browsing competence via reasoning shortcuts. In this paper, we introduce EvoBrowseComp, an evolving benchmark of 400 English and 400 Chinese contamination-free complex questions synthesized via live-web traversal. To collect these questions, we design a three-agent collaborative framework: (1) a QA synthesis agent that retrieves fresh knowledge from the live web to synthesize QA pairs; (2) an information filtering agent that filters retrieved knowledge in terms of credibility and popularity to block parametric shortcuts; and (3) a high-level guidance agent that formalizes questions into reasoning graphs to reduce logical redundancy and shortcuts in synthesized QA pairs. Because the framework supports fully automated synthesis, EvoBrowseComp can be regularly updated to prevent data contamination and maintain temporal freshness. Extensive experiments confirm its great difficulty, requiring broad horizontal search. It establishes a scalable paradigm for auto-updatable, high-difficulty benchmarking that keeps pace with both evolving world knowledge and advancing agent capabilities.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S16"
+  },
+  {
+   "id": "HF:2603.26316",
+   "title": "SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2603.26316",
+   "cited_by": 2,
+   "abstract": "As multimodal models like CLIP become integral to downstream systems, the need to remove sensitive information is critical. However, machine unlearning for contrastively-trained encoders remains underexplored, and existing evaluations fail to diagnose fine-grained, association-level forgetting. We introduce SALMUBench (Sensitive Association-Level Multimodal Unlearning), a benchmark built upon a synthetic dataset of 60K persona-attribute associations and two foundational models: a Compromised model polluted with this data, and a Clean model without it. To isolate unlearning effects, both are trained from scratch on the same 400M-pair retain base, with the Compromised model additionally trained on the sensitive set. We propose a novel evaluation protocol with structured holdout sets (holdout identity, holdout association) to precisely measure unlearning efficacy and collateral damage. Our benchmark reveals that while utility-efficient deletion is feasible, current methods exhibit distinct failure modes: they either fail to forget effectively or over-generalize by erasing more than intended. SALMUBench sets a new standard for comprehensive unlearning evaluation, and we publicly release our dataset, models, evaluation scripts, and leaderboards to foster future research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S17"
+  },
+  {
+   "id": "W2766605411",
+   "title": "Adaptive Statistical Learning with Bayesian Differential Privacy",
+   "year": 2017,
+   "url": "https://doi.org/10.1145/3139550.3139556",
+   "cited_by": 1,
+   "abstract": "In statistical learning, a dataset is often partitioned into two parts: the training set and the holdout (i.e., testing) set. For instance, the training set is used to learn a predictor, and then the holdout set is used for estimating the accuracy of the predictor on the true distribution. However, often in practice, the holdout dataset is reused and the estimates tested on the holdout dataset are chosen adaptively based on the results of prior estimates, leading to that the predictor may become dependent of the holdout set. Hence, overfitting may occur, and the learned models may not generalize well to the unseen datasets. Prior studies have established connections between the stability of a learning algorithm and its ability to generalize, but the traditional generalization is not robust to adaptive composition. Recently, Dwork et al. in NIPS, STOC, and Science 2015 show that the holdout dataset from i.i.d. data samples can be reused in adaptive statistical learning, if the estimates are perturbed and coordinated using techniques developed for differential privacy, which is a widely used notion to quantify privacy. Yet, the results of Dwork et al. are applicable to only the case of i.i.d. samples. In contrast, correlations between data samples exist because of various behavioral, social, and genetic relationships between users. Our results in adaptive statistical learning generalize the results of Dwork et al. for i.i.d. data samples to arbitrarily correlated data. Specifically, we show that the holdout dataset from correlated samples can be reused in adaptive statistical learning, if the estimates are perturbed and coordinated using techniques developed for Bayesian differential privacy, which is a privacy notion recently introduced by Yang et al. in SIGMOD 2015 to broaden the application scenarios of differential privacy when data records are correlated.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S18"
+  },
+  {
+   "id": "HF:2410.09247",
+   "title": "Benchmark Inflation: Revealing LLM Performance Gaps Using Retro-Holdouts",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2410.09247",
+   "cited_by": 1,
+   "abstract": "The training data for many Large Language Models (LLMs) is contaminated with test data. This means that public benchmarks used to assess LLMs are compromised, suggesting a performance gap between benchmark scores and actual capabilities. Ideally, a private holdout set could be used to accurately verify scores. Unfortunately, such datasets do not exist for most benchmarks, and post-hoc construction of sufficiently similar datasets is non-trivial. To address these issues, we introduce a systematic methodology for (i) retrospectively constructing a holdout dataset for a target dataset, (ii) demonstrating the statistical indistinguishability of this retro-holdout dataset, and (iii) comparing LLMs on the two datasets to quantify the performance gap due to the dataset's public availability. Applying these methods to TruthfulQA, we construct and release Retro-Misconceptions, on which we evaluate twenty LLMs and find that some have inflated scores by as much as 16 percentage points. Our results demonstrate that public benchmark scores do not always accurately assess model properties, and underscore the importance of improved data practices in the field.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S19"
+  },
+  {
+   "id": "HF:1902.10811",
+   "title": "Do ImageNet Classifiers Generalize to ImageNet?",
+   "year": "2019",
+   "url": "https://huggingface.co/papers/1902.10811",
+   "cited_by": 1,
+   "abstract": "We build new test sets for the CIFAR-10 and ImageNet datasets. Both benchmarks have been the focus of intense research for almost a decade, raising the danger of overfitting to excessively re-used test sets. By closely following the original dataset creation processes, we test to what extent current classification models generalize to new data. We evaluate a broad range of models and find accuracy drops of 3% - 15% on CIFAR-10 and 11% - 14% on ImageNet. However, accuracy gains on the original test sets translate to larger gains on the new test sets. Our results suggest that the accuracy drops are not caused by adaptivity, but by the models' inability to generalize to slightly \"harder\" images than those found in the original test sets.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S20"
+  },
+  {
+   "id": "HF:2605.25997",
+   "title": "Deployment-complete benchmarking",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2605.25997",
+   "cited_by": 1,
+   "abstract": "Benchmarks increasingly guide deployment, procurement and scientific screening, yet a score supports only the response it records, not necessarily the deployment action. We introduce deployment-complete benchmarking, which tests whether benchmark evidence determines a deployment action. A benchmark is complete for a claim exactly when the action is constant on each evidence fiber; mixed fibers expose missing deployment information, and completion curves quantify the evidence required to resolve ambiguity. In controlled response spaces, benchmark-channel conformal coverage of 94.98% transferred poorly to an unmeasured deployment channel (10.07%), whereas response-rank intervals achieved 94.91% coverage; even zero benchmark error certified only 45.4% of candidates at the largest residual size. Public audits revealed incompleteness, including 97.9% mixed Tox21 fibers and zero median certifiable fraction in main Matbench and JARVIS audits. In held-out replays, certify-then-acquire reduced false decisions from 1.19% to 0.027% in Tox21 and from 20.3% to 0.128% in JARVIS, while changing model choice and identifying deployment-relevant probes. Deployment-ready benchmarks should report evidence, supported actions, ambiguity and completion cost rather than scores alone.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S21"
+  },
+  {
+   "id": "W7169613971",
+   "title": "Generalization or Memorization: Data Contamination for Large Language Models in Code Generation",
+   "year": 2026,
+   "url": "https://doi.org/10.1109/tse.2026.3713834",
+   "cited_by": 0,
+   "abstract": "Recent statements about the impressive code capabilities of large language models (LLMs) are usually supported by evaluating on open-access benchmarks. Considering the vast size and wide-ranging sources of LLMs\u2019 training code data, it could explicitly or implicitly include code data of test set, leading to LLMs being more susceptible to data contamination on code generation benchmarks. However, due to the opacity of training code data, massive code reuse, the black-box access of models, and the rapid growth of synthetic code data, detecting and mitigating data contamination for LLMs on code generation benchmarks faces significant challenges. In this paper, we propose CDD, which stands for Contamination Detection via output Distribution for LLMs in code generation. CDD necessitates only the sampled code texts to detect data contamination, by identifying the peakedness of LLM\u2019s output distribution. To mitigate the impact of data contamination in code evaluation, we present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM\u2019s output distribution. To facilitate this study, we introduce two benchmarks, i.e., DETCON and COMIEVAL, for data contamination detection and contamination mitigation evaluation in code-related tasks. Extensive experimental results show that CDD achieves the average relative improvements of 21.8%-30.2% over other contamination detection approaches in terms of Accuracy, F1 Score, and AUC metrics, and can effectively detect implicit contamination. TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups. In real-world applications, we reveal that certain LLMs exhibit a high potential to suffer from data contamination on HumanEval benchmark. Moreover, we also introduce a new evaluation metric MGI, Memorization Generalization Index, to assess the generalizability of LLM\u2019s evaluation results on the benchmark. MGI is applied to wellknown open-source code LLMs, offering a novel dimension for evaluating model performance on the code generation benchmark.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S22"
+  },
+  {
+   "id": "arXiv:2603.03203v3",
+   "title": "No Memorization, No Detection: Output Distribution-Based Contamination Detection in Small Language Models",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2603.03203v3",
+   "abstract": "CDD, or Contamination Detection via output Distribution, identifies data contamination by measuring the peakedness of a model's sampled outputs. We study the conditions under which this approach succeeds and fails on small language models ranging from 70M to 410M parameters. Using controlled contamination experiments on GSM8K, HumanEval, and MATH, we find that CDD's effectiveness depends critically on whether fine-tuning produces verbatim memorization. In the majority of conditions we test, CDD performs at chance level even when the data is verifiably contaminated and detectable by simpler methods. We show that probability-based methods, specifically perplexity and Min-k\\% Prob, outperform CDD in all conditions where any method exceeds chance, suggesting that CDD's peakedness-based approach is insufficient for contamination detection in small language models. Our code is available at https://github.com/Sela-Omer/Contamination-Detection-Small-LM",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S23"
+  },
+  {
+   "id": "arXiv:2203.12171v1",
+   "title": "An Empirical Study of Memorization in NLP",
+   "year": "2022",
+   "url": "http://arxiv.org/abs/2203.12171v1",
+   "abstract": "A recent study by Feldman (2020) proposed a long-tail theory to explain the memorization behavior of deep learning models. However, memorization has not been empirically verified in the context of NLP, a gap addressed by this work. In this paper, we use three different NLP tasks to check if the long-tail theory holds. Our experiments demonstrate that top-ranked memorized training instances are likely atypical, and removing the top-memorized training instances leads to a more serious drop in test accuracy compared with removing training instances randomly. Furthermore, we develop an attribution method to better understand why a training instance is memorized. We empirically show that our memorization attribution method is faithful, and share our interesting finding that the top-memorized parts of a training instance tend to be features negatively correlated with the class label.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S24"
+  },
+  {
+   "id": "wiki:19284336",
+   "title": "Economy of China",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=19284336",
+   "abstract": "The People's Republic of China (PRC) has a socialist market economy, incorporating industrial policies and strategic five-year plans. China has the world's second-largest economy by nominal GDP and since 2016 has been the world's largest economy when measured by purchasing power parity (PPP). China accounted for 19% of the global economy in 2025 in PPP terms, and around 17% in nominal terms in 2025. The developing economy consists of state-owned enterprises (SOEs) and mixed-ownership enterprises, as well as a large domestic private sector which contribute approximately 60% of the GDP, 80% of urban employment and 90% of new jobs. China is the world's largest manufacturing industrial economy and exporter of goods. China is widely regarded as the \"powerhouse of manufacturing\", \"the factory of the world\" and the world's \"manufacturing superpower\". Its production exceeds that of the nine next largest manufacturers combined. Exports as a percentage of GDP are around 20%. China is the largest trading nation in the world and plays a prominent role in international trade. Manufacturing has been transitioning toward high-tech industries such as electric vehicles, renewable energy, telecommunications and IT equipment, and services has also grown as a percentage of GDP. China is the world's largest high technology exporter. As of 2023, the country spends around 2.6% of GDP to advance research and development across various sectors of the economy. It is also the world's second-largest importer of goods. China is a net importer of services products. China has a network of free trade agreements with several countries, though Regional Comprehensive Economic Partnership (RCEP) accounts for the bulk of its trade integration. Of the world's 500 largest companies, 142 are headquartered in China. It has three of the world's top ten most competitive financial centers and three of the world's ten largest stock exchanges (both by market capitalization and by trade volume). China has the second-largest financial assets in the world, valued at $39.3 trillion as of 2025. China is one of the largest recipient of foreign direct investment (FDI) in the world as of 2025, receiving inflows of $107 billion. It has the third largest outbound FDI, at US$192.20 billion for 2024. China's economic growth has dealt with a range of challenges in the 2020s due to a property crisis. With 773 million workers, the Chinese labor force is the world's largest as of 2024, although it is shrinking due to the rapidly aging population. In March 2026, Forbes estimated China ranked second in the world, after the U.S., in total number of billionaires and total number of millionaires, with 539 Chinese billionaires, while Hurun Global Rich List estimated it ranked first, with 1,110 billionaires. China also has 5.3 million millionaires as of 2026, second highest after the U.S. Public social expenditure in China was around 10% of GDP.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S25"
+  },
+  {
+   "id": "wiki:72607666",
+   "title": "Hallucination (artificial intelligence)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=72607666",
+   "abstract": "In the field of artificial intelligence (AI), a hallucination or artificial hallucination (also called bullshitting, confabulation, delusion, or mirage) is a response generated by AI that contains false or misleading information presented as fact. These terms draw a loose analogy with human psychology, where a hallucination typically involves false percepts. Chatbots powered by large language models (LLMs), like ChatGPT, may embed plausible-sounding random falsehoods within their generated content, such as fabricated citations. Detecting and mitigating errors and hallucinations pose significant challenges for practical deployment and reliability of LLMs in high-stakes scenarios, such as chip design, supply chain logistics, and medical diagnostics. Some software engineers and statisticians have criticized the specific term \"AI hallucination\" for unreasonably anthropomorphizing computers. Symbolic artificial intelligence models generally do not produce hallucinations, unlike large language models.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S26"
+  },
+  {
+   "id": "SE:stats:223188:241710",
+   "title": "Has the journal Science endorsed the Garden of Forking Pathes Analyses?",
+   "year": 2016,
+   "cited_by": 4,
+   "url": "https://stats.stackexchange.com/q/223188",
+   "abstract": "The claim that adding noise helps prevent overfitting really does hold water here, since what they are really doing is limiting how the holdout is reused. Their method actually does two things: it limits the number of questions that can be asked of the holdout, and how much of each of the answers reveals about the holdout data. It might help to understand what the benchmarks are: one on hand, you can just insist that the holdout be used only once. That has clear drawbacks. On the other hand, if you want to be able to use the holdout $k$ times, you could chop it into $k$ disjoint pieces, and use each piece once. The problem with that method is that it loses a lot of power (if you had $n$ data points in your holdout sample to begin with, you are now getting the statistical power of only $n/k$ samples). The Dwork et al paper gives a method which, even with adversarially posed questions, gives you an effective sample size of about $n/\\sqrt{k}$ for each of the $k$ questions you ask. Furthermore, they can do better if the questions are \"not too nasty\" (in a sense that is a bit hard to pin down, so let&#39;s ignore that for now). The heart of their method is a relationship between algorithmic stability and overfitting, which dates back to the late 1970&#39;s (Devroye and Wagner 1978). Roughly, it says \"Let $A$ be an algorithm that takes a data set $X$ as input and outputs the description of a predicate $q=A(X)$. If $A$ is \"stable\" and $X$ is drawn i.i.d from a population $P$, then the empirical frequency of $q$ in $x$ is about the same as the frequency of $q$ in the population $P$.\" Dwork et al. suggest using a notion of stability that controls how the distribution of answers changes as the data set changes (called differential privacy). It has the useful property that if $A(\\cdot)$ is differentially private, then so is $f(A(\\cdot))$, for any function $f$. In other words, for the stability analysis to go through, the predicate $q$ doesn&#39;t have to be the output of $A$ --- any predicate that is derived from $A$&#39;s output will also enjoy the same type of guarantee. There are now quite a few papers analyzing how different noise addition procedures control overfitting. A relatively readable one is that of Russo and Zou (https://arxiv.org/abs/1511.05219). Some more recent follow-up papers on the initial work of Dwork et al. might also be helpful to look at. (Disclaimer: I have two papers on the topic, the more recent one explaining a connection to adaptive hypothesis testing: https://arxiv.org/abs/1604.03924.) Hope that all helps.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S27"
+  },
+  {
+   "id": "SE:stats:655064:655068",
+   "title": "How to Hyperparameter Tune without sample Bias?",
+   "year": 2024,
+   "cited_by": 3,
+   "url": "https://stats.stackexchange.com/q/655064",
+   "abstract": "The purpose of the resampling techniques with holdout method you mentioned are estimating hyper-parameters, i.e., capturing its variation over different splits, along with the generalised performance [1]. Even though, holdout reuse is criticised as \"holdout overfitting\", recent works shown the resilience of holdout method in repeated procedures [2]. [1] Xu, Y., Goodacre, R. On Splitting Training and Validation Set: A Comparative Study of Cross-Validation, Bootstrap and Systematic Sampling for Estimating the Generalization Performance of Supervised Learning. J. Anal. Test. 2, 249\u2013262 (2018). doi [2] Generalization in Adaptive Data Analysis and Holdout Reuse, Dwork et. al. arXiv",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S28"
+  },
+  {
+   "id": "HN:47758347",
+   "title": "N-Day-Bench \u2013 Can LLMs find real vulnerabilities in real codebases?",
+   "year": "2026",
+   "cited_by": 91,
+   "url": "https://news.ycombinator.com/item?id=47758347",
+   "abstract": "N-Day-Bench tests whether frontier LLMs can find known security vulnerabilities in real repository code. Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. Static vulnerability discovery benchmarks become outdated quickly. Cases leak into training data, and scores start measuring memorization. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest. Each case runs three agents: a Curator reads the advisory and builds an answer key, a Finder (the model under test) gets 24 shell steps to explore the code and write a structured report, and a Judge scores the blinded submission. The Finder never sees the patch. It starts from sink hints and must trace the bug through actual code. Only repos with 10k+ stars qualify. A diversity pass prevents any single repo from dominating the set. Ambiguous advisories (merge commits, multi-repo references, unresolvable refs) are dropped. Currently evaluating GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro, GLM-5.1, and Kimi K2.5. All traces are public. Methodology: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;methodology Live Leaderboard: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;leaderboard Live Traces: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;traces",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S29"
+  },
+  {
+   "id": "GH:suanlab/unbox-audit-kit",
+   "title": "suanlab/unbox-audit-kit",
+   "year": "2026",
+   "url": "https://github.com/suanlab/unbox-audit-kit",
+   "cited_by": 0,
+   "abstract": "Audit kit for LLM retrospective assumption recovery \u2014 AACL-IJCNLP 2026. Five factorable controls (no-corpus, wrong-corpus, pair-level precision, \u22652-LLM, multi-seed) that test whether a benchmark measures corpus grounding or pretraining memorization. Topics: aacl2026, benchmark, contamination, evaluation, llm, memorization, nlp, reproducibility",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S30"
+  }
+ ],
+ "log": [
+  {
+   "api": "openalex",
+   "query": "benchmark contamination test set memorization",
+   "n": 6,
+   "s": 0.6
+  },
+  {
+   "api": "arxiv",
+   "query": "benchmark contamination test set memorization",
+   "n": 6,
+   "s": 0.9
+  },
+  {
+   "api": "semanticscholar",
+   "query": "benchmark contamination test set memorization",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "benchmark contamination test set memorization",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "benchmark contamination test set memorization",
+   "n": 3,
+   "s": 0.3
+  },
+  {
+   "api": "stackexchange",
+   "query": "benchmark contamination test set memorization",
+   "n": 0,
+   "s": 5.5
+  },
+  {
+   "api": "hackernews",
+   "query": "benchmark contamination test set memorization",
+   "n": 3,
+   "s": 0.6
+  },
+  {
+   "api": "reddit",
+   "query": "benchmark contamination test set memorization",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "benchmark contamination test set memorization",
+   "n": 3,
+   "s": 4.0
+  },
+  {
+   "api": "github",
+   "query": "benchmark contamination test set memorization",
+   "n": 2,
+   "s": 0.6
+  },
+  {
+   "api": "openalex",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "arxiv",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "semanticscholar",
+   "query": "adaptive overfitting holdout reuse",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 3,
+   "s": 0.4
+  },
+  {
+   "api": "stackexchange",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 2,
+   "s": 2.6
+  },
+  {
+   "api": "hackernews",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 0,
+   "s": 1.0
+  },
+  {
+   "api": "reddit",
+   "query": "adaptive overfitting holdout reuse",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 1,
+   "s": 3.8
+  },
+  {
+   "api": "github",
+   "query": "adaptive overfitting holdout reuse",
+   "n": 0,
+   "s": 0.4
+  },
+  {
+   "api": "openalex",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "arxiv",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 6,
+   "s": 0.6
+  },
+  {
+   "api": "semanticscholar",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 1,
+   "s": 0.4
+  },
+  {
+   "api": "stackexchange",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 2,
+   "s": 5.1
+  },
+  {
+   "api": "hackernews",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 1,
+   "s": 1.3
+  },
+  {
+   "api": "reddit",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 2,
+   "s": 7.4
+  },
+  {
+   "api": "github",
+   "query": "fresh test sets benchmark reliability CIFAR-10.1",
+   "n": 0,
+   "s": 0.3
+  }
+ ],
+ "pool": [
+  {
+   "id": "W4387994765",
+   "title": "Proving Test Set Contamination in Black Box Language Models",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2310.17623",
+   "cited_by": 226,
+   "abstract": "Large language models are trained on vast amounts of internet data, prompting concerns and speculation that they have memorized public benchmarks. Going from speculation to proof of contamination is challenging, as the pretraining data used by proprietary models are often not publicly accessible. We show that it is possible to provide provable guarantees of test set contamination in language models without access to pretraining data or model weights. Our approach leverages the fact that when there is no data contamination, all orderings of an exchangeable benchmark should be equally likely. In contrast, the tendency for language models to memorize example order means that a contaminated language model will find certain canonical orderings to be much more likely than others. Our test flags potential contamination whenever the likelihood of a canonically ordered benchmark dataset is significantly higher than the likelihood after shuffling the examples. We demonstrate that our procedure is sensitive enough to reliably prove test set contamination in challenging situations, including models as small as 1.4 billion parameters, on small test sets of only 1000 examples, and datasets that appear only a few times in the pretraining corpus. Using our test, we audit five popular publicly accessible language models for test set contamination and find little evidence for pervasive contamination.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4221145126",
+   "title": "Data Contamination: From Memorization to Exploitation",
+   "year": 2022,
+   "url": "https://doi.org/10.18653/v1/2022.acl-short.18",
+   "cited_by": 379,
+   "abstract": "Pretrained language models are typically trained on massive web-based datasets, which are often \"contaminated\" with downstream test sets. It is not clear to what extent models exploit the contaminated data for downstream tasks. We present a principled method to study this question. We pretrain BERT models on joint corpora of Wikipedia and labeled downstream datasets, and fine-tune them on the relevant task. Comparing performance between samples seen and unseen during pretraining enables us to define and quantify levels of memorization and exploitation. Experiments with two models and three downstream tasks show that exploitation exists in some cases, but in others the models memorize the contaminated data, but do not exploit it. We show that these two measures are affected by different factors such as the number of duplications of the contaminated data and the model size. Our results highlight the importance of analyzing massive web-scale datasets to verify that progress in NLP is obtained by better language understanding and not better data exploitation.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4402670101",
+   "title": "Generalization or Memorization: Data Contamination and Trustworthy Evaluation for Large Language Models",
+   "year": 2024,
+   "url": "https://doi.org/10.18653/v1/2024.findings-acl.716",
+   "cited_by": 313,
+   "abstract": "Recent statements about the impressive capabilities of large language models (LLMs) are usually supported by evaluating on open-access benchmarks.Considering the vast size and wide-ranging sources of LLMs' training data, it could explicitly or implicitly include test data, leading to LLMs being more susceptible to data contamination.However, due to the opacity of training data, the black-box access of models, and the rapid growth of synthetic training data, detecting and mitigating data contamination for LLMs faces significant challenges.In this paper, we propose CDD, which stands for Contamination Detection via output Distribution for LLMs.CDD necessitates only the sampled texts to detect data contamination, by identifying the peakedness of LLM's output distribution.To mitigate the impact of data contamination in evaluation, we also present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM's output distribution.To facilitate this study, we introduce two benchmarks, i.e., DET-CON and COMIEVAL, for data contamination detection and contamination mitigation evaluation tasks.Extensive experimental results show that CDD achieves the average relative improvements of 21.8%-30.2%over other contamination detection approaches in terms of Accuracy, F1 Score, and AUC metrics, and can effectively detect implicit contamination.TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups.In realworld applications, we reveal that ChatGPT exhibits a high potential to suffer from data contamination on HumanEval benchmark.1",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7119916356",
+   "title": "Quantifying the Effect of Test Set Contamination on Generative Evaluations",
+   "year": 2026,
+   "url": "https://doi.org/10.48550/arxiv.2601.04301",
+   "cited_by": 11,
+   "abstract": "As frontier AI systems are pretrained on web-scale data, test set contamination has become a critical concern for accurately assessing their capabilities. While research has thoroughly investigated the impact of test set contamination on discriminative evaluations like multiple-choice question-answering, comparatively little research has studied the impact of test set contamination on generative evaluations. In this work, we quantitatively assess the effect of test set contamination on generative evaluations through the language model lifecycle. We pretrain language models on mixtures of web data and the MATH benchmark, sweeping model sizes and number of test set replicas contaminating the pretraining corpus; performance improves with contamination and model size. Using scaling laws, we make a surprising discovery: including even a single test set replica enables models to achieve lower loss than the irreducible error of training on the uncontaminated corpus. We then study further training: overtraining with fresh data reduces the effects of contamination, whereas supervised finetuning on the training set can either increase or decrease performance on test data, depending on the amount of pretraining contamination. Finally, at inference, we identify factors that modulate memorization: high sampling temperatures mitigate contamination effects, and longer solutions are exponentially more difficult to memorize than shorter ones, presenting a contrast with discriminative evaluations, where solutions are only a few tokens in length. By characterizing how generation and memorization interact, we highlight a new layer of complexity for trustworthy evaluation of AI systems.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4388555916",
+   "title": "Rethinking Benchmark and Contamination for Language Models with Rephrased Samples",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2311.04850",
+   "cited_by": 273,
+   "abstract": "Large language models are increasingly trained on all the data ever produced by humans. Many have raised concerns about the trustworthiness of public benchmarks due to potential contamination in pre-training or fine-tuning datasets. While most data decontamination efforts apply string matching (e.g., n-gram overlap) to remove benchmark data, we show that these methods are insufficient, and simple variations of test data (e.g., paraphrasing, translation) can easily bypass these decontamination measures. Furthermore, we demonstrate that if such variation of test data is not eliminated, a 13B model can easily overfit a test benchmark and achieve drastically high performance, on par with GPT-4. We validate such observations in widely used benchmarks such as MMLU, GSK8k, and HumanEval. To address this growing risk, we propose a stronger LLM-based decontamination method and apply it to widely used pre-training and fine-tuning datasets, revealing significant previously unknown test overlap. For example, in pre-training sets such as RedPajama-Data-1T and StarCoder-Data, we identified that 8-18\\% of the HumanEval benchmark overlaps. Interestingly, we also find such contamination in synthetic dataset generated by GPT-3.5/4, suggesting a potential risk of unintentional contamination. We urge the community to adopt stronger decontamination approaches when using public benchmarks. Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately. Our decontamination tool is publicly available at https://github.com/lm-sys/llm-decontaminator.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7169613971",
+   "title": "Generalization or Memorization: Data Contamination for Large Language Models in Code Generation",
+   "year": 2026,
+   "url": "https://doi.org/10.1109/tse.2026.3713834",
+   "cited_by": 0,
+   "abstract": "Recent statements about the impressive code capabilities of large language models (LLMs) are usually supported by evaluating on open-access benchmarks. Considering the vast size and wide-ranging sources of LLMs\u2019 training code data, it could explicitly or implicitly include code data of test set, leading to LLMs being more susceptible to data contamination on code generation benchmarks. However, due to the opacity of training code data, massive code reuse, the black-box access of models, and the rapid growth of synthetic code data, detecting and mitigating data contamination for LLMs on code generation benchmarks faces significant challenges. In this paper, we propose CDD, which stands for Contamination Detection via output Distribution for LLMs in code generation. CDD necessitates only the sampled code texts to detect data contamination, by identifying the peakedness of LLM\u2019s output distribution. To mitigate the impact of data contamination in code evaluation, we present TED: Trustworthy Evaluation via output Distribution, based on the correction of LLM\u2019s output distribution. To facilitate this study, we introduce two benchmarks, i.e., DETCON and COMIEVAL, for data contamination detection and contamination mitigation evaluation in code-related tasks. Extensive experimental results show that CDD achieves the average relative improvements of 21.8%-30.2% over other contamination detection approaches in terms of Accuracy, F1 Score, and AUC metrics, and can effectively detect implicit contamination. TED substantially mitigates performance improvements up to 66.9% attributed to data contamination across various contamination setups. In real-world applications, we reveal that certain LLMs exhibit a high potential to suffer from data contamination on HumanEval benchmark. Moreover, we also introduce a new evaluation metric MGI, Memorization Generalization Index, to assess the generalizability of LLM\u2019s evaluation results on the benchmark. MGI is applied to wellknown open-source code LLMs, offering a novel dimension for evaluating model performance on the code generation benchmark.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2603.03203v3",
+   "title": "No Memorization, No Detection: Output Distribution-Based Contamination Detection in Small Language Models",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2603.03203v3",
+   "abstract": "CDD, or Contamination Detection via output Distribution, identifies data contamination by measuring the peakedness of a model's sampled outputs. We study the conditions under which this approach succeeds and fails on small language models ranging from 70M to 410M parameters. Using controlled contamination experiments on GSM8K, HumanEval, and MATH, we find that CDD's effectiveness depends critically on whether fine-tuning produces verbatim memorization. In the majority of conditions we test, CDD performs at chance level even when the data is verifiably contaminated and detectable by simpler methods. We show that probability-based methods, specifically perplexity and Min-k\\% Prob, outperform CDD in all conditions where any method exceeds chance, suggesting that CDD's peakedness-based approach is insufficient for contamination detection in small language models. Our code is available at https://github.com/Sela-Omer/Contamination-Detection-Small-LM",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2203.12171v1",
+   "title": "An Empirical Study of Memorization in NLP",
+   "year": "2022",
+   "url": "http://arxiv.org/abs/2203.12171v1",
+   "abstract": "A recent study by Feldman (2020) proposed a long-tail theory to explain the memorization behavior of deep learning models. However, memorization has not been empirically verified in the context of NLP, a gap addressed by this work. In this paper, we use three different NLP tasks to check if the long-tail theory holds. Our experiments demonstrate that top-ranked memorized training instances are likely atypical, and removing the top-memorized training instances leads to a more serious drop in test accuracy compared with removing training instances randomly. Furthermore, we develop an attribution method to better understand why a training instance is memorized. We empirically show that our memorization attribution method is faithful, and share our interesting finding that the top-memorized parts of a training instance tend to be features negatively correlated with the class label.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2404.15146v3",
+   "title": "Rethinking LLM Memorization through the Lens of Adversarial Compression",
+   "year": "2024",
+   "url": "http://arxiv.org/abs/2404.15146v3",
+   "abstract": "Large language models (LLMs) trained on web-scale datasets raise substantial concerns regarding permissible data usage. One major question is whether these models \"memorize\" all their training data or they integrate many data sources in some way more akin to how a human would learn and synthesize information. The answer hinges, to a large degree, on how we define memorization. In this work, we propose the Adversarial Compression Ratio (ACR) as a metric for assessing memorization in LLMs. A given string from the training data is considered memorized if it can be elicited by a prompt (much) shorter than the string itself -- in other words, if these strings can be \"compressed\" with the model by computing adversarial prompts of fewer tokens. The ACR overcomes the limitations of existing notions of memorization by (i) offering an adversarial view of measuring memorization, especially for monitoring unlearning and compliance; and (ii) allowing for the flexibility to measure memorization for arbitrary strings at a reasonably low compute. Our definition serves as a practical tool for determining when model owners may be violating terms around data usage, providing a potential legal tool and a critical lens through which to address such scenarios.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2610.00251v1",
+   "title": "The Null Is the Hard Part: Exact Tests for Memorization in Generative Models",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2610.00251v1",
+   "abstract": "Memorization audits of generative models read similarity scores against thresholds, with no null distribution, and the conclusions they support can be wrong. By MemBench's rule, the benchmark's mitigations roughly halve Stable Diffusion's memorization; audited with false-discovery control, two thirds of the certified images are no longer detected under random prompt perturbations, five sixths under attention rescaling, and all of them under embedding optimization. The field's data-copying test, read against its own null, flags ten of twenty-four generators that reproduce nothing. We argue that for memorization the null is the hard part, and supply two. For a whole model, training and held-out images are exchangeable given its samples, and relabelling them is a permutation test, exact for any statistic when the held-out images are a random split; under it, a nearest-neighbour preference still fires on seven of those twenty-four, and a count restricted to the near-duplicate scale on none (McNemar p=0.016). For single images, the natural nulls fail twice, measurably: ranking an image among random images yields 596 false discoveries among 2,365 controls, and resampling independent generations makes the null three times too narrow. Calibrated against matched controls, the audit certifies 36 of 61 MemBench images at 5% false-discovery rate, held-out controls are certified in 0.01% of calibration splits, and on this benchmark two generations per image recover that count. A calibrated maximum, which reads occasional rather than typical copying, certifies 46. As the scale-restricted statistic we recommend the small-scale mass of the Intersection Euler Characteristic Profile, which also counts distinct images copied and tests whether two models copy the same ones.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2509.00488v1",
+   "title": "Localizing and Mitigating Memorization in Image Autoregressive Models",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2509.00488v1",
+   "abstract": "Image AutoRegressive (IAR) models have achieved state-of-the-art performance in speed and quality of generated images. However, they also raise concerns about memorization of their training data and its implications for privacy. This work explores where and how such memorization occurs within different image autoregressive architectures by measuring a fine-grained memorization. The analysis reveals that memorization patterns differ across various architectures of IARs. In hierarchical per-resolution architectures, it tends to emerge early and deepen with resolutions, while in IARs with standard autoregressive per token prediction, it concentrates in later processing stages. These localization of memorization patterns are further connected to IARs' ability to memorize and leak training data. By intervening on their most memorizing components, we significantly reduce the capacity for data extraction from IARs with minimal impact on the quality of generated images. These findings offer new insights into the internal behavior of image generative models and point toward practical strategies for mitigating privacy risks.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2511.04655v2",
+   "title": "Benchmark Designers Should \"Train on the Test Set\" to Expose Exploitable Non-Visual Shortcuts",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2511.04655v2",
+   "abstract": "Multimodal LLMs can answer many questions in vision-centric benchmarks without looking at the image, using linguistic priors and skewed answer distributions. Blind evaluation shows what a model already answers this way, but not what it could learn from the test set's own regularities. Extending partial-input auditing (e.g., hypothesis-only baselines in natural language inference), we argue that benchmark designers should \"train on the test set\": probe the artifact they release for exploitable patterns. Our Test-set Stress-Test (TsT) cross-validates a text-only Qwen2-7B on the test set's questions and answer options, yielding a benchmark-level score and a per-question bias score s(x); a random forest on hand-crafted features adds a fast, interpretable audit. On the template-based VSI-Bench and CV-Bench, the held-out score is 17.9 and 13.1 points above the model's own zero-shot score. On MMMU it learns little, even though GPT-4o correctly answers 52.3% of its multiple-choice questions without the image, so blind success there reflects pretrained knowledge rather than learnable test-set patterns. Iterative Bias Pruning (IBP) removes the questions with the highest s(x) and re-diagnoses; on VSI-Bench it widens a fine-tuned model's vision-blind gap more than random removal at the same rate. We also release VSI-Bench-Debiased, which lowers a fine-tuned model's blind score from 44.7 to 32.0 while its vision score falls only from 57.1 to 48.7.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2606.13120",
+   "title": "EvoBrowseComp: Benchmarking Search Agents on Evolving Knowledge",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2606.13120",
+   "cited_by": 4,
+   "abstract": "Search Agents -- large language models augmented with search tools -- have intensified the need for future-proof evaluation benchmarks. Existing benchmarks such as BrowseComp rely on static knowledge, making them vulnerable to test-set contamination and parametric memorization. Consequently, models can achieve high scores through fact recall rather than genuine retrieval, obscuring true browsing competence via reasoning shortcuts. In this paper, we introduce EvoBrowseComp, an evolving benchmark of 400 English and 400 Chinese contamination-free complex questions synthesized via live-web traversal. To collect these questions, we design a three-agent collaborative framework: (1) a QA synthesis agent that retrieves fresh knowledge from the live web to synthesize QA pairs; (2) an information filtering agent that filters retrieved knowledge in terms of credibility and popularity to block parametric shortcuts; and (3) a high-level guidance agent that formalizes questions into reasoning graphs to reduce logical redundancy and shortcuts in synthesized QA pairs. Because the framework supports fully automated synthesis, EvoBrowseComp can be regularly updated to prevent data contamination and maintain temporal freshness. Extensive experiments confirm its great difficulty, requiring broad horizontal search. It establishes a scalable paradigm for auto-updatable, high-difficulty benchmarking that keeps pace with both evolving world knowledge and advancing agent capabilities.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2507.17747",
+   "title": "Pretraining on the Test Set Is No Longer All You Need: A Debate-Driven\n  Approach to QA Benchmarks",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2507.17747",
+   "cited_by": 0,
+   "abstract": "As frontier language models increasingly saturate standard QA benchmarks, concerns about data contamination, memorization, and escalating dataset creation costs persist. We propose a debate-driven evaluation paradigm that transforms any existing QA dataset into structured adversarial debates--where one model is given the official answer to defend, and another constructs and defends an alternative answer--adjudicated by a judge model blind to the correct solution. By forcing multi-round argumentation, this approach substantially increases difficulty while penalizing shallow memorization, yet reuses QA items to reduce curation overhead. We make two main contributions: (1) an evaluation pipeline to systematically convert QA tasks into debate-based assessments, and (2) a public benchmark that demonstrates our paradigm's effectiveness on a subset of MMLU-Pro questions, complete with standardized protocols and reference models. Empirical results validate the robustness of the method and its effectiveness against data contamination--a Llama 3.1 model fine-tuned on test questions showed dramatic accuracy improvements (50% -> 82%) but performed worse in debates. Results also show that even weaker judges can reliably differentiate stronger debaters, highlighting how debate-based evaluation can scale to future, more capable systems while maintaining a fraction of the cost of creating new benchmarks. Overall, our framework underscores that \"pretraining on the test set is no longer all you need,\" offering a sustainable path for measuring the genuine reasoning ability of advanced language models.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2510.05962",
+   "title": "MatheMagic: Generating Dynamic Mathematics Benchmarks Robust to\n  Memorization",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2510.05962",
+   "cited_by": 0,
+   "abstract": "Conducting contamination-free evaluation of mathematical capabilities can be difficult for two reasons: models may memorize a test set once it is made public, and current mathematical benchmarks are prone to overfitting due to having limited diversity of symbols and rules, coupled with closed-ended answers. This paper proposes a method to leverage these shortcomings as useful features to a construct dynamic, counterfactual benchmark, which can be used to both reveal overfitting and measure true reasoning. We demonstrate this via MatheMagic, which generates math test instances with the interpretations of numbers and operators altered, yet has automatically verifiable answers. Test instances are randomly seeded and constructed at test time to evaluate a model's induction or deduction capability, offering stability, extensibility, comparability, and robustness to overfitting. Our experiments find that models solve deduction more easily than induction, but they revert to standard math. Further analysis reveals that math-adapted models fail to exhibit a general \"skill\" of reasoning, and fine-tuning on induction tasks generalizes poorly.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2406.19314",
+   "title": "LiveBench: A Challenging, Contamination-Free LLM Benchmark",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2406.19314",
+   "cited_by": 24,
+   "abstract": "Test set contamination, wherein test data from a benchmark ends up in a newer model's training set, is a well-documented obstacle for fair LLM evaluation and can quickly render benchmarks obsolete. To mitigate this, many recent benchmarks crowdsource new prompts and evaluations from human or LLM judges; however, these can introduce significant biases, and break down when scoring hard questions. In this work, we introduce a new benchmark for LLMs designed to be immune to both test set contamination and the pitfalls of LLM judging and human crowdsourcing. We release LiveBench, the first benchmark that (1) contains frequently-updated questions from recent information sources, (2) scores answers automatically according to objective ground-truth values, and (3) contains a wide variety of challenging tasks, spanning math, coding, reasoning, language, instruction following, and data analysis. To achieve this, LiveBench contains questions that are based on recently-released math competitions, arXiv papers, news articles, and datasets, and it contains harder, contamination-free versions of tasks from previous benchmarks such as Big-Bench Hard, AMPS, and IFEval. We evaluate many prominent closed-source models, as well as dozens of open-source models ranging from 0.5B to 110B in size. LiveBench is difficult, with top models achieving below 65% accuracy. We release all questions, code, and model answers. Questions will be added and updated on a monthly basis, and we will release new tasks and harder versions of tasks over time so that LiveBench can distinguish between the capabilities of LLMs as they improve in the future. We welcome community engagement and collaboration for expanding the benchmark tasks and models.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:19284336",
+   "title": "Economy of China",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=19284336",
+   "abstract": "The People's Republic of China (PRC) has a socialist market economy, incorporating industrial policies and strategic five-year plans. China has the world's second-largest economy by nominal GDP and since 2016 has been the world's largest economy when measured by purchasing power parity (PPP). China accounted for 19% of the global economy in 2025 in PPP terms, and around 17% in nominal terms in 2025. The developing economy consists of state-owned enterprises (SOEs) and mixed-ownership enterprises, as well as a large domestic private sector which contribute approximately 60% of the GDP, 80% of urban employment and 90% of new jobs. China is the world's largest manufacturing industrial economy and exporter of goods. China is widely regarded as the \"powerhouse of manufacturing\", \"the factory of the world\" and the world's \"manufacturing superpower\". Its production exceeds that of the nine next largest manufacturers combined. Exports as a percentage of GDP are around 20%. China is the largest trading nation in the world and plays a prominent role in international trade. Manufacturing has been transitioning toward high-tech industries such as electric vehicles, renewable energy, telecommunications and IT equipment, and services has also grown as a percentage of GDP. China is the world's largest high technology exporter. As of 2023, the country spends around 2.6% of GDP to advance research and development across various sectors of the economy. It is also the world's second-largest importer of goods. China is a net importer of services products. China has a network of free trade agreements with several countries, though Regional Comprehensive Economic Partnership (RCEP) accounts for the bulk of its trade integration. Of the world's 500 largest companies, 142 are headquartered in China. It has three of the world's top ten most competitive financial centers and three of the world's ten largest stock exchanges (both by market capitalization and by trade volume). China has the second-largest financial assets in the world, valued at $39.3 trillion as of 2025. China is one of the largest recipient of foreign direct investment (FDI) in the world as of 2025, receiving inflows of $107 billion. It has the third largest outbound FDI, at US$192.20 billion for 2024. China's economic growth has dealt with a range of challenges in the 2020s due to a property crisis. With 773 million workers, the Chinese labor force is the world's largest as of 2024, although it is shrinking due to the rapidly aging population. In March 2026, Forbes estimated China ranked second in the world, after the U.S., in total number of billionaires and total number of millionaires, with 539 Chinese billionaires, while Hurun Global Rich List estimated it ranked first, with 1,110 billionaires. China also has 5.3 million millionaires as of 2026, second highest after the U.S. Public social expenditure in China was around 10% of GDP.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:72607666",
+   "title": "Hallucination (artificial intelligence)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=72607666",
+   "abstract": "In the field of artificial intelligence (AI), a hallucination or artificial hallucination (also called bullshitting, confabulation, delusion, or mirage) is a response generated by AI that contains false or misleading information presented as fact. These terms draw a loose analogy with human psychology, where a hallucination typically involves false percepts. Chatbots powered by large language models (LLMs), like ChatGPT, may embed plausible-sounding random falsehoods within their generated content, such as fabricated citations. Detecting and mitigating errors and hallucinations pose significant challenges for practical deployment and reliability of LLMs in high-stakes scenarios, such as chip design, supply chain logistics, and medical diagnostics. Some software engineers and statisticians have criticized the specific term \"AI hallucination\" for unreasonably anthropomorphizing computers. Symbolic artificial intelligence models generally do not produce hallucinations, unlike large language models.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:79100184",
+   "title": "Language model benchmark",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=79100184",
+   "abstract": "A language model benchmark is a standardized test designed to evaluate the performance of language models on various natural language processing tasks. These tests are intended for comparing different models' capabilities in areas such as language understanding, generation, and reasoning. As language models began to power AI agents, AI agent benchmarks evolved out of language model benchmarks. Benchmarks generally consist of a dataset and corresponding evaluation metrics. The dataset provides text samples and annotations, while the metrics measure a model's performance on tasks like answering questions, text classification, and machine translation. These benchmarks are developed and maintained by academic institutions, research organizations, and industry players to track progress in the field. In addition to accuracy, the metrics can include throughput, energy efficiency, bias, trust, and sustainability.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "HN:47758347",
+   "title": "N-Day-Bench \u2013 Can LLMs find real vulnerabilities in real codebases?",
+   "year": "2026",
+   "cited_by": 91,
+   "url": "https://news.ycombinator.com/item?id=47758347",
+   "abstract": "N-Day-Bench tests whether frontier LLMs can find known security vulnerabilities in real repository code. Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. Static vulnerability discovery benchmarks become outdated quickly. Cases leak into training data, and scores start measuring memorization. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest. Each case runs three agents: a Curator reads the advisory and builds an answer key, a Finder (the model under test) gets 24 shell steps to explore the code and write a structured report, and a Judge scores the blinded submission. The Finder never sees the patch. It starts from sink hints and must trace the bug through actual code. Only repos with 10k+ stars qualify. A diversity pass prevents any single repo from dominating the set. Ambiguous advisories (merge commits, multi-repo references, unresolvable refs) are dropped. Currently evaluating GPT-5.4, Claude Opus 4.6, Gemini 3.1 Pro, GLM-5.1, and Kimi K2.5. All traces are public. Methodology: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;methodology Live Leaderboard: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;leaderboard Live Traces: https:&#x2F;&#x2F;ndaybench.winfunc.com&#x2F;traces",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:24286650",
+   "title": "My AI Timelines Have Sped Up",
+   "year": "2020",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=24286650",
+   "abstract": "I don't appreciate your snark at all. I made a mistake and didn't read the paper carefully again so I confused myself with what they mean by one- two- and three-digit tasks, I accept that. I don't see what you get from pouncing on my mistake, other than a few marks for an internet burn. Now, the two- and three digit addition and subtraction tasks (operations on numbers between 0 and 99 and 0 and 999, respectively) are both small enough for the large, 175B parameter model to have memorised them exactly. Even if there was a single parameter for each three-digit number, of which there are a million, you could fit the entire set 175 thousand times in the 175 billion model (assuming they mean \"a billion\" as \"one thousand million\", not \"one million million\", which they don't clarify, but to be on the safe side let's assume the smallest). There is plenty of room. These four tasks are also the tasks that are most likely to be present in their entirety in a corpus of natural language, as the one GPT-3 was trained on, for example as records of common monetary transactions (especially the two-digit ones). That is, yes, the training set can comfortably contain 800k 3-digit addition problems. Why not? It contained 410 billion tokens from the Common Crawl dataset alone, plus a few extras. In short, the almost perfect accuracy on this task is not impressive. The 25% ish accuracy on the four-digit addition task is even less impressive. I don't know what the baseline is here, but 25% accuracy on anything is not something to write home about. You ask me to provide evidence of my own to support the memorisation claim. The claim is not memorisation. The claim is that GPT-3 has learned arithmetic (not stated exacly like that in the paper). This claim flies in the face of the commonly understood operation of language models, which are systems that compute the probability of a token to follow a sequnce of tokens- and nothing else. It's very hard to see how such a system should be able to perform arithmetic operations, while it's very easy to see how it can instead memorise their results. If the authors of the GPT-3 paper wish to claim that GPT-3 can perform arithmetic, instead of the much simpler explanation, they have to provide very strong evidence to back that up and refute the simpler explanation. And the \"spot checks\" that they performed are nowhere near such strong evidence: I can fail to find anything I search for, if I search with the wrong terms and the authors don't give much information about how they did their \"spot checks\". I mean, did they use a regular expression? Which one? (\"&lt;NUM1&gt; + &lt;NUM2&gt; =\" is not a regular expression! But then - what is it?) Did they take into account whitespace? Punctuation? Something else? What search terms they used? They dont' say. Can we tell why they failed to find what they were looking for? No. Besides, why only \"spot check\" three-digit arithmetic? It would make a lot more sense to spot-check two-digit problems, first, because these are the most likely to be found more often in the dataset and consequently be memorised. Indeed, the fact that they don't report \"spot checks\" for two-digit arithmetic suggests that they did perform those spot checks and they found a lot more overlap than for the three digit arithmetic, but chose not to report it. And if their model was memorising two-digit arithmetic, and that explains its performance on that type of task, it's safe to assume that it was memorising the third-digit arithmetic task also and that their \"spot checks\" were simply not very well put together to find the three-digit arithmetic examples. Note that section 4 goes in length over the possibility that the test set for all tasks (not just arithmetic) was contaminated (i.e. that it containted training examples from existing benchmarks, published on the internet). I haven't read that one carefully but test set contamination is another possibility. And, to be frank, any possibility is more possible than the possibility that a langauge model has learned arithmetic- which is tantamount to magick.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:47041025",
+   "title": "Soft Contamination Means Benchmarks Test Shallow Generalization",
+   "year": "2026",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=47041025",
+   "abstract": "From the author on X ( https:&#x2F;&#x2F;x.com&#x2F;g_leech_&#x2F;status&#x2F;2023384135201349633 ), below is all me quoting the tweet thread: New paper on a long-shot I've been obsessed with for a year: How much are AI reasoning gains confounded by expanding the training corpus 10000x? How much LLM performance is down to \"local\" generalisation (pattern-matching to hard-to-detect semantically equivalent training data)? tl;dr - OLMo 3 training corpus contains exact duplicates of 50% of the ZebraLogic test set. - We embed the corpus to find semantic duplicates of test data in the wild. 78% of the CodeForces test set had &gt;=1 semantic duplicate - The semantic duplicate rate is maybe &gt;4 in 10000 * at least 50% and at least 78% that is arxiv.org&#x2F;pdf&#x2F;2602.12413 Imagine you're head of training at at OpenAI, and you want your benchmark scores to be meaningful (: to estimate OOD performance) You have a hard task ahead of you! Your models have seen so much, memorisation is so easy - as is local generalisation (noisy pattern-matching). What can you do? Well, obviously you take every benchmark you're going to test on and try to \"decontaminate\" your training corpus (remove test data from the training data). By default this is just one level above string matching (\"n-gram matching\" - if sentences overlap in (say) a 13-token window, remove them from the training corpus). But you're actually trying, so you also translate the test sets and delete translations of test from train. But! every piece of test data has an arbitrary number of logical equivalents and neighbours (like how `x + y = 10` is the same problem as `2x + 2y = 20`). And LLMs are amazing at semantic search, so maybe this inflates benchmark scores. The cutting-edge tech for detecting these \"semantic\" duplicates is... an LLM. But you simply can't do 100T x 1M calls. There's not enough compute in the world (yet). So you do what you can - maybe you - categorise the entire corpus & do intense search inside relevant partitions (e.g. maths &gt; number theory &gt; ...) - embed the whole corpus & look for things really close to test data - train a wee 300M filter model & do what you can with that How much does this process catch? How many semantic duplicates of test data slip through? And what's the impact on final benchmark scores? We don't know, This (finally) is where our paper comes in: We experiment on OLMo 3, one of the only really good models with open training data. Since we have its entire training corpus, we can exhaustively check for real \"natural\" duplicates and finetune it to estimate their impact. We embed the entire Dolma Instruct corpus. Firstly: we were surprised by how ineffective n-gram decontamination was at catching exact duplicates - 70% of harder tasks had a match. But the spurious performance gain wasn't so large, at most +4pp. Secondly, every single MBPP test example and 78% of CodeForces have semantic duplicates Thirdly we generated 10k synthetic duplicates for MuSR, Zebralogic, and MBPP problems and finetuned on them. - MuSR +22pp. Semantic duplicates as strong as exact - ZebraLogic +12pp. Exact much stronger - MBPP +17pp. Exact stronger Fourthly we guess that 4 in 10,000 training datapoints are a strong semantic duplicate for a given benchmark datapoint (where strong means just \"obvious to Gemini\") So: n-gram decontamination is not enough even for the easy (exact) stuff, semantic duplicates are at least a moderately big deal, and this probably transfers to frontier models to some degree. The above are probably underestimates too (since our detection pipeline was cheapo). Data contamination is a huge field. Here's how we're new This is preliminary work on a shoestring - we didn't get at the big questions yet (\"what share of benchmark gains come from interpolation over a hidden training corpus?\", \"does this even matter?\") And local generalisation across very different strings is anyway pretty miraculous The grand aim of this research programme is to decompose benchmark gains &#x2F; apparent AI progress into 4 estimates: 1. benchmaxxing (memorising exact duplicates) 2. usemaxxing (RLing narrow capabilities) 3. hidden interpolation &#x2F; local generalisation 4. OOD generalisation We have a lot of ideas! If you're interested in funding this, grab me at gavin@arbresearch.com Nearly all of the real work done by Ari Spiesberger, Juan_VaGu, Nicky Pochinkov, Tomas Gavenciak, peligrietzer and NandiSchoots And ofc this work wouldn't be possible without allen_ai and natolambert working in public and enabling actually scientific evals.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:262047",
+   "title": "ThoughtDAG: testing explicit graph context control for local LLMs",
+   "year": "2026",
+   "cited_by": 1,
+   "url": "https://discuss.huggingface.co/t/178739/1",
+   "abstract": "Hi everyone, I am the author of ThoughtDAG, an open-source, local-first workspace built around one testable rule: wires are the context . Each question-and-answer exchange is a node. When a user asks from a node, only its wired upstream nodes are serialized into the next model request. If an edge...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:258801",
+   "title": "AgentSeal: A Corpus-Availability Audit of SWE-bench Pro",
+   "year": "2026",
+   "cited_by": 0,
+   "url": "https://discuss.huggingface.co/t/177267/1",
+   "abstract": "AgentSeal: A Corpus-Availability Audit of SWE-bench Pro SWE-bench Pro was introduced as a harder and more contamination-resistant successor to earlier software-engineering benchmarks. We built AgentSeal v5, a deterministic audit tool, to test one narrow question: Are SWE-bench Pro public instance...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:259002",
+   "title": "Evidence saturation k*: retrieval depth should be calibrated, not guessed",
+   "year": "2026",
+   "cited_by": 1,
+   "url": "https://discuss.huggingface.co/t/177363/1",
+   "abstract": "I ran a small pilot benchmark on evidence depth for LLM calls. The main result is methodological: Correctness-only calibration can be blind. In a dual-instrumented sweep, the same model response was scored on two axes at the same evidence depth k : factual correctness epistemic contamination / fr...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "GH:suanlab/unbox-audit-kit",
+   "title": "suanlab/unbox-audit-kit",
+   "year": "2026",
+   "url": "https://github.com/suanlab/unbox-audit-kit",
+   "cited_by": 0,
+   "abstract": "Audit kit for LLM retrospective assumption recovery \u2014 AACL-IJCNLP 2026. Five factorable controls (no-corpus, wrong-corpus, pair-level precision, \u22652-LLM, multi-seed) that test whether a benchmark measures corpus grounding or pretraining memorization. Topics: aacl2026, benchmark, contamination, evaluation, llm, memorization, nlp, reproducibility",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:AI-Sovereign/agi-gauntlet",
+   "title": "AI-Sovereign/agi-gauntlet",
+   "year": "2026",
+   "url": "https://github.com/AI-Sovereign/agi-gauntlet",
+   "cited_by": 0,
+   "abstract": "Available on PyPI, AGI Gauntlet is a zero-leakage, neuro-symbolic benchmark suite for frontier AI. Using obfuscated, non-web prompt vectors, it bypasses dataset contamination to stress-test true executive reasoning\u2014pushing models past memorized training data to the precise point where their logic collapses. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "W1663583528",
+   "title": "Generalization in Adaptive Data Analysis and Holdout Reuse",
+   "year": 2015,
+   "url": "https://doi.org/10.48550/arxiv.1506.02629",
+   "cited_by": 254,
+   "abstract": "Overfitting is the bane of data analysts, even when data are plentiful. Formal approaches to understanding this problem focus on statistical inference and generalization of individual analysis procedures. Yet the practice of data analysis is an inherently interactive and adaptive process: new analyses and hypotheses are proposed after seeing the results of previous ones, parameters are tuned on the basis of obtained results, and datasets are shared and reused. An investigation of this gap has recently been initiated by the authors in (Dwork et al., 2014), where we focused on the problem of estimating expectations of adaptively chosen functions. In this paper, we give a simple and practical method for reusing a holdout (or testing) set to validate the accuracy of hypotheses produced by a learning algorithm operating on a training set. Reusing a holdout set adaptively multiple times can easily lead to overfitting to the holdout set itself. We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting. We illustrate the advantages of our algorithm over the standard use of the holdout set via a simple synthetic experiment. We also formalize and address the general problem of data reuse in adaptive data analysis. We show how the differential-privacy based approach given in (Dwork et al., 2014) is applicable much more broadly to adaptive data analysis. We then show that a simple approach based on description length can also be used to give guarantees of statistical validity in adaptive settings. Finally, we demonstrate that these incomparable approaches can be unified via the notion of approximate max-information that we introduce.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W2991486856",
+   "title": "A Meta-Analysis of Overfitting in Machine Learning",
+   "year": 2019,
+   "url": "https://openalex.org/W2991486856",
+   "cited_by": 286,
+   "abstract": "We conduct the first large meta-analysis of overfitting due to test set reuse in the machine learning community. Our analysis is based on over one hundred machine learning competitions hosted on the Kaggle platform over the course of several years. In each competition, numerous practitioners repeatedly evaluated their progress against a holdout set that forms the basis of a public ranking available throughout the competition. Performance on a separate test set used only once determined the final ranking. By systematically comparing the public ranking with the final ranking, we assess how much participants adapted to the holdout set over the course of a competition. Our study shows, somewhat surprisingly, little evidence of substantial overfitting. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W2946813150",
+   "title": "The advantages of multiple classes for reducing overfitting from test set reuse",
+   "year": 2019,
+   "url": "https://doi.org/10.48550/arxiv.1905.10360",
+   "cited_by": 23,
+   "abstract": "Excessive reuse of holdout data can lead to overfitting. However, there is little concrete evidence of significant overfitting due to holdout reuse in popular multiclass benchmarks today. Known results show that, in the worst-case, revealing the accuracy of $k$ adaptively chosen classifiers on a data set of size $n$ allows to create a classifier with bias of $\u0398(\\sqrt{k/n})$ for any binary prediction problem. We show a new upper bound of $\\tilde O(\\max\\{\\sqrt{k\\log(n)/(mn)},k/n\\})$ on the worst-case bias that any attack can achieve in a prediction problem with $m$ classes. Moreover, we present an efficient attack that achieve a bias of $\u03a9(\\sqrt{k/(m^2 n)})$ and improves on previous work for the binary setting ($m=2$). We also present an inefficient attack that achieves a bias of $\\tilde\u03a9(k/n)$. Complementing our theoretical work, we give new practical attacks to stress-test multiclass benchmarks by aiming to create as large a bias as possible with a given number of queries. Our experiments show that the additional uncertainty of prediction with a large number of classes indeed mitigates the effect of our best attacks. Our work extends developments in understanding overfitting due to adaptive data analysis to multiclass prediction problems. It also bears out the surprising fact that multiclass prediction problems are significantly more robust to overfitting when reusing a test (or holdout) dataset. This offers an explanation as to why popular multiclass prediction benchmarks, such as ImageNet, may enjoy a longer lifespan than what intuition from literature on binary classification suggests.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W2989932438",
+   "title": "Measuring Generalization and Overfitting in Machine Learning",
+   "year": 2019,
+   "url": "https://openalex.org/W2989932438",
+   "cited_by": 45,
+   "abstract": "Due to the prevalence of machine learning algorithms and the potential for their decisions to profoundly impact billions of human lives, it is crucial that they are robust, reliable, and understandable. This thesis examines key theoretical pillars of machine learning surrounding generalization and overfitting, and tests the extent to which empirical behavior matches existing theory. We develop novel methods for measuring overfitting and generalization, and we characterize how reproducible observed behavior is across differences in optimization algorithm, dataset, task, evaluation metric, and domain.First, we examine how optimization algorithms bias machine learning models towards solutions with varying generalization properties. We show that adaptive gradient methods empirically find solutions with inferior generalization behavior compared to those found by stochastic gradient descent. We then construct an example using a simple overparameterized model that corroborates the algorithms\u2019 empirical behavior on neural networks. Next, we study the extent to which machine learning models have overfit to commonly reused datasets in both academic benchmarks and machine learning competitions. We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution. Surprisingly, despite several years of adaptively selecting the models to perform well on these competitive benchmarks, we find no evidence of overfitting. We then analyze data from the machine learning platform Kaggle and find little evidence of substantial overfitting in ML competitions. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.Overall, our work suggests that the true concern for robust machine learning is distribution shift rather than overfitting, and designing models that still work reliably in dynamic environments is a challenging but necessary undertaking.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W2766605411",
+   "title": "Adaptive Statistical Learning with Bayesian Differential Privacy",
+   "year": 2017,
+   "url": "https://doi.org/10.1145/3139550.3139556",
+   "cited_by": 1,
+   "abstract": "In statistical learning, a dataset is often partitioned into two parts: the training set and the holdout (i.e., testing) set. For instance, the training set is used to learn a predictor, and then the holdout set is used for estimating the accuracy of the predictor on the true distribution. However, often in practice, the holdout dataset is reused and the estimates tested on the holdout dataset are chosen adaptively based on the results of prior estimates, leading to that the predictor may become dependent of the holdout set. Hence, overfitting may occur, and the learned models may not generalize well to the unseen datasets. Prior studies have established connections between the stability of a learning algorithm and its ability to generalize, but the traditional generalization is not robust to adaptive composition. Recently, Dwork et al. in NIPS, STOC, and Science 2015 show that the holdout dataset from i.i.d. data samples can be reused in adaptive statistical learning, if the estimates are perturbed and coordinated using techniques developed for differential privacy, which is a widely used notion to quantify privacy. Yet, the results of Dwork et al. are applicable to only the case of i.i.d. samples. In contrast, correlations between data samples exist because of various behavioral, social, and genetic relationships between users. Our results in adaptive statistical learning generalize the results of Dwork et al. for i.i.d. data samples to arbitrarily correlated data. Specifically, we show that the holdout dataset from correlated samples can be reused in adaptive statistical learning, if the estimates are perturbed and coordinated using techniques developed for Bayesian differential privacy, which is a privacy notion recently introduced by Yang et al. in SIGMOD 2015 to broaden the application scenarios of differential privacy when data records are correlated.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2606.26631v2",
+   "title": "Adaptive Visual KV Cache Reuse for Efficient Multi-Turn Iterative Multimodal Reasoning",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2606.26631v2",
+   "abstract": "Multi-turn visual reasoning acquires evidence through repeated cropping and local inspection, but overlapping observations lead to redundant visual encoding and prefill. We propose an adaptive visual KV cache reuse framework that reduces repeated processing while retaining access to additional image detail. The central difficulty is that skipping visual prefill also removes the interaction between a new observation and the current reasoning: historical keys remain bound to old positions, while historical values have not incorporated the intent formed between crops. Our framework first selects full re-encoding or regional reuse according to crop size and cache availability. On the reuse path, Positional Key Rebinding (PKR) corrects attention matching at the new positions, and Intent-guided Value Enhancement (IVE) uses pre-crop reasoning attention to strengthen content relevant to the current objective. Source states from fully re-encoded crops are retained for subsequent retrieval and reuse. The framework requires no additional training on reuse hits, it bypasses the visual encoder and prefill for the selected visual tokens, then resumes normal text reasoning. Experiments show that our method reduces inference time while preserving the overall accuracy of multi-turn visual reasoning that relies on intermediate crop images.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1809.05596v1",
+   "title": "The Generic Holdout: Preventing False-Discoveries in Adaptive Data Science",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1809.05596v1",
+   "abstract": "Adaptive data analysis has posed a challenge to science due to its ability to generate false hypotheses on moderately large data sets. In general, with non-adaptive data analyses (where queries to the data are generated without being influenced by answers to previous queries) a data set containing $n$ samples may support exponentially many queries in $n$. This number reduces to linearly many under naive adaptive data analysis, and even sophisticated remedies such as the Reusable Holdout (Dwork et. al 2015) only allow quadratically many queries in $n$. In this work, we propose a new framework for adaptive science which exponentially improves on this number of queries under a restricted yet scientifically relevant setting, where the goal of the scientist is to find a single (or a few) true hypotheses about the universe based on the samples. Such a setting may describe the search for predictive factors of some disease based on medical data, where the analyst may wish to try a number of predictive models until a satisfactory one is found. Our solution, the Generic Holdout, involves two simple ingredients: (1) a partitioning of the data into a exploration set and a holdout set and (2) a limited exposure strategy for the holdout set. An analyst is free to use the exploration set arbitrarily, but when testing hypotheses against the holdout set, the analyst only learns the answer to the question: \"Is the given hypothesis true (empirically) on the holdout set?\" -- and no more information, such as \"how well\" the hypothesis fits the holdout set. The resulting scheme is immediate to analyze, but despite its simplicity we do not believe our method is obvious, as evidenced by the many violations in practice. Our proposal can be seen as an alternative to pre-registration, and allows researchers to get the benefits of adaptive data analysis without the problems of adaptivity.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1803.08150v3",
+   "title": "Generic Zero-Cost Reuse for Dependent Types",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1803.08150v3",
+   "abstract": "Dependently typed languages are well known for having a problem with code reuse. Traditional non-indexed algebraic datatypes (e.g. lists) appear alongside a plethora of indexed variations (e.g. vectors). Functions are often rewritten for both non-indexed and indexed versions of essentially the same datatype, which is a source of code duplication. We work in a Curry-style dependent type theory, where the same untyped term may be classified as both the non-indexed and indexed versions of a datatype. Many solutions have been proposed for the problem of dependently typed reuse, but we exploit Curry-style type theory in our solution to not only reuse data and programs, but do so at zero-cost (without a runtime penalty). Our work is an exercise in dependently typed generic programming, and internalizes the process of zero-cost reuse as the identity function in a Curry-style theory.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2512.14523v1",
+   "title": "Interfacing adaptive optics simulations with the optical model: a powerful tool for MORFEO",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2512.14523v1",
+   "abstract": "In the framework of the MORFEO project, the Multi-Conjugated Adaptive Optics (MCAO) module for the European Extremely Large Telescope (ELT), we developed an integrated modeling tool to interface the optical model with the adaptive optics simulations, called ASSO (Adaptive opticS Simulation interfaced with Optical model). This tool is our asso nella manica (ace in the hole) to predict the performances of the AO relay, i.e., to estimate the wavefront error within the technical and scientific fields of view after AO correction. The tool is based on the IDL based simulator PyrAmid Simulator Software for Adaptive opTics Arcetri (PASSATA), on Zemax OpticStudio for the optical modelling, and on Matlab as interface software.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2004.14444",
+   "title": "The Effect of Natural Distribution Shift on Question Answering Models",
+   "year": "2020",
+   "url": "https://huggingface.co/papers/2004.14444",
+   "cited_by": 0,
+   "abstract": "We build four new test sets for the Stanford Question Answering Dataset (SQuAD) and evaluate the ability of question-answering systems to generalize to new data. Our first test set is from the original Wikipedia domain and measures the extent to which existing systems overfit the original test set. Despite several years of heavy test set re-use, we find no evidence of adaptive overfitting. The remaining three test sets are constructed from New York Times articles, Reddit posts, and Amazon product reviews and measure robustness to natural distribution shifts. Across a broad range of models, we observe average performance drops of 3.8, 14.0, and 17.4 F1 points, respectively. In contrast, a strong human baseline matches or exceeds the performance of SQuAD models on the original domain and exhibits little to no drop in new domains. Taken together, our results confirm the surprising resilience of the holdout method and emphasize the need to move towards evaluation metrics that incorporate robustness to natural distribution shifts.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2603.26316",
+   "title": "SALMUBench: A Benchmark for Sensitive Association-Level Multimodal Unlearning",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2603.26316",
+   "cited_by": 2,
+   "abstract": "As multimodal models like CLIP become integral to downstream systems, the need to remove sensitive information is critical. However, machine unlearning for contrastively-trained encoders remains underexplored, and existing evaluations fail to diagnose fine-grained, association-level forgetting. We introduce SALMUBench (Sensitive Association-Level Multimodal Unlearning), a benchmark built upon a synthetic dataset of 60K persona-attribute associations and two foundational models: a Compromised model polluted with this data, and a Clean model without it. To isolate unlearning effects, both are trained from scratch on the same 400M-pair retain base, with the Compromised model additionally trained on the sensitive set. We propose a novel evaluation protocol with structured holdout sets (holdout identity, holdout association) to precisely measure unlearning efficacy and collateral damage. Our benchmark reveals that while utility-efficient deletion is feasible, current methods exhibit distinct failure modes: they either fail to forget effectively or over-generalize by erasing more than intended. SALMUBench sets a new standard for comprehensive unlearning evaluation, and we publicly release our dataset, models, evaluation scripts, and leaderboards to foster future research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2610.22466",
+   "title": "Harness-Delta Attribution: Dissecting Gains From Harness Evolution",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2610.22466",
+   "cited_by": 5,
+   "abstract": "Harness evolution automatically optimizes the prompts, skills, tools, and orchestration code around a fixed-weight model, offering a way to improve agentic systems without updating model weights. The agent harness is iteratively optimized to achieve higher performance on the search set. But how much of this gain reflects benchmark-specific overfitting or additional inference-time compute, and how much may generalize beyond the search set? In this work, we introduce Harness-Delta Attribution (HDA), an evaluation protocol that dissects an evolution gain into artifact-driven overfitting, gains explained by test-time scaling, and the remainder, which gives an upper bound on residual generalizable improvement. We apply HDA to 11 executor models and three harness-evolution frameworks across math, coding, creativity, and agentic tasks. In 21 of these settings that show statistically significant search-set gains, we find that a large share of the improvement is explained by overfitting or test-time scaling. Specifically, among these 21 settings, overfitting and test-time scaling account for 54% and 14% of the gain on average; their combined share exceeds 50% in 14 settings. The residual and held-out transfer vary substantially across tasks, models, and frameworks. Importantly, search-set gains often fail to transfer to held-out tasks, and provide limited evidence that they will persist under practical distribution shifts. Moreover, validation-based signals are insufficient to prevent overfitting. These results motivate attribution-aware evaluation in future harness evolution research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2410.09247",
+   "title": "Benchmark Inflation: Revealing LLM Performance Gaps Using Retro-Holdouts",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2410.09247",
+   "cited_by": 1,
+   "abstract": "The training data for many Large Language Models (LLMs) is contaminated with test data. This means that public benchmarks used to assess LLMs are compromised, suggesting a performance gap between benchmark scores and actual capabilities. Ideally, a private holdout set could be used to accurately verify scores. Unfortunately, such datasets do not exist for most benchmarks, and post-hoc construction of sufficiently similar datasets is non-trivial. To address these issues, we introduce a systematic methodology for (i) retrospectively constructing a holdout dataset for a target dataset, (ii) demonstrating the statistical indistinguishability of this retro-holdout dataset, and (iii) comparing LLMs on the two datasets to quantify the performance gap due to the dataset's public availability. Applying these methods to TruthfulQA, we construct and release Retro-Misconceptions, on which we evaluate twenty LLMs and find that some have inflated scores by as much as 16 percentage points. Our results demonstrate that public benchmark scores do not always accurately assess model properties, and underscore the importance of improved data practices in the field.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2404.09610",
+   "title": "LoRA Dropout as a Sparsity Regularizer for Overfitting Control",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2404.09610",
+   "cited_by": 0,
+   "abstract": "Parameter-efficient fine-tuning methods, represented by LoRA, play an essential role in adapting large-scale pre-trained models to downstream tasks. However, fine-tuning LoRA-series models also faces the risk of overfitting on the training dataset, and yet there's still a lack of theoretical guidance and practical mechanism to control overfitting on LoRA-based PEFT methods. In this paper, we propose a LoRA Dropout mechanism for the LoRA-based methods by introducing random noises to the learnable low-rank matrices and increasing parameter sparsity. We then demonstrate the theoretical mechanism of our LoRA Dropout mechanism from the perspective of sparsity regularization by providing a generalization error bound under this framework. Theoretical results show that appropriate sparsity would help tighten the gap between empirical and generalization risks and thereby control overfitting. Furthermore, based on the LoRA Dropout framework, we introduce a test-time ensemble strategy and provide theoretical evidence demonstrating that the ensemble method can further compress the error bound, and lead to better performance during inference time. Extensive experiments on various NLP tasks provide practical validations of the effectiveness of our LoRA Dropout framework in improving model accuracy and calibration.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:416612",
+   "title": "Cross-validation (statistics)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=416612",
+   "abstract": "Cross-validation, sometimes called rotation estimation or out-of-sample testing, is any of various similar model validation techniques for assessing how the results of a statistical analysis will generalize to an independent data set. Cross-validation includes resampling and sample splitting methods that use different portions of the data to test and train a model on different iterations. It is often used in settings where the goal is prediction, and one wants to estimate how accurately a predictive model will perform in practice. It can also be used to assess the quality of a fitted model and the stability of its parameters. In a prediction problem, a model is usually given a dataset of known data on which training is run (training dataset), and a dataset of unknown data (or first seen data) against which the model is tested (called the validation dataset or testing set). The goal of cross-validation is to test the model's ability to predict new data that was not used in estimating it, in order to flag problems like overfitting or selection bias and to give an insight on how the model will generalize to an independent dataset (i.e., an unknown dataset, for instance from a real problem). One round of cross-validation involves partitioning a sample of data into complementary subsets, performing the analysis on one subset (called the training set), and validating the analysis on the other subset (called the validation set or testing set). To reduce variability, in most methods multiple rounds of cross-validation are performed using different partitions, and the validation results are combined (e.g. averaged) over the rounds to give an estimate of the model's predictive performance. In summary, cross-validation combines (averages) measures of fitness in prediction to derive a more accurate estimate of model prediction performance.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:213214",
+   "title": "Early stopping",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=213214",
+   "abstract": "In machine learning, early stopping is a form of regularization used to avoid overfitting when training a model with an iterative method, such as gradient descent. Such methods update the model to make it better fit the training data with each iteration. Up to a point, this improves the model's performance on data outside of the training set (e.g., the validation set). Past that point, however, improving the model's fit to the training data comes at the expense of increased generalization error. Early stopping rules provide guidance as to how many iterations can be run before the learner begins to over-fit. Early stopping rules have been employed in many different machine learning methods, with varying amounts of theoretical foundation.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:233488",
+   "title": "Machine learning",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=233488",
+   "abstract": "Machine learning (ML) is a field of study in artificial intelligence concerned with the development and study of statistical algorithms that can learn from data and generalize to unseen data, and thus perform tasks without being explicitly programmed. Statistics and mathematical optimisation methods compose the foundations of machine learning. Data mining is a related field of study, focusing on exploratory data analysis (EDA) through unsupervised learning. From a theoretical viewpoint, probably approximately correct learning provides a mathematical and statistical framework for describing machine learning. Most traditional machine learning and deep learning algorithms can be described as empirical risk minimisation under this framework. Advances in the field of deep learning have allowed neural networks, a class of statistical algorithms, to surpass many previous machine learning approaches in performance. The resulting dominance of machine learning within the field of AI from the late 2000s and early 2010s onwards was such that the terms \"machine learning\" and \"artificial intelligence\" are now often used interchangeably, even though they are not synonymous.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:stats:655064:655068",
+   "title": "How to Hyperparameter Tune without sample Bias?",
+   "year": 2024,
+   "cited_by": 3,
+   "url": "https://stats.stackexchange.com/q/655064",
+   "abstract": "The purpose of the resampling techniques with holdout method you mentioned are estimating hyper-parameters, i.e., capturing its variation over different splits, along with the generalised performance [1]. Even though, holdout reuse is criticised as \"holdout overfitting\", recent works shown the resilience of holdout method in repeated procedures [2]. [1] Xu, Y., Goodacre, R. On Splitting Training and Validation Set: A Comparative Study of Cross-Validation, Bootstrap and Systematic Sampling for Estimating the Generalization Performance of Supervised Learning. J. Anal. Test. 2, 249\u2013262 (2018). doi [2] Generalization in Adaptive Data Analysis and Holdout Reuse, Dwork et. al. arXiv",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stats:223188:241710",
+   "title": "Has the journal Science endorsed the Garden of Forking Pathes Analyses?",
+   "year": 2016,
+   "cited_by": 4,
+   "url": "https://stats.stackexchange.com/q/223188",
+   "abstract": "The claim that adding noise helps prevent overfitting really does hold water here, since what they are really doing is limiting how the holdout is reused. Their method actually does two things: it limits the number of questions that can be asked of the holdout, and how much of each of the answers reveals about the holdout data. It might help to understand what the benchmarks are: one on hand, you can just insist that the holdout be used only once. That has clear drawbacks. On the other hand, if you want to be able to use the holdout $k$ times, you could chop it into $k$ disjoint pieces, and use each piece once. The problem with that method is that it loses a lot of power (if you had $n$ data points in your holdout sample to begin with, you are now getting the statistical power of only $n/k$ samples). The Dwork et al paper gives a method which, even with adversarially posed questions, gives you an effective sample size of about $n/\\sqrt{k}$ for each of the $k$ questions you ask. Furthermore, they can do better if the questions are \"not too nasty\" (in a sense that is a bit hard to pin down, so let&#39;s ignore that for now). The heart of their method is a relationship between algorithmic stability and overfitting, which dates back to the late 1970&#39;s (Devroye and Wagner 1978). Roughly, it says \"Let $A$ be an algorithm that takes a data set $X$ as input and outputs the description of a predicate $q=A(X)$. If $A$ is \"stable\" and $X$ is drawn i.i.d from a population $P$, then the empirical frequency of $q$ in $x$ is about the same as the frequency of $q$ in the population $P$.\" Dwork et al. suggest using a notion of stability that controls how the distribution of answers changes as the data set changes (called differential privacy). It has the useful property that if $A(\\cdot)$ is differentially private, then so is $f(A(\\cdot))$, for any function $f$. In other words, for the stability analysis to go through, the predicate $q$ doesn&#39;t have to be the output of $A$ --- any predicate that is derived from $A$&#39;s output will also enjoy the same type of guarantee. There are now quite a few papers analyzing how different noise addition procedures control overfitting. A relatively readable one is that of Russo and Zou (https://arxiv.org/abs/1511.05219). Some more recent follow-up papers on the initial work of Dwork et al. might also be helpful to look at. (Disclaimer: I have two papers on the topic, the more recent one explaining a connection to adaptive hypothesis testing: https://arxiv.org/abs/1604.03924.) Hope that all helps.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:260731",
+   "title": "Agent-ProSAT for CoT via verifiable programmatic solver coding for CoT synthesis - Feedback Appreciated!",
+   "year": "2026",
+   "cited_by": 0,
+   "url": "https://discuss.huggingface.co/t/177992/4",
+   "abstract": "Hmm. For now, based on the limited checks I was able to run on my side, I think it looks something like this: Short answer Yes, your summary of the separation is what I had in mind: the structured ExecutionWitness is the canonical audit record; the renderer is a separate, non-agentic component; t...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "W4402552759",
+   "title": "In Search of Lost Online Test-Time Adaptation: A Survey",
+   "year": 2024,
+   "url": "https://doi.org/10.1007/s11263-024-02213-5",
+   "cited_by": 96,
+   "abstract": "Abstract This article presents a comprehensive survey of online test-time adaptation (OTTA), focusing on effectively adapting machine learning models to distributionally different target data upon batch arrival. Despite the recent proliferation of OTTA methods, conclusions from previous studies are inconsistent due to ambiguous settings, outdated backbones, and inconsistent hyperparameter tuning, which obscure core challenges and hinder reproducibility. To enhance clarity and enable rigorous comparison, we classify OTTA techniques into three primary categories and benchmark them using a modern backbone, the Vision Transformer. Our benchmarks cover conventional corrupted datasets such as CIFAR-10/100-C and ImageNet-C, as well as real-world shifts represented by CIFAR-10.1, OfficeHome, and CIFAR-10-Warehouse. The CIFAR-10-Warehouse dataset includes a variety of variations from different search engines and synthesized data generated through diffusion models. To measure efficiency in online scenarios, we introduce novel evaluation metrics, including GFLOPs, wall clock time, and GPU memory usage, providing a clearer picture of the trade-offs between adaptation accuracy and computational overhead. Our findings diverge from existing literature, revealing that (1) transformers demonstrate heightened resilience to diverse domain shifts, (2) the efficacy of many OTTA methods relies on large batch sizes, and (3) stability in optimization and resistance to perturbations are crucial during adaptation, particularly when the batch size is 1. Based on these insights, we highlight promising directions for future research. Our benchmarking toolkit and source code are available at https://github.com/Jo-wang/OTTA_ViT_survey .",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7167893019",
+   "title": "Continual Test-Time Adaptation in Computer Vision: Methods, Benchmarks, and Future Directions",
+   "year": 2026,
+   "url": "https://doi.org/10.48550/arxiv.2607.08164",
+   "cited_by": 0,
+   "abstract": "Deep neural nets achieve remarkable performance when training and test data share the same distribution, but this assumption frequently breaks in real-world deployment, where data undergoes continual distributional shifts. Continual Test-Time Adaptation (CTTA) addresses this challenge by adapting pretrained models to non-stationary target distributions on-the-fly, without access to source data or labeled targets, while mitigating two critical failure modes: catastrophic forgetting of source knowledge and error accumulation from noisy pseudo-labels over extended time horizons. In this comprehensive survey, we formally define the CTTA problem, analyze the diverse continual domain shift patterns that characterize different evaluation protocols, and propose a hierarchical taxonomy that categorizes existing methods into three families: optimization-based strategies (entropy minimization, pseudo-labeling, parameter restoration), parameter-efficient methods (normalization layer adaptation, adaptive parameter selection), and architecture-based approaches (teacher-student frameworks, adapters, visual prompting, masked modeling). We systematically review representative methods within each category and present comparative benchmarks and experimental results across standard evaluation settings. Finally, we discuss the limitations of current approaches and highlight emerging research directions, including the adaptation of foundation models and black-box systems, thereby providing a roadmap for future research in robust continual test-time adaptation.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4393148875",
+   "title": "Frequency Shuffling and Enhancement for Open Set Recognition",
+   "year": 2024,
+   "url": "https://doi.org/10.1609/aaai.v38i4.28157",
+   "cited_by": 10,
+   "abstract": "Open-Set Recognition (OSR) aims to accurately identify known classes while effectively rejecting unknown classes to guarantee reliability. Most existing OSR methods focus on learning in the spatial domain, where subtle texture and global structure are potentially intertwined. Empirical studies have shown that DNNs trained in the original spatial domain are inclined to over-perceive subtle texture. The biased semantic perception could lead to catastrophic over-confidence when predicting both known and unknown classes. To this end, we propose an innovative approach by decomposing the spatial domain to the frequency domain to separately consider global (low-frequency) and subtle (high-frequency) information, named Frequency Shuffling and Enhancement (FreSH). To alleviate the overfitting of subtle texture, we introduce the High-Frequency Shuffling (HFS) strategy that generates diverse high-frequency information and promotes the capture of low-frequency invariance. Moreover, to enhance the perception of global structure, we propose the Low-Frequency Residual (LFR) learning procedure that constructs a composite feature space, integrating low-frequency and original spatial features. Experiments on various benchmarks demonstrate that the proposed FreSH consistently trumps the state-of-the-arts by a considerable margin.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7204084302",
+   "title": "When does fusing hand-crafted knowledge with learned representations pay? A cost-normalized benchmark of stacking, substitution, and interference",
+   "year": 2026,
+   "url": "https://doi.org/10.48550/arxiv.2608.21098",
+   "cited_by": 0,
+   "abstract": "Fusing prior knowledge with data-driven learning is attractive where data is scarce, yet no controlled account says when it helps, is redundant, or harms. We benchmark one fixed hand-crafted knowledge source, a pinned bank of Gabor targets injected only during training at $\\sim$2\\% overhead, against data-driven alternatives (SimCLR, SimSiam, DINO, ImageNet transfer, augmentation, learned teachers) under one frozen recipe with fixed subsets: 13 datasets, 9 backbones, 150 to 1.28M images, 32--224\\,px, 2.5M--86M parameters ($\\computeCells$ classification configurations over $\\computeRuns$ runs, plus segmentation and detection transplants). Across the training-time combinations we measure, three outcomes recur (decision-level fusion differs). Different-\\emph{currency} sources can stack: the prior composes with DeiT augmentation on attention backbones and is worth $+26$ points to ViT-B/16 at $224$\\,px, $+6.7$ at twice that budget. Same-currency sources substitute: against effective self-supervised pretraining, the combination never usefully exceeds the better single source. Fusing at full strength into an already-informed initialization interferes in proportion to what it carries: ImageNet transfer, $-15$ to $-17$ points, removed by a weaker auxiliary weight. Frozen-feature diagnostics measured on each source alone separate these outcomes retrospectively but do not predict them: a rule built on them calls one of nine unseen pairs. At a practitioner's own label budget, the frozen-feature gain predicts the end-to-end gain to within $0.17$ points across 30 cells and seven datasets; the underlying decomposition, $\u0394= G + \\readout(\\mathrm{base})$, holds in sign on $\\auditRate\\%$ of testable cells and is called an unseen backbone family's feature gain in advance. The project page is https://amughrabi.github.io/MomentAux.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7139070169",
+   "title": "Continual Test-Time Adaptation: A Comprehensive Survey",
+   "year": 2026,
+   "url": "https://doi.org/10.20944/preprints202603.1578.v1",
+   "cited_by": 5,
+   "abstract": "Deep neural networks achieve remarkable performance when training and test data share the same distribution, but this assumption often fails in real-world scenarios where data experiences continual distributional shifts. Continual Test-Time Adaptation (CTTA) tackles this challenge by adapting pretrained models to non-stationary target distributions on-the-fly, without access to source data or labeled targets, while addressing two critical failure modes: catastrophic forgetting of source knowledge and error accumulation from noisy pseudo-labels over time. In this comprehensive survey, we formally define the CTTA problem, analyze the diverse continual domain shift patterns that arise under different evaluation protocols, and propose a hierarchical taxonomy categorizing existing methods into three families: optimization-based strategies (entropy minimization, pseudo-labeling, parameter restoration), parameter-efficient methods (normalization layer adaptation, adaptive parameter selection), and architecture-based approaches (teacher-student frameworks, adapters, visual prompting, masked modeling). We systematically review representative methods in each category and provide comparative benchmarks and experimental results across standard evaluation settings. Finally, we discuss the limitations of current approaches and highlight emerging research directions, including adaptation of foundation models and black-box systems, offering a roadmap for future work in robust continual test-time adaptation, with further resources available at https://github.com/sarthaxxxxx/Awesome-Continual-Test-Time-Adaptation.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4413116079",
+   "title": "Image classification optimization technology based on differentiable neural architecture search improvement model",
+   "year": 2025,
+   "url": "https://doi.org/10.1371/journal.pone.0329480",
+   "cited_by": 0,
+   "abstract": "Image classification, as the core task of computer vision, has broad application value in fields such as medical diagnosis and intelligent transportation.However, the ability of differentiable neural architecture to search (NAS) for local information is weak, which limits the accuracy and long-distance information capture capability of the algorithm. Therefore, based on this, the study introduces visual attention mechanism and proposes an improved model that replaces the original convolution operator and adds residual structure in the macro structure to enhance the model's information acquisition ability and classification accuracy. The research results show that after 600 rounds of training on the CIFAR-10 dataset, the final accuracy of the improved model reached 97.2%. The runtime memory usage on the CIFAR-100 dataset is only 44.52%, a decrease of 44.56% compared to the baseline model. In the testing on the ImageNet dataset, the classification accuracy of the research model is 94.01, the search parameter required is only 4.8MB, the search time is shortened to 0.5d, and the minimum number of floating-point operations is 3.7G, significantly better than other mainstream algorithms. The above results indicate that the research method can effectively solve the shortcomings of traditional differentiable neural architecture search in local and remote information acquisition capabilities, providing important technical support for improving the accuracy and efficiency of image classification technology.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2608.09622v1",
+   "title": "Adaptive Sequential Test Planning for Multi-Mechanism Reliability Qualification via Bayesian Monte Carlo Tree Search",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2608.09622v1",
+   "abstract": "Reliability qualification of advanced semiconductor devices requires sequential stress decisions that balance characterization objectives against multiple competing failure mechanisms. Current practice relies on static test plans derived from population-level acceleration models, which cannot adapt to per-unit variability or real-time degradation observations. This paper presents a closed-loop adaptive test planning framework that formulates reliability qualification as a partially observable sequential decision problem and solves it using Monte Carlo tree search for seed-action simulators (MCTS-SA) coupled with extended Kalman filter (EKF) belief-state estimation. The framework models stochastic, per-device variability in bias temperature instability (BTI), electromigration (EM), and time-dependent dielectric breakdown (TDDB), and treats stress selection as a constrained sequential optimization, i.e., to maximize the probability of successful degradation characterization while respecting catastrophic failure constraints. Under the experimental assumptions used here (discrete stress actions, proxy damage observability, and cumulative degradation without recovery), we believe this to be a novel application of tree-search-based adaptive test planning to multi-mechanism reliability qualification. Across 5,000 planning iterations, the characterization yield (CY) improves from 20% in the first 500 iterations to over 54% in the final 500, with 39% cumulative success, while the best successful test sequence terminates with EM and TDDB damage fractions DEM=0.564 and DTDDB=0.537, well within safety margins. These results demonstrate that sequential Bayesian planning can synthesize damage-aware test policies that significantly outperform non-adaptive strategies for reliability qualification under competing failure modes.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1605.01097v1",
+   "title": "Reliability Testing Strategy - Reliability in Software Engineering",
+   "year": "2016",
+   "url": "http://arxiv.org/abs/1605.01097v1",
+   "abstract": "This paper presents the core principles of reliability in software engineering - outlining why reliability testing is critical and specifying the process of measuring reliability. The paper provides insight for both novice and experts in the software engineering field for assessing failure intensity as well as predicting failure of software systems. Measurements are conducted by utilizing information from an operational profile to further enhance a test plan and test cases, all of which this paper demonstrates how to implement.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2410.10159v1",
+   "title": "Supply Chain Optimization Strategies: An Empirical Study on Fresh Product Delivery Routes",
+   "year": "2024",
+   "url": "http://arxiv.org/abs/2410.10159v1",
+   "abstract": "In recent years, with rising consumer demand, fresh products have gained increasing attention, leading to rapid growth in the fresh food market. However, due to their perishable nature and sensitivity to storage conditions, fresh products are vulnerable to damage during transportation. Improper handling, excessive transit times, and physical impacts can result in significant losses. As a result, enhancing the efficiency of fresh product distribution while maintaining quality has become critical to the further development of the fresh food industry. Using Y chain supermarket as a case study, this paper investigates the logistics of fresh product distribution, identifying current challenges and inefficiencies. Through literature review, expert interviews, and comparative analysis, the study offers strategic recommendations for optimizing fresh product delivery routes to improve distribution efficiency and product quality.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2609.00879v1",
+   "title": "Towards reliable multimodal disaster severity assessment through preference optimization and explainable vision-language reasoning",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2609.00879v1",
+   "abstract": "Reliable disaster damage assessment requires models that provide both accurate predictions and transparent explanations. However, existing multimodal approaches are limited by scarce annotated data and insufficient evaluation of reasoning quality. This study proposes a two-stage training framework that integrates Supervised Fine-Tuning (SFT) and Direct Preference Optimization (DPO) within a unified data construction pipeline. From a single Human-in-the-Loop (HITL) annotation workflow, two complementary datasets are derived, namely ReasoningSet, which contains validated rationales for SFT, and PreferenceSet, which comprises paired rationales for DPO-based alignment. The framework evaluates both classification performance and explanation quality using automatic metrics, model-based scoring, and human ranking. Experimental results show that SFT improves accuracy from 73.64% to 78.29% and increases Macro-F1 by 29% compared to the baseline, while explanation quality improves by approximately 25%. Subsequent DPO alignment further enhances interpretability on the PreferenceSet. Cross-model validation on InternVL-3-8B and LLaVA-1.5-7B demonstrates the robustness and generalizability of the approach. The proposed framework improves detection of underrepresented mild damage cases, reduces high-risk misclassifications, and strengthens alignment between model reasoning and human judgment. Overall, it provides a reproducible pathway to develop reliable multimodal systems that deliver auditable, actionable disaster insights for emergency management.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2510.22224v1",
+   "title": "Taming Silent Failures: A Framework for Verifiable AI Reliability",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2510.22224v1",
+   "abstract": "The integration of Artificial Intelligence (AI) into safety-critical systems introduces a new reliability paradigm: silent failures, where AI produces confident but incorrect outputs that can be dangerous. This paper introduces the Formal Assurance and Monitoring Environment (FAME), a novel framework that confronts this challenge. FAME synergizes the mathematical rigor of offline formal synthesis with the vigilance of online runtime monitoring to create a verifiable safety net around opaque AI components. We demonstrate its efficacy in an autonomous vehicle perception system, where FAME successfully detected 93.5% of critical safety violations that were otherwise silent. By contextualizing our framework within the ISO 26262 and ISO/PAS 8800 standards, we provide reliability engineers with a practical, certifiable pathway for deploying trustworthy AI. FAME represents a crucial shift from accepting probabilistic performance to enforcing provable safety in next-generation systems.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2310.10232v2",
+   "title": "Efficient seismic reliability and fragility analysis of lifeline networks using subset simulation",
+   "year": "2023",
+   "url": "http://arxiv.org/abs/2310.10232v2",
+   "abstract": "Various simulation-based and analytical methods have been developed to evaluate the seismic fragilities of individual structures. However, the seismic safety and resilience of a community are substantially affected by network reliability, determined not only by component fragilities but also by network topology and commodity/information flows. Seismic reliability analyses of networks often encounter significant computational challenges due to complex network topologies, interdependencies among ground motions, and low failure probabilities. This paper proposes a variance-reduction method for network fragility analysis using subset simulation to overcome these challenges. The binary network limit-state function is reformulated into more informative piecewise continuous functions. The proposed limit-state functions quantify the proximity of each sample to the network failure domain, thereby enabling the construction of specialized intermediate failure events, which can be utilized in subset simulation and other sequential Monte Carlo approaches. Moreover, by identifying an implicit relationship between intermediate failure events and seismic intensity, we propose a technique to obtain the entire network fragility curve with a single execution of specialized subset simulation. Numerical examples demonstrate that the proposed method can effectively evaluate system-level fragility for large-scale networks.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:1902.10811",
+   "title": "Do ImageNet Classifiers Generalize to ImageNet?",
+   "year": "2019",
+   "url": "https://huggingface.co/papers/1902.10811",
+   "cited_by": 1,
+   "abstract": "We build new test sets for the CIFAR-10 and ImageNet datasets. Both benchmarks have been the focus of intense research for almost a decade, raising the danger of overfitting to excessively re-used test sets. By closely following the original dataset creation processes, we test to what extent current classification models generalize to new data. We evaluate a broad range of models and find accuracy drops of 3% - 15% on CIFAR-10 and 11% - 14% on ImageNet. However, accuracy gains on the original test sets translate to larger gains on the new test sets. Our results suggest that the accuracy drops are not caused by adaptivity, but by the models' inability to generalize to slightly \"harder\" images than those found in the original test sets.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2605.25997",
+   "title": "Deployment-complete benchmarking",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2605.25997",
+   "cited_by": 1,
+   "abstract": "Benchmarks increasingly guide deployment, procurement and scientific screening, yet a score supports only the response it records, not necessarily the deployment action. We introduce deployment-complete benchmarking, which tests whether benchmark evidence determines a deployment action. A benchmark is complete for a claim exactly when the action is constant on each evidence fiber; mixed fibers expose missing deployment information, and completion curves quantify the evidence required to resolve ambiguity. In controlled response spaces, benchmark-channel conformal coverage of 94.98% transferred poorly to an unmeasured deployment channel (10.07%), whereas response-rank intervals achieved 94.91% coverage; even zero benchmark error certified only 45.4% of candidates at the largest residual size. Public audits revealed incompleteness, including 97.9% mixed Tox21 fibers and zero median certifiable fraction in main Matbench and JARVIS audits. In held-out replays, certify-then-acquire reduced false decisions from 1.19% to 0.027% in Tox21 and from 20.3% to 0.128% in JARVIS, while changing model choice and identifying deployment-relevant probes. Deployment-ready benchmarks should report evidence, supported actions, ambiguity and completion cost rather than scores alone.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2404.00498",
+   "title": "94% on CIFAR-10 in 3.29 Seconds on a Single GPU",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2404.00498",
+   "cited_by": 0,
+   "abstract": "CIFAR-10 is among the most widely used datasets in machine learning, facilitating thousands of research projects per year. To accelerate research and reduce the cost of experiments, we introduce training methods for CIFAR-10 which reach 94% accuracy in 3.29 seconds, 95% in 10.4 seconds, and 96% in 46.3 seconds, when run on a single NVIDIA A100 GPU. As one factor contributing to these training speeds, we propose a derandomized variant of horizontal flipping augmentation, which we show improves over the standard method in every case where flipping is beneficial over no flipping at all. Our code is released at https://github.com/KellerJordan/cifar10-airbench.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2306.12100",
+   "title": "Efficient ResNets: Residual Network Design",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2306.12100",
+   "cited_by": 0,
+   "abstract": "ResNets (or Residual Networks) are one of the most commonly used models for image classification tasks. In this project, we design and train a modified ResNet model for CIFAR-10 image classification. In particular, we aimed at maximizing the test accuracy on the CIFAR-10 benchmark while keeping the size of our ResNet model under the specified fixed budget of 5 million trainable parameters. Model size, typically measured as the number of trainable parameters, is important when models need to be stored on devices with limited storage capacity (e.g. IoT/edge devices). In this article, we present our residual network design which has less than 5 million parameters. We show that our ResNet achieves a test accuracy of 96.04% on CIFAR-10 which is much higher than ResNet18 (which has greater than 11 million trainable parameters) when equipped with a number of training strategies and suitable ResNet hyperparameters. Models and code are available at https://github.com/Nikunj-Gupta/Efficient_ResNets.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2511.19794",
+   "title": "When +1% Is Not Enough: A Paired Bootstrap Protocol for Evaluating Small Improvements",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2511.19794",
+   "cited_by": 0,
+   "abstract": "Recent machine learning papers often report 1-2 percentage point improvements from a single run on a benchmark. These gains are highly sensitive to random seeds, data ordering, and implementation details, yet are rarely accompanied by uncertainty estimates or significance tests. It is therefore unclear when a reported +1-2% reflects a real algorithmic advance versus noise. We revisit this problem under realistic compute budgets, where only a few runs are affordable. We propose a simple, PC-friendly evaluation protocol based on paired multi-seed runs, bias-corrected and accelerated (BCa) bootstrap confidence intervals, and a sign-flip permutation test on per-seed deltas. The protocol is intentionally conservative and is meant as a guardrail against over-claiming. We instantiate it on CIFAR-10, CIFAR-10N, and AG News using synthetic no-improvement, small-gain, and medium-gain scenarios. Single runs and unpaired t-tests often suggest significant gains for 0.6-2.0 point improvements, especially on text. With only three seeds, our paired protocol never declares significance in these settings. We argue that such conservative evaluation is a safer default for small gains under tight budgets.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2509.26468",
+   "title": "fev-bench: A Realistic Benchmark for Time Series Forecasting",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2509.26468",
+   "cited_by": 5,
+   "abstract": "Benchmark quality is critical for meaningful evaluation and sustained progress in time series forecasting, particularly given the recent rise of pretrained models. Existing benchmarks often have narrow domain coverage or overlook important real-world settings, such as tasks with covariates. Additionally, their aggregation procedures often lack statistical rigor, making it unclear whether observed performance differences reflect true improvements or random variation. Many benchmarks also fail to provide infrastructure for consistent evaluation or are too rigid to integrate into existing pipelines. To address these gaps, we propose fev-bench, a benchmark comprising 100 forecasting tasks across seven domains, including 46 tasks with covariates. Supporting the benchmark, we introduce fev, a lightweight Python library for benchmarking forecasting models that emphasizes reproducibility and seamless integration with existing workflows. Usingfev, fev-bench employs principled aggregation methods with bootstrapped confidence intervals to report model performance along two complementary dimensions: win rates and skill scores. We report results on fev-bench for various pretrained, statistical and baseline models, and identify promising directions for future research.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:82973296",
+   "title": "Outline of deep learning",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=82973296",
+   "abstract": "The following outline is provided as an overview of, and topical guide to, deep learning: Deep learning is a subfield of machine learning and artificial intelligence based on artificial neural networks with multiple processing layers. It emphasizes representation learning and is widely used in areas such as computer vision, natural language processing, speech recognition, recommender systems, robotics, and generative artificial intelligence.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:datascience:120189:",
+   "title": "How to use CIFAR 10 Vs. CIFAR 100 for Out-Of-Distribution (OOD) performance evaluation?",
+   "year": 2023,
+   "cited_by": 0,
+   "url": "https://datascience.stackexchange.com/q/120189",
+   "abstract": "CIFAR 10 vs. CIFAR 100 is the most popular benchmark dataset for Out-of-Distribution (OOD) performance evaluation. Google in their 2022 post \"towards-reliability-in-deep-learning\"[1] used CIFAR 10 vs. CIFAR 100 to demo their new state-of-the-art model pixel. The main feature of CIFAR 10 vs. CIFAR 100 is mutual exclusivity, meaning that CIFAR 100 only includes Negative-Examples of CIFAR 10. For example, CIFAR 10 has classes \"automobiles\" and \"trucks\" but not the class \"pickup trucks\" which only CIFAR 100 does. However, the class \"pickup trucks\" in CIFAR 100 is under the superclass \"vehicle 2\" not \"automobiles\" or \"trucks\". So how to use CIFAR 100 to test the OOD of CIFAR 10? [1] https://ai.googleblog.com/2022/07/towards-reliability-in-deep-learning.html",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:120173:",
+   "title": "Why CIFAR 10 Vs. CIFAR 100 is the most popular for OOD benchmark?",
+   "year": 2023,
+   "cited_by": 0,
+   "url": "https://datascience.stackexchange.com/q/120173",
+   "abstract": "CIFAR 10 Vs. CIFAR 100 is the most popular dataset for the task of Out-of-Distribution performance evaluation. On the infamous \"Papers-with-code\" [1] CIFAR 10Vs.100 is the most used Benchmark for OOD. Also on Google&#39;s blog announcing their new state-of-the-art pre-trained embedding model pixel, CIFAR 10Vs.100 is used for benchmarking OOD [2]. [1] https://paperswithcode.com/datasets?task=out-of-distribution-detection [2] https://ai.googleblog.com/2022/07/towards-reliability-in-deep-learning.html",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "HN:19271412",
+   "title": "The State of Sparsity in Neural Networks",
+   "year": "2019",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=19271412",
+   "abstract": "This is an illuminating (and notably rigorous) read for anyone interested in neural network sparsity and compression. But - equally importantly - it's a valuable read for anyone interested in the replicability of neural network research in general. The authors make clear the urgent need to evaluate research (and reevaluate received wisdom) on networks of the scale and complexity used in practice. I hope this paper will spark some important conversations in the community about our standards for assessing new ideas (mine included). As this paper makes exceedingly clear, plenty of techniques and behaviors for MNIST and CIFAR10 manifest differently (if at all) in industrial-scale settings. My biggest question coming out of this work was as follows: which small scale (or - at the very least - inexpensive) benchmarks share enough properties in common with these large scale networks that we should expect results to scale with reasonable fidelity? Resnet50 is still far too slow and expensive to use as a day-to-day research network in academia, let alone transformer. Personally, I've found resnet18 on CIFAR10 to pretty reliably predict behavior on resnet50 on imagenet, but that's anecdotal. For the academics who can't drop hundreds of thousands of dollars (or more) on each paper but still want to contribute to research progress, we should carefully assess (or design) benchmarks with this property in mind. (With respect to the lottery ticket hypothesis, we have a complimentary ICML submission about its behavior on large-scale networks coming shortly!)",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:244773",
+   "title": "[Research/Discussion] Depth-agnostic stability for residual models (no extra norms, no tuning). Is this useful to you?",
+   "year": "2025",
+   "cited_by": 1,
+   "url": "https://discuss.huggingface.co/t/169842/1",
+   "abstract": "Hi all TL;DR: I'm exploring a training stability principle (Master's research) that keeps very deep residual-style models (ResNets, Transformers) stable without extra normalization layers, without new hyperparams, and without knowing the depth in advance. Early runs look promising, but I'd love p...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:277683",
+   "title": "Peanut v2 - A more stable Adam variant, tested on CPU only. Try it on your dataset?",
+   "year": "2026",
+   "cited_by": 0,
+   "url": "https://discuss.huggingface.co/t/191809/3",
+   "abstract": "For now, I tried a small experiment on CIFAR-10: I took your invitation to test Peanut v2 beyond Fashion-MNIST and ran a small, matched-seed CIFAR-10 experiment. Peanut completed all the runs I tried and finished ahead of plain Adam in mean accuracy at both tested learning rates. The most useful ...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  }
+ ]
+}
