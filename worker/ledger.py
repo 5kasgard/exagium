@@ -24,6 +24,10 @@ import datetime as dt, json, os, subprocess, sys
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
         "openrouter": {"calls": 30}}   # free models: 50 requests/day under $10 of credits ever bought (OpenRouter docs, 2026-11); 20 left for reviews and probes, which are not ledgered
+ROLLING_NEURONS = 9000   # Cloudflare enforces its 10,000 on a rolling 24 h window, not at 00:00 UTC as its docs say:
+# refused at 06:09Z on 2026-11-20 with 2,405 neurons used that UTC day (10,528 in the 24 h before), served again at
+# 07:26Z (about 9,725 in the 24 h before) and at 09:16Z (account analytics, aiInferenceAdaptiveGroups); 1,000 left for
+# calls the ledger does not see
 EST_NEURONS = 1000   # default per Cloudflare call when the caller gives none (long reviews measured 560-780)
 
 
@@ -60,7 +64,25 @@ def load(p):
     return json.load(open(p)) if os.path.exists(p) else {}
 
 
-def headroom(led, want):
+def rolling_neurons(wt, now=None):
+    """Cloudflare neurons recorded in ledger/calls.jsonl in the 24 h before now."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    since, total = (now - dt.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ"), 0.0
+    try:
+        with open(os.path.join(wt, "ledger", "calls.jsonl")) as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except ValueError:
+                    continue
+                if r.get("engine") == "cloudflare" and str(r.get("t", "")) >= since:
+                    total += float((r.get("usage") or {}).get("neurons") or 0)
+    except FileNotFoundError:
+        pass
+    return total
+
+
+def headroom(led, want, rolling=0.0):
     for pool, (n, est) in want.items():
         if pool not in CAPS:
             return f"pool {pool} is not a free pool the worker may use"
@@ -72,12 +94,14 @@ def headroom(led, want):
         used = e.get("calls", 0) + sum((e.get("pending_calls") or {}).values())
         if used + n > cap["calls"] or ("neurons" in cap and e.get("neurons", 0) + pending + n * est > cap["neurons"]):
             return f"{pool}: cap reached ({used} calls made or held, {e.get('neurons', 0):.0f} neurons used; cap {cap})"
+        if pool == "cloudflare" and rolling + sum((e.get("pending") or {}).values()) + n * est > ROLLING_NEURONS:
+            return f"cloudflare: {rolling:.0f} neurons in the last 24 h; the account's rolling allowance would be passed"
     return None
 
 
 def check(wt, spec):
     sync(wt)
-    why = headroom(load(day_path(wt)), parse(spec))
+    why = headroom(load(day_path(wt)), parse(spec), rolling_neurons(wt))
     print(why or "headroom ok")
     return 2 if why else 0
 
@@ -89,7 +113,7 @@ def reserve(wt, run, spec):
         p = day_path(wt)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
-        why = headroom(led, want)
+        why = headroom(led, want, rolling_neurons(wt))
         if why:
             print(why)
             return 2

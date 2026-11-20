@@ -164,6 +164,22 @@ class Ledger(unittest.TestCase):
         led = {"nvidia": {"reserved": LG.CAPS["nvidia"]["calls"], "calls": LG.CAPS["nvidia"]["calls"], "runs": []}}
         self.assertIsNotNone(LG.headroom(led, LG.parse("nvidia:1")))
 
+    def test_rolling_24h(self):
+        """Cloudflare's allowance is a rolling 24 h (refused at 06:09Z with 2,405 neurons that UTC day)."""
+        import ledger as LG, tempfile
+        with tempfile.TemporaryDirectory() as wt:
+            os.makedirs(os.path.join(wt, "ledger"))
+            rows = [("2026-11-19T05:00:00Z", 5000), ("2026-11-19T20:00:00Z", 6000), ("2026-11-20T01:00:00Z", 2400)]
+            with open(os.path.join(wt, "ledger", "calls.jsonl"), "w") as f:
+                for t, n in rows:
+                    f.write(json.dumps({"t": t, "engine": "cloudflare", "usage": {"neurons": n}}) + "\n")
+                f.write(json.dumps({"t": "2026-11-20T02:00:00Z", "engine": "nvidia", "usage": {}}) + "\n")
+            now = dt.datetime(2026, 11, 20, 6, 9, tzinfo=dt.timezone.utc)
+            self.assertEqual(LG.rolling_neurons(wt, now), 8400)   # the 05:00Z call of the day before is out of the window
+            self.assertIsNotNone(LG.headroom({}, LG.parse("cloudflare:1:600"), 8500))   # 9,100 > 9,000
+            self.assertIsNone(LG.headroom({}, LG.parse("cloudflare:1:600"), 8000))
+            self.assertIsNone(LG.headroom({}, LG.parse("nvidia:1"), 99999))   # other pools: no rolling rule
+
 
 if __name__ == "__main__":
     unittest.main()
