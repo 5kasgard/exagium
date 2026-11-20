@@ -84,7 +84,8 @@ def run(register, status_path, now=None, keyed=False):
             st[f["id"]] = dict(last, error=str(e)[:200], error_at=now.isoformat())
             continue
         same = v == f["value"]
-        st[f["id"]] = {"at": now.isoformat(), "value": v, "same": same}
+        st[f["id"]] = {"at": now.isoformat(), "value": v, "same": same,
+                       "dependants": [] if same else (f.get("dependants") or [])}
         if not same:
             changed.append(f"{f['id']}: registered {f['value']!r}, now {v!r}; cited by: {'; '.join(f['cited_by'])}")
     with open(status_path, "w") as fh:

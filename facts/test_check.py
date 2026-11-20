@@ -36,6 +36,19 @@ class Check(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertFalse(st["a"]["same"])
 
+    def test_dependants_reported_on_change_only(self):
+        reg = {"facts": [{"id": "a", "probe": {"kind": "x"}, "value": 1, "recheck_days": 1,
+                          "dependants": ["P21", "R18"], "cited_by": ["thing A"]}]}
+        with tempfile.TemporaryDirectory() as d:
+            r = os.path.join(d, "r.json")
+            json.dump(reg, open(r, "w"))
+            with mock.patch.object(check, "probe", lambda p: 2):
+                self.assertEqual(check.run(r, os.path.join(d, "s1.json")), 2)
+                self.assertEqual(json.load(open(os.path.join(d, "s1.json")))["a"]["dependants"], ["P21", "R18"])
+            with mock.patch.object(check, "probe", lambda p: 1):
+                self.assertEqual(check.run(r, os.path.join(d, "s2.json")), 0)
+                self.assertEqual(json.load(open(os.path.join(d, "s2.json")))["a"]["dependants"], [])
+
     def test_probe_error_is_not_a_change(self):
         rc, _ = self.go({"x": RuntimeError("down"), "y": "v"})
         self.assertEqual(rc, 3)
