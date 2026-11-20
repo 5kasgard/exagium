@@ -81,6 +81,21 @@ class NoTaskCodeInRunner(unittest.TestCase):
 
 
 
+class CandidatesDocumented(unittest.TestCase):
+    """GLM F066: the Parts section lists every candidate family in runner/candidates/."""
+    def test_parts_lists_every_candidate_family(self):
+        root = os.path.join(HERE, "candidates")
+        families = sorted(n for n in os.listdir(root)
+                          if os.path.isdir(os.path.join(root, n)) and not n.startswith("__"))
+        self.assertTrue(families)
+        readme = open(os.path.join(HERE, "README.md")).read()
+        m = re.search(r"\*\*Parts\.\*\*(.*?)(?:\n\n\*\*|$)", readme, re.S)
+        self.assertIsNotNone(m)
+        section = m.group(1)
+        for name in families:
+            self.assertIn(f"`{name}`", section, f"runner/README.md Parts omits candidate family {name}")
+
+
 class CounterExit(unittest.TestCase):
     """GLM F051: count.py exits 1 when reps differ, stdout differs between reps or counting could be switched off;
     the runner took that as a count. Only exit 0 counts now."""

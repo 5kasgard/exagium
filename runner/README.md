@@ -25,7 +25,7 @@ kernel type on x86, and text weights now match byte for byte across two CPU fami
 - `run.py`: `evaluate` (dev; test only under a ledger plan) and `reproduce` (train twice, compare).
 - `jail.py`, `limits.c`: the hardened jail. `q55.py`: the cross-host weights test.
 - `records.py`: the record format. `checkers/label.py`: the built-in label checker.
-- `candidates/`: `majority` and `label-linear`, `label-mlp16` (any label task); `sat-zeros`, `sat-walksat`.
+- `candidates/`: `majority`; `label-linear`, `label-mlp16`, `label-gbdt`, `label-knn`, `label-wisard`, `label-mlp2l` (any label task); `sat-zeros`, `sat-walksat`.
 - `../tasks/`: `build.py` (all tasks, downloads pinned by sha256), one `card.json` per task, `sat/check.py`.
 - `../.github/workflows/runner.yml`: builds each task, runs the tests, reproduces and scores on dev (manual; no secrets).
 
