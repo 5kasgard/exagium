@@ -1,0 +1,334 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S2",
+    "claim": "Models claiming 32K context size often cannot maintain satisfactory performance at that length.",
+    "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S13",
+    "claim": "Effective context lengths of open-source LLMs typically do not exceed half their training lengths.",
+    "quote": "the effective context lengths of open-source LLMs often fall short, typically not exceeding half of their training lengths.",
+    "kind": "result",
+    "evidence": "reported"
+   },
+   {
+    "source": "S23",
+    "claim": "At 32K context, 10 of 12 models drop below 50% of their short-context baseline performance.",
+    "quote": "At 32K, for instance, 10 models drop below 50% of their strong short-length baselines.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S5",
+    "claim": "Most LLMs fail to capture long dependencies even when the context window fits the entire document.",
+    "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "Only a handful of recent state-of-the-art LLMs maintain consistent accuracy above 64k tokens in RAG.",
+    "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Some models show gentle degradation but their absolute performance may not exceed shorter-context models.",
+    "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher than those of LLMs with shorter context lengths.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S1",
+    "claim": "Performance degrades significantly when relevant information is in the middle of long contexts.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S21",
+    "claim": "In multi-hop QA, performance degrades with distance from context edges and between information pieces.",
+    "quote": "performance degrades not only with respect to the distance of information from the edges of the context, but also between pieces of information.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Models achieve near-perfect vanilla NIAH retrieval but drop significantly on multi-hop and aggregation tasks.",
+    "quote": "Despite achieving nearly perfect accuracy in the vanilla NIAH test, almost all models exhibit large performance drops as the context length increases.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S24",
+    "claim": "Best model achieves only 63.5% accuracy on sequential needle extraction from long contexts.",
+    "quote": "even the best-performing model achieved a maximum accuracy of only 63.50% on test set of this benchmark.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S14",
+    "claim": "Long-context generation degradation ranges from 1.2% to 47.1% across models.",
+    "quote": "both API accessed and open source models exhibit performance degradation in long-context generation scenarios, ranging from 1.2% to 47.1%.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "Advanced proprietary models face significant challenges on hour-long video-language interleaved tasks.",
+    "quote": "LongVideoBench presents significant challenges even for the most advanced proprietary models (e.g. GPT-4o, Gemini-1.5-Pro, GPT-4-Turbo).",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S20",
+    "claim": "Models struggle with cross-image reasoning and show placement bias in visual haystack tasks.",
+    "quote": "these models struggle when reasoning across potentially unrelated images, perform poorly on cross-image reasoning, as well as exhibit biases based on the placement of key information within the context window.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "Reasoning processes are unnecessarily lengthy and compressible via token budget in prompts.",
+    "quote": "We find that the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Reasoning models exhibit stronger overthinking tendencies correlating with decreased performance.",
+    "quote": "reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models. We observe that higher overthinking scores correlate with decreased performance.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "Adversarial decoys increase reasoning tokens 13x to 46x on reasoning models across datasets.",
+    "quote": "We evaluate Overthink on proprietary and open-source reasoning models across the FreshQA, SQuAD, and MuSR datasets, where we observe 13x, 46x, and 12x increases, respectively.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S15",
+    "claim": "Adaptive reasoning reduces tokens by 30% average and up to 70% while maintaining performance.",
+    "quote": "Ada-GRPO enables ARM to achieve high token efficiency, reducing tokens by an average of 30%, and up to 70%, while maintaining performance comparable to the model that relies solely on Long CoT.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S18",
+    "claim": "Manifold steering reduces output tokens up to 71% while maintaining or improving accuracy.",
+    "quote": "Extensive experiments on DeepSeek-R1 distilled models validate that our method reduces output tokens by up to 71% while maintaining and even improving the accuracy on several mathemat",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S19",
+    "claim": "Deep reasoning models are more easily affected by distractors in complex long-context scenarios.",
+    "quote": "in some challenging scenarios, experiments show that deep reasoning models are more easily affected by distractors.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "What is the precise reliability threshold (e.g., 90%, 80% accuracy) at each context length for different task types?",
+   "How do thinking token budgets interact with input context length in reasoning models -- does output budget exhaustion occur before input context limits?",
+   "Are there systematic differences in effective context length between open-weight and proprietary models at the same advertised window?",
+   "How does the degradation curve differ for generation tasks versus retrieval tasks at equivalent context lengths?",
+   "What are the failure modes specific to reasoning models when thinking tokens consume the output budget before task completion?"
+  ],
+  "reader_tries": [
+   {
+    "pool": "nvidia",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "status": 200,
+    "ok": true
+   }
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S2",
+   "claim": "Models claiming 32K context size often cannot maintain satisfactory performance at that length.",
+   "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S13",
+   "claim": "Effective context lengths of open-source LLMs typically do not exceed half their training lengths.",
+   "quote": "the effective context lengths of open-source LLMs often fall short, typically not exceeding half of their training lengths.",
+   "kind": "result",
+   "evidence": "reported"
+  },
+  {
+   "source": "S5",
+   "claim": "Most LLMs fail to capture long dependencies even when the context window fits the entire document.",
+   "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S9",
+   "claim": "Only a handful of recent state-of-the-art LLMs maintain consistent accuracy above 64k tokens in RAG.",
+   "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S10",
+   "claim": "Some models show gentle degradation but their absolute performance may not exceed shorter-context models.",
+   "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher than those of LLMs with shorter context lengths.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S21",
+   "claim": "In multi-hop QA, performance degrades with distance from context edges and between information pieces.",
+   "quote": "performance degrades not only with respect to the distance of information from the edges of the context, but also between pieces of information.",
+   "kind": "failure mode",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S23",
+    "claim": "At 32K context, 10 of 12 models drop below 50% of their short-context baseline performance.",
+    "quote": "At 32K, for instance, 10 models drop below 50% of their strong short-length baselines.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S1",
+    "claim": "Performance degrades significantly when relevant information is in the middle of long contexts.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S14",
+    "claim": "Long-context generation degradation ranges from 1.2% to 47.1% across models.",
+    "quote": "both API accessed and open source models exhibit performance degradation in long-context generation scenarios, ranging from 1.2% to 47.1%.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S3",
+    "claim": "Advanced proprietary models face significant challenges on hour-long video-language interleaved tasks.",
+    "quote": "LongVideoBench presents significant challenges even for the most advanced proprietary models (e.g. GPT-4o, Gemini-1.5-Pro, GPT-4-Turbo).",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S4",
+    "claim": "Reasoning processes are unnecessarily lengthy and compressible via token budget in prompts.",
+    "quote": "We find that the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S6",
+    "claim": "Reasoning models exhibit stronger overthinking tendencies correlating with decreased performance.",
+    "quote": "reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models. We observe that higher overthinking scores correlate with decreased performance.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ]
+ ],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "grades": {
+   "0": "reported",
+   "2": "expert view",
+   "4": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "p_keep": [
+    0.7681,
+    0.9194,
+    0.8055,
+    0.5174,
+    0.6197,
+    0.6085
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    2,
+    4
+   ],
+   "grades": {
+    "0": "reported",
+    "2": "expert view",
+    "4": "reported"
+   },
+   "votes": [
+    [
+     [
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      2
+     ]
+    ],
+    [
+     [
+      1
+     ],
+     [
+      1
+     ],
+     [
+      1
+     ]
+    ]
+   ],
+   "notes": "Only claim 1 is kept because it is exactly supported by its quote and directly answers the question; claim 0 overgeneralizes and claim 2 does not directly addre; Claims 0 and 2 directly address reliability at advertised context lengths; claim 1 discusses training lengths not advertised windows.; Claims 0 and 2 are directly supported by their quotes and address model reliability relative to advertised context windows; claim 1 discusses training lengths r; Claim 1 is fully supported by its quote and addresses the question; claims 0 and 2 add unsupported specifics (RAG, multi-hop QA) not present in their quotes.; Claim 1 matches its quote exactly and addresses model reliability relative to advertised context windows; the quote reports a result without describing measurem; Claim 0 adds 'in RAG' not in quote; claim 2 adds 'In multi-hop QA' not in quote; claim 1 matches quote exactly and its grade corrected from measured to reported"
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}

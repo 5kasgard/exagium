@@ -1,0 +1,239 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S1",
+    "claim": "Language models show significantly degraded performance when relevant information appears in the middle of long input contexts compared to the beginning or end.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Among 17 long-context models claiming 32K or greater context size, only half maintain satisfactory performance at 32K context length on RULER benchmark tasks.",
+    "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Models achieving nearly perfect accuracy on vanilla needle-in-a-haystack retrieval show large performance drops as context length increases on more complex RULER tasks like multi-hop tracing and aggregation.",
+    "quote": "Despite achieving nearly perfect accuracy in the vanilla NIAH test, almost all models exhibit large performance drops as the context length increases",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "Chain-of-Thought reasoning incurs significant token overhead and can be compressed by including a token budget in the prompt, but the choice of budget crucially affects compression effectiveness.",
+    "quote": "the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt, but the choice of token budget plays a crucial role",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S5",
+    "claim": "Most LLMs fail to capture long dependencies in contexts even when their context window size is sufficient to fit the entire document, showing shockingly bad long-context ability on LooGLE.",
+    "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Reasoning models exhibit stronger tendencies toward overthinking (extended internal reasoning chains) compared to non-reasoning models, and higher overthinking scores correlate with decreased performance on agentic tasks.",
+    "quote": "reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models. Our analysis reveals that higher overthinking scores correlate with decreased performance",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "Adversarial decoy reasoning problems injected into context can force reasoning models to generate 12x to 46x more reasoning tokens while still producing correct answers, with newer reasoning model generations showing up to 2.3x increase in reasoning tokens.",
+    "quote": "we observe 13x, 46x, and 12x increases, respectively. We also explore multimodal attacks using images, which cause up to a 2.7x increase in reasoning, as well as attacks on coding agents",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "Only a handful of the most recent state-of-the-art LLMs maintain consistent RAG accuracy at context lengths above 64K tokens across three domain-specific datasets.",
+    "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Models exhibit distinct score trends on LV-Eval: some like GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M show gentle performance degradation across lengths, but their absolute performance may not exceed models with shorter claimed context lengths.",
+    "quote": "Models exhibit distinct score trends. For example, GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Moonshot-v1, Qwen-2.5-72B, and Llama-3.1-70B achieve the highest performance on LV-Eval particularly at lengths below 64K across single-hop and multi-hop QA tasks.",
+    "quote": "Moonshot-v1 and recent large-scale open-source models, such as Qwen-2.5-72B and Llama-3.1-70B, achieve the highest performance on LV-Eval, particularly at lengths below 64k",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S13",
+    "claim": "A language model can have a long advertised context length but be unable to use it effectively, a phenomenon called context decay, making effective context length the measure of interest rather than the maximum window size.",
+    "quote": "A language model can have a long context length, but unable to use it effectively, a phenomenon sometimes called context decay. Consequently, it is the effective context length that is of interest",
+    "kind": "prior art",
+    "evidence": "expert view"
+   }
+  ],
+  "open_questions": [
+   "At what specific context length does each model's reliability drop below acceptable thresholds for each task type (retrieval, multi-hop reasoning, aggregation, RAG, summarization)?",
+   "How do reasoning models' thinking token budgets interact with input context length \u2014 does a larger input context reduce available output budget for reasoning, causing earlier truncation?",
+   "Do the failure modes identified (lost-in-the-middle, context decay, overthinking) compound each other when reasoning models process long contexts with complex tasks?",
+   "What are the measured effective context lengths for specific reasoning models (e.g., o1, DeepSeek-R1) on multi-hop reasoning tasks versus simple retrieval?",
+   "How do token-budget-aware reasoning frameworks (S4) perform when the input context itself consumes most of the advertised window, leaving minimal budget for reasoning tokens?"
+  ],
+  "reader_tries": [
+   {
+    "pool": "nvidia",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "status": 200,
+    "ok": true
+   }
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S1",
+   "claim": "Language models show significantly degraded performance when relevant information appears in the middle of long input contexts compared to the beginning or end.",
+   "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S2",
+   "claim": "Models achieving nearly perfect accuracy on vanilla needle-in-a-haystack retrieval show large performance drops as context length increases on more complex RULER tasks like multi-hop tracing and aggregation.",
+   "quote": "Despite achieving nearly perfect accuracy in the vanilla NIAH test, almost all models exhibit large performance drops as the context length increases",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S4",
+   "claim": "Chain-of-Thought reasoning incurs significant token overhead and can be compressed by including a token budget in the prompt, but the choice of budget crucially affects compression effectiveness.",
+   "quote": "the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt, but the choice of token budget plays a crucial role",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S5",
+   "claim": "Most LLMs fail to capture long dependencies in contexts even when their context window size is sufficient to fit the entire document, showing shockingly bad long-context ability on LooGLE.",
+   "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S9",
+   "claim": "Only a handful of the most recent state-of-the-art LLMs maintain consistent RAG accuracy at context lengths above 64K tokens across three domain-specific datasets.",
+   "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S10",
+   "claim": "Models exhibit distinct score trends on LV-Eval: some like GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M show gentle performance degradation across lengths, but their absolute performance may not exceed models with shorter claimed context lengths.",
+   "quote": "Models exhibit distinct score trends. For example, GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S2",
+    "claim": "Among 17 long-context models claiming 32K or greater context size, only half maintain satisfactory performance at 32K context length on RULER benchmark tasks.",
+    "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S6",
+    "claim": "Reasoning models exhibit stronger tendencies toward overthinking (extended internal reasoning chains) compared to non-reasoning models, and higher overthinking scores correlate with decreased performance on agentic tasks.",
+    "quote": "reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models. Our analysis reveals that higher overthinking scores correlate with decreased performance",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S7",
+    "claim": "Adversarial decoy reasoning problems injected into context can force reasoning models to generate 12x to 46x more reasoning tokens while still producing correct answers, with newer reasoning model generations showing up to 2.3x increase in reasoning tokens.",
+    "quote": "we observe 13x, 46x, and 12x increases, respectively. We also explore multimodal attacks using images, which cause up to a 2.7x increase in reasoning, as well as attacks on coding agents",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S13",
+    "claim": "A language model can have a long advertised context length but be unable to use it effectively, a phenomenon called context decay, making effective context length the measure of interest rather than the maximum window size.",
+    "quote": "A language model can have a long context length, but unable to use it effectively, a phenomenon sometimes called context decay. Consequently, it is the effective context length that is of interest",
+    "kind": "prior art",
+    "evidence": "expert view"
+   },
+   "quote not found verbatim in the abstract"
+  ]
+ ],
+ "check": {
+  "keep": [
+   0,
+   2,
+   3
+  ],
+  "grades": {
+   "2": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    2,
+    3
+   ],
+   "p_keep": [
+    0.7633,
+    0.2245,
+    0.7891,
+    0.7278,
+    0.1583,
+    0.3927
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    2
+   ],
+   "grades": {
+    "2": "reported"
+   },
+   "votes": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      2
+     ],
+     [
+      2
+     ]
+    ],
+    [
+     [],
+     [],
+     []
+    ]
+   ],
+   "notes": "Claim 0 discusses positional bias but does not directly answer the question about context window reliability, task dependence, or reasoning token budgets.; Only claim 2 is directly supported by its quote and answers the question about reasoning models' thinking tokens affecting output budget.; Only claim 2 is directly supported by its quote and addresses the question's third part about reasoning models' thinking tokens and output budget; its evidence ; All three claims add specifics (e.g., benchmark names, task types) not present in their respective quotes, so none are kept.; None of the claims are fully supported by their quotes without adding unsupported details such as specific benchmarks or datasets.; No claims exactly match their quotes; all add unsupported specifics such as dataset names or benchmark references not present in the quotes."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
