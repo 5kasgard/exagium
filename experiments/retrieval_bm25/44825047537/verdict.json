@@ -1,0 +1,12 @@
+{
+ "name": "retrieval_bm25",
+ "plan": "Labelled data already on main: GLM's 111 review findings (audit/reviews/glm-20261120/findings.jsonl), each naming the one file it is about. For every finding whose file is a Python module in worker/repo_index.py's index, rank modules from the finding's claim text with every path and file name removed, by tf-idf (rank, used now) and by BM25 (rank_bm25). Measure hit@3: the true file among the top 3. Rule, fixed before the run: holds (switch the jobs to BM25) if BM25's hit@3 is at least tf-idf's plus 0.05; fails otherwise; invalid if fewer than 30 findings qualify.",
+ "file": "experiments/retrieval_bm25.py",
+ "file_commit": "2073613349c269916c2ec6aea4b33ea01e113f11 2026-11-21T07:59:00+10:00",
+ "started": "2026-11-20T21:59:12Z",
+ "verdict": {
+  "verdict": "fails",
+  "why": "hit@3 tf-idf 0.615, BM25 0.628 over 78 findings"
+ },
+ "finished": "2026-11-20T21:59:13Z"
+}
