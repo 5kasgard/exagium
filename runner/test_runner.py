@@ -117,6 +117,22 @@ class CounterExit(unittest.TestCase):
                 R.count(c, inp, 0, d)
 
 
+class ReadmeListsAllCandidates(unittest.TestCase):
+    """GLM F066: the Parts section of runner/README.md must list every candidate family in runner/candidates/."""
+    def test_readme_lists_all_candidates(self):
+        cand_dir = os.path.join(HERE, "candidates")
+        families = sorted([d for d in os.listdir(cand_dir)
+                           if os.path.isdir(os.path.join(cand_dir, d))])
+        self.assertEqual(len(families), 9, f"expected 9 families, found {families}")
+        readme = open(os.path.join(HERE, "README.md")).read()
+        # Extract the candidates line from the Parts section
+        m = re.search(r"`candidates/`:([^.\n]+)", readme)
+        self.assertIsNotNone(m, "candidates line not found in README")
+        listed = [x.strip(" `,") for x in m.group(1).split() if x.strip(" `,")]
+        for f in families:
+            self.assertIn(f, listed, f"{f} missing from README candidates list")
+
+
 class Controls(unittest.TestCase):
     """GLM F052/F053: known-bad candidates kept in runner/controls/, each caught by an end-to-end run on 2026-11-21
     (runner/results/2026-11-21-glm-guards/). They need valgrind and the jail, so CI checks only that they exist."""
