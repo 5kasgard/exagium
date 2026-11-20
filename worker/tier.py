@@ -223,6 +223,33 @@ def drain_code(wt, ask, record):
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
 
 
+def retry_code(wt, record):
+    """Escalated code items get one more attempt with the last rejection written into their next step (script, no model):
+    K7 was refused for doing only part of the item; the coder never saw that reason. A second escalation goes to the owner."""
+    Q.sync(wt)
+    q = Q.load(wt)
+    for i in [x for x in q["items"] if x.get("status") == "escalated" and x.get("code")][:MAX_ITEMS]:
+        last = (i.get("runs") or [{}])[-1]
+        why = "; ".join(str(w) for w in (last.get("why") or [])[:3])[:500]
+        if tier_redos(i) >= MAX_REDOS:
+            rc = Q.move(wt, f"tier-{MODEL}", i["id"], "escalate", f"tier: second escalation of a code item; last: {why}")
+            record.setdefault("code_retries", []).append({"id": i["id"], "escalated": True, "rc": rc}); continue
+        for _ in range(Q.TRIES):
+            Q.sync(wt)
+            q2 = Q.load(wt)
+            it = next(x for x in q2["items"] if x["id"] == i["id"])
+            if it["status"] != "escalated":
+                break
+            it["next"] = (it.get("next", "") + f" PREVIOUS ATTEMPT REJECTED: {why}. Do the whole item, with a test.")[:3000]
+            it["status"] = Q.T.next_status("escalated", "redo")
+            it.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": f"tier-{MODEL}", "outcome": "redo",
+                                              "result": f"tier: one retry with the rejection reason in the next step: {why}"[:400]})
+            Q.save(wt, q2)
+            if Q.commit_push(wt, f"tier: {i['id']} retry with the rejection reason -> open"):
+                record.setdefault("code_retries", []).append({"id": i["id"], "redo": True})
+                break
+
+
 def run(wt, out, ask=None):
     os.makedirs(out, exist_ok=True)
     calls = []
@@ -259,6 +286,7 @@ def run(wt, out, ask=None):
                 rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note)
             record["items"].append({"id": item["id"], "decision": d, "rc": rc})
         drain_code(wt, ask, record)
+        retry_code(wt, record)
         return 0
     finally:
         json.dump(record, open(os.path.join(out, "tier.json"), "w"), indent=1)
