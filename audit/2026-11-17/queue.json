@@ -8201,7 +8201,7 @@
    "id": "K14",
    "title": "Record step writes no secret values",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "P5",
    "generated_at": "2026-11-20T21:08:22Z",
@@ -8250,6 +8250,12 @@
      "at": "2026-11-20T22:38:35Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-20T22:45:52Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #35 not merged: model verdict: reject; model: The diff changes how pack() serializes non-dict/list records (ints, floats, strings, None now become JSON instead of bytes(r)), which the item did not ask for, and the test depends on json, os, and tempfile being imported in test_runner.py, which the diff does not show.",
+     "outcome": "escalate"
     }
    ]
   },
