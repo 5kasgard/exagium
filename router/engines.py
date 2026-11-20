@@ -32,10 +32,9 @@ def _send(req):
         with urllib.request.urlopen(_ua(req), timeout=TIMEOUT) as r:
             return r.status, json.loads(r.read().decode())
     except urllib.error.HTTPError as e:
-        raw = e.read().decode(errors="replace")[:600]
-        return e.code, {"_error": raw}
+        return e.code, {"_error": _scrub(e.read().decode(errors="replace"))[:600]}   # scrub, then cut (GLM F043)
     except Exception as e:  # network, timeout, bad JSON
-        return 0, {"_error": f"{type(e).__name__}: {e}"[:600]}
+        return 0, {"_error": _scrub(f"{type(e).__name__}: {e}")[:600]}
 
 
 # OpenAI-compatible free pools (added 2026-11-14). name: (base URL or env var holding it, key env var).
@@ -128,9 +127,9 @@ def _send_h(req):
         with urllib.request.urlopen(_ua(req), timeout=TIMEOUT) as r:
             return r.status, json.loads(r.read().decode()), pick(r.headers)
     except urllib.error.HTTPError as e:
-        return e.code, {"_error": e.read().decode(errors="replace")[:600]}, pick(e.headers)
+        return e.code, {"_error": _scrub(e.read().decode(errors="replace"))[:600]}, pick(e.headers)
     except Exception as e:
-        return 0, {"_error": f"{type(e).__name__}: {e}"[:600]}, {}
+        return 0, {"_error": _scrub(f"{type(e).__name__}: {e}")[:600]}, {}
 
 
 def compat_models(name):
@@ -138,7 +137,7 @@ def compat_models(name):
     base, key = compat_base(name), os.environ[OPENAI_COMPAT[name][1]]
     st, j, h = _send_h(urllib.request.Request(base + "/models", headers={"Authorization": "Bearer " + key}))
     if st != 200:
-        return st, _scrub(j.get("_error") or json.dumps(j)[:600]), h
+        return st, _scrub(j.get("_error") or json.dumps(j))[:600], h
     return st, sorted(m.get("id", "") for m in j.get("data", []) if isinstance(m, dict)), h
 
 
@@ -156,7 +155,7 @@ def compat_call(name, model, prompt, max_tokens=64):
     return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": name, "model": model,
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": j.get("usage"),
             "finish": finish,
-            "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
+            "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j))[:600]})
 
 
 # Claude API on the owner's credit (CLAUDE_API_KEY, added 2026-11-20). USD per million tokens, from Anthropic's pricing
@@ -188,7 +187,7 @@ def anthropic_call(model, prompt, max_tokens=2000, system=None):
              "cost": claude_cost(model, inp, out)} if st == 200 else {}
     return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": "anthropic", "model": model,
                       "ok": bool(text), "status": st, "latency_s": round(time.time() - t0, 2), "usage": usage,
-                      "text": text, "error": None if text else _scrub(j.get("_error") or json.dumps(j)[:600])})
+                      "text": text, "error": None if text else _scrub(j.get("_error") or json.dumps(j))[:600]})
 
 
 def _scrub(s):
@@ -208,8 +207,9 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     text, usage = None, None
     if engine == "openrouter":
-        if not model.endswith(":free") and not allow_paid and os.environ.get("ROUTER_ALLOW_PAID") != "1":
-            raise ValueError(f"refusing paid OpenRouter model {model}: the account holds credit; set ROUTER_ALLOW_PAID=1 only with the owner's approval")
+        if not model.endswith(":free") and not allow_paid:   # per call only; the env switch is gone (GLM F042)
+            raise ValueError(f"refusing paid OpenRouter model {model}: the account holds credit; paid calls go through "
+                             f"slots.call (pool openrouter_paid), which the ledger caps")
         body = {"model": model, "messages": msgs, "max_tokens": max_tokens}
         if reasoning:   # e.g. {"effort": "low"}: paid reasoning models spent all 8,000 tokens thinking on code jobs (2026-11-20)
             body["reasoning"] = reasoning
@@ -238,9 +238,11 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
             text, usage = "".join(p.get("text", "") for p in parts if not p.get("thought")), j.get("usageMetadata")
     else:
         raise ValueError(engine)
+    if engine == "openrouter" and not model.endswith(":free"):
+        engine = "openrouter_paid"   # logged as its own pool, not the free one (GLM F039)
     return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": engine, "model": model,
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": usage,
-            "text": text, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
+            "text": text, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j))[:600]})
 
 
 def gemini_models():

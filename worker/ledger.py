@@ -147,13 +147,18 @@ def reserve(wt, run, spec):
 
 
 def record(wt, run, calls_path):
-    calls = [json.loads(line) for line in open(calls_path) if line.strip()]
+    # A missing log means the run made no recorded call (it crashed or stopped early): record nothing and release its
+    # reservation, rather than leave it pending for the rest of the UTC day (GLM F021: gen-, propose- runs leaked).
+    calls = [json.loads(line) for line in open(calls_path) if line.strip()] if os.path.exists(calls_path) else []
     for _ in range(TRIES):
         sync(wt)
         p = day_path(wt)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
         log = os.path.join(wt, "ledger", "calls.jsonl")
+        if not calls and not any(run in (e.get(k) or {}) for e in led.values() if isinstance(e, dict)
+                                 for k in ("pending", "pending_calls", "pending_usd")):
+            return 0   # nothing made and nothing held: no commit
         for c in calls:
             e = led.setdefault(c["engine"], {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             u = c.get("usage") or {}

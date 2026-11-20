@@ -52,7 +52,7 @@ jobs:
         env:
           ITEM: ${{ matrix.item }}
         run: |
-          [ -s "$RUNNER_TEMP/out/usage.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "pick-$GITHUB_RUN_ID-${{ strategy.job-index }}" "$RUNNER_TEMP/out/usage.jsonl" || true
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "pick-$GITHUB_RUN_ID-${{ strategy.job-index }}" "$RUNNER_TEMP/out/usage.jsonl" || echo "ledger record exit $?"
           [ -d "$RUNNER_TEMP/out" ] || exit 0
           for i in 1 2 3 4 5 6; do
             git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD

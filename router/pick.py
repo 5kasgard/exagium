@@ -22,10 +22,13 @@ NEURONS_PER_CALL = 600   # the worker's measured projection for one Cloudflare c
 def used_fraction(led, pool, rolling=0.0):
     cap, e = CAPS.get(pool, {}), led.get(pool) or {}
     f = (rolling + NEURONS_PER_CALL) / ROLLING_NEURONS if pool == "cloudflare" else 0.0
+    # reservations held by runs in flight count against the cap, as in worker/ledger.py (GLM F037)
+    held_calls = sum((e.get("pending_calls") or {}).values())
+    held_neurons = sum((e.get("pending") or {}).values())
     if cap.get("calls"):
-        f = max(f, (e.get("calls", 0) + 1) / cap["calls"])
+        f = max(f, (e.get("calls", 0) + held_calls + 1) / cap["calls"])
     if cap.get("neurons"):
-        f = max(f, (e.get("neurons", 0) + NEURONS_PER_CALL) / cap["neurons"])
+        f = max(f, (e.get("neurons", 0) + held_neurons + NEURONS_PER_CALL) / cap["neurons"])
     return f
 
 

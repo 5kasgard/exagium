@@ -80,5 +80,5 @@ jobs:
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
-          if [ -f out/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "digest-$GITHUB_RUN_ID" out/calls.jsonl || echo "ledger exit $?"; fi
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "digest-$GITHUB_RUN_ID" out/calls.jsonl || echo "ledger exit $?"
           python3 -I worker/digest.py write "$RUNNER_TEMP/r" out

@@ -1,5 +1,5 @@
 """Tests for the queue worker's decisions: python3 -m unittest worker/test_worker.py (stdlib only)."""
-import datetime as dt, json, os, sys, unittest, unittest.mock
+import datetime as dt, json, os, sys, unittest, unittest.mock, tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import digest  # noqa: E402
@@ -587,6 +587,20 @@ class SandboxRefused(unittest.TestCase):
 
 class GLMReview20261120(unittest.TestCase):
     """Reproductions of the GLM review findings fixed on 2026-11-21 (F016, F017, F024, F036)."""
+
+    def test_f021_missing_calls_log_releases_reservation(self):
+        """A run that crashed before writing calls.jsonl held its reservation all UTC day (gen-44728562276: 4)."""
+        import ledger as LG
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as wt, mock.patch.object(LG, "sync"), \
+                mock.patch.object(LG, "push", return_value=True) as push:
+            p = LG.day_path(wt); os.makedirs(os.path.dirname(p))
+            json.dump({"openrouter": {"reserved": 4, "calls": 0, "runs": [], "pending_calls": {"gen-1": 4}}}, open(p, "w"))
+            self.assertEqual(LG.record(wt, "gen-1", os.path.join(wt, "missing.jsonl")), 0)
+            self.assertEqual(json.load(open(p))["openrouter"]["pending_calls"], {})
+            push.reset_mock()
+            self.assertEqual(LG.record(wt, "gen-2", os.path.join(wt, "missing.jsonl")), 0)   # nothing held: no commit
+            push.assert_not_called()
     def test_f036_exception_moves_down_the_chain(self):
         import slots
         seen = []

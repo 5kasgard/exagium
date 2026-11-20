@@ -20,6 +20,11 @@ class Pick(unittest.TestCase):
         self.assertNotIn("cloudflare", [g.split(":")[0] for g in run(led, "5")])
         self.assertEqual(run(led, "check", "cloudflare:@cf/x", "groq:y"), ["groq:y"])
 
+    def test_f037_reserved_calls_count(self):
+        """GLM F037: a pool whose headroom runs in flight have reserved is full, though few calls are recorded."""
+        led = {"groq": {"calls": 5, "pending_calls": {"r1": 495}}}
+        self.assertEqual(run(led, "check", "groq:y", "nvidia:z"), ["nvidia:z"])
+
 
 if __name__ == "__main__":
     unittest.main()

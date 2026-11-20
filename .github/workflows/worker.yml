@@ -296,7 +296,7 @@ jobs:
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
           [ -f note.json ] || python3 -I worker/note.py note.json "failed before a note was written" "" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD
-          if [ -f job/calls.jsonl ]; then python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$WORKER" job/calls.jsonl || echo "ledger record exit $?"; fi
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/r" "$WORKER" job/calls.jsonl || echo "ledger record exit $?"
           git worktree add -q --detach "$RUNNER_TEMP/q" HEAD
           rc=0; python3 -I worker/queue_ops.py release "$RUNNER_TEMP/q" "$WORKER" "$ITEM" "${OUTCOME:-failed}" note.json > release.out || rc=$?
           cat release.out
@@ -382,7 +382,7 @@ jobs:
           python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "openrouter:4" || { echo "no OpenRouter budget: not generating"; exit 0; }
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD
           rc=0; python3 -I worker/generate.py "$RUNNER_TEMP/gq" "$RUNNER_TEMP/gen" | tee "$RUNNER_TEMP/gen.log" || rc=$?
-          [ -s "$RUNNER_TEMP/gen/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "$RUNNER_TEMP/gen/calls.jsonl" || true
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "$RUNNER_TEMP/gen/calls.jsonl" || echo "ledger record exit $?"
           n=$(python3 -c "import json;print(sum(o=='accept' for _,o in json.load(open('$RUNNER_TEMP/gen/generate.json')).get('moved',[])))" 2>/dev/null || echo 0)
           echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "generator exit $rc, accepted $n"
           cat "$RUNNER_TEMP/gen/generate.json" 2>/dev/null | head -c 6000   # drafts, gate probabilities and controls, for the record
@@ -398,7 +398,7 @@ jobs:
           python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:2:6,openrouter:1" || { echo "no budget: not splitting"; exit 0; }
           [ -d "$RUNNER_TEMP/gq" ] || { git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD; }
           rc=0; python3 -I worker/split.py "$RUNNER_TEMP/gq" . "$RUNNER_TEMP/split" | tee "$RUNNER_TEMP/split.log" || rc=$?
-          [ -s "$RUNNER_TEMP/split/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || true
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || echo "ledger record exit $?"
           n=$(grep -c "'accept')" "$RUNNER_TEMP/split.log" 2>/dev/null || true); n=${n:-0}   # grep -c prints 0 AND exits 1, so an or-echo fallback wrote two lines and killed the idle job from 12:50Z: the worker stopped overnight
           echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "splitter exit $rc, accepted $n"
       - name: keep the schedules (GitHub dropped every tier, wiring and digest cron run overnight 2026-11-20/21)

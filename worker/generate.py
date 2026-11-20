@@ -159,8 +159,17 @@ def gate_outcomes(ps, n):
 
 
 def run(wt, out, draft_fn=None, decide_fn=None):
+    """Every exit writes the calls made, so the ledger records them (GLM F021: a push failure or crash skipped it)."""
     os.makedirs(out, exist_ok=True)
-    calls, log = [], []
+    calls = []
+    try:
+        return _run(wt, out, calls, draft_fn, decide_fn)
+    finally:
+        _write_calls(out, calls)
+
+
+def _run(wt, out, calls, draft_fn=None, decide_fn=None):
+    log = []
     Q.sync(wt)
     q = Q.load(wt)
     day = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")

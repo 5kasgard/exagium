@@ -2,7 +2,7 @@
 
 Run: python3 -m unittest -v router/test_router.py   (from the repo root)
 """
-import os, sys, unittest
+import json, os, sys, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -93,6 +93,34 @@ class Scrub(unittest.TestCase):
         for v in env.values():
             self.assertNotIn(v, out)
         self.assertEqual(out.count("***"), 4)
+
+    def test_f043_secret_across_the_cut_is_scrubbed(self):
+        """GLM F043: truncating to 600 before scrubbing left a key fragment that the replace could not match."""
+        import io, urllib.error, urllib.request
+        key = "sk-or-v1-" + "a1b2c3d4" * 6
+        body = ("x" * 580 + key + " tail").encode()
+        def fake(req, timeout=None):
+            raise urllib.error.HTTPError("https://e.invalid", 401, "no", {}, io.BytesIO(body))
+        with mock.patch.object(urllib.request, "urlopen", fake), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": key}):
+            st, j = engines._send(urllib.request.Request("https://e.invalid"))
+        self.assertEqual(st, 401)
+        self.assertNotIn(key[:20], j["_error"])
+
+    def test_f042_no_env_switch_for_paid(self):
+        with mock.patch.dict(os.environ, {"ROUTER_ALLOW_PAID": "1", "OPENROUTER_API_KEY": "k"}):
+            with self.assertRaisesRegex(ValueError, "refusing paid"):
+                engines.call("openrouter", "z-ai/glm-5.3-flash", "hi")
+
+    def test_f039_paid_logged_as_paid_pool(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            log = os.path.join(d, "u.jsonl")
+            with mock.patch.object(engines, "_post", return_value=(200, {"choices": [{"message": {"content": "ok"}}]})), \
+                    mock.patch.object(engines, "paid_guard"), \
+                    mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": log}):
+                r = engines.call("openrouter", "z-ai/glm-5.3-flash", "hi", allow_paid=True)
+            self.assertEqual(r["engine"], "openrouter_paid")
+            self.assertEqual(json.loads(open(log).read())["engine"], "openrouter_paid")
 
     def test_empty_and_none_pass_through(self):
         self.assertIsNone(engines._scrub(None))
