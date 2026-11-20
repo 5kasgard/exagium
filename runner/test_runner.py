@@ -81,6 +81,17 @@ class NoTaskCodeInRunner(unittest.TestCase):
 
 
 
+class ContractEquivalenceCheck(unittest.TestCase):
+    """GLM F064: the contract names the equivalence check and must describe it below."""
+    def test_equivalence_check_is_described(self):
+        text = open(os.path.join(HERE, "CONTRACT.md")).read()
+        self.assertNotRegex(text, r"(?i)equivalence check below")
+        self.assertRegex(text, r"(?m)^## Equivalence check$")
+        section = text.split("## Equivalence check", 1)[1]
+        self.assertIn("local/*.pred", section)
+        self.assertIn("out-of-band", section)
+
+
 class CounterExit(unittest.TestCase):
     """GLM F051: count.py exits 1 when reps differ, stdout differs between reps or counting could be switched off;
     the runner took that as a count. Only exit 0 counts now."""
