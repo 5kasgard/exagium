@@ -154,7 +154,7 @@ def failures(i):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue
-        if r.get("outcome") == "failed" or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
+        if r.get("outcome") in ("failed", "lost") or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
             n += 1; continue
         break
     return n
@@ -236,13 +236,14 @@ def held(wt, worker, item_id):
 
 
 TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
-                 "decide_scheduled", "decide_owner"}
+                 "decide_scheduled", "decide_owner", "dispatch", "verdict", "invalid"}
+EXPERIMENT_FAILED = "lost"   # only the experiment record job moves scheduled -> open with it (move(..., allow_failed=True))
 
 
-def move(wt, actor, item_id, outcome, reason):
+def move(wt, actor, item_id, outcome, reason, allow_failed=False):
     """The tier above the workers (the Claude session, the owner's chat) moves an item: the same table, the same record.
     Chat edits used to set status by hand, past transitions.py (Q60 open point)."""
-    if outcome not in TIER_OUTCOMES:
+    if outcome not in TIER_OUTCOMES and not (allow_failed and outcome == EXPERIMENT_FAILED):
         raise SystemExit(f"not a tier or owner outcome: {outcome!r} (worker outcomes go through release)")
     for _ in range(TRIES):
         sync(wt)
@@ -250,7 +251,7 @@ def move(wt, actor, item_id, outcome, reason):
         i = next((x for x in q["items"] if x["id"] == item_id), None)
         if i is None:
             raise SystemExit(f"no item {item_id}")
-        to = T.next_status(i["status"], outcome)   # raises NotAllowed for a move the table does not have
+        to = T.next_status(i["status"], outcome, failures(i) + 1 if outcome == EXPERIMENT_FAILED else 0)   # raises NotAllowed for a move the table does not have
         i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": reason, "outcome": outcome})
         i["status"] = to
         save(wt, q)

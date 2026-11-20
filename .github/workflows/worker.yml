@@ -414,6 +414,13 @@ jobs:
           python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || echo "ledger record exit $?"
           n=$(grep -c "'accept')" "$RUNNER_TEMP/split.log" 2>/dev/null || true); n=${n:-0}   # grep -c prints 0 AND exits 1, so an or-echo fallback wrote two lines and killed the idle job from 12:50Z: the worker stopped overnight
           echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "splitter exit $rc, accepted $n"
+      - name: start experiments that open items name (worker/dispatch_experiments.py; no model; the run has no secrets)
+        if: needs.claim.result == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -d "$RUNNER_TEMP/gq" ] || { git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD; }
+          python3 -I worker/dispatch_experiments.py "$RUNNER_TEMP/gq" . 3 || echo "dispatch exit $?"
       - name: keep the schedules (GitHub dropped every tier, wiring and digest cron run overnight 2026-11-20/21)
         env:
           GH_TOKEN: ${{ github.token }}

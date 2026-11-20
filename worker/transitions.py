@@ -33,6 +33,7 @@ MAX_FAILURES = 2   # same as queue_ops before this module (review M4): a second 
 #                    note), escalate (beyond this tier)
 #   escalated tier:  solved, redo, escalate
 #   owner:           decide_done, decide_open, park
+#   experiment job:  dispatch (open -> scheduled), verdict (-> done), invalid (-> escalated), lost (-> open, counted as a failure)
 WORKER = {"merged": "done", "unchanged": "review", "pr": "review", "pr_not_created": "review",
           "guard_blocked": "escalated", "no_claims": "escalated", "failed": "open", "budget": "open", "lease_expired": "open",
           "retry": "open"}
@@ -40,7 +41,10 @@ TABLE = {("open", "claim"): "in progress"}
 TABLE.update({("in progress", o): s for o, s in WORKER.items()})
 TABLE.update({("review", "confirm"): "done", ("review", "redo"): "open", ("review", "escalate"): "waiting on the owner",
               ("proposed", "accept"): "open", ("proposed", "reject"): "parked",
-              ("escalated", "solved"): "done", ("escalated", "redo"): "open", ("escalated", "escalate"): "waiting on the owner"})
+              ("escalated", "solved"): "done", ("escalated", "redo"): "open", ("escalated", "escalate"): "waiting on the owner",
+              # experiment job (owner 2026-11-21): dispatched -> scheduled; the rule's script decides; a lost run retries
+              ("open", "dispatch"): "scheduled", ("scheduled", "verdict"): "done", ("scheduled", "invalid"): "escalated",
+              ("scheduled", "lost"): "open"})
 for s in STATES:   # the owner may settle any item, from any state; nothing else is implied
     TABLE.update({(s, "decide_done"): "done", (s, "decide_open"): "open", (s, "park"): "parked",
                   (s, "decide_blocked"): "blocked", (s, "decide_scheduled"): "scheduled", (s, "decide_owner"): "waiting on the owner"})
@@ -85,7 +89,7 @@ def next_status(status, outcome, failures=0):
     if key not in TABLE:
         raise NotAllowed(f"no transition from {status!r} on {outcome!r}")
     to = TABLE[key]
-    if outcome in ("failed", "lease_expired") and failures >= MAX_FAILURES:   # GLM F018: a run killed every time too   # guard: a crash loop climbs a tier instead of retrying forever
+    if outcome in ("failed", "lease_expired", "lost") and failures >= MAX_FAILURES and to == "open":   # GLM F018: a run killed every time too   # guard: a crash loop climbs a tier instead of retrying forever
         to = "escalated"
     return to
 

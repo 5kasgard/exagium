@@ -31,7 +31,7 @@ def new_ok(repo, p):
     return allowed(p) and p.endswith(NEW_EXT) and not os.path.exists(os.path.join(repo, p)) \
         and os.path.isdir(os.path.join(repo, os.path.dirname(p) or "."))
 CI_TESTS = ["worker/test_worker.py", "worker/test_transitions.py", "runner/proposals/test_proposals.py", "facts/test_check.py",
-            "runner/proposals/confirm/test_decide.py", "router/test_pick.py"]
+            "runner/proposals/confirm/test_decide.py", "router/test_pick.py", "experiments/test_experiments.py"]
 
 PROMPT = """You change code in a repository to do what one queue item asks. Change as little as possible.
 

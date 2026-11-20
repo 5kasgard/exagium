@@ -866,5 +866,23 @@ class Classify(unittest.TestCase):
         self.assertEqual(CL.todo({"items": [dict(items[0], status="open", work_types_key=CL.key(items[0]))]}, 5), [])
 
 
+
+class Experiments(unittest.TestCase):
+    def test_states_and_dispatch(self):
+        import transitions as TR, dispatch_experiments as DE
+        self.assertEqual(TR.next_status("open", "dispatch"), "scheduled")
+        self.assertEqual(TR.next_status("scheduled", "verdict"), "done")
+        self.assertEqual(TR.next_status("scheduled", "invalid"), "escalated")
+        self.assertEqual(TR.next_status("scheduled", "lost", 1), "open")
+        self.assertEqual(TR.next_status("scheduled", "lost", TR.MAX_FAILURES), "escalated")   # a run lost twice climbs a tier
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "experiments")); open(os.path.join(d, "experiments", "x1.py"), "w").write("")
+            q = {"items": [{"id": "E1", "status": "open", "experiment": {"name": "x1"}},
+                           {"id": "E2", "status": "open", "experiment": {"name": "missing"}},
+                           {"id": "E3", "status": "open", "experiment": {"name": "x1"}, "blocked_by": ["E9"]},
+                           {"id": "E9", "status": "open"}]}
+            self.assertEqual(DE.ready(q, d), [("E1", "x1")])
+
+
 if __name__ == "__main__":
     unittest.main()

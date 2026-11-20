@@ -1,0 +1,82 @@
+# Run one experiment (experiments/README.md): its own rule decides, by script. The run job has no secrets and a read-only
+# token (experiment code may be model-written); the record job runs no experiment code, saves the result to router-runs
+# and moves the queue item through worker/transitions.py (holds or fails -> done; invalid -> escalated; no result -> open).
+name: experiment
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "experiments/<name>.py"
+        required: true
+      item:
+        description: "queue item it answers (optional; must be 'scheduled' by the dispatcher)"
+        required: false
+        default: ""
+permissions: {}
+concurrency:
+  group: experiment-${{ github.event.inputs.name }}
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: run, then apply the experiment's own rule
+        env:
+          NAME: ${{ github.event.inputs.name }}
+        run: |
+          case "$NAME" in *[!a-z0-9_]*|"") echo "bad name"; exit 1 ;; esac
+          git fetch -q origin pilot/lgn-20261115:refs/remotes/origin/pilot/lgn-20261115 || true
+          rc=0; python3 -I experiments/run_one.py "$NAME" out || rc=$?
+          echo "run_one exit $rc"; cat out/verdict.json 2>/dev/null | head -c 3000
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: always()
+        with:
+          name: experiment
+          path: out/
+  record:
+    needs: run
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write   # router-runs and the queue branch; no experiment code runs here
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes results with the checkout token; no artifact uploaded
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        continue-on-error: true
+        with:
+          name: experiment
+          path: out
+      - name: save the result and move the item
+        env:
+          NAME: ${{ github.event.inputs.name }}
+          ITEM: ${{ github.event.inputs.item }}
+        run: |
+          case "$NAME" in *[!a-z0-9_]*|"") echo "bad name"; exit 1 ;; esac
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          v=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['verdict'])" 2>/dev/null || echo none)
+          why=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['why'][:300])" 2>/dev/null || echo "no result")
+          echo "verdict: $v ($why)"
+          if [ -d out ]; then
+            git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
+            d="$RUNNER_TEMP/rr/experiments/$NAME/$GITHUB_RUN_ID"; mkdir -p "$d"
+            for f in out/result.json out/verdict.json; do [ -f "$f" ] && [ "$(stat -c %s "$f")" -le 2000000 ] && cp "$f" "$d/"; done
+            for i in 1 2 3; do
+              (cd "$RUNNER_TEMP/rr" && git add experiments && git commit -qm "experiment $NAME: $v (run $GITHUB_RUN_ID)" && git push -q origin HEAD:router-runs) && break
+              (cd "$RUNNER_TEMP/rr" && git fetch -q origin router-runs && git rebase -q FETCH_HEAD) || true
+            done
+          fi
+          [ -n "$ITEM" ] || exit 0
+          case "$ITEM" in *[!A-Za-z0-9._-]*) echo "bad item"; exit 1 ;; esac
+          git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
+          case "$v" in holds|fails) o=verdict ;; invalid) o=invalid ;; *) o=lost ;; esac
+          url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          python3 -I -c "import sys;sys.path.insert(0,'worker');import queue_ops as Q;sys.exit(Q.move(sys.argv[1],'experiment',sys.argv[2],sys.argv[3],sys.argv[4],allow_failed=True))" \
+            "$RUNNER_TEMP/q" "$ITEM" "$o" "experiment $NAME: $v: $why ($url; router-runs experiments/$NAME/$GITHUB_RUN_ID)"
