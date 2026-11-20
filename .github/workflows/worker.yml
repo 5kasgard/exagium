@@ -359,7 +359,7 @@ jobs:
     # first keeps a failing provider from being hammered; a repeat failure escalates the item through transitions.py.
     needs: [claim, land]
     # GLM F008: a failed claim (tests, checkout, a crash) also re-polls, else only the unreliable cron restarted the worker
-    if: ${{ always() && (needs.claim.result == 'failure' || (needs.claim.result == 'success' && ((needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '') || (needs.claim.outputs.item != '' && needs.land.outputs.status == 'open')))) }}
+    if: ${{ always() && (needs.claim.result == 'failure' || (needs.claim.result == 'success' && ((needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '') || (needs.claim.outputs.item != '' && (needs.land.outputs.status == 'open' || needs.land.result == 'failure'))))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     concurrency:   # one idle poll waiting at a time
