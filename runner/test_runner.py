@@ -36,6 +36,17 @@ class Records(unittest.TestCase):
             with self.assertRaises(ValueError):
                 records.unpack(bad, **kw)
 
+    def test_write_drops_secret_fields(self):
+        rec = {"name": "run", "api_key": "drop-me", "meta": {"token": "drop-me-too", "keep": 7}, "items": [1, 2]}
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "rec")
+            records.write(p, [rec])
+            data = open(p, "rb").read()
+        self.assertNotIn(b"api_key", data)
+        self.assertNotIn(b"token", data)
+        self.assertEqual(json.loads(records.unpack(data)[0]),
+                         {"name": "run", "meta": {"keep": 7}, "items": [1, 2]})
+
 
 class LabelChecker(unittest.TestCase):
     def test_scores(self):
