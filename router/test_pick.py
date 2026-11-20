@@ -13,7 +13,7 @@ def run(led, *a):
 class Pick(unittest.TestCase):
     def test_spreads_across_pools(self):
         got = run({"cloudflare": {"calls": 10, "neurons": 4900}, "nvidia": {"calls": 390}, "groq": {"calls": 5}, "openrouter": {"calls": 1}}, "2")
-        self.assertEqual([g.split(":")[0] for g in got], ["openrouter", "groq"])
+        self.assertEqual([g.split(":")[0] for g in got], ["groq", "openrouter"])   # groq 6/500 used < openrouter 2/30
 
     def test_full_pool_is_skipped_and_dropped(self):
         led = {"cloudflare": {"calls": 10, "neurons": 4900}}
