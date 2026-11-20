@@ -6,7 +6,7 @@ import json, os, sys, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import engines, probe  # noqa: E402
+import decisions_route, engines, probe  # noqa: E402
 
 
 def rec(engine, model, exact=None, ok=True, **kw):
@@ -127,6 +127,38 @@ class Scrub(unittest.TestCase):
         self.assertEqual(engines._scrub(""), "")
 
 
+
+
+class DecisionsScrub(unittest.TestCase):
+    def test_f045_http_error_body_is_scrubbed_in_json_and_stdout(self):
+        import contextlib, io, tempfile, urllib.error, urllib.request
+        key = "sk-or-v1-" + "f045deadbeef" * 4
+        body = ("provider refused: key=" + key + " please retry").encode()
+
+        def fake(req, timeout=None):
+            raise urllib.error.HTTPError("https://openrouter.ai/api/alpha/decisions", 401, "no", {}, io.BytesIO(body))
+
+        with tempfile.TemporaryDirectory() as d:
+            cases = os.path.join(d, "cases.json")
+            out = os.path.join(d, "out.json")
+            with open(cases, "w") as f:
+                json.dump([{"id": "case-1", "expect": "confirm", "state": "state"}], f)
+            buf = io.StringIO()
+            with mock.patch.object(decisions_route.urllib.request, "urlopen", fake), \
+                    mock.patch.object(decisions_route.time, "sleep", lambda s: None), \
+                    mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": key}), \
+                    contextlib.redirect_stdout(buf):
+                decisions_route.main("test/model", cases, out)
+            text = open(out).read()
+            printed = buf.getvalue()
+
+        self.assertNotIn(key, text)
+        self.assertNotIn(key, printed)
+        self.assertIn("***", text)
+        self.assertIn("***", printed)
+        result = json.loads(text)["results"][0]
+        self.assertEqual(result["status"], 401)
+        self.assertIn("***", result["raw"]["error"])
 
 
 class SpendCaps(unittest.TestCase):

@@ -2,6 +2,9 @@
 python3 -I router/decisions_route.py MODEL CASES_JSON OUT_JSON"""
 import json, os, sys, time, urllib.request, urllib.error
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import engines
+
 URL = "https://openrouter.ai/api/alpha/decisions"
 ASK = "Which move should the tier above the free workers make for this item?"
 # 'choice' takes criteria: a record of option -> description (the API refused a plain options list, run 44666907315)
@@ -23,7 +26,7 @@ def main(model, cases, out):
             with urllib.request.urlopen(req, timeout=120) as r:
                 resp, st = json.loads(r.read()), r.status
         except urllib.error.HTTPError as e:
-            resp, st = {"error": e.read().decode(errors="replace")[:400]}, e.code
+            resp, st = {"error": engines._scrub(e.read().decode(errors="replace"))[:400]}, e.code
         res.append({"id": c["id"], "expect": c["expect"], "status": st, "latency_s": round(time.time() - t, 2), "raw": resp})
         print(c["id"], c["expect"], st, json.dumps(resp)[:300])
         time.sleep(3.2)
