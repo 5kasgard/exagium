@@ -12,21 +12,31 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7 | B7 | D23 | B3 | .github/workflows/research.yml |
 | P7 | B7 | D24 | B3 | .github/workflows/research.yml |
 | P7 | B7 | D25 | B3 | .github/workflows/research.yml |
+| P7 | B7 | D26 | B3 | .github/workflows/research.yml |
+| P7 | B7 | D27 | B3 | .github/workflows/research.yml |
 | P10 | B8 | D23 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D24 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D25 | B3 | .github/workflows/whole-audit.yml |
+| P10 | B8 | D26 | B3 | .github/workflows/whole-audit.yml |
+| P10 | B8 | D27 | B3 | .github/workflows/whole-audit.yml |
 | P7b | B7 | Q59 | B3 | worker/research_job.py |
 | P7b | B7 | D23 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | D24 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | D25 | B3 | .github/workflows/worker.yml |
+| P7b | B7 | D26 | B3 | .github/workflows/worker.yml |
+| P7b | B7 | D27 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | Q59 | B3 | worker/research_job.py |
 | P7c | B7 | D23 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | D24 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | D25 | B3 | .github/workflows/worker.yml |
+| P7c | B7 | D26 | B3 | .github/workflows/worker.yml |
+| P7c | B7 | D27 | B3 | .github/workflows/worker.yml |
 | P7d | B7 | Q59 | B3 | worker/research_job.py |
 | P14 | B10 | D23 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D24 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D25 | B3 | .github/workflows/machines.yml |
+| P14 | B10 | D26 | B3 | .github/workflows/machines.yml |
+| P14 | B10 | D27 | B3 | .github/workflows/machines.yml |
 | P7f | B7 | Q59 | B3 | worker/research_job.py |
 
 ## Batches (related items done together)
@@ -118,7 +128,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K4 | B3 |  | minor | high | fix | Add per-(pool, model) worker card limits and a pre-call size check that refuses prompts over the declared input and output budget | Add a small card lookup in worker/generate.py that reads a dict keyed by (pool, model) with fields max_input_chars and max_output_tokens, each with a source string. Before the provider call, estimate the prompt size and refuse the call, returning a clear error, when it exceeds max_input_chars. Pass max_tokens from max_output_tokens instead of a hard-coded value. Seed the dict with the Nemotron entry (max_output_tokens 16000, source: the 2026-11-19 P5 evidence). Done when a unit test shows an oversized prompt is refused without calling the provider, an in-budget prompt passes through with the card's max_tokens, and the existing worker tests still pass. | queue P20a; worker/split.py |
 | K5 | B3 |  | minor | high | fix | Derive measured outcome stats per (pool, model) from call records | In runner/records.py, add a function that reads call records (the fields already written per call, such as model, pool, finish reason or stop reason, and output token count) and returns, per (pool, model), the count of calls, the count truncated at the output limit, and the max observed output tokens for non-truncated calls. Use only fields that exist in the current record format; if a field is missing, skip that record and count it separately. Done when a test with a fixture of mixed records returns the expected truncation count and max safe output tokens, and the existing runner tests pass. | queue P20a; worker/split.py |
 
-## Escalated (a check failed; the next tier takes it) (6)
+## Escalated (a check failed; the next tier takes it) (8)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -128,6 +138,8 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D23 | B3 |  | minor | medium | fix | Failed run, unknown: wiring:unknown | Filed by worker/diagnose.py from run 44725158522 (wiring). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44725158522 |
 | D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
 | D25 | B3 |  | minor | medium | fix | Failed run, unknown: router:unknown | Filed by worker/diagnose.py from run 44713342137 (router). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44713342137 |
+| D26 | B3 |  | minor | medium | fix | Failed run, unknown: .github/workflows/tier.yml:unknown | Filed by worker/diagnose.py from run 44739347561 (.github/workflows/tier.yml). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44739347561 |
+| D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
 
 ## Needs the owner (5)
 
