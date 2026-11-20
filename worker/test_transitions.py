@@ -1,5 +1,6 @@
 """Walk the item state machine (queue Q60). Run: python3 -m unittest worker/test_transitions.py"""
 import json, os, random, sys, unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(__file__))
 import transitions as T  # noqa: E402
@@ -186,4 +187,22 @@ class CheckerMajority(unittest.TestCase):
         rd = self.run_read([j({"keep": [0]})] * 6, n=8)
         self.assertEqual(len(rd["script_kept"]), 6)
         self.assertEqual(rd["check"]["keep"], [0, 3])
+
+    def test_decider_decides_when_available_and_nemotron_is_the_shadow(self):
+        import research_job as R
+        j = json.dumps
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "x"}), \
+                mock.patch.object(R, "decide_claims", lambda q, kept, calls: {"keep": [1], "p_keep": [0.2, 0.9, 0.1]}):
+            rd = self.run_read([j({"keep": [0, 1, 2]})] * 3)
+        self.assertEqual(rd["check"]["keep"], [1])
+        self.assertEqual(rd["check"]["shadow_nemotron"]["keep"], [0, 1, 2])
+
+    def test_decider_failure_falls_back_to_the_majority(self):
+        import research_job as R
+        j = json.dumps
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "x"}), \
+                mock.patch.object(R, "decide_claims", lambda q, kept, calls: {"keep": None, "error": "status 429"}):
+            rd = self.run_read([j({"keep": [0, 2]})] * 3)
+        self.assertEqual(rd["check"]["keep"], [0, 2])
+        self.assertEqual(rd["check"]["decider_error"], "status 429")
 

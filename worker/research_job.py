@@ -24,6 +24,7 @@ import xml.etree.ElementTree as ET
 HERE = os.path.dirname(os.path.abspath(__file__))
 READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
+DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OPENROUTER_API_KEY is set; 6/6 known answers twice, identical probabilities (router/review/checker-relevance)
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
 CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
 MAX_CHECKED = 6   # so at most 2 chunks x 3 calls = 6 NIM calls; worker.yml reserves nvidia:6 for research
@@ -325,6 +326,31 @@ def verified(claims, sources):
     return kept, dropped
 
 
+def decide_claims(q, kept, calls):
+    """One Decisions API request: the question and the claims as state, one yes/no question per claim (P31)."""
+    import time, urllib.request, urllib.error
+    lines = "\n".join(f"{i}. CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(kept))
+    ask = ("Keep claim {i}? Keep only if its quote supports it, the claim says exactly what the quote says and no more (no added "
+           "interpretation, comparison or conclusion), and it directly answers the QUESTION, not merely the same field.")
+    body = {"model": DECIDER, "state": f"QUESTION: {q}\n\nCLAIMS:\n{lines}",
+            "questions": {f"c{i}": {"type": "noul", "instructions": ask.format(i=i)} for i in range(len(kept))}}
+    req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",
+                                 headers={"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"], "Content-Type": "application/json"})
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp, st = json.loads(r.read()), r.status
+    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        resp, st = {"error": str(e)[:200]}, getattr(e, "code", 0)
+    lat = round(time.time() - t0, 2)
+    calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": DECIDER,
+                  "ok": st == 200, "status": st, "latency_s": lat, "usage": resp.get("usage") or {}})
+    ps = [((resp.get("answers") or {}).get(f"c{i}") or {}).get("noul") for i in range(len(kept))] if st == 200 else []
+    if st != 200 or any(not isinstance(p, (int, float)) for p in ps):
+        return {"keep": None, "error": f"status {st}: {str(resp.get('error', 'missing answers'))[:150]}"}
+    return {"keep": [i for i, p in enumerate(ps) if p >= 0.5], "p_keep": [round(p, 4) for p in ps]}
+
+
 def read(out):
     sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
     import engines
@@ -370,6 +396,7 @@ def _read(out, d, q, calls, ask):
         # each chunk by CHECK_CALLS calls; a claim is kept if a strict majority of its chunk's usable replies keep it, and a
         # chunk with fewer than 2 usable replies is a model failure. Grades from the first usable reply of each chunk.
         kept = kept[:MAX_CHECKED]
+        decided = decide_claims(q, kept, calls) if os.environ.get("OPENROUTER_API_KEY") else None
         keep, grades, votes_all, notes = [], {}, [], []
         for c0 in range(0, len(kept), CHUNK):
             part = kept[c0:c0 + CHUNK]
@@ -395,6 +422,13 @@ def _read(out, d, q, calls, ask):
                     if g:
                         grades[str(c0 + i)] = g
         check = {"keep": None if model_fail else keep, "grades": grades, "votes": votes_all, "notes": "; ".join(notes)}
+        if decided is not None and decided.get("keep") is not None:
+            # live trial (P31): the decision model decides; the Nemotron majority above is kept as a shadow for comparison
+            check = {"keep": decided["keep"], "grades": grades, "decider": decided, "shadow_nemotron": dict(check),
+                     "notes": "decided by " + DECIDER}
+            model_fail[:] = []
+        elif decided is not None:   # the decision call failed: the Nemotron majority decides, as before the trial
+            check["decider_error"] = decided.get("error")
     json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check,
                "model_fail": model_fail},
               open(os.path.join(out, "read.json"), "w"), indent=1)

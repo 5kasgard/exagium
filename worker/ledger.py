@@ -22,7 +22,8 @@ chats, reviews and probes (P8, "coexists with chat sessions"):
 import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
-CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500}}
+CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
+        "openrouter": {"calls": 30}}   # free models: 50 requests/day under $10 of credits ever bought (OpenRouter docs, 2026-11); 20 left for reviews and probes, which are not ledgered
 EST_NEURONS = 1000   # default per Cloudflare call when the caller gives none (long reviews measured 560-780)
 
 

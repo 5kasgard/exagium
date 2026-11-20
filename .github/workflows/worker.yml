@@ -44,7 +44,7 @@ jobs:
             # on worker-runs, 2026-11-18 to 19 (the old 1,500 had no source and on 2026-11-19 held research back with 1,359 neurons unused)
             types=""
             python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" groq:1,cloudflare:1:500,nvidia:1 && types="doc"
-            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:600,nvidia:6 && types="${types:+$types,}research"
+            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:600,nvidia:6,openrouter:1 && types="${types:+$types,}research"
             echo "TYPES=$types" >> "$GITHUB_ENV"; echo "job types with budget today: ${types:-none}"
             if [ -z "$types" ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
@@ -68,7 +68,7 @@ jobs:
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
               && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
           fi
-          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; else spec=cloudflare:1:600,nvidia:6; fi
+          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; else spec=cloudflare:1:600,nvidia:6,openrouter:1; fi
           rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
@@ -135,6 +135,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # P31: the research checker's decision model (prompt text only)
           TYPE: ${{ needs.claim.outputs.type }}
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job; else python3 -I worker/research_job.py read job; fi
