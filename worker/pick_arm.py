@@ -22,7 +22,31 @@ from rerank_arm import summarise
 PAPERS = {"papers": 24, "encyclopedia": 2, "Q&A": 2, "forum": 1, "code": 1}
 
 
+def cap(saved, out, iid):
+    """P32 cap test: one read of the live pick; the decision model judges the first 6 (live) and all (up to 40)."""
+    os.environ["DECIDE_ALL"] = "1"
+    s = json.load(open(os.path.join(saved, iid, "cite", "search.json")))
+    d = os.path.join(out, iid, "cap")
+    os.makedirs(d, exist_ok=True)
+    json.dump(s, open(os.path.join(d, "search.json"), "w"), indent=1)
+    rj.read(d)
+    r = json.load(open(os.path.join(d, "read.json")))
+    live = (r.get("check") or {}).get("keep")
+    allk = (r.get("decided_all") or {}).get("keep")
+    row = {"id": iid, "script_kept_all": len(r.get("script_kept_all") or []), "live_kept": None if live is None else len(live),
+           "all_kept": None if allk is None else len(allk), "extra": [c for k, c in enumerate(r.get("script_kept_all") or [])
+                                                                   if allk is not None and k in allk and k >= rj.MAX_CHECKED],
+           "model_fail": r.get("model_fail")}
+    with open(os.path.join(d, "calls.jsonl")) as f, open(os.path.join(out, "usage.jsonl"), "a") as g:
+        g.write(f.read())
+    json.dump(row, open(os.path.join(out, f"{iid}.json"), "w"), indent=1)
+    print(json.dumps({k: v for k, v in row.items() if k != "extra"}), "extra:", len(row["extra"]))
+    return 0
+
+
 def main(saved, out, iid):
+    if os.environ.get("ARM_MODE") == "cap":
+        return cap(saved, out, iid)
     s = json.load(open(os.path.join(saved, iid, "cite", "search.json")))
     kinds = [k for k in s["item"]["research"].get("kinds", list(rj.APIS)) if k in rj.APIS]
     row = {"id": iid, "pool": len(s["pool"])}

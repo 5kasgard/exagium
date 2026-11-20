@@ -11,6 +11,9 @@ on:
         default: '["R3","R5","R6","R7","R8","R9"]'
       reader:
         default: "nvidia,nvidia/nemotron-3-ultra-550b-a55b"
+      mode:
+        description: "pick (paper-heavy vs live) or cap (decide first 6 vs all, same read)"
+        default: "pick"
 permissions: {}
 jobs:
   arm:
@@ -40,6 +43,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           ITEM: ${{ matrix.item }}
           ARM: ${{ github.event.inputs.arm_run }}
+          ARM_MODE: ${{ github.event.inputs.mode }}
         run: |
           case "$ITEM" in R[0-9]*) ;; *) echo "bad item"; exit 1;; esac
           python3 -I worker/pick_arm.py "$RUNNER_TEMP/rr/arms/$ARM" "$RUNNER_TEMP/out" "$ITEM"

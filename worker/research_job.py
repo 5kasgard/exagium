@@ -32,6 +32,7 @@ CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
 DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OPENROUTER_API_KEY is set; 6/6 known answers twice, identical probabilities (router/review/checker-relevance)
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
 CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
+MAX_DECIDED = 40  # P32 cap test: the decision model takes up to 100 questions per request
 MAX_CHECKED = 6   # so at most 2 chunks x 3 calls = 6 NIM calls; worker.yml reserves nvidia:6 for research
 PER_QUERY = 6
 MAX_SOURCES = 26
@@ -457,7 +458,11 @@ def _read(out, d, q, calls, ask):
         # nothing (router/review/checker-consistency, 2026-11-19). So: at most MAX_CHECKED claims, checked CHUNK at a time,
         # each chunk by CHECK_CALLS calls; a claim is kept if a strict majority of its chunk's usable replies keep it, and a
         # chunk with fewer than 2 usable replies is a model failure. Grades from the first usable reply of each chunk.
+        kept_all = kept[:MAX_DECIDED]
         kept = kept[:MAX_CHECKED]
+        # P32 cap test: with DECIDE_ALL=1 the decision model also judges every script-verified claim (one request); recorded
+        # beside the live decision, which is unchanged, so both are measured on the same claims
+        decided_all = decide_claims(q, kept_all, calls) if os.environ.get("DECIDE_ALL") == "1" and os.environ.get("OPENROUTER_API_KEY") else None
         decided = decide_claims(q, kept, calls) if os.environ.get("OPENROUTER_API_KEY") else None
         keep, grades, votes_all, notes = [], {}, [], []
         for c0 in range(0, len(kept), CHUNK):
@@ -491,7 +496,8 @@ def _read(out, d, q, calls, ask):
             model_fail[:] = []
         elif decided is not None:   # the decision call failed: the Nemotron majority decides, as before the trial
             check["decider_error"] = decided.get("error")
-    json.dump({"reading": reading, "script_kept": kept, "script_dropped": [[c, why] for c, why in dropped], "check": check,
+    json.dump({"reading": reading, "script_kept": kept, "script_kept_all": locals().get("kept_all", kept),
+               "decided_all": locals().get("decided_all"), "script_dropped": [[c, why] for c, why in dropped], "check": check,
                "model_fail": model_fail},
               open(os.path.join(out, "read.json"), "w"), indent=1)
     print(f"reader ok={r['ok']} claims={len(reading.get('claims') or [])} script-verified={len(kept)} "
