@@ -204,6 +204,12 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
                  "log_tokens": math.log10(tok) if tok else None, "calls": float(calls) if calls else None}) Proposed fix: Keep calls == 0 as 0.0 (only None excludes a row): change 'float(calls) if calls is not None else None'. Add a test in router/test_router.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| K15 | B3 |  | minor | high | fix | A 429 marks the pool exhausted until its window resets | In the budget ledger code in tier.py (the part the Ledger tests cover), when a call to a pool returns HTTP 429, record that pool as exhausted until the end of its window (minute, day or month as the pool's limit states), and make the pool report zero remaining budget until then, so the next job picks another pool or a CPU-only job. Add a test in the Ledger class: after a simulated 429 for a pool, its remaining budget for the window is 0, and it becomes positive again after the window's reset time has passed. | queue P8; worker/split.py |
+
 ## Parked (25)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
