@@ -83,6 +83,21 @@ class TestBoardPending(unittest.TestCase):
             self.assertIn("Proposals: 2. Valid: 1", text)
             self.assertIn("pending a rescore, not counted): b.", text)
 
+    def test_distinct_designs(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name in ["a", "b", "c"]:
+                os.makedirs(os.path.join(d, name))
+                json.dump({"name": name, "extract": "extracted", "extracted": True, "reproduced": True,
+                           "valid": True, "beats_linear": False}, open(os.path.join(d, name, "result.json"), "w"))
+            for name in ["a", "b"]:
+                open(os.path.join(d, name, "train.py"), "w").write("def main():\n    pass\n")
+                open(os.path.join(d, name, "infer.c"), "w").write("int main(void){return 0;}\n")
+            open(os.path.join(d, "c", "train.py"), "w").write("def main():\n    return 1\n")
+            open(os.path.join(d, "c", "infer.c"), "w").write("int main(void){return 1;}\n")
+            judge.board(d)
+            text = open(os.path.join(d, "LEADERBOARD.md")).read()
+            self.assertIn("Distinct designs: 2 (of 3 valid)", text)
+
 
 if __name__ == "__main__":
     unittest.main()
