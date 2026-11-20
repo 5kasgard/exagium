@@ -9408,7 +9408,7 @@
    "id": "K24",
    "title": "F041: refuse paid Anthropic calls at the engines level",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "Q67",
    "generated_at": "2026-11-20T22:34:18Z",
@@ -9456,6 +9456,12 @@
      "at": "2026-11-20T22:45:19Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-20T22:46:21Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #39 not merged: files a person merges, or not the item's own: router/engines.py; model verdict: reject; model: The diff adds no test for the required behavior (allow_paid=False must raise Refused with _send never called), and call() runs paid_guard before the allow_paid check and then calls anthropic_call, which runs paid_guard again, so the guard may be applied twice with inconsistent ordering.",
+     "outcome": "escalate"
     }
    ]
   },
