@@ -27,7 +27,10 @@ SLOTS = {
                  ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017")],
     # code job (worker/code_job.py): free Nemotron 3 Ultra first; paid DeepSeek V4.1 Flash 1017 (Deep-SWE 74.2%, its paper,
     # arXiv 2609.19969) then GLM-5.3 Flash when the run reserved paid budget
-    "coder": [("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"), ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017"),
+    # 2026-11-20 data: of 6 free Nemotron code attempts only the trivial canary passed the tier's review (K2, K4, K5 lacked
+    # tests the job could not then write; K7 did part of the item; K10 edited the sandbox's argument path), so the paid coder
+    # goes first when the run reserved paid budget; the tier's acceptance per coder model decides whether it stays
+    "coder": [("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017"), ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"),
               ("openrouter_paid", "z-ai/glm-5.3-flash")],
     # code reviewer of another family than the first coder: gpt-oss-120b (Groq, Cloudflare), then paid GLM-5.3 Flash
     "code_reviewer": [("groq", "openai/gpt-oss-120b"), ("cloudflare", "@cf/openai/gpt-oss-120b"),

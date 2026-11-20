@@ -574,3 +574,10 @@ class CodeReplyFormat(unittest.TestCase):
         self.assertEqual(r["note"], "added classes()")
         self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
         self.assertIsNone(C.parse_reply("nothing here"))
+
+
+class SandboxRefused(unittest.TestCase):
+    def test_sandbox_paths(self):
+        import code_job as C
+        for p in ("runner/jail.py", "runner/limits.c", "loop/seccomp_filter.h", "runner/count.py"):
+            self.assertFalse(C.allowed(p), p)

@@ -19,7 +19,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
 import doc_job as D  # noqa: E402  parse_json, write_calls
 
 MAX_LINES = 600
-REFUSE = re.compile(r"^\.github/|^worker/(ledger|queue_ops|transitions|code_job)\.py$|^audit/|secret|token|credential|(^|/)\.git(/|$)", re.I)
+# the sandbox that runs model-written code is never the code job's to change (PR #13 edited runner/jail.py, 2026-11-20)
+REFUSE = re.compile(r"^\.github/|^worker/(ledger|queue_ops|transitions|code_job)\.py$|^audit/|secret|token|credential|(^|/)\.git(/|$)"
+                    r"|^runner/(jail|limits|count)\.|^loop/|seccomp|landlock|sandbox", re.I)
 TEST = re.compile(r"^[\w./-]+/test_[\w-]+\.py$")
 CI_TESTS = ["worker/test_worker.py", "worker/test_transitions.py", "runner/proposals/test_proposals.py", "facts/test_check.py",
             "runner/proposals/confirm/test_decide.py", "router/test_pick.py"]
