@@ -79,8 +79,6 @@ class NoTaskCodeInRunner(unittest.TestCase):
             self.assertIsNone(re.search(r"""['"/]""" + re.escape(n) + r"""['"/.]""", src), f"run.py names task {n}")
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class CounterExit(unittest.TestCase):
@@ -118,3 +116,7 @@ class Controls(unittest.TestCase):
 def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -98,8 +98,8 @@ def expire(q, t):
             out.append(i["id"])
             continue
         if who.startswith("worker-") and not live_claim(i, t):
-            i["status"] = T.next_status("in progress", "lease_expired")
             i.setdefault("runs", []).append({"at": iso(t), "worker": i["claimed_by"], "result": "lease expired", "outcome": "lease_expired"})
+            i["status"] = T.next_status("in progress", "lease_expired", failures(i))   # counted with this run (GLM F018)
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])

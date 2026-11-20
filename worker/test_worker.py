@@ -183,8 +183,6 @@ class Ledger(unittest.TestCase):
             self.assertIsNone(LG.headroom({}, LG.parse("nvidia:1"), 99999))   # other pools: no rolling rule
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class RejectedNotOffered(unittest.TestCase):
@@ -588,6 +586,67 @@ class SandboxRefused(unittest.TestCase):
 class GLMReview20261120(unittest.TestCase):
     """Reproductions of the GLM review findings fixed on 2026-11-21 (F016, F017, F024, F036)."""
 
+    def test_f018_repeated_lease_expiry_escalates(self):
+        """A run killed mid-item every time reopened it forever; failures() counted it but nothing acted on the count."""
+        import transitions as T
+        t = dt.datetime(2026, 11, 21, tzinfo=dt.timezone.utc)
+        old = "2026-11-20T00:00:00Z"
+        i = {"id": "X1", "status": "in progress", "claimed_by": "worker-1", "claimed_at": old, "lease_until": old,
+             "runs": [{"result": "lease expired", "outcome": "lease_expired"}] * (T.MAX_FAILURES - 1)}
+        Q.expire({"items": [i]}, t)
+        self.assertEqual(i["status"], "escalated")
+        j = {"id": "X2", "status": "in progress", "claimed_by": "worker-1", "claimed_at": old, "lease_until": old, "runs": []}
+        Q.expire({"items": [j]}, t)
+        self.assertEqual(j["status"], "open")   # a first expiry still retries
+
+    def test_f023_failed_log_fetch_is_not_evidence(self):
+        """A failed log fetch read as an empty log: 'unknown' with no tail, filed as D23-D25."""
+        import diagnose as DG
+        from unittest import mock
+        def fake_gh(*a):
+            if "/logs" in a[0]:
+                return None
+            if "/jobs" in a[0]:
+                return "77\n"
+            return '[{"id": 1, "name": "worker", "created_at": "2026-11-20T00:00:00Z"}]'
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(DG, "gh", fake_gh):
+            out = os.path.join(d, "diag.json")
+            DG.scan(1, out)
+            rows = json.load(open(out))["runs"]
+            self.assertEqual([r["class"] for r in rows], ["log_unavailable"])
+            self.assertEqual(DG.file(d, out), 0)   # nothing filed, no queue touched
+        with mock.patch.object(DG.subprocess, "run", return_value=unittest.mock.Mock(returncode=1, stdout="")):
+            self.assertIsNone(DG.gh("x"))
+
+    def test_f025_no_verdict_is_a_failed_call(self):
+        """A reviewer reply with no verdict was a 'rejected' change (escalated, no retry); no review happened."""
+        import code_job as C
+        with tempfile.TemporaryDirectory() as d:
+            repo, out = os.path.join(d, "r"), os.path.join(d, "o"); os.makedirs(repo); os.makedirs(out)
+            open(os.path.join(repo, "a.py"), "w").write("x = 1\n")
+            json.dump({"files": {"a.py": "x = 1\n"}, "test": "t"}, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"proposal": {"edits": [{"path": "a.py", "old": "x = 1", "new": "x = 2"}]}, "review": {"reason": "?"}},
+                      open(os.path.join(out, "draft.json"), "w"))
+            json.dump({"passed": True}, open(os.path.join(out, "test.json"), "w"))
+            C.apply(repo, out)
+            self.assertEqual(json.load(open(os.path.join(out, "result.json")))["result"], "failed_call")
+
+    def test_f033_bake_pins_each_reader(self):
+        import reader_bake as RB
+        from unittest import mock
+        seen = []
+        def fake_read(p):
+            seen.append(os.environ.get("READER_OVERRIDE"))
+            json.dump({}, open(os.path.join(p, "read.json"), "w")); open(os.path.join(p, "calls.jsonl"), "w").close()
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(RB.rj, "read", fake_read), \
+                mock.patch.dict(os.environ, {}):
+            b = os.path.join(d, "x", "b1"); os.makedirs(b); open(os.path.join(b, "search.json"), "w").write("{}")
+            try:
+                RB.main(os.path.join(d, "out"), [b], ["nvidia,m1", "cloudflare,m2"])
+            except Exception:
+                pass   # only the reader each read ran under matters here
+        self.assertEqual(seen[:2], ["nvidia,m1", "cloudflare,m2"])
+
     def test_f021_missing_calls_log_releases_reservation(self):
         """A run that crashed before writing calls.jsonl held its reservation all UTC day (gen-44728562276: 4)."""
         import ledger as LG
@@ -631,3 +690,7 @@ class GLMReview20261120(unittest.TestCase):
         self.assertEqual(sorted(QO.expire(q, t)), ["P3", "Q58"])
         self.assertEqual([i["status"] for i in q["items"]], ["open", "open", "in progress"])
         self.assertTrue(QO.live_claim(q["items"][2], t))
+
+
+if __name__ == "__main__":
+    unittest.main()

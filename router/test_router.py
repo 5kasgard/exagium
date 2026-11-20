@@ -127,8 +127,6 @@ class Scrub(unittest.TestCase):
         self.assertEqual(engines._scrub(""), "")
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class SpendCaps(unittest.TestCase):
@@ -216,3 +214,7 @@ class ProbeUnderCaps(unittest.TestCase):
         calls = [r for r in recs if r["model"] != "models.list"]
         self.assertTrue(calls and all(not r["ok"] for r in calls), recs)
         self.assertTrue(any("refused by spend cap" in (r.get("error") or "") for r in recs), recs)
+
+
+if __name__ == "__main__":
+    unittest.main()

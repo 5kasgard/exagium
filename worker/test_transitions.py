@@ -134,8 +134,6 @@ class RandomWalks(unittest.TestCase):
             self.assertTrue(seen & ends, start)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class WorkflowUsesOnlyKnownOutcomes(unittest.TestCase):
@@ -228,3 +226,6 @@ class Quota(unittest.TestCase):
         self.assertEqual(T.classify({"result": "quota", "why": ["quota: reader call failed"]}, True, "none"), "budget")
         self.assertEqual(T.next_status("in progress", "budget"), "open")
 
+
+if __name__ == "__main__":
+    unittest.main()

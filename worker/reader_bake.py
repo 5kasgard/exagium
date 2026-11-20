@@ -21,6 +21,8 @@ def main(out, bundles, readers):
     rows = {}
     for spec in readers:
         rj.READER = tuple(spec.split(",", 1))
+        os.environ["READER_OVERRIDE"] = spec   # GLM F033: research_job honours rj.READER only with this set; without it every
+                                               # row read through the default chain and was labelled with the wrong reader
         tot = {"bundles": 0, "reader_fail": 0, "claims": 0, "script_kept": 0, "decider_kept": 0, "model_fail": []}
         for b in bundles:
             name = os.path.basename(os.path.dirname(b.rstrip("/"))) + "-" + os.path.basename(b.rstrip("/"))

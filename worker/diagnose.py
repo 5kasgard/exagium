@@ -33,7 +33,7 @@ RULES = [
 ACT = {"transient": "rerun (no action; repeats become unknown)", "auth": "escalated item (a key or permission: often the owner's)", "budget": "wait or fall back (no action)", "rate_limited": "fallback chain (no action)",
        "model_gone": "wiring check names the dependant", "fact_changed": "wiring check alarm",
        "test_failed": "escalated item", "code_bug": "escalated item", "push_race": "writers retry (no action)",
-       "unknown": "escalated item"}
+       "unknown": "escalated item", "log_unavailable": "not filed (no evidence); the next scan tries again"}
 
 
 def classes():
@@ -76,19 +76,28 @@ def fixed_since(path, at):
 
 
 def gh(*a):
-    return subprocess.run(["gh", "api", *a], capture_output=True, text=True).stdout
+    """stdout, or None when gh failed: a failed fetch is not an empty log (GLM F023 filed D23-D25 with empty tails)."""
+    r = subprocess.run(["gh", "api", *a], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else None
 
 
 def scan(hours, out):
     import datetime as dt
     repo = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=float(hours))).strftime("%Y-%m-%dT%H:%M:%SZ")
-    runs = json.loads(gh(f"repos/{repo}/actions/runs?per_page=100&status=failure&created=>={since}", "-q",
-                         "[.workflow_runs[] | {id, name, created_at}]") or "[]")
+    listing = gh(f"repos/{repo}/actions/runs?per_page=100&status=failure&created=>={since}", "-q",
+                 "[.workflow_runs[] | {id, name, created_at}]")
+    if listing is None:
+        print("diagnose: could not list failed runs"); return 3
+    runs = json.loads(listing or "[]")
     rows = []
     for r in runs:
-        jid = gh(f"repos/{repo}/actions/runs/{r['id']}/jobs", "-q", '.jobs[] | select(.conclusion=="failure") | .id').split()
-        log = gh(f"repos/{repo}/actions/jobs/{jid[0]}/logs") if jid else ""
+        jid = (gh(f"repos/{repo}/actions/runs/{r['id']}/jobs", "-q", '.jobs[] | select(.conclusion=="failure") | .id') or "").split()
+        log = gh(f"repos/{repo}/actions/jobs/{jid[0]}/logs") if jid else None
+        if not log or not log.strip():
+            rows.append({"run": r["id"], "workflow": r["name"], "at": r["created_at"], "class": "log_unavailable",
+                         "signature": None, "tail": []})
+            continue
         log = re.sub(r"^\S+Z ", "", log, flags=re.M)   # drop timestamps
         c = classify(log)
         rows.append({"run": r["id"], "workflow": r["name"], "at": r["created_at"], "class": c,

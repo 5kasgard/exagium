@@ -220,6 +220,8 @@ def apply(repo, out):
         verdict = (d.get("review") or {}).get("verdict")
         if not edits:   # Gemini review 2026-11-20 F009: was "pr", which parked the item in review with nothing to review
             res = {"result": "no_edits", "why": why or ["no edit proposed"], "edits": 0}
+        elif verdict not in ("approve", "reject"):   # GLM F025: no review happened; a model failure, retried
+            res = {"result": "failed_call", "why": [f"reviewer gave no verdict: {verdict!r}"[:300]], "edits": 0}
         elif verdict != "approve":   # F010: only an explicit approval goes on (a missing or odd verdict used to pass)
             res = {"result": "rejected", "why": [f"reviewer: {verdict}: {(d.get('review') or {}).get('reason', '')}"[:300]], "edits": 0}
         elif not t.get("passed"):

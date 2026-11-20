@@ -85,7 +85,7 @@ def next_status(status, outcome, failures=0):
     if key not in TABLE:
         raise NotAllowed(f"no transition from {status!r} on {outcome!r}")
     to = TABLE[key]
-    if outcome == "failed" and failures >= MAX_FAILURES:   # guard: a crash loop climbs a tier instead of retrying forever
+    if outcome in ("failed", "lease_expired") and failures >= MAX_FAILURES:   # GLM F018: a run killed every time too   # guard: a crash loop climbs a tier instead of retrying forever
         to = "escalated"
     return to
 

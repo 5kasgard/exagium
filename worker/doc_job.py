@@ -246,6 +246,8 @@ def apply(repo, out):
     elif d.get("model_fail"):
         quota = all(str(m).startswith("quota: ") for m in d["model_fail"])
         res = {"result": "quota" if quota else "failed_call", "why": d["model_fail"], "edits": 0}
+    elif d.get("review") and d["review"].get("verdict") not in ("approve", "reject"):   # GLM F025: no review happened
+        res = {"result": "failed_call", "why": [f"reviewer gave no verdict: {d['review'].get('verdict')!r}"[:300]], "edits": 0}
     else:
         edits, reasons = check_edits(item, files, d["proposal"].get("edits"))   # checked again here, with no keys
         verdict = (d.get("review") or {}).get("verdict")

@@ -68,8 +68,6 @@ class Judge(unittest.TestCase):
         self.assertAlmostEqual(lo, 0.664, places=2)
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class TestBoardPending(unittest.TestCase):
@@ -85,3 +83,6 @@ class TestBoardPending(unittest.TestCase):
             self.assertIn("Proposals: 2. Valid: 1", text)
             self.assertIn("pending a rescore, not counted): b.", text)
 
+
+if __name__ == "__main__":
+    unittest.main()
