@@ -5004,6 +5004,105 @@
     "OpenRouter models API, 2026-11-20: 44 decision, 43 embedding (free: nemotron-3.5-embed-1b), 12 rerank (free: nemotron-3.5-rerank-8b), 74 image-output, 92 ':batch' variants at half the output price; free models with structured outputs: 6 (Particle-1 among them), with logprobs: 3 (Particle-1 among them)"
    ],
    "next": "Each mechanism is a hypothesis tied to a bottleneck already in the record, with one cheap test and a rule fixed before it runs: (1) RERANK the sources of a research card against its question before the reader (bottleneck: R10's off-topic and too-broad claims): on the checker-relevance known answers and R4/R10 sources, does the free reranker put the sources of kept claims above off-topic ones (rule: every kept-claim source in the top half, every known off-topic source below it); (2) EMBEDDINGS for queue and card overlap (bottleneck: duplicate items found by hand, e.g. P7e/P7f, R11 vs P20c): do the known duplicate pairs from the queue's history rank first among each item's nearest neighbours (rule: at least 4 of 5); (3) SCHEMA-ENFORCED OUTPUT (bottleneck: 'reply was not JSON' failures): rerun the failed prompts with a JSON schema on a model that supports it (rule: 0 parse failures in 20 calls); (4) LOGPROBS from a generative model as a confidence band (Particle-1 supports them): does low confidence pick out the items it got wrong on the grading set; (5) BATCH variants at half price for P5 proposals once paid models are in use (needs the owner's credit). One mechanism at a time, in this order; each that passes becomes a router capability with its known-answer test kept as a regression test. Blind review 44667582086 (Particle-1 DEFER; gpt-oss-120b got no answer: Cloudflare's account-wide free 10,000 neurons were used up). ACCEPTED: rank by observed failures first. Worker failure table from the queue record (2026-11-18..20): research with no surviving claim 12, PR for a person 4, guard or reviewer refused 4 (mostly correct refusals), model reply not JSON or call failed 3, budget stop 2, infrastructure 1, no edit 1. So (1) rerank, aimed at the 12, goes first; schema output (3) waits; embeddings, logprobs and batch wait until a measured failure points at them. ACCEPTED: a control arm on identical items: the current pipeline and the pipeline with the reranker on the same cards, adopt only if the reranker raises surviving claims per card with no rise in claims the next tier rejects (fixed now: at least 3 more surviving claims over 6 cards, none of them rejected in the tier's check). TEST 1 RESULT 2026-11-20 10:32Z (rerank arm, worker/rerank_arm.py, run 44712474121; same candidate pool per item, same reader Nemotron 3 Ultra, same checker and decision model; only the source picker differs): rerank NOT adopted. Decision-kept claims over the 4 cards that ran: most-cited 17, reranked 13 (R6 6/4, R7 4/4, R8 3/2, R9 4/3); Nemotron shadow 15/10. The reranked picks overlap the cited ones 13-18 of 25-30 sources and drew more reader claims (54 vs 37) but fewer survived the checks. R5 and R3 failed with HTTP 422 from the rerank API in their first batch of 50 (R9's 114-document pool passed in three batches, so the limit is not the count; cause not pursued since the arm lost). Even with both missing cards the rule (>= 3 more over 6 cards) could not be met. Next in P32's order: the next feature on the failure table, now that 'no claims' is not fixed by source choice."
+  },
+  {
+   "id": "R20",
+   "title": "How accurately can simulated instruction and cache-access counts be calibrated to measured wall-clock time and energy across cache and memory levels on real x86",
+   "kind": "test",
+   "status": "proposed",
+   "origin": "generated",
+   "generated_from": "P15",
+   "generated_at": "2026-11-20T10:52:37Z",
+   "research": {
+    "question": "How accurately can simulated instruction and cache-access counts be calibrated to measured wall-clock time and energy across cache and memory levels on real x86, arm64, and Apple M1 hardware, and what calibration methods are reported?",
+    "queries": [
+     "gem5 calibration real hardware time energy",
+     "simulated cache counts energy prediction",
+     "memory hierarchy traffic hardware performance counters",
+     "Apple M1 performance counters energy measurement",
+     "gem5 accuracy validation cache simulation"
+    ]
+   },
+   "touches": [
+    "research/cards/R20.md"
+   ],
+   "refs": [
+    "queue P15",
+    "queue P27 (generator)"
+   ],
+   "next": "Worker job (research): literature card for P15. Why: It directly informs P15's requirement to map simulated instruction/cache counts to real time and energy before ranking hardware settings at scale.",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B10"
+  },
+  {
+   "id": "R21",
+   "title": "What scheduling and routing policies maximize throughput across multiple rate-limited, equivalent LLM API pools while preserving output validity and acceptance ",
+   "kind": "test",
+   "status": "proposed",
+   "origin": "generated",
+   "generated_from": "P20e",
+   "generated_at": "2026-11-20T10:52:37Z",
+   "research": {
+    "question": "What scheduling and routing policies maximize throughput across multiple rate-limited, equivalent LLM API pools while preserving output validity and acceptance rate?",
+    "queries": [
+     "multi-pool rate limit scheduling",
+     "load balancing across API quotas",
+     "parallel job routing capacity planning",
+     "LLM API rate limit routing",
+     "queueing heterogeneous servers with quotas"
+    ]
+   },
+   "touches": [
+    "research/cards/R21.md"
+   ],
+   "refs": [
+    "queue P20e",
+    "queue P27 (generator)"
+   ],
+   "next": "Worker job (research): literature card for P20e. Why: It informs whether lanes plus capacity-aware routing can double completed work without lowering valid proposal or worker acceptance rates.",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "R22",
+   "title": "How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve depen",
+   "kind": "test",
+   "status": "proposed",
+   "origin": "generated",
+   "generated_from": "P21",
+   "generated_at": "2026-11-20T10:52:37Z",
+   "research": {
+    "question": "How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve dependency cycles by decomposition, and propagate upstream changes to flag downstream dependents?",
+    "queries": [
+     "typed dependency graph prerequisite gate soft ordering",
+     "dependency cycle resolution decomposition task graph",
+     "change propagation dependency graph impact analysis",
+     "provenance graph interactive editing dependency tracking",
+     "prerequisite graph visualization minimal requirement cost"
+    ]
+   },
+   "touches": [
+    "research/cards/R22.md"
+   ],
+   "refs": [
+    "queue P21",
+    "queue P27 (generator)"
+   ],
+   "next": "Worker job (research): literature card for P21. Why: It directly informs the next step's need for typed link semantics, cycle resolution, and downstream recheck behavior in a manipulable dependency web.",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B9"
   }
  ],
  "batches": [

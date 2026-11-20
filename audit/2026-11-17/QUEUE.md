@@ -107,6 +107,14 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R15 | B7 |  | minor | high | test | Research card: public agent benchmarks usable as held-out tasks: licences, contamination, fresh-task sources | Worker job (research), filed 2026-11-20 so the free workers have real work: P28 needs outside tasks that free models have not memorised and that may be redistributed; decides which suite P28 samples from. 2026-11-20: Claude's own search answered the core (see P28); the card stays as an independent cross-check, and its claims are compared with P28's note when it lands. | queue P28, P29 |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (3)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R20 | B10 |  | minor | high | test | How accurately can simulated instruction and cache-access counts be calibrated to measured wall-clock time and energy across cache and memory levels on real x86 | Worker job (research): literature card for P15. Why: It directly informs P15's requirement to map simulated instruction/cache counts to real time and energy before ranking hardware settings at scale. | queue P15; queue P27 (generator) |
+| R21 | B3 |  | minor | high | test | What scheduling and routing policies maximize throughput across multiple rate-limited, equivalent LLM API pools while preserving output validity and acceptance  | Worker job (research): literature card for P20e. Why: It informs whether lanes plus capacity-aware routing can double completed work without lowering valid proposal or worker acceptance rates. | queue P20e; queue P27 (generator) |
+| R22 | B9 |  | minor | high | test | How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve depen | Worker job (research): literature card for P21. Why: It directly informs the next step's need for typed link semantics, cycle resolution, and downstream recheck behavior in a manipulable dependency web. | queue P21; queue P27 (generator) |
+
 ## Parked (18)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
