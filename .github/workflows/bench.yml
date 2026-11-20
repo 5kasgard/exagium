@@ -8,7 +8,7 @@ concurrency:
   group: bench
   cancel-in-progress: false
 permissions:
-  contents: write
+  contents: read   # GLM F011: the agent and its code run in 'attempt'; only 'record' can write
 defaults:
   run:
     shell: bash
@@ -28,7 +28,7 @@ jobs:
           - {name: Z, model: "none", key: none}   # control: no agent, grade the untouched base
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-        with: {fetch-depth: 0, path: src}
+        with: {fetch-depth: 0, path: src, persist-credentials: false}   # F011: no token on disk for the agent
       - name: refuse paid models
         run: |
           [ "${{ matrix.arm.name }}" = Z ] && { echo "control arm"; echo "exit 0"; exit 0; }
@@ -102,6 +102,8 @@ jobs:
     needs: attempt
     if: always()
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
