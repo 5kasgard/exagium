@@ -33,7 +33,7 @@ DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OP
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
 CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
 MAX_DECIDED = 40  # P32 cap test: the decision model takes up to 100 questions per request
-MAX_CHECKED = 6   # so at most 2 chunks x 3 calls = 6 NIM calls; worker.yml reserves nvidia:6 for research
+MAX_CHECKED = 6   # the Nemotron majority (only when the decision model fails): at most 2 chunks x 3 calls
 PER_QUERY = 6
 MAX_SOURCES = 26
 UA = {"User-Agent": "exagium-research/1.0 (+https://github.com/5kasgard/exagium)"}
@@ -465,7 +465,11 @@ def _read(out, d, q, calls, ask):
         decided_all = decide_claims(q, kept_all, calls) if os.environ.get("DECIDE_ALL") == "1" and os.environ.get("OPENROUTER_API_KEY") else None
         decided = decide_claims(q, kept, calls) if os.environ.get("OPENROUTER_API_KEY") else None
         keep, grades, votes_all, notes = [], {}, [], []
-        for c0 in range(0, len(kept), CHUNK):
+        # 2026-11-20 (owner: optimise): the Nemotron majority runs only when the decision model fails. As a shadow it cost
+        # 6 NIM calls and minutes per card; in its trial the decider passed 6/6 known answers twice and every disagreement
+        # was the decider keeping more (P31). SHADOW=1 brings the shadow back for a comparison run.
+        majority = decided is None or decided.get("keep") is None or os.environ.get("SHADOW") == "1"
+        for c0 in range(0, len(kept) if majority else 0, CHUNK):
             part = kept[c0:c0 + CHUNK]
             lines = "\n".join(f"{i}. [{c['source']}] GRADE: {c.get('evidence')} CLAIM: {c['claim']} QUOTE: \"{c['quote']}\"" for i, c in enumerate(part))
             votes, first = [], None
@@ -490,9 +494,10 @@ def _read(out, d, q, calls, ask):
                         grades[str(c0 + i)] = g
         check = {"keep": None if model_fail else keep, "grades": grades, "votes": votes_all, "notes": "; ".join(notes)}
         if decided is not None and decided.get("keep") is not None:
-            # live trial (P31): the decision model decides; the Nemotron majority above is kept as a shadow for comparison
-            check = {"keep": decided["keep"], "grades": grades, "decider": decided, "shadow_nemotron": dict(check),
-                     "notes": "decided by " + DECIDER}
+            # the decision model decides (P31); a Nemotron majority runs beside it only with SHADOW=1
+            check = {"keep": decided["keep"], "grades": grades, "decider": decided, "notes": "decided by " + DECIDER}
+            if majority:
+                check["shadow_nemotron"] = {"keep": keep, "votes": votes_all}
             model_fail[:] = []
         elif decided is not None:   # the decision call failed: the Nemotron majority decides, as before the trial
             check["decider_error"] = decided.get("error")

@@ -188,13 +188,18 @@ class CheckerMajority(unittest.TestCase):
         self.assertEqual(len(rd["script_kept"]), 6)
         self.assertEqual(rd["check"]["keep"], [0, 3])
 
-    def test_decider_decides_when_available_and_nemotron_is_the_shadow(self):
+    def test_decider_decides_and_no_shadow_runs(self):
+        """2026-11-20: the Nemotron majority runs only when the decision model fails (or with SHADOW=1)."""
         import research_job as R
         j = json.dumps
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "x"}), \
                 mock.patch.object(R, "decide_claims", lambda q, kept, calls: {"keep": [1], "p_keep": [0.2, 0.9, 0.1]}):
             rd = self.run_read([j({"keep": [0, 1, 2]})] * 3)
         self.assertEqual(rd["check"]["keep"], [1])
+        self.assertNotIn("shadow_nemotron", rd["check"])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "x", "SHADOW": "1"}), \
+                mock.patch.object(R, "decide_claims", lambda q, kept, calls: {"keep": [1], "p_keep": [0.2, 0.9, 0.1]}):
+            rd = self.run_read([j({"keep": [0, 1, 2]})] * 3)
         self.assertEqual(rd["check"]["shadow_nemotron"]["keep"], [0, 1, 2])
 
     def test_decider_failure_falls_back_to_the_majority(self):

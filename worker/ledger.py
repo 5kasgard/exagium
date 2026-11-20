@@ -22,7 +22,7 @@ chats, reviews and probes (P8, "coexists with chat sessions"):
 import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
-CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
+CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 1000}, "groq": {"calls": 500},   # nvidia 400 -> 1,000 (owner 2026-11-20; under 10% of the measured ~11,000/day refill)
         "openrouter": {"calls": 500},
         "openrouter_paid": {"calls": 100, "usd": 0.25},
         "anthropic": {"calls": 200, "usd": 0.30}}   # the owner's Claude API credit ($9.16 on 2026-11-20): $0.30 a day lasts a month   # owner 2026-11-20: paid fallbacks allowed, cost-effective, under a
