@@ -693,5 +693,28 @@ class GLMReview20261120(unittest.TestCase):
         self.assertTrue(QO.live_claim(q["items"][2], t))
 
 
+
+class IntakeReview(unittest.TestCase):
+    """worker/intake_review.py: open review findings become code items, by script, once each."""
+    def test_filters_and_dedupe(self):
+        import intake_review as IR
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            rows = {"F1": "worker/digest.py", "F2": ".github/workflows/x.yml", "F3": "record/record.py", "F4": "worker/digest.py"}
+            with open(os.path.join(d, "findings.jsonl"), "w") as f:
+                for k, p in rows.items():
+                    f.write(json.dumps({"id": k, "file": p, "lines": [1, 2], "body": {"kind": "bug", "claim": "c " + k, "evidence": "e"}}) + "\n")
+            for n in ("fixes.jsonl", "rankings.jsonl"):
+                open(os.path.join(d, n), "w").write("")
+            open(os.path.join(d, "RESPONSE.md"), "w").write("## Fixed\n| F4 | high | abc1234 | |\n## Not changed\n## Open\n")
+            items, skipped = IR.candidates(d)
+            self.assertEqual([x["review"].split(":")[1] for x in items], ["F1"])
+            self.assertEqual(items[0]["test"], "worker/test_worker.py")
+            self.assertEqual(skipped, {"F2": "workflow or refused path", "F3": "a person merges this path", "F4": "closed"})
+            q = {"items": [{"id": "G1", "review": items[0]["review"], "status": "open"}]}
+            with mock.patch.object(IR.Q, "sync"), mock.patch.object(IR.Q, "load", return_value=q):
+                self.assertEqual(IR.file_items(d, items), [])   # filed once already: nothing new
+
+
 if __name__ == "__main__":
     unittest.main()
