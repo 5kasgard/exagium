@@ -287,7 +287,13 @@ jobs:
             echo "push to main failed 3 times: falling back to a PR (review M2)"
             git reset -q --soft HEAD~1
           fi
-          b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"; git push -q origin "$b"
+          b="worker/$ITEM-$GITHUB_RUN_ID"; git switch -q -c "$b"; git commit -qm "$msg"
+          # on today's main: a branch cut from the run's older main "reverts" any workflow change made since, and GitHub
+          # refuses that push to the Actions token (K5, 2026-11-20 20:50Z: 'without workflows permission')
+          git pull -q --rebase origin main || { git rebase --abort 2>/dev/null; echo "::error::the change no longer applies to main"; \
+            python3 -I worker/note.py note.json "failed: the change conflicts with today's main" "" "$RUN_URL" job/result.json || true; \
+            echo "OUTCOME=failed" >> "$GITHUB_ENV"; exit 0; }
+          git push -q origin "$b"
           body="Queue item $ITEM ($TYPE), drafted by the worker and not merged. Reasons are in the run note on the queue branch. Run: $RUN_URL"
           if url=$(gh pr create --base main --head "$b" --title "$msg" --body "$body" 2>pr.err); then
             echo "OUTCOME=pr" >> "$GITHUB_ENV"; python3 -I worker/note.py note.json pr "$url" "$RUN_URL" job/result.json || true
