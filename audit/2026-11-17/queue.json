@@ -9040,6 +9040,108 @@
     "loop/"
    ],
    "filed_at": "2026-11-20T22:07:55Z"
+  },
+  {
+   "id": "K20",
+   "title": "Encode the P31 qualification rule and choose the judgement model from recorded grading runs",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P31",
+   "generated_at": "2026-11-20T22:24:31Z",
+   "code": {
+    "files": [
+     "worker/tier.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "router/engines.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "worker/tier.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Add qualifies(runs) and choose(models) to worker/tier.py. A run is {controls_right: int of 5, agree: int of 30, cost: float, latency_s: float}. A model qualifies only if it has at least two runs, every run has controls_right == 5 and agree >= 27. choose() returns the qualified model with the lowest total cost, then the lowest median latency. Test in worker/test_worker.py: Particle-1 (two runs of 5/5 and 30/30) qualifies; Perplexity Decider with one run of 29/30 does not; Nemotron (two runs of 5/5 and 29/30) qualifies; ERNIE with one run that spent all tokens and one 5/5 run does not; choose() over Particle-1 and Nemotron picks the cheaper one.",
+   "refs": [
+    "queue P31",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K21",
+   "title": "Daily random sample of tier-settled, non-escalated decisions for the overturn rate",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P31",
+   "generated_at": "2026-11-20T22:24:31Z",
+   "code": {
+    "files": [
+     "worker/overturn_sample.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "worker/tier.py"
+    ],
+    "new": [
+     "worker/overturn_sample.py"
+    ]
+   },
+   "touches": [
+    "worker/overturn_sample.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Create worker/overturn_sample.py (under 80 lines) with sample(settled_ids, day, k=10), which uses random.Random(day) to return k distinct ids from the settled, non-escalated decisions (all of them if there are fewer than k), and overturn_rate(results), which takes a list of {id, regraded_verdict, tier_verdict} and returns (overturned, n, rate), with rate None when n is 0. Test in worker/test_worker.py: the same day gives the same sample; different days usually differ; an escalated id is never sampled; overturn_rate([]) gives None; two disagreements out of ten gives 0.2.",
+   "refs": [
+    "queue P31",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K22",
+   "title": "Make the scheduled Claude shift depend on the escalation count",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P31",
+   "generated_at": "2026-11-20T22:24:31Z",
+   "code": {
+    "files": [
+     "worker/tier.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "worker/tier.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Add shift_needed(escalated_count) to worker/tier.py, returning True only when escalated_count > 0. Test in worker/test_worker.py that shift_needed(0) is False and shift_needed(1) is True, and that run() with an empty escalated list records the free-model outcomes without calling the Claude function.",
+   "refs": [
+    "queue P31",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
