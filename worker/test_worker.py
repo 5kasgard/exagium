@@ -486,3 +486,22 @@ class CodeJob(unittest.TestCase):
     def test_tests_failed_is_a_failure(self):
         import transitions as TR
         self.assertEqual(TR.classify({"result": "tests_failed"}, True, "none"), "failed")
+
+
+class TierMerge(unittest.TestCase):
+    def test_merge_gate(self):
+        import tier as TI
+        item = {"code": {"files": ["worker/diagnose.py"]}}
+        ok, why = TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 5, "deletions": 0}], "approve")
+        self.assertTrue(ok)
+        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 90, "deletions": 0}], "approve")[0])
+        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 1, "deletions": 0}], "reject")[0])
+        for f in ("worker/tier.py", "router/slots.py", ".github/workflows/x.yml", "worker/other.py"):
+            self.assertFalse(TI.merge_decision({"code": {"files": [f]}} if f != "worker/other.py" else item,
+                                               [{"filename": f, "additions": 1, "deletions": 0}], "approve")[0], f)
+
+    def test_code_prs(self):
+        import tier as TI
+        q = {"items": [{"id": "K1", "status": "review", "code": {"files": ["a"]}, "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/9"}]},
+                       {"id": "K2", "status": "review", "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/10"}]}]}
+        self.assertEqual([(i["id"], n) for i, n in TI.code_prs(q)], [("K1", 9)])
