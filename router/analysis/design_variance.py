@@ -21,9 +21,13 @@ for p in glob.glob(os.path.join(R, "bench/bench[234]*/**/result.json"), recursiv
     bench = p.split("/bench/")[1].split("/")[0].split("-")[0]
     t = d.get("tokens") or {}
     tok = t.get("total") or ((t.get("prompt_tokens") or 0) + (t.get("completion_tokens") or 0)) or None
-    calls = d.get("calls") or d.get("llm_calls") or d.get("actions")
+    calls = d.get("calls")
+    if calls is None:
+        calls = d.get("llm_calls")
+    if calls is None:
+        calls = d.get("actions")
     rows.append({"bench": bench, "task": d["task"], "arm": d["arm"], "passed": float(bool(d.get("passed"))),
-                 "log_tokens": math.log10(tok) if tok else None, "calls": float(calls) if calls else None})
+                 "log_tokens": math.log10(tok) if tok else None, "calls": float(calls) if calls is not None else None})
 
 def shares(rs, m):
     rs = [r for r in rs if r[m] is not None]

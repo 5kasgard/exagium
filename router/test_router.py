@@ -216,5 +216,24 @@ class ProbeUnderCaps(unittest.TestCase):
         self.assertTrue(any("refused by spend cap" in (r.get("error") or "") for r in recs), recs)
 
 
+class DesignVarianceCalls(unittest.TestCase):
+    """Queue G9/F047: calls == 0 must count as zero, not be dropped as missing."""
+
+    def test_zero_calls_is_counted_not_treated_as_missing(self):
+        import subprocess, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            for i in range(4):
+                p = os.path.join(d, "bench", "bench2-case%d" % i, "any")
+                os.makedirs(p)
+                with open(os.path.join(p, "result.json"), "w") as f:
+                    json.dump({"task": "task%d" % i, "arm": "arm%d" % i, "passed": False,
+                               "tokens": {"total": 10 + i}, "calls": 0}, f)
+            script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analysis", "design_variance.py")
+            out = subprocess.check_output([sys.executable, script, d], text=True)
+        data = json.loads(out)
+        self.assertIsNotNone(data["bench2"]["calls"])
+        self.assertEqual(data["bench2"]["calls"]["n"], 4)
+
+
 if __name__ == "__main__":
     unittest.main()
