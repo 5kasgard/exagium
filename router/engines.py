@@ -169,6 +169,8 @@ def _scrub(s):
 
 
 def call(engine, model, prompt, system=None, max_tokens=2000):
+    if engine in ("nvidia", "groq") and system is None:   # free pools the worker uses; router/pick.py spreads reviews to them (2026-11-20)
+        return compat_call(engine, model, prompt, max_tokens=max_tokens)
     paid_guard(engine, len(prompt) + len(system or ""), max_tokens)
     t0 = time.time()
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
