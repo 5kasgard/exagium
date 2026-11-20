@@ -1,0 +1,1542 @@
+{
+ "item": {
+  "id": "R3",
+  "title": "Research card (release test 2): Which weightless and lookup-table neural network families have open implementations and results on non-image data and CPU cost?",
+  "kind": "test",
+  "severity": "minor",
+  "status": "done",
+  "needs": "free",
+  "cost": 0,
+  "value": "high",
+  "batch": "B7",
+  "origin": "follow-up",
+  "blocked_by": [],
+  "next": "Worker job (research) for Q54, P3; graded in worker/RELEASE-TEST-2.md.",
+  "research": {
+   "question": "Which weightless or lookup-table neural network families (WiSARD, BTHOWeN, ULEEN, DWN, LogicNets, PolyLUT) have open implementations, results on tabular, text or other non-image data, and inference cost on CPUs compared with small MLPs?",
+   "queries": [
+    "weightless neural network tabular data benchmark",
+    "differentiable weightless neural networks",
+    "LogicNets PolyLUT lookup table neural network",
+    "WiSARD n-tuple classifier comparison multilayer perceptron"
+   ]
+  },
+  "touches": [
+   "research/cards/R3.md"
+  ],
+  "refs": [
+   "worker/RELEASE-TEST-2.md on main",
+   "queue Q54, P3"
+  ],
+  "informs": [
+   "Q54",
+   "P3"
+  ],
+  "runs": [
+   {
+    "result": "merged",
+    "where": "main 2063acb",
+    "run": "https://github.com/5kasgard/exagium/actions/runs/44479619535",
+    "edits": 1,
+    "why": [],
+    "worker": "worker-44479619535",
+    "at": "2026-11-19T07:29:07Z",
+    "lost_lease": false
+   }
+  ]
+ },
+ "sources": [
+  {
+   "id": "W3087100893",
+   "title": "Experimental Review of Neural-Based Approaches for Network Intrusion Management",
+   "year": 2020,
+   "url": "https://doi.org/10.1109/tnsm.2020.3024225",
+   "cited_by": 108,
+   "abstract": "The use of Machine Learning (ML) techniques in Intrusion Detection Systems (IDS) has taken a prominent role in the network security management field, due to the substantial number of sophisticated attacks that often pass undetected through classic IDSs. These are typically aimed at recognizing attacks based on a specific signature, or at detecting anomalous events. However, deterministic, rule-based methods often fail to differentiate particular (rarer) network conditions (as in peak traffic during specific network situations) from actual cyber attacks. In this article we provide an experimental-based review of neural-based methods applied to intrusion detection issues. Specifically, we i) offer a complete view of the most prominent neural-based techniques relevant to intrusion detection, including deep-based approaches or weightless neural networks, which feature surprising outcomes; ii) evaluate novel datasets (updated w.r.t. the obsolete KDD99 set) through a designed-from-scratch Python-based routine; iii) perform experimental analyses including time complexity and performance (accuracy and F-measure), considering both single-class and multi-class problems, and identifying trade-offs between resource consumption and performance. Our evaluation quantifies the value of neural networks, particularly when state-of-the-art datasets are used to train the models. This leads to interesting guidelines for security managers and computer network practitioners who are looking at the incorporation of neural-based ML into IDS.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S1"
+  },
+  {
+   "id": "W4391455313",
+   "title": "PolyLUT: Learning Piecewise Polynomials for Ultra-Low Latency FPGA LUT-based Inference",
+   "year": 2023,
+   "url": "https://doi.org/10.1109/icfpt59805.2023.00012",
+   "cited_by": 69,
+   "abstract": "Field-programmable gate arrays (FPGAs) are widely used to implement deep learning inference. Standard deep neural network inference involves the computation of interleaved linear maps and nonlinear activation functions. Prior work for ultra-low latency implementations has hardcoded the combination of linear maps and nonlinear activations inside FPGA lookup tables (LUTs). Our work is motivated by the idea that the LUTs in an FPGA can be used to implement a much greater variety of functions than this. In this paper, we propose a novel approach to training neural networks for FPGA deployment using multivariate polynomials as the basic building block. Our method takes advantage of the flexibility offered by the soft logic, hiding the polynomial evaluation inside the LUTs with minimal overhead. We show that by using polynomial building blocks, we can achieve the same accuracy using considerably fewer layers of soft logic than by using linear functions, leading to significant latency and area improvements. We demonstrate the effectiveness of this approach in three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and handwritten digit recognition using the MNIST dataset.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S2"
+  },
+  {
+   "id": "W2735639773",
+   "title": "Weightless neural networks for open set recognition",
+   "year": 2017,
+   "url": "https://doi.org/10.1007/s10994-017-5646-4",
+   "cited_by": 55,
+   "abstract": "Open set recognition is a classification-like task. It is accomplished not only by the identification of observations which belong to targeted classes (i.e., the classes among those represented in the training sample which should be later recognized) but also by the rejection of inputs from other classes in the problem domain. The need for proper handling of elements of classes beyond those of interest is frequently ignored, even in works found in the literature. This leads to the improper development of learning systems, which may obtain misleading results when evaluated in their test beds, consequently failing to keep the performance level while facing some real challenge. The adaptation of a classifier for open set recognition is not always possible: the probabilistic premises most of them are built upon are not valid in a open-set setting. Still, this paper details how this was realized for WiSARD a weightless artificial neural network model. Such achievement was based on an elaborate distance-like computation this model provides and the definition of rejection thresholds during training. The proposed methodology was tested through a collection of experiments, with distinct backgrounds and goals. The results obtained confirm the usefulness of this tool for open set recognition.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S3"
+  },
+  {
+   "id": "W4406092772",
+   "title": "TreeLUT: An Efficient Alternative to Deep Neural Networks for Inference Acceleration Using Gradient Boosted Decision Trees",
+   "year": 2025,
+   "url": "https://doi.org/10.1145/3706628.3708877",
+   "cited_by": 45,
+   "abstract": "Accelerating machine learning inference has been an active research area in recent years. In this context, field-programmable gate arrays (FPGAs) have demonstrated compelling performance by providing massive parallelism in deep neural networks (DNNs). Neural networks (NNs) are computationally intensive during inference, as they require massive amounts of multiplication and addition, which makes their implementations costly. Numerous studies have recently addressed this challenge to some extent using a combination of sparsity induction, quantization, and transformation of neurons or sub-networks into lookup tables (LUTs) on FPGAs. Gradient boosted decision trees (GBDTs) are a high-accuracy alternative to DNNs in a wide range of regression and classification tasks, particularly for tabular datasets. The basic building block of GBDTs is a decision tree, which resembles the structure of binary decision diagrams. FPGA design flows are heavily optimized to implement such a structure efficiently. In addition to decision trees, GBDTs perform simple operations during inference, including comparison and addition. We present TreeLUT as an open-source tool for implementing GBDTs using an efficient quantization scheme, hardware architecture, and pipelining strategy. It primarily utilizes LUTs with no BRAMs or DSPs on FPGAs, resulting in high efficiency. We show the effectiveness of TreeLUT using multiple classification datasets, commonly used to evaluate ultra-low area and latency architectures. Using these benchmarks, we compare our implementation results with existing DNN and GBDT methods, such as DWN, PolyLUT-Add, NeuraLUT, LogicNets, FINN, hls4ml, and others. Our results show that TreeLUT significantly improves hardware utilization, latency, and throughput at competitive accuracy compared to previous works. For instance, it achieves an accuracy of around 97% on the MNIST dataset while delivering around 4 to 101 times lower hardware cost in terms of area-delay product than recent LUT-based NNs.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S4"
+  },
+  {
+   "id": "W4403573346",
+   "title": "Differentiable Weightless Neural Networks",
+   "year": 2024,
+   "url": "https://doi.org/10.48550/arxiv.2410.11112",
+   "cited_by": 40,
+   "abstract": "We introduce the Differentiable Weightless Neural Network (DWN), a model based on interconnected lookup tables. Training of DWNs is enabled by a novel Extended Finite Difference technique for approximate differentiation of binary values. We propose Learnable Mapping, Learnable Reduction, and Spectral Regularization to further improve the accuracy and efficiency of these models. We evaluate DWNs in three edge computing contexts: (1) an FPGA-based hardware accelerator, where they demonstrate superior latency, throughput, energy efficiency, and model area compared to state-of-the-art solutions, (2) a low-power microcontroller, where they achieve preferable accuracy to XGBoost while subject to stringent memory constraints, and (3) ultra-low-cost chips, where they consistently outperform small models in both accuracy and projected hardware area. DWNs also compare favorably against leading approaches for tabular datasets, with higher average rank. Overall, our work positions DWNs as a pioneering solution for edge-compatible high-throughput neural networks.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S5"
+  },
+  {
+   "id": "W1660517870",
+   "title": "A bounded neural network for open set recognition",
+   "year": 2015,
+   "url": "https://doi.org/10.1109/ijcnn.2015.7280680",
+   "cited_by": 38,
+   "abstract": "Open set recognition is, more than an interesting research subject, a component of various machine learning applications which is sometimes neglected: it is not unusual the existence of learning systems developed on the top of closed-set assumptions, ignoring the error risk involved in a prediction. This risk is strictly related to the location in feature space where the prediction has to be made, compared to the location of the training data: the more distant the training observations are, less is known, higher is the risk. Proper handling of this risk can be necessary in various situation where classification and its variants are employed. This paper presents an approach to open set recognition based on an elaborate distance-like computation provided by a weightless neural network model. The results obtained in the proposed test scenarios are quite interesting, placing the proposed method among the current best ones.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S6"
+  },
+  {
+   "id": "W4387933227",
+   "title": "ULEEN: A Novel Architecture for Ultra-low-energy Edge Neural Networks",
+   "year": 2023,
+   "url": "https://doi.org/10.1145/3629522",
+   "cited_by": 33,
+   "abstract": "\u2018\u2018Extreme edge\u201d 1 devices, such as smart sensors, are a uniquely challenging environment for the deployment of machine learning. The tiny energy budgets of these devices lie beyond what is feasible for conventional deep neural networks, particularly in high-throughput scenarios, requiring us to rethink how we approach edge inference. In this work, we propose ULEEN, a model and FPGA-based accelerator architecture based on weightless neural networks (WNNs). WNNs eliminate energy-intensive arithmetic operations, instead using table lookups to perform computation, which makes them theoretically well-suited for edge inference. However, WNNs have historically suffered from poor accuracy and excessive memory usage. ULEEN incorporates algorithmic improvements and a novel training strategy inspired by binary neural networks (BNNs) to make significant strides in addressing these issues. We compare ULEEN against BNNs in software and hardware using the four MLPerf Tiny datasets and MNIST. Our FPGA implementations of ULEEN accomplish classification at 4.0\u201314.3 million inferences per second, improving area-normalized throughput by an average of 3.6\u00d7 and steady-state energy efficiency by an average of 7.1\u00d7 compared to the FPGA-based Xilinx FINN BNN inference platform. While ULEEN is not a universally applicable machine learning model, we demonstrate that it can be an excellent choice for certain applications in energy- and latency-critical edge environments.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S7"
+  },
+  {
+   "id": "W4403278591",
+   "title": "PolyLUT-Add: FPGA-based LUT Inference with Wide Inputs",
+   "year": 2024,
+   "url": "https://doi.org/10.1109/fpl64840.2024.00029",
+   "cited_by": 27,
+   "abstract": "FPGAs have distinct advantages as a technology for deploying deep neural networks (DNNs) at the edge. Lookup Table (LUT) based networks, where neurons are directly modeled using LUTs, help maximize this promise of offering ultra-low latency and high area efficiency on FPGAs. Unfortunately, LUT resource usage scales exponentially with the number of inputs to the LUT, restricting PolyLUT to small LUT sizes. This work introduces PolyLUT-Add, a technique that enhances neuron connectivity by combining A PolyLUT sub-neurons via addition to improve accuracy. Moreover, we describe a novel architecture to improve its scalability. We evaluated our implementation over the MNIST, Jet Substructure classification, and Network Intrusion Detection benchmark and found that for similar accuracy, PolyLUT-Add achieves a LUT reduction of $2.0-13.9 \\times$ with a $1.2-1.6 \\times$ decrease in latency.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S8"
+  },
+  {
+   "id": "W4412030759",
+   "title": "PolyLUT: Ultra-Low Latency Polynomial Inference With Hardware-Aware Structured Pruning",
+   "year": 2025,
+   "url": "https://doi.org/10.1109/tc.2025.3586311",
+   "cited_by": 17,
+   "abstract": "Standard deep neural network inference involves the computation of interleaved linear maps and nonlinear activation functions. Prior work for ultra-low latency implementations has hardcoded these operations inside FPGA lookup tables (LUTs). However, FPGA LUTs can implement a much greater variety of functions. In this paper, we propose a novel approach to training DNNs for FPGA deployment using multivariate polynomials as the basic building block. Our method takes advantage of the flexibility offered by the soft logic, hiding the polynomial evaluation inside the LUTs with minimal overhead. By using polynomial building blocks, we achieve the same accuracy using considerably fewer layers of soft logic than by using linear functions, leading to significant latency and area improvements. LUT-based implementations also face a significant challenge: the LUT size grows exponentially with the number of inputs. Prior work relies on a priori fixed sparsity, with results heavily dependent on seed selection. To address this, we propose a structured pruning strategy using a bespoke hardware-aware group regularizer that encourages a particular sparsity pattern that leads to a small number of inputs per neuron. We demonstrate the effectiveness of PolyLUT on three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and MNIST.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S9"
+  },
+  {
+   "id": "HF:2506.16791",
+   "title": "TabArena: A Living Benchmark for Machine Learning on Tabular Data",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2506.16791",
+   "cited_by": 4,
+   "abstract": "With the growing popularity of deep learning and foundation models for tabular data, the need for standardized and reliable benchmarks is higher than ever. However, current benchmarks are static. Their design is not updated even if flaws are discovered, model versions are updated, or new models are released. To address this, we introduce TabArena, the first continuously maintained living tabular benchmarking system. To launch TabArena, we manually curate a representative collection of datasets and well-implemented models, conduct a large-scale benchmarking study to initialize a public leaderboard, and assemble a team of experienced maintainers. Our results highlight the influence of validation method and ensembling of hyperparameter configurations to benchmark models at their full potential. While gradient-boosted trees are still strong contenders on practical tabular datasets, we observe that deep learning methods have caught up under larger time budgets with ensembling. At the same time, foundation models excel on smaller datasets. Finally, we show that ensembles across models advance the state-of-the-art in tabular machine learning and investigate the contributions of individual models. We launch TabArena with a public leaderboard, reproducible code, and maintenance protocols to create a living benchmark available at https://tabarena.ai.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers",
+   "sid": "S10"
+  },
+  {
+   "id": "W2530901771",
+   "title": "An analysis of learning in weightless neural systems",
+   "year": 1997,
+   "url": "https://doi.org/10.25560/40039",
+   "cited_by": 4,
+   "abstract": "This thesis brings together two strands of neural networks research - weightless systems and statistical learning theory - in an attempt to understand better the learning and generalisation abilities of a class of pattern classifying machines. The machines under consideration are n-tuple classifiers. While their analysis falls outside the domain of more widespread neural networks methods the method has found considerable application since its first publication in 1959. The larger class of learning systems to which the n-tuple classifier belongs is known as the set of weightless or RAM-based systems, because of the fact that they store all their modifiable information in the nodes rather than as weights on the connections. The analytical tools used are those of statistical learning theory. Learning methods and machines are considered in terms of a formal learning problem which allows the precise definition of terms such as learning and generalisation (in this context). Results relating the empirical error of the machine on the training set, the number of training examples and the complexity of the machine (as measured by the Vapnik- Chervonenkis dimension) to the generalisation error are derived. In the thesis this theoretical framework is applied for the first time to weightless systems in general and to n-tuple classifiers in particular. Novel theoretical results are used to inspire the design of related learning machines and empirical tests are used to assess the power of these new machines. Also data-independent theoretical results are compared with data-dependent results to explain the apparent anomalies in the n-tuple classifier's behaviour. The thesis takes an original approach to the study of weightless networks, and one which gives new insights into their strengths as learning machines. It also allows a new family of learning machines to be introduced and a method for improving generalisation to be applied.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S11"
+  },
+  {
+   "id": "W4410810394",
+   "title": "SparseLUT: Sparse Connectivity Optimization for Lookup Table-Based Deep Neural Networks",
+   "year": 2025,
+   "url": "https://doi.org/10.1109/fccm62733.2025.00030",
+   "cited_by": 2,
+   "abstract": "We present SparseLUT, a novel training method for Lookup Table (LUT)-based Deep Neural Networks (DNNs) that eliminates the need for random seed optimization-a common requirement in existing LUT-DNN approaches (e.g., LogicNets, PolyLUT, PolyLUT-Add, and NeuraLUT) that rely on fixed sparsity masks. SparseLUT is a connectivity-centric training technique tailored for LUT-based DNNs, that leverages a non-greedy training strategy that prioritizes the pruning of less significant connections and strategically regrows alternative ones, resulting in efficient convergence to the target sparsity. Experimental results show consistent accuracy improvements across benchmarks, including up to a 2.13% increase on MNIST and a 0.94% improvement for Jet Substructure Classification compared to random sparsity. This is done without any hardware overhead and achieves state-of-the-art results for LUT-based DNNs (Code: https://github.com/bingleilou/SparseLUT).",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S12"
+  },
+  {
+   "id": "wiki:30294906",
+   "title": "Gravity (2013 film)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=30294906",
+   "abstract": "Gravity is a 2013 science fiction thriller film directed by Alfonso Cuar\u00f3n, who also co-wrote, co-edited, and produced the film. It stars Sandra Bullock and George Clooney as American astronauts who attempt to return to Earth after the destruction of their Space Shuttle in orbit. Cuar\u00f3n wrote the screenplay with his son Jon\u00e1s and attempted to develop the film at Universal Pictures. Later, the distribution rights were acquired by Warner Bros. Pictures. David Heyman, who previously worked with Cuar\u00f3n on Harry Potter and the Prisoner of Azkaban (2004), produced the film with him. Gravity was produced entirely in the United Kingdom, where British visual effects company Framestore spent more than three years creating most of the film's visual effects, which involve over 80 of its 91 minutes. Gravity opened the 70th Venice International Film Festival on August 28, 2013, and had its North American premiere three days later at the Telluride Film Festival. Upon its release, Gravity was met with widespread critical acclaim, with high praise for its direction, visuals, cinematography, acting, and score. Considered one of the best films of 2013, it appeared on numerous critics' year-end lists, and was selected by the American Film Institute in their annual Movies of the Year list. The film became the eighth-highest-grossing film of the year with a worldwide gross of over $723 million, against a production budget of around $100 million. Gravity received a leading 10 nominations at the 86th Academy Awards, including Best Picture and Best Actress (for Bullock), and won a leading seven awards, including Best Director (for Cuar\u00f3n). At the 67th British Academy Film Awards, the film received a leading 11 nominations, including Best Film and Best Actress in a Leading Role (for Bullock), and won a leading 6 awards, including Outstanding British Film and Best Director (for Cuar\u00f3n). It also received 4 nominations at the 71st Golden Globe Awards, including Best Motion Picture \u2013 Drama and Best Actress in a Motion Picture \u2013 Drama (for Bullock), with Cuar\u00f3n winning Best Director. At the 19th Critics' Choice Awards, the film received 10 nominations, including Best Picture and Best Actress (for Bullock), and won a leading seven awards, including Best Sci-Fi/Horror Movie, Best Director (for Cuar\u00f3n) and Best Actress in an Action Movie (for Bullock). Bullock also received a nomination for the Screen Actors Guild Award for Outstanding Performance by a Female Actor in a Leading Role, while the film won the 2013 Ray Bradbury Award, and the 2014 Hugo Award for Best Dramatic Presentation. Since its release, it has been cited as among the best films of the 2010s and the 21st century.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S13"
+  },
+  {
+   "id": "wiki:32373679",
+   "title": "Ji Chang-wook",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=32373679",
+   "abstract": "Ji Chang-wook (Korean: \uc9c0\ucc3d\uc6b1; born 5 July 1987) is a South Korean actor and singer. He rose to fame for playing the lead role of daily drama series Smile Again (2010\u20132011), and gained further prominence with television series Warrior Baek Dong-soo (2011), Empress Ki (2013\u20132014), Healer (2014\u20132015), The K2 (2016), Suspicious Partner (2017), The Worst of Evil (2023), Welcome to Samdal-ri (2023\u20132024), and film Fabricated City (2017).",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S14"
+  },
+  {
+   "id": "wiki:8980330",
+   "title": "WALL-E",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=8980330",
+   "abstract": "WALL-E (stylized with an interpunct as WALL\u00b7E) is a 2008 American animated science fiction film directed by Andrew Stanton, who co-wrote the screenplay with Jim Reardon, based on a story by Stanton and Pete Docter. Produced by Pixar Animation Studios for Walt Disney Pictures, the film stars the voices of Ben Burtt, Elissa Knight, Jeff Garlin, John Ratzenberger, Kathy Najimy, and Sigourney Weaver, with Fred Willard in a live-action role. The film follows a solitary robot named WALL-E on a future, uninhabitable, deserted Earth in 2805, left to clean up garbage. He is visited by a robot called EVE sent from the starship Axiom, whom he falls in love with and pursues across the galaxy. After directing Finding Nemo, Stanton felt Pixar had created believable simulations of underwater physics and was willing to direct a film set largely in space. WALL-E has minimal dialogue in its early sequences; many of the characters in the film do not have voices, but instead communicate with body language and robotic sounds that were designed by Burtt. The film incorporates various topics including human environmental impact and concerns, global catastrophic risk, consumerism, corporatocracy, waste management, obesity/sedentary lifestyles, and nostalgia. It is also Pixar's first animated film featuring live-action segments. Thomas Newman composed the film's musical score. The film cost $180 million to produce, a record-breaking sum for an animated film at the time. WALL-E premiered at the Greek Theatre in Los Angeles on June 23, 2008, and was released in the United States on June 27. The film received widespread acclaim for its animation, characters, themes, visuals, score, sound design, screenplay and use of minimal dialogue. It was also commercially successful, grossing $532 million worldwide and becoming the ninth-highest grossing film of 2008. It won several awards, including the Academy Award for Best Animated Feature alongside five additional nominations. The film was widely named by critics and organizations, including the American Film Institute and National Board of Review, as one of the best films of 2008 and among the greatest animated films ever made. In 2021, WALL-E was selected for preservation in the United States National Film Registry by the Library of Congress as being \"culturally, historically, or aesthetically significant\".",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S15"
+  },
+  {
+   "id": "SE:stackoverflow:9795451:9795832",
+   "title": "Advantages and disadvantages of neural networks",
+   "year": 2012,
+   "cited_by": 11,
+   "url": "https://stackoverflow.com/q/9795451",
+   "abstract": "This is a very broad question. In general, neural networks with one hidden layer, a nonlinear activation function and a sufficient number of hidden neurons are able to approximate any function with arbitrary precision. However, the error function is not convex and thus the result of the training depends on the initialization. SVMs are able to approximate any function, too. They are very popular because the optimization problem has a unique solution and there might be some other reasons. But recent research has shown that neural networks like multilayer perceptrons, convolutional neural networks, deep belief neural networks, multi-column deep neural networks etc. are more efficient and achieve better results for complex applications with a huge amount of data. So it is always a trade-off as LiKao stated (no free lunch theorem) and no classifier is \"perfect\". Here is a paper that describes the advantages of deep networks in comparison to \"shallow networks\" which includes Support Vector Machines: http://yann.lecun.com/exdb/publis/pdf/bengio-lecun-07.pdf Here is a standard benchmark and a comparison of different learning algorithms: http://yann.lecun.com/exdb/mnist/ Here is a paper that describes a new kind of neural networks that is especially good at solving some vision problems (traffic sign recognition, ocr): http://arxiv.org/abs/1202.2745",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S16"
+  },
+  {
+   "id": "SE:stats:30474:31441",
+   "title": "Neural network training on unlimited theoretical data",
+   "year": 2012,
+   "cited_by": 2,
+   "url": "https://stats.stackexchange.com/q/30474",
+   "abstract": "You are not the first person who does something like this. Researches have done this for image recognition for about 15 to 20 years. An example for this is the MNIST data set of handwritten digits. The data set usually consists of 60,000 training examples. But this number is not sufficient to reach &gt;99,5 % accuracy with multilayer perceptrons. So, people generate more training examples with distortions in each iteration of the optimization algorithm. The algorithm they usually use to train the neural networks is called stochastic gradient descent (or online learning in comparison to batch learning). There exist variants like \"stochastic diagonal Levenberg-Marquardt\" that require an approximation of the Hessian. The averaging of weights could produce a classifier that is really bad.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S17"
+  },
+  {
+   "id": "SE:datascience:56847:",
+   "title": "choosing classifiers",
+   "year": 2019,
+   "cited_by": 2,
+   "url": "https://datascience.stackexchange.com/q/56847",
+   "abstract": "For what I read the 5x2cv t test is \"a procedure for comparing the performance of two models (classifiers or regressors) that was proposed by Dietterich to address shortcomings in other methods such as the resampled paired t test and the k-fold cross-validated paired t test\" . I am currently making some experiments with an unbalanced data set, which I balanced using SCUT and trained a set of different classifiers. The problem is a multiclass with three different classes to choose. I am applying a Multilayer Perceptron, a Decision Tree and a Random Forest and the results, after a 10-fold cross validation, are the following: Multilayer Perceptron: 0.95 acc Decision Tree: 0.93 acc Random Forest: 0.935 acc When I apply the 5x2cv t test I got the following results: MLP and DT: t-statistic 4.75 p-value 0.005 So, if I assume that for the tests I will have a value of alpha of 0.05 for rejecting the null hypothesis, which is that both algorithms perform well with the same database, then from the p-value I got I could reject the null hypothesis. This would mean that both models do not perform equally well, so it would be better to use MLP over the DT because of its higher accuracy. When I do the same with the MLP and the RF I got the following results: t-statistic: 2.46 p-value: 0.055 Here, I suppose that I can conclude that using MLP or RF for the current dataset is almost the same, because I failed to reject the null hypothesis. The question that I have here is if should I choose the RF even though the accuracy was lower? The comparison with the DT and RF has the following values: t-statistic: -2.49 p-value: 0.054 So I can reject the null hypothesis and said that there is difference between the use of the DT over the RF. Are my conclusions correct? Thanks",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S18"
+  },
+  {
+   "id": "SE:datascience:14845:",
+   "title": "How to Scaling Out Artifical Neural Networks?",
+   "year": 2016,
+   "cited_by": 1,
+   "url": "https://datascience.stackexchange.com/q/14845",
+   "abstract": "I have started to study ANNs with Tensorflow and Keras. Now I want to find a solution to use ANNs over Hadoop. I have learnt that Spark 2.0 does have a Multilayer Perceptron Classifier, but as far as I can see it is quite \"primitive\" in comparison with TF and Keras (there are only feedforward types and hidden layer/output layer activation functions are hard-wired), there is no wide variety of optimizers, cost functions, architecture types etc. Is there any competitive alternative for large scale neural networks? Of course, I could use Amazon with very powerful, GPU-driven machines but these are not parallel frameworks either...",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S19"
+  },
+  {
+   "id": "SE:datascience:20100:",
+   "title": "How do I compare traditional classifiers performance with my proposed method?",
+   "year": 2017,
+   "cited_by": 0,
+   "url": "https://datascience.stackexchange.com/q/20100",
+   "abstract": "I want to compare my proposed method with traditional machine learning classifiers like Multilayer Perceptron(MLP) and SVM to check the classification accuracy.How do I compare different classifiers?. I want to draw a comparison between these three terms 1).Proposed method (Based on DNN) 2).Shallow neural networks 3).SVM",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S20"
+  },
+  {
+   "id": "HN:23118411",
+   "title": "Perovskite Neural Trees",
+   "year": "2020",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=23118411",
+   "abstract": "This gadget doesn't have any hidden layers, though. It does OK in comparison to a simple linear classifier. If you can make and train a multi-layer architecture with perovskite, that starts to get interesting.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S21"
+  },
+  {
+   "id": "HN:16520434",
+   "title": "A week-long programming retreat",
+   "year": "2018",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=16520434",
+   "abstract": "No-JS link: https:&#x2F;&#x2F;m.facebook.com&#x2F;permalink.php?story_fbid=211040872252... John Carmack After a several year gap, I finally took another week-long programming retreat, where I could work in hermit mode, away from the normal press of work. My wife has been generously offering it to me the last few years, but I\u2019m generally bad at taking vacations from work. As a change of pace from my current Oculus work, I wanted to write some from-scratch-in-C++ neural network implementations, and I wanted to do it with a strictly base OpenBSD system. Someone remarked that is a pretty random pairing, but it worked out ok. Despite not having actually used it, I have always been fond of the idea of OpenBSD \u2014 a relatively minimal and opinionated system with a cohesive vision and an emphasis on quality and craftsmanship. Linux is a lot of things, but cohesive isn\u2019t one of them. I\u2019m not a Unix geek. I get around ok, but I am most comfortable developing in Visual Studio on Windows. I thought a week of full immersion work in the old school Unix style would be interesting, even if it meant working at a slower pace. It was sort of an adventure in retro computing \u2014 this was fvwm and vi. Not vim, actual BSD vi. In the end, I didn\u2019t really explore the system all that much, with 95% of my time in just the basic vi &#x2F; make &#x2F; gdb operations. I appreciated the good man pages, as I tried to do everything within the self contained system, without resorting to internet searches. Seeing references to 30+ year old things like Tektronix terminals was amusing. I was a little surprised that the C++ support wasn\u2019t very good. G++ didn\u2019t support C++11, and LLVM C++ didn\u2019t play nicely with gdb. Gdb crashed on me a lot as well, I suspect due to C++ issues. I know you can get more recent versions through ports, but I stuck with using the base system. In hindsight, I should have just gone full retro and done everything in ANSI C. I do have plenty of days where, like many older programmers, I think \u201cMaybe C++ isn\u2019t as much of a net positive as we assume...\u201d. There is still much that I like, but it isn\u2019t a hardship for me to build small projects in plain C. Maybe next time I do this I will try to go full emacs, another major culture that I don\u2019t have much exposure to. I have a decent overview understanding of most machine learning algorithms, and I have done some linear classifier and decision tree work, but for some reason I have avoided neural networks. On some level, I suspect that Deep Learning being so trendy tweaked a little bit of contrarian in me, and I still have a little bit of a reflexive bias against \u201cthrow everything at the NN and let it sort it out!\u201d In the spirit of my retro theme, I had printed out several of Yann LeCun\u2019s old papers and was considering doing everything completely off line, as if I was actually in a mountain cabin somewhere, but I wound up watching a lot of the Stanford CS231N lectures on YouTube, and found them really valuable. Watching lecture videos is something that I very rarely do \u2014 it is normally hard for me to feel the time is justified, but on retreat it was great! I don\u2019t think I have anything particularly insightful to add about neural networks, but it was a very productive week for me, solidifying \u201cbook knowledge\u201d into real experience. I used a common pattern for me: get first results with hacky code, then write a brand new and clean implementation with the lessons learned, so they both exist and can be cross checked. I initially got backprop wrong both times, comparison with numerical differentiation was critical! It is interesting that things still train even when various parts are pretty wrong \u2014 as long as the sign is right most of the time, progress is often made. I was pretty happy with my multi-layer neural net code; it wound up in a form that I can just drop it into future efforts. Yes, for anything serious I should use an established library, but there are a lot of times when just having a single .cpp and .h file that you wrote ever line of is convenient. My conv net code just got to the hacky but working phase, I could have used another day or two to make a clean and flexible implementation. One thing I found interesting was that when testing on MNIST with my initial NN before adding any convolutions, I was getting significantly better results than the non-convolutional NN reported for comparison in LeCun \u201898 \u2014 right around 2% error on the test set with a single 100 node hidden layer, versus 3% for both wider and deeper nets back then. I attribute this to the modern best practices \u2014ReLU, Softmax, and better initialization. This is one of the most fascinating things about NN work \u2014 it is all so simple, and the breakthrough advances are often things that can be expressed with just a few lines of code. It feels like there are some similarities with ray tracing in the graphics world, where you can implement a physically based light transport ray tracer quite quickly, and produce state of the art images if you have the data and enough runtime patience. I got a much better gut-level understanding of overtraining &#x2F; generalization &#x2F; regularization by exploring a bunch of training parameters. On the last night before I had to head home, I froze the architecture and just played with hyperparameters. \u201cTraining!\u201d Is definitely worse than \u201cCompiling!\u201d for staying focused. Now I get to keep my eyes open for a work opportunity to use the new skills! I am dreading what my email and workspace are going to look like when I get into the office tomorrow.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S22"
+  },
+  {
+   "id": "GH:Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "title": "Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "year": "2024",
+   "url": "https://github.com/Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "cited_by": 2,
+   "abstract": "Breast cancer (BC) is a prevalent disease and major cause of mortality among women worldwide. A substantial number of BC patients experience metastasis which in turn leads to treatment failure and death. The survival rate has been significantly increased thanks to the state of the art technologies and detection tools. In this study, we cross-compared the application of advanced artificial intelligence algorithms such as Logistic Regression, K-Nearest Neighbors, Discrete Cosine Transform, Random Forest Classifier, Support Vector Machines, Multilayer Perceptron, and Ensemble to diagnose BC metastasis. We further combined MLP with genetic algorithm (GA) as a hybrid method of intelligent analysis. The core data we used for comparison belonged to the images of both benign and malignant tumors and were taken from Wisconsin Breast Cancer dataset from the UCI repository. Our findings indicate that our MLP-GA hybrid algorithm can speed up diagnosis with higher accuracy rate than the individual patterns of algorithm. Two methods of comparison (Cross-Validation and Holdout) were applied to this study which produced consistent results Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S23"
+  },
+  {
+   "id": "GH:dwn2rtl/dwn2rtl",
+   "title": "dwn2rtl/dwn2rtl",
+   "year": "2026",
+   "url": "https://github.com/dwn2rtl/dwn2rtl",
+   "cited_by": 0,
+   "abstract": "Turn trained differentiable weightless neural networks into pipelined, synthesizable Verilog for FPGA deployment. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S24"
+  },
+  {
+   "id": "GH:BennyCollins/neural_net_project",
+   "title": "BennyCollins/neural_net_project",
+   "year": "2023",
+   "url": "https://github.com/BennyCollins/neural_net_project",
+   "cited_by": 0,
+   "abstract": "Neural Networks Coursework - Comparison of the performance of Multilayer Perceptron and Support Vector Classifier on Diabetes Classification Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S25"
+  },
+  {
+   "id": "GH:shoolic/wifi-localization-ai",
+   "title": "shoolic/wifi-localization-ai",
+   "year": "2020",
+   "url": "https://github.com/shoolic/wifi-localization-ai",
+   "cited_by": 0,
+   "abstract": "Project for Artificial Intelligence classes at the Warsaw University of Technology. Naive Bayes Classifier and Multilayer Perceptron comparison. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S26"
+  }
+ ],
+ "log": [
+  {
+   "api": "openalex",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "arxiv",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 6,
+   "s": 1.1
+  },
+  {
+   "api": "semanticscholar",
+   "query": "weightless neural network tabular data benchmark",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 3,
+   "s": 0.5
+  },
+  {
+   "api": "stackexchange",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 0,
+   "s": 5.4
+  },
+  {
+   "api": "hackernews",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 0,
+   "s": 12.5
+  },
+  {
+   "api": "reddit",
+   "query": "weightless neural network tabular data benchmark",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 0,
+   "s": 7.5
+  },
+  {
+   "api": "github",
+   "query": "weightless neural network tabular data benchmark",
+   "n": 0,
+   "s": 0.4
+  },
+  {
+   "api": "openalex",
+   "query": "differentiable weightless neural networks",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "arxiv",
+   "query": "differentiable weightless neural networks",
+   "n": 6,
+   "s": 1.0
+  },
+  {
+   "api": "semanticscholar",
+   "query": "differentiable weightless neural networks",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "differentiable weightless neural networks",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "differentiable weightless neural networks",
+   "n": 3,
+   "s": 0.2
+  },
+  {
+   "api": "stackexchange",
+   "query": "differentiable weightless neural networks",
+   "n": 0,
+   "s": 5.1
+  },
+  {
+   "api": "hackernews",
+   "query": "differentiable weightless neural networks",
+   "n": 0,
+   "s": 10.8
+  },
+  {
+   "api": "reddit",
+   "query": "differentiable weightless neural networks",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "differentiable weightless neural networks",
+   "n": 0,
+   "s": 7.2
+  },
+  {
+   "api": "github",
+   "query": "differentiable weightless neural networks",
+   "n": 2,
+   "s": 0.5
+  },
+  {
+   "api": "openalex",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "arxiv",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 6,
+   "s": 0.7
+  },
+  {
+   "api": "semanticscholar",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 1,
+   "s": 0.4
+  },
+  {
+   "api": "stackexchange",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 0,
+   "s": 5.1
+  },
+  {
+   "api": "hackernews",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 0,
+   "s": 1.2
+  },
+  {
+   "api": "reddit",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 0,
+   "s": 7.2
+  },
+  {
+   "api": "github",
+   "query": "LogicNets PolyLUT lookup table neural network",
+   "n": 0,
+   "s": 0.4
+  },
+  {
+   "api": "openalex",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "arxiv",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "semanticscholar",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 6,
+   "s": 0.3
+  },
+  {
+   "api": "wikipedia",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 3,
+   "s": 0.5
+  },
+  {
+   "api": "stackexchange",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 6,
+   "s": 5.3
+  },
+  {
+   "api": "hackernews",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 2,
+   "s": 1.7
+  },
+  {
+   "api": "reddit",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 0,
+   "s": 7.5
+  },
+  {
+   "api": "github",
+   "query": "WiSARD n-tuple classifier comparison multilayer perceptron",
+   "n": 6,
+   "s": 0.7
+  }
+ ],
+ "pool": [
+  {
+   "id": "W4403573346",
+   "title": "Differentiable Weightless Neural Networks",
+   "year": 2024,
+   "url": "https://doi.org/10.48550/arxiv.2410.11112",
+   "cited_by": 40,
+   "abstract": "We introduce the Differentiable Weightless Neural Network (DWN), a model based on interconnected lookup tables. Training of DWNs is enabled by a novel Extended Finite Difference technique for approximate differentiation of binary values. We propose Learnable Mapping, Learnable Reduction, and Spectral Regularization to further improve the accuracy and efficiency of these models. We evaluate DWNs in three edge computing contexts: (1) an FPGA-based hardware accelerator, where they demonstrate superior latency, throughput, energy efficiency, and model area compared to state-of-the-art solutions, (2) a low-power microcontroller, where they achieve preferable accuracy to XGBoost while subject to stringent memory constraints, and (3) ultra-low-cost chips, where they consistently outperform small models in both accuracy and projected hardware area. DWNs also compare favorably against leading approaches for tabular datasets, with higher average rank. Overall, our work positions DWNs as a pioneering solution for edge-compatible high-throughput neural networks.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7234096203",
+   "title": "Exact Machine Unlearning on Weightless Neural Networks",
+   "year": 2026,
+   "url": "https://doi.org/10.5753/eniac.2026.30819",
+   "cited_by": 0,
+   "abstract": "Privacy regulations create pressure to remove personal records and, when those records have influenced a trained model, motivate machine unlearning. Existing methods make a difficult trade-off: retraining is exact but costly, whereas inexpensive approximations may leave detectable information about deleted examples. We examine weightless neural networks of the WiSARD family, whose training procedure adds independent integer-counter updates. Reversing those updates returns the counters to the state produced without the deleted examples, which permits a cell-by-cell exactness certificate. We evaluate this mechanism on a calibrated synthetic Where\u2019s-Waldo benchmark against full and sharded retraining, deletion-enabled forests, and gradient ascent. In class erasure, WiSARD deleted the selected class in 40 ms, retained 0.899 accuracy, used 9.3 MB, produced a maximum counter difference of zero, and reduced membership-inference area under the ROC curve to 0.50; retraining required 1.42 s, while the more accurate deletion-enabled forest retained 0.953 accuracy at 13.87 s and 1.59 GB. Within the evaluated setting, WiSARD therefore provides an exact option for applications that prioritize deletion latency, although it does not provide the highest accuracy or the smallest absolute memory footprint.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7233930869",
+   "title": "Binarization as an Attack Surface in Weightless Neural Networks",
+   "year": 2026,
+   "url": "https://doi.org/10.48550/arxiv.2611.17646",
+   "cited_by": 0,
+   "abstract": "Weightless Neural Networks (WNNs) are lightweight classifiers that binarize their inputs and learn by storing binary patterns in lookup memories, which makes them attractive for resource-constrained tasks such as intrusion detection. Because a small perturbation that crosses no binarization threshold leaves the binary input unchanged, WNNs may appear naturally robust to adversarial examples; a perturbation that does cross a threshold, however, can still change the prediction. We study this tension in WiSARD, the canonical RAM-based WNN, and in two variants that replace its memories with Bloom filters, Bloom WiSARD and BTHOWeN. A continuous perturbation reaches these classifiers only by crossing an encoding threshold, changing at least one binary tuple, and redirecting a memory query; we formalize this mechanism with a threshold-crossing bound and a response-margin certificate for standard Boolean WiSARD. Controlled MNIST experiments compare linear and data-driven thermometer encodings under model-agnostic sensitivity probes, a score-based Simulated Annealing attack, and surrogate-transfer attacks. Changing only the encoding while keeping each model otherwise fixed shows that encoding granularity can trade a small clean-accuracy loss for a large decrease in attack success. On the Bot-IoT, CICIDS, and UNSW-NB15 intrusion-detection datasets, adversarial perturbations lead WNN detectors to classify many attacks as normal traffic and to raise false alarms, even when their aggregate accuracy remains high.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4387933227",
+   "title": "ULEEN: A Novel Architecture for Ultra-low-energy Edge Neural Networks",
+   "year": 2023,
+   "url": "https://doi.org/10.1145/3629522",
+   "cited_by": 33,
+   "abstract": "\u2018\u2018Extreme edge\u201d 1 devices, such as smart sensors, are a uniquely challenging environment for the deployment of machine learning. The tiny energy budgets of these devices lie beyond what is feasible for conventional deep neural networks, particularly in high-throughput scenarios, requiring us to rethink how we approach edge inference. In this work, we propose ULEEN, a model and FPGA-based accelerator architecture based on weightless neural networks (WNNs). WNNs eliminate energy-intensive arithmetic operations, instead using table lookups to perform computation, which makes them theoretically well-suited for edge inference. However, WNNs have historically suffered from poor accuracy and excessive memory usage. ULEEN incorporates algorithmic improvements and a novel training strategy inspired by binary neural networks (BNNs) to make significant strides in addressing these issues. We compare ULEEN against BNNs in software and hardware using the four MLPerf Tiny datasets and MNIST. Our FPGA implementations of ULEEN accomplish classification at 4.0\u201314.3 million inferences per second, improving area-normalized throughput by an average of 3.6\u00d7 and steady-state energy efficiency by an average of 7.1\u00d7 compared to the FPGA-based Xilinx FINN BNN inference platform. While ULEEN is not a universally applicable machine learning model, we demonstrate that it can be an excellent choice for certain applications in energy- and latency-critical edge environments.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4416964960",
+   "title": "Differentiable Weightless Controllers: Learning Logic Circuits for Continuous Control",
+   "year": 2025,
+   "url": "https://doi.org/10.48550/arxiv.2512.01467",
+   "cited_by": 0,
+   "abstract": "Controlling autonomous systems under real-world conditions often requires policies that can be evaluated with low latency and minimal energy consumption. Unfortunately, these conditions are at odds with the use of high-precision deep neural networks as controllers. In this work, we introduce Differentiable Weightless Controllers (DWCs), a symbolic-differentiable architecture that learns flexible, non-linear, yet highly efficient control policies. DWCs can be trained end-to-end via gradient-based techniques, yet compile directly into FPGA-compatible circuits with few- or even single-clock-cycle latency and nanojoule-level energy cost per action. Across five MuJoCo benchmarks, including high-dimensional Humanoid, DWCs achieve returns competitive with standard deep policies (full-precision or quantized neural networks). Furthermore, DWCs exhibit structurally sparse and interpretable connectivity patterns, enabling direct inspection of which input values influence control decisions.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1609.04846v1",
+   "title": "A Tutorial about Random Neural Networks in Supervised Learning",
+   "year": "2016",
+   "url": "http://arxiv.org/abs/1609.04846v1",
+   "abstract": "Random Neural Networks (RNNs) are a class of Neural Networks (NNs) that can also be seen as a specific type of queuing network. They have been successfully used in several domains during the last 25 years, as queuing networks to analyze the performance of resource sharing in many engineering areas, as learning tools and in combinatorial optimization, where they are seen as neural systems, and also as models of neurological aspects of living beings. In this article we focus on their learning capabilities, and more specifically, we present a practical guide for using the RNN to solve supervised learning problems. We give a general description of these models using almost indistinctly the terminology of Queuing Theory and the neural one. We present the standard learning procedures used by RNNs, adapted from similar well-established improvements in the standard NN field. We describe in particular a set of learning algorithms covering techniques based on the use of first order and, then, of second order derivatives. We also discuss some issues related to these objects and present new perspectives about their use in supervised learning problems. The tutorial describes their most relevant applications, and also provides a large bibliography.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2608.07132v1",
+   "title": "Tabular Image: a method to convert tabular data to images for convolutional neural networks",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2608.07132v1",
+   "abstract": "Improving the predictive capability of credit scoring models is always an active area of research in the financial sector. Recognising the impressive effectiveness of neural networks in different domains (such as computer vision and natural language processing), various neural networks have been tested to potentially improve loan default prediction on credit data. Nevertheless, a significant challenge emerges due to the predominantly tabular nature of credit data, which is not well-suited to the structure and strengths of neural networks, hindering their ability to surpass traditional machine learning models in credit scoring. To overcome the challenge, we propose a novel data transformation method called \\textit{Tabular Image} that converts tabular data into images to take advantage of the powerful two-dimensional convolutional neural networks that perform extremely well on images while mitigating the challenges tabular data poses to deep networks. The \\textit{Tabular Image} can convert tabular data into compact and resilient images compared with existing transformation methods by creatively embedding two crucial measures in credit scoring, the weight of evidence and information value, in the image. Applications to three credit scoring benchmark datasets suggest that simply training a two-dimensional convolutional neural network with \\textit{Tabular Image} can provide state-of-the-art predictive performance. In addition, the advantage of our proposed method's prediction is more evident in the large dataset. Our innovative approach raises the possibility of leveraging two-dimensional convolutional neural networks in credit scoring using a proper data representation method. Furthermore, a flexible framework is provided to suit various tabular datasets in other domains.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1907.02664v2",
+   "title": "Data Encoding for Byzantine-Resilient Distributed Optimization",
+   "year": "2019",
+   "url": "http://arxiv.org/abs/1907.02664v2",
+   "abstract": "We study distributed optimization in the presence of Byzantine adversaries, where both data and computation are distributed among $m$ worker machines, $t$ of which may be corrupt. The compromised nodes may collaboratively and arbitrarily deviate from their pre-specified programs, and a designated (master) node iteratively computes the model/parameter vector for generalized linear models. In this work, we primarily focus on two iterative algorithms: Proximal Gradient Descent (PGD) and Coordinate Descent (CD). Gradient descent (GD) is a special case of these algorithms. PGD is typically used in the data-parallel setting, where data is partitioned across different samples, whereas, CD is used in the model-parallelism setting, where data is partitioned across the parameter space. In this paper, we propose a method based on data encoding and error correction over real numbers to combat adversarial attacks. We can tolerate up to $t\\leq \\lfloor\\frac{m-1}{2}\\rfloor$ corrupt worker nodes, which is information-theoretically optimal. We give deterministic guarantees, and our method does not assume any probability distribution on the data. We develop a {\\em sparse} encoding scheme which enables computationally efficient data encoding and decoding. We demonstrate a trade-off between the corruption threshold and the resource requirements (storage, computational, and communication complexity). As an example, for $t\\leq\\frac{m}{3}$, our scheme incurs only a {\\em constant} overhead on these resources, over that required by the plain distributed PGD/CD algorithms which provide no adversarial protection. To the best of our knowledge, ours is the first paper that makes CD secure against adversarial attacks. Our encoding scheme extends efficiently to the data streaming model and for stochastic gradient descent (SGD). We also give experimental results to show the efficacy of our proposed schemes.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2507.05904v1",
+   "title": "Universal Embeddings of Tabular Data",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2507.05904v1",
+   "abstract": "Tabular data in relational databases represents a significant portion of industrial data. Hence, analyzing and interpreting tabular data is of utmost importance. Application tasks on tabular data are manifold and are often not specified when setting up an industrial database. To address this, we present a novel framework for generating universal, i.e., task-independent embeddings of tabular data for performing downstream tasks without predefined targets. Our method transforms tabular data into a graph structure, leverages Graph Auto-Encoders to create entity embeddings, which are subsequently aggregated to obtain embeddings for each table row, i.e., each data sample. This two-step approach has the advantage that unseen samples, consisting of similar entities, can be embedded without additional training. Downstream tasks such as regression, classification or outlier detection, can then be performed by applying a distance-based similarity measure in the embedding space. Experiments on real-world datasets demonstrate that our method achieves superior performance compared to existing universal tabular data embedding techniques.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2005.07866v1",
+   "title": "Byzantine-Resilient SGD in High Dimensions on Heterogeneous Data",
+   "year": "2020",
+   "url": "http://arxiv.org/abs/2005.07866v1",
+   "abstract": "We study distributed stochastic gradient descent (SGD) in the master-worker architecture under Byzantine attacks. We consider the heterogeneous data model, where different workers may have different local datasets, and we do not make any probabilistic assumptions on data generation. At the core of our algorithm, we use the polynomial-time outlier-filtering procedure for robust mean estimation proposed by Steinhardt et al. (ITCS 2018) to filter-out corrupt gradients. In order to be able to apply their filtering procedure in our {\\em heterogeneous} data setting where workers compute {\\em stochastic} gradients, we derive a new matrix concentration result, which may be of independent interest. We provide convergence analyses for smooth strongly-convex and non-convex objectives. We derive our results under the bounded variance assumption on local stochastic gradients and a {\\em deterministic} condition on datasets, namely, gradient dissimilarity; and for both these quantities, we provide concrete bounds in the statistical heterogeneous data model. We give a trade-off between the mini-batch size for stochastic gradients and the approximation error. Our algorithm can tolerate up to $\\frac{1}{4}$ fraction Byzantine workers. It can find approximate optimal parameters in the strongly-convex setting exponentially fast and reach to an approximate stationary point in the non-convex setting with a linear speed, thus, matching the convergence rates of vanilla SGD in the Byzantine-free setting. We also propose and analyze a Byzantine-resilient SGD algorithm with gradient compression, where workers send $k$ random coordinates of their gradients. Under mild conditions, we show a $\\frac{d}{k}$-factor saving in communication bits as well as decoding complexity over our compression-free algorithm without affecting its convergence rate (order-wise) and the approximation error.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2504.20900v1",
+   "title": "Evaluating Generative Models for Tabular Data: Novel Metrics and Benchmarking",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2504.20900v1",
+   "abstract": "Generative models have revolutionized multiple domains, yet their application to tabular data remains underexplored. Evaluating generative models for tabular data presents unique challenges due to structural complexity, large-scale variability, and mixed data types, making it difficult to intuitively capture intricate patterns. Existing evaluation metrics offer only partial insights, lacking a comprehensive measure of generative performance. To address this limitation, we propose three novel evaluation metrics: FAED, FPCAD, and RFIS. Our extensive experimental analysis, conducted on three standard network intrusion detection datasets, compares these metrics with established evaluation methods such as Fidelity, Utility, TSTR, and TRTS. Our results demonstrate that FAED effectively captures generative modeling issues overlooked by existing metrics. While FPCAD exhibits promising performance, further refinements are necessary to enhance its reliability. Our proposed framework provides a robust and practical approach for assessing generative models in tabular data applications.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2402.03970",
+   "title": "Tabular Data: Is Deep Learning all you need?",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2402.03970",
+   "cited_by": 0,
+   "abstract": "Tabular data represent one of the most prevalent data formats in applied machine learning, largely because they accommodate a broad spectrum of real-world problems. Existing literature has studied many of the shortcomings of neural architectures on tabular data and has repeatedly confirmed the scalability and robustness of gradient-boosted decision trees across varied datasets. However, recent deep learning models have not been subjected to a comprehensive evaluation under conditions that allow for a fair comparison with existing classical approaches. This situation motivates an investigation into whether recent deep-learning paradigms outperform classical ML methods on tabular data. Our survey fills this gap by benchmarking seventeen state-of-the-art methods, spanning neural networks, classical ML and AutoML techniques. Our empirical results over 68 diverse datasets from a well-established benchmark indicate a paradigm shift, where Deep Learning methods outperform classical approaches.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2207.08815",
+   "title": "Why do tree-based models still outperform deep learning on tabular data?",
+   "year": "2022",
+   "url": "https://huggingface.co/papers/2207.08815",
+   "cited_by": 1,
+   "abstract": "While deep learning has enabled tremendous progress on text and image datasets, its superiority on tabular data is not clear. We contribute extensive benchmarks of standard and novel deep learning methods as well as tree-based models such as XGBoost and Random Forests, across a large number of datasets and hyperparameter combinations. We define a standard set of 45 datasets from varied domains with clear characteristics of tabular data and a benchmarking methodology accounting for both fitting models and finding good hyperparameters. Results show that tree-based models remain state-of-the-art on medium-sized data (sim10K samples) even without accounting for their superior speed. To understand this gap, we conduct an empirical investigation into the differing inductive biases of tree-based models and Neural Networks (NNs). This leads to a series of challenges which should guide researchers aiming to build tabular-specific NNs: 1. be robust to uninformative features, 2. preserve the orientation of the data, and 3. be able to easily learn irregular functions. To stimulate research on tabular architectures, we contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2305.02997",
+   "title": "When Do Neural Nets Outperform Boosted Trees on Tabular Data?",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2305.02997",
+   "cited_by": 0,
+   "abstract": "Tabular data is one of the most commonly used types of data in machine learning. Despite recent advances in neural nets (NNs) for tabular data, there is still an active discussion on whether or not NNs generally outperform gradient-boosted decision trees (GBDTs) on tabular data, with several recent works arguing either that GBDTs consistently outperform NNs on tabular data, or vice versa. In this work, we take a step back and question the importance of this debate. To this end, we conduct the largest tabular data analysis to date, comparing 19 algorithms across 176 datasets, and we find that the 'NN vs. GBDT' debate is overemphasized: for a surprisingly high number of datasets, either the performance difference between GBDTs and NNs is negligible, or light hyperparameter tuning on a GBDT is more important than choosing between NNs and GBDTs. A remarkable exception is the recently-proposed prior-data fitted network, TabPFN: although it is effectively limited to training sets of size 3000, we find that it outperforms all other algorithms on average, even when randomly sampling 3000 training datapoints. Next, we analyze dozens of metafeatures to determine what properties of a dataset make NNs or GBDTs better-suited to perform well. For example, we find that GBDTs are much better than NNs at handling skewed or heavy-tailed feature distributions and other forms of dataset irregularities. Our insights act as a guide for practitioners to determine which techniques may work best on their dataset. Finally, with the goal of accelerating tabular data research, we release the TabZilla Benchmark Suite: a collection of the 36 'hardest' of the datasets we study. Our benchmark suite, codebase, and all raw results are available at https://github.com/naszilla/tabzilla.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2407.00956",
+   "title": "A Closer Look at Deep Learning Methods on Tabular Datasets",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2407.00956",
+   "cited_by": 0,
+   "abstract": "Tabular data is prevalent across diverse domains in machine learning. While classical methods like tree-based models have long been effective, Deep Neural Network (DNN)-based methods have recently demonstrated promising performance. However, the diverse characteristics of methods and the inherent heterogeneity of tabular datasets make understanding and interpreting tabular methods both challenging and prone to unstable observations. In this paper, we conduct in-depth evaluations and comprehensive analyses of tabular methods, with a particular focus on DNN-based models, using a benchmark of over 300 tabular datasets spanning a wide range of task types, sizes, and domains. First, we perform an extensive comparison of 32 state-of-the-art deep and tree-based methods, evaluating their average performance across multiple criteria. Although method ranks vary across datasets, we empirically find that top-performing methods tend to concentrate within a small subset of tabular models, regardless of the criteria used. Next, we investigate whether the training dynamics of deep tabular models can be predicted based on dataset properties. This approach not only offers insights into the behavior of deep tabular methods but also identifies a core set of \"meta-features\" that reflect dataset heterogeneity. The other subset includes datasets where method ranks are consistent with the overall benchmark, acting as a reliable probe for further tabular analysis.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2106.11959",
+   "title": "Revisiting Deep Learning Models for Tabular Data",
+   "year": "2021",
+   "url": "https://huggingface.co/papers/2106.11959",
+   "cited_by": 0,
+   "abstract": "The existing literature on deep learning for tabular data proposes a wide range of novel architectures and reports competitive results on various datasets. However, the proposed models are usually not properly compared to each other and existing works often use different benchmarks and experiment protocols. As a result, it is unclear for both researchers and practitioners what models perform best. Additionally, the field still lacks effective baselines, that is, the easy-to-use models that provide competitive performance across different problems. In this work, we perform an overview of the main families of DL architectures for tabular data and raise the bar of baselines in tabular DL by identifying two simple and powerful deep architectures. The first one is a ResNet-like architecture which turns out to be a strong baseline that is often missing in prior works. The second model is our simple adaptation of the Transformer architecture for tabular data, which outperforms other solutions on most tasks. Both models are compared to many existing architectures on a diverse set of tasks under the same training and tuning protocols. We also compare the best DL models with Gradient Boosted Decision Trees and conclude that there is still no universally superior solution.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2506.16791",
+   "title": "TabArena: A Living Benchmark for Machine Learning on Tabular Data",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2506.16791",
+   "cited_by": 4,
+   "abstract": "With the growing popularity of deep learning and foundation models for tabular data, the need for standardized and reliable benchmarks is higher than ever. However, current benchmarks are static. Their design is not updated even if flaws are discovered, model versions are updated, or new models are released. To address this, we introduce TabArena, the first continuously maintained living tabular benchmarking system. To launch TabArena, we manually curate a representative collection of datasets and well-implemented models, conduct a large-scale benchmarking study to initialize a public leaderboard, and assemble a team of experienced maintainers. Our results highlight the influence of validation method and ensembling of hyperparameter configurations to benchmark models at their full potential. While gradient-boosted trees are still strong contenders on practical tabular datasets, we observe that deep learning methods have caught up under larger time budgets with ensembling. At the same time, foundation models excel on smaller datasets. Finally, we show that ensembles across models advance the state-of-the-art in tabular machine learning and investigate the contributions of individual models. We launch TabArena with a public leaderboard, reproducible code, and maintenance protocols to create a living benchmark available at https://tabarena.ai.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:30294906",
+   "title": "Gravity (2013 film)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=30294906",
+   "abstract": "Gravity is a 2013 science fiction thriller film directed by Alfonso Cuar\u00f3n, who also co-wrote, co-edited, and produced the film. It stars Sandra Bullock and George Clooney as American astronauts who attempt to return to Earth after the destruction of their Space Shuttle in orbit. Cuar\u00f3n wrote the screenplay with his son Jon\u00e1s and attempted to develop the film at Universal Pictures. Later, the distribution rights were acquired by Warner Bros. Pictures. David Heyman, who previously worked with Cuar\u00f3n on Harry Potter and the Prisoner of Azkaban (2004), produced the film with him. Gravity was produced entirely in the United Kingdom, where British visual effects company Framestore spent more than three years creating most of the film's visual effects, which involve over 80 of its 91 minutes. Gravity opened the 70th Venice International Film Festival on August 28, 2013, and had its North American premiere three days later at the Telluride Film Festival. Upon its release, Gravity was met with widespread critical acclaim, with high praise for its direction, visuals, cinematography, acting, and score. Considered one of the best films of 2013, it appeared on numerous critics' year-end lists, and was selected by the American Film Institute in their annual Movies of the Year list. The film became the eighth-highest-grossing film of the year with a worldwide gross of over $723 million, against a production budget of around $100 million. Gravity received a leading 10 nominations at the 86th Academy Awards, including Best Picture and Best Actress (for Bullock), and won a leading seven awards, including Best Director (for Cuar\u00f3n). At the 67th British Academy Film Awards, the film received a leading 11 nominations, including Best Film and Best Actress in a Leading Role (for Bullock), and won a leading 6 awards, including Outstanding British Film and Best Director (for Cuar\u00f3n). It also received 4 nominations at the 71st Golden Globe Awards, including Best Motion Picture \u2013 Drama and Best Actress in a Motion Picture \u2013 Drama (for Bullock), with Cuar\u00f3n winning Best Director. At the 19th Critics' Choice Awards, the film received 10 nominations, including Best Picture and Best Actress (for Bullock), and won a leading seven awards, including Best Sci-Fi/Horror Movie, Best Director (for Cuar\u00f3n) and Best Actress in an Action Movie (for Bullock). Bullock also received a nomination for the Screen Actors Guild Award for Outstanding Performance by a Female Actor in a Leading Role, while the film won the 2013 Ray Bradbury Award, and the 2014 Hugo Award for Best Dramatic Presentation. Since its release, it has been cited as among the best films of the 2010s and the 21st century.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:32373679",
+   "title": "Ji Chang-wook",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=32373679",
+   "abstract": "Ji Chang-wook (Korean: \uc9c0\ucc3d\uc6b1; born 5 July 1987) is a South Korean actor and singer. He rose to fame for playing the lead role of daily drama series Smile Again (2010\u20132011), and gained further prominence with television series Warrior Baek Dong-soo (2011), Empress Ki (2013\u20132014), Healer (2014\u20132015), The K2 (2016), Suspicious Partner (2017), The Worst of Evil (2023), Welcome to Samdal-ri (2023\u20132024), and film Fabricated City (2017).",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:8980330",
+   "title": "WALL-E",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=8980330",
+   "abstract": "WALL-E (stylized with an interpunct as WALL\u00b7E) is a 2008 American animated science fiction film directed by Andrew Stanton, who co-wrote the screenplay with Jim Reardon, based on a story by Stanton and Pete Docter. Produced by Pixar Animation Studios for Walt Disney Pictures, the film stars the voices of Ben Burtt, Elissa Knight, Jeff Garlin, John Ratzenberger, Kathy Najimy, and Sigourney Weaver, with Fred Willard in a live-action role. The film follows a solitary robot named WALL-E on a future, uninhabitable, deserted Earth in 2805, left to clean up garbage. He is visited by a robot called EVE sent from the starship Axiom, whom he falls in love with and pursues across the galaxy. After directing Finding Nemo, Stanton felt Pixar had created believable simulations of underwater physics and was willing to direct a film set largely in space. WALL-E has minimal dialogue in its early sequences; many of the characters in the film do not have voices, but instead communicate with body language and robotic sounds that were designed by Burtt. The film incorporates various topics including human environmental impact and concerns, global catastrophic risk, consumerism, corporatocracy, waste management, obesity/sedentary lifestyles, and nostalgia. It is also Pixar's first animated film featuring live-action segments. Thomas Newman composed the film's musical score. The film cost $180 million to produce, a record-breaking sum for an animated film at the time. WALL-E premiered at the Greek Theatre in Los Angeles on June 23, 2008, and was released in the United States on June 27. The film received widespread acclaim for its animation, characters, themes, visuals, score, sound design, screenplay and use of minimal dialogue. It was also commercially successful, grossing $532 million worldwide and becoming the ninth-highest grossing film of 2008. It won several awards, including the Academy Award for Best Animated Feature alongside five additional nominations. The film was widely named by critics and organizations, including the American Film Institute and National Board of Review, as one of the best films of 2008 and among the greatest animated films ever made. In 2021, WALL-E was selected for preservation in the United States National Film Registry by the Library of Congress as being \"culturally, historically, or aesthetically significant\".",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "W7225193559",
+   "title": "Multispectral Remote Sensing Classification using Differentiable Weightless Neural Networks",
+   "year": 2026,
+   "url": "https://doi.org/10.1109/icmla69890.2026.00174",
+   "cited_by": 0,
+   "abstract": "Remote sensing image classification plays a critical role in environmental monitoring, land-use analysis, and urban planning. Although deep convolutional neural networks achieve high classification accuracy, they often require substantial computational and memory resources, limiting deployment in edge and resource-constrained systems. This paper presents a computationally efficient framework for multispectral satellite image classification using Differentiable Weightless Neural Networks (DWNs) and handcrafted feature representations. The proposed approach combines spectral indices, band statistics, HSV histograms, and texture descriptors within a multi-scale spatial pyramid framework. The extracted features are binarized using distributive thermometer encoding and classified through lookup-table-based DWN inference. Ablation studies and hyperparameter analysis evaluate the contribution of individual feature groups and LUT configurations. Experimental results on the EuroSAT benchmark show that the selected configuration (L=8 thermometer levels and n=4 LUT inputs) achieves 97.00% \u00b1 0.05% (Cohen's \u03ba = 0.9666, macro-F1 = 0.9686) on the full 13-band multispectral variant and 93.24% \u00b1 0.12% on the RGB variant, with a total deployable footprint of 0.091 MB \u2014 including LUT contents, the learnable input mapping, and the thermometer encoder \u2014 over 492\u00d7 smaller than ResNet-18 and roughly 100\u00d7 smaller than MobileNetV2. The improvement from RGB to 13-band input is consistent with the added discriminative value of red-edge, NIR, and shortwave infrared channels, although the two pipelines also differ in feature composition. The proposed method provides an interpretable and hardware-efficient alternative for remote sensing classification in resource-constrained environments.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7222958151",
+   "title": "Why Are Differentiable Weightless Neural Networks Robust to Sensor Noise? Three Mechanisms for Edge HAR",
+   "year": 2026,
+   "url": "https://doi.org/10.1109/les.2026.3728745",
+   "cited_by": 0,
+   "abstract": "Always-on human activity recognition (HAR) on wearable devices demands$\\mu $J-scale inference per sample. Differentiable weightless neural networks (DWNs) meet that budget by replacing arithmetic with lookup table (LUT) computation, and prior work reports 56\u2013104 nJ per sample for DWN inference on FPGAs. How a deployed DWN responds to sensor-level input noise, andwhy, has nevertheless received little quantitative analysis. We quantify DWN robustness to Gaussian noise and sensor drift on UCI HAR across eight thermometer-encoding bit-widths ($b \\in \\{10, {\\dots },28\\}$), decompose it into three mechanisms, and translate each mechanism into a sizing cue that hardware designers can read off the trained model. LUT-level noise absorption is largely invariant to both encoding bit-width and noise type. Accuracy is not: at matched rms magnitude, negative drift costs 27 versus 11 pp for positive drift. We trace this asymmetry downstream of the LUT layer, to the class-wise popcount margin.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7234377713",
+   "title": "Weightless Neural Trees",
+   "year": 2026,
+   "url": "https://doi.org/10.5753/eniac.2026.30556",
+   "cited_by": 0,
+   "abstract": "This work introduces Weightless Neural Tree (WNT), a neurosymbolic model based on the fusion of Decision Tree (DT) and Weightless Neural Network (WNN). A new learning algorithm is proposed to extract rules learned by a DT and design flexible WNN architectures based on tree discriminator generation and binary conditional mapping. Single-depth, boundary, and neighborhood mappings are also proposed to optimize the capture of interpartition patterns. Finally, the WNT model is extended in the Weightless Neural Forest (WNF) with the addition of two ensemble methods that utilize rules learned by a Random Forest (RF). Experiments on ten classification datasets evaluate accuracy, F1-score, and model size under different hyperparameter configurations. WNT substantially reduces model size relative to the evaluated DT and WiSARD baselines, with reductions of up to 96%, while achieving competitive accuracy on most datasets. WNF further improves the accuracy of WNT and achieves up to 96.25% lower model size than the evaluated Random Forest baseline, while remaining competitive with Random Forest and XGBoost on the evaluated datasets. These results indicate that tree-guided architecture design is a promising direction for memory-efficient weightless neural models. https://github.com/leandro-santiago/wnt",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2306.14753v1",
+   "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural Networks could benefit from Data-Driven Homogeneous Chaos Theory",
+   "year": "2023",
+   "url": "http://arxiv.org/abs/2306.14753v1",
+   "abstract": "Artificial Intelligence and Machine learning have been widely used in various fields of mathematical computing, physical modeling, computational science, communication science, and stochastic analysis. Approaches based on Deep Artificial Neural Networks (DANN) are very popular in our days. Depending on the learning task, the exact form of DANNs is determined via their multi-layer architecture, activation functions and the so-called loss function. However, for a majority of deep learning approaches based on DANNs, the kernel structure of neural signal processing remains the same, where the node response is encoded as a linear superposition of neural activity, while the non-linearity is triggered by the activation functions. In the current paper, we suggest to analyze the neural signal processing in DANNs from the point of view of homogeneous chaos theory as known from polynomial chaos expansion (PCE). From the PCE perspective, the (linear) response on each node of a DANN could be seen as a $1^{st}$ degree multi-variate polynomial of single neurons from the previous layer, i.e. linear weighted sum of monomials. From this point of view, the conventional DANN structure relies implicitly (but erroneously) on a Gaussian distribution of neural signals. Additionally, this view revels that by design DANNs do not necessarily fulfill any orthogonality or orthonormality condition for a majority of data-driven applications. Therefore, the prevailing handling of neural signals in DANNs could lead to redundant representation as any neural signal could contain some partial information from other neural signals. To tackle that challenge, we suggest to employ the data-driven generalization of PCE theory known as arbitrary polynomial chaos (aPC) to construct a corresponding multi-variate orthonormal representations on each node of a DANN to obtain Deep arbitrary polynomial chaos neural networks.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2307.05639v2",
+   "title": "Learning Active Subspaces and Discovering Important Features with Gaussian Radial Basis Functions Neural Networks",
+   "year": "2023",
+   "url": "http://arxiv.org/abs/2307.05639v2",
+   "abstract": "Providing a model that achieves a strong predictive performance and is simultaneously interpretable by humans is one of the most difficult challenges in machine learning research due to the conflicting nature of these two objectives. To address this challenge, we propose a modification of the radial basis function neural network model by equipping its Gaussian kernel with a learnable precision matrix. We show that precious information is contained in the spectrum of the precision matrix that can be extracted once the training of the model is completed. In particular, the eigenvectors explain the directions of maximum sensitivity of the model revealing the active subspace and suggesting potential applications for supervised dimensionality reduction. At the same time, the eigenvectors highlight the relationship in terms of absolute variation between the input and the latent variables, thereby allowing us to extract a ranking of the input variables based on their importance to the prediction task enhancing the model interpretability. We conducted numerical experiments for regression, classification, and feature selection tasks, comparing our model against popular machine learning models, the state-of-the-art deep learning-based embedding feature selection techniques, and a transformer model for tabular data. Our results demonstrate that the proposed model does not only yield an attractive prediction performance compared to the competitors but also provides meaningful and interpretable results that potentially could assist the decision-making process in real-world applications. A PyTorch implementation of the model is available on GitHub at the following link. https://github.com/dannyzx/Gaussian-RBFNN",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1901.06610v2",
+   "title": "Hierarchical Attentional Hybrid Neural Networks for Document Classification",
+   "year": "2019",
+   "url": "http://arxiv.org/abs/1901.06610v2",
+   "abstract": "Document classification is a challenging task with important applications. The deep learning approaches to the problem have gained much attention recently. Despite the progress, the proposed models do not incorporate the knowledge of the document structure in the architecture efficiently and not take into account the contexting importance of words and sentences. In this paper, we propose a new approach based on a combination of convolutional neural networks, gated recurrent units, and attention mechanisms for document classification tasks. The main contribution of this work is the use of convolution layers to extract more meaningful, generalizable and abstract features by the hierarchical representation. The proposed method in this paper improves the results of the current attention-based approaches for document classification.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1905.05918v1",
+   "title": "A Neural Network-Evolutionary Computational Framework for Remaining Useful Life Estimation of Mechanical Systems",
+   "year": "2019",
+   "url": "http://arxiv.org/abs/1905.05918v1",
+   "abstract": "This paper presents a framework for estimating the remaining useful life (RUL) of mechanical systems. The framework consists of a multi-layer perceptron and an evolutionary algorithm for optimizing the data-related parameters. The framework makes use of a strided time window to estimate the RUL for mechanical components. Tuning the data-related parameters can become a very time consuming task. The framework presented here automatically reshapes the data such that the efficiency of the model is increased. Furthermore, the complexity of the model is kept low, e.g. neural networks with few hidden layers and few neurons at each layer. Having simple models has several advantages like short training times and the capacity of being in environments with limited computational resources such as embedded systems. The proposed method is evaluated on the publicly available C-MAPSS dataset, its accuracy is compared against other state-of-the art methods for the same dataset.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2609.05946v1",
+   "title": "Interpretable and Fair Generalized Additive Neural Networks via Multi-objective Learning",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2609.05946v1",
+   "abstract": "Interpretability and fairness are two of the most emphasized dimensions in trustworthy artificial intelligence (AI). Various explainable AI methods have been introduced to improve interpretability. This paper focuses on neural network (NN)-based generalized additive models (GAMs), a class of self-interpretable models. While most existing research has prioritized improving the accuracy of NN-based GAMs, their interpretability remains largely underexplored. To address this gap, this paper introduces explicit quantitative metrics for evaluating the interpretability of NN-based GAMs, empirically examines their effectiveness, and explores strategies for improving interpretability within these models. In addition, the simultaneous and explicit optimization of both interpretability and fairness, along with their trade-offs and the underlying reasons, remains underexplored. To address this, we propose a multi-objective neural basis model (MONBM) framework based on multi-objective evolutionary learning to consider accuracy, interpretability, and fairness simultaneously. A partial retraining strategy is further developed to facilitate the practical application of evolutionary multi-objective optimization to deep model architectures. Based on MONBM, this paper reveals the complex relationships between these dimensions and the reasons behind these intricate relationships. This analysis demonstrates how multi-objective optimization can be combined with self-interpretable models to reveal relationships among trustworthiness objectives. In addition, MONBM obtains a set of models with different trade-offs between dimensions, and the competitiveness of the approach is validated by comparing it with state-of-the-art methods.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1906.10015v2",
+   "title": "A Review on Neural Network Models of Schizophrenia and Autism Spectrum Disorder",
+   "year": "2019",
+   "url": "http://arxiv.org/abs/1906.10015v2",
+   "abstract": "This survey presents the most relevant neural network models of autism spectrum disorder and schizophrenia, from the first connectionist models to recent deep network architectures. We analyzed and compared the most representative symptoms with its neural model counterpart, detailing the alteration introduced in the network that generates each of the symptoms, and identifying their strengths and weaknesses. We additionally cross-compared Bayesian and free-energy approaches, as they are widely applied to modeling psychiatric disorders and share basic mechanisms with neural networks. Models of schizophrenia mainly focused on hallucinations and delusional thoughts using neural dysconnections or inhibitory imbalance as the predominating alteration. Models of autism rather focused on perceptual difficulties, mainly excessive attention to environment details, implemented as excessive inhibitory connections or increased sensory precision. We found an excessive tight view of the psychopathologies around one specific and simplified effect, usually constrained to the technical idiosyncrasy of the used network architecture. Recent theories and evidence on sensorimotor integration and body perception combined with modern neural network architectures could offer a broader and novel spectrum to approach these psychopathologies. This review emphasizes the power of artificial neural networks for modeling some symptoms of neurological disorders but also calls for further developing these techniques in the field of computational psychiatry.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2605.01928",
+   "title": "Training Non-Differentiable Networks via Optimal Transport",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2605.01928",
+   "cited_by": 0,
+   "abstract": "Neural networks increasingly embed non-differentiable components (spiking neurons, quantized layers, discrete routing, blackbox simulators, etc.) where backpropagation is inapplicable and surrogate gradients introduce bias. We present PolyStep, a gradient-free optimizer that updates parameters using only forward passes. Each step evaluates the loss at structured polytope vertices in a compressed subspace, computes softmax-weighted assignments over the resulting cost matrix, and displaces particles toward low-cost vertices via barycentric projection. This update corresponds to the one-sided limit of a regularized optimal-transport problem, inheriting its geometric structure without Sinkhorn iterations. PolyStep trains genuinely non-differentiable models where existing gradient-free methods collapse to near-random accuracy. On hard-LIF spiking networks we reach 93.4% test accuracy, outperforming all gradient-free baselines by over 60~pp and closing to within 4.4~pp of a surrogate-gradient Adam ceiling. Across four additional non-differentiable architectures (int8 quantization, argmax attention, staircase activations, hard MoE routing) we lead every gradient-free competitor. On MAX-SAT scaling from 100 to 1M variables, we sustain above 92% clause satisfaction while evolution strategies drop 8--12~pp. On RL policy search, we match OpenAI-ES on classical control and retain performance under integer and binary quantization that collapses gradient-based methods. We prove convergence to conservative-stationary points at rate O(log T/T) on piecewise-smooth losses, upgraded to Clarke-stationary on the headline architectures and extended to the piecewise-constant regime via a hitting-time bound. These rates match the known zeroth-order query-complexity lower bounds that all forward-only methods inherit. Code is available at https://github.com/anindex/polystep.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2108.04392",
+   "title": "Rethinking Architecture Selection in Differentiable NAS",
+   "year": "2021",
+   "url": "https://huggingface.co/papers/2108.04392",
+   "cited_by": 0,
+   "abstract": "Differentiable Neural Architecture Search is one of the most popular Neural Architecture Search (NAS) methods for its search efficiency and simplicity, accomplished by jointly optimizing the model weight and architecture parameters in a weight-sharing supernet via gradient-based algorithms. At the end of the search phase, the operations with the largest architecture parameters will be selected to form the final architecture, with the implicit assumption that the values of architecture parameters reflect the operation strength. While much has been discussed about the supernet's optimization, the architecture selection process has received little attention. We provide empirical and theoretical analysis to show that the magnitude of architecture parameters does not necessarily indicate how much the operation contributes to the supernet's performance. We propose an alternative perturbation-based architecture selection that directly measures each operation's influence on the supernet. We re-evaluate several differentiable NAS methods with the proposed architecture selection and find that it is able to extract significantly improved architectures from the underlying supernets consistently. Furthermore, we find that several failure modes of DARTS can be greatly alleviated with the proposed selection method, indicating that much of the poor generalization observed in DARTS can be attributed to the failure of magnitude-based architecture selection rather than entirely the optimization of its supernet.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2301.12780",
+   "title": "Equivariant Architectures for Learning in Deep Weight Spaces",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2301.12780",
+   "cited_by": 0,
+   "abstract": "Designing machine learning architectures for processing neural networks in their raw weight matrix form is a newly introduced research direction. Unfortunately, the unique symmetry structure of deep weight spaces makes this design very challenging. If successful, such architectures would be capable of performing a wide range of intriguing tasks, from adapting a pre-trained network to a new domain to editing objects represented as functions (INRs or NeRFs). As a first step towards this goal, we present here a novel network architecture for learning in deep weight spaces. It takes as input a concatenation of weights and biases of a pre-trained MLP and processes it using a composition of layers that are equivariant to the natural permutation symmetry of the MLP's weights: Changing the order of neurons in intermediate layers of the MLP does not affect the function it represents. We provide a full characterization of all affine equivariant and invariant layers for these symmetries and show how these layers can be implemented using three basic operations: pooling, broadcasting, and fully connected layers applied to the input in an appropriate manner. We demonstrate the effectiveness of our architecture and its advantages over natural baselines in a variety of learning tasks.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2009.06342",
+   "title": "Reservoir Memory Machines as Neural Computers",
+   "year": "2020",
+   "url": "https://huggingface.co/papers/2009.06342",
+   "cited_by": 0,
+   "abstract": "Differentiable neural computers extend artificial neural networks with an explicit memory without interference, thus enabling the model to perform classic computation tasks such as graph traversal. However, such models are difficult to train, requiring long training times and large datasets. In this work, we achieve some of the computational capabilities of differentiable neural computers with a model that can be trained very efficiently, namely an echo state network with an explicit memory without interference. This extension enables echo state networks to recognize all regular languages, including those that contractive echo state networks provably can not recognize. Further, we demonstrate experimentally that our model performs comparably to its fully-trained deep version on several typical benchmark tasks for differentiable neural computers.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2202.05780",
+   "title": "A Modern Self-Referential Weight Matrix That Learns to Modify Itself",
+   "year": "2022",
+   "url": "https://huggingface.co/papers/2202.05780",
+   "cited_by": 0,
+   "abstract": "The weight matrix (WM) of a neural network (NN) is its program. The programs of many traditional NNs are learned through gradient descent in some error function, then remain fixed. The WM of a self-referential NN, however, can keep rapidly modifying all of itself during runtime. In principle, such NNs can meta-learn to learn, and meta-meta-learn to meta-learn to learn, and so on, in the sense of recursive self-improvement. While NN architectures potentially capable of implementing such behaviour have been proposed since the '90s, there have been few if any practical studies. Here we revisit such NNs, building upon recent successes of fast weight programmers and closely related linear Transformers. We propose a scalable self-referential WM (SRWM) that learns to use outer products and the delta update rule to modify itself. We evaluate our SRWM in supervised few-shot learning and in multi-task reinforcement learning with procedurally generated game environments. Our experiments demonstrate both practical applicability and competitive performance of the proposed SRWM. Our code is public.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2410.09734",
+   "title": "Gradient-Free Training of Quantized Neural Networks",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2410.09734",
+   "cited_by": 0,
+   "abstract": "Training neural networks requires significant computational resources and energy. Methods like mixed-precision and quantization-aware training reduce bit usage, yet they still depend heavily on computationally expensive gradient-based optimization. In this work, we propose a paradigm shift: eliminate gradients altogether. One might hope that, in a finite quantized space, finding optimal weights with out gradients would be easier but we theoretically prove that this problem is NP-hard even in simple settings where the continuous case is efficiently solvable. To address this, we introduce a novel heuristic optimization framework that avoids full weight updates and significantly improves efficiency. Empirically, our method achieves performance comparable to that of full-precision gradient-based training on standard datasets and architectures, while using up to 3x less energy and requiring up to 5x fewer parameter updates.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:63291030",
+   "title": "List of Equinox episodes",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=63291030",
+   "abstract": "A list of Equinox episodes shows the full set of editions of the defunct (July 1986 - December 2006) Channel 4 science documentary series Equinox.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:21523",
+   "title": "Neural network (machine learning)",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=21523",
+   "abstract": "In machine learning, a neural network (NN) or artificial neural network (ANN) is a computational model inspired by the structure and functions of biological neural networks. A neural network consists of connected units or nodes called artificial neurons, which loosely model the neurons in the brain. These are connected by edges, which model the synapses in the brain. Each artificial neuron receives signals from connected neurons, then processes them and sends a signal to other connected neurons. The \"signal\" is a real number, and the output of each neuron is computed by some non-linear function of the totality of its inputs, called the activation function. The strength of the signal at each connection is determined by a weight, which adjusts as part of the training process. Groups of neurons are aggregated into layers. Each layer performs a transformation on its inputs. Signals travel from the first layer (the input layer) to the last layer (the output layer), typically passing through multiple intermediate layers (hidden layers). A network is typically called a deep neural network if it has at least two hidden layers. Deep neural networks are capable of learning sophisticated hierarchical representations. Training neural networks is a compute-intensive process, accelerated by the use of graphics processing units (GPUs), and large datasets. In reality, such textures and outlines would not be represented by single nodes, but rather by associated weight patterns of multiple nodes. Architectural innovations such as convolutional neural networks (CNNs) significantly improved performance in computer vision tasks, while recurrent neural networks (RNNs) enabled modeling of sequential data such as speech and time-series information. Transformer architectures introduced attention mechanisms that allow neural networks to model long-range dependencies in data and have been the basis of large language models. Artificial neural networks are used for myriad tasks including chatbots, large-scale text, image, and video generation, and robotics.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:380541",
+   "title": "Skeletal muscle",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=380541",
+   "abstract": "Skeletal muscle (commonly referred to as muscle) is one of the three types of vertebrate muscle tissue, the others being cardiac muscle and smooth muscle. They are part of the musculoskeletal system, and typically are attached by tendons to the bones of a skeleton. The skeletal muscle cells (myocytes) are much longer than in the other types of muscle tissue, and are also known as muscle fibers. The tissue of a skeletal muscle is striated \u2013 having a striped appearance due to the arrangement of the sarcomeres. A skeletal muscle contains multiple fascicles \u2013 bundles of muscle fibers. Each individual fiber and each muscle is surrounded by a type of connective tissue layer of fascia. Muscle fibers are formed from the fusion of developmental myoblasts in a process known as myogenesis resulting in long multinucleated cells. In these cells, the nuclei, termed myonuclei, are located along the inside of the cell membrane. Muscle fibers also have multiple mitochondria to meet energy needs. Muscle fibers are in turn composed of myofibrils. The myofibrils are composed of actin and myosin filaments called myofilaments, repeated in units called sarcomeres, which are the basic functional, contractile units of the muscle fiber necessary for muscle contraction. Muscles are predominantly powered by the oxidation of fats and carbohydrates, but anaerobic chemical reactions are also used, particularly by fast twitch fibers. These chemical reactions produce adenosine triphosphate (ATP) molecules that are used to power the movement of the myosin heads. Skeletal muscle comprises about 35% of the human body by weight. The functions of skeletal muscle include producing movement, maintaining body posture, controlling body temperature, and stabilizing joints. Skeletal muscle is also an endocrine organ. Under different physiological conditions, subsets of 654 different proteins as well as lipids, amino acids, metabolites and small RNAs are found in the secretome of skeletal muscles. Skeletal muscles are substantially composed of multinucleated contractile muscle fibers (myocytes). Considerable numbers of resident and infiltrating mononuclear cells are also present. In terms of volume, myocytes make up the great majority of skeletal muscle. Skeletal muscle myocytes are usually very large, being about 2\u20133 cm long and 100 \u03bcm in diameter. By comparison, the mononuclear cells in muscles are much smaller. Some of the mononuclear cells in muscles are endothelial cells (which are about 50\u201370 \u03bcm long, 10\u201330 \u03bcm wide and 0.1\u201310 \u03bcm thick), macrophages (21 \u03bcm in diameter) and neutrophils (12-15 \u03bcm in diameter). However, in terms of nuclei present in skeletal muscle, myocyte nuclei (myonuclei) may be only half of the nuclei present, while nuclei from resident and infiltrating mononuclear cells make up the other half. Considerable research on skeletal muscle is focused on the muscle fibers. Interest has also focused on the different types of mononuclear cells of skeletal muscle, as well as on the endocrine functions of muscle.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "GH:dwn2rtl/dwn2rtl",
+   "title": "dwn2rtl/dwn2rtl",
+   "year": "2026",
+   "url": "https://github.com/dwn2rtl/dwn2rtl",
+   "cited_by": 0,
+   "abstract": "Turn trained differentiable weightless neural networks into pipelined, synthesizable Verilog for FPGA deployment. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "W4410810394",
+   "title": "SparseLUT: Sparse Connectivity Optimization for Lookup Table-Based Deep Neural Networks",
+   "year": 2025,
+   "url": "https://doi.org/10.1109/fccm62733.2025.00030",
+   "cited_by": 2,
+   "abstract": "We present SparseLUT, a novel training method for Lookup Table (LUT)-based Deep Neural Networks (DNNs) that eliminates the need for random seed optimization-a common requirement in existing LUT-DNN approaches (e.g., LogicNets, PolyLUT, PolyLUT-Add, and NeuraLUT) that rely on fixed sparsity masks. SparseLUT is a connectivity-centric training technique tailored for LUT-based DNNs, that leverages a non-greedy training strategy that prioritizes the pruning of less significant connections and strategically regrows alternative ones, resulting in efficient convergence to the target sparsity. Experimental results show consistent accuracy improvements across benchmarks, including up to a 2.13% increase on MNIST and a 0.94% improvement for Jet Substructure Classification compared to random sparsity. This is done without any hardware overhead and achieves state-of-the-art results for LUT-based DNNs (Code: https://github.com/bingleilou/SparseLUT).",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4391455313",
+   "title": "PolyLUT: Learning Piecewise Polynomials for Ultra-Low Latency FPGA LUT-based Inference",
+   "year": 2023,
+   "url": "https://doi.org/10.1109/icfpt59805.2023.00012",
+   "cited_by": 69,
+   "abstract": "Field-programmable gate arrays (FPGAs) are widely used to implement deep learning inference. Standard deep neural network inference involves the computation of interleaved linear maps and nonlinear activation functions. Prior work for ultra-low latency implementations has hardcoded the combination of linear maps and nonlinear activations inside FPGA lookup tables (LUTs). Our work is motivated by the idea that the LUTs in an FPGA can be used to implement a much greater variety of functions than this. In this paper, we propose a novel approach to training neural networks for FPGA deployment using multivariate polynomials as the basic building block. Our method takes advantage of the flexibility offered by the soft logic, hiding the polynomial evaluation inside the LUTs with minimal overhead. We show that by using polynomial building blocks, we can achieve the same accuracy using considerably fewer layers of soft logic than by using linear functions, leading to significant latency and area improvements. We demonstrate the effectiveness of this approach in three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and handwritten digit recognition using the MNIST dataset.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4406092772",
+   "title": "TreeLUT: An Efficient Alternative to Deep Neural Networks for Inference Acceleration Using Gradient Boosted Decision Trees",
+   "year": 2025,
+   "url": "https://doi.org/10.1145/3706628.3708877",
+   "cited_by": 45,
+   "abstract": "Accelerating machine learning inference has been an active research area in recent years. In this context, field-programmable gate arrays (FPGAs) have demonstrated compelling performance by providing massive parallelism in deep neural networks (DNNs). Neural networks (NNs) are computationally intensive during inference, as they require massive amounts of multiplication and addition, which makes their implementations costly. Numerous studies have recently addressed this challenge to some extent using a combination of sparsity induction, quantization, and transformation of neurons or sub-networks into lookup tables (LUTs) on FPGAs. Gradient boosted decision trees (GBDTs) are a high-accuracy alternative to DNNs in a wide range of regression and classification tasks, particularly for tabular datasets. The basic building block of GBDTs is a decision tree, which resembles the structure of binary decision diagrams. FPGA design flows are heavily optimized to implement such a structure efficiently. In addition to decision trees, GBDTs perform simple operations during inference, including comparison and addition. We present TreeLUT as an open-source tool for implementing GBDTs using an efficient quantization scheme, hardware architecture, and pipelining strategy. It primarily utilizes LUTs with no BRAMs or DSPs on FPGAs, resulting in high efficiency. We show the effectiveness of TreeLUT using multiple classification datasets, commonly used to evaluate ultra-low area and latency architectures. Using these benchmarks, we compare our implementation results with existing DNN and GBDT methods, such as DWN, PolyLUT-Add, NeuraLUT, LogicNets, FINN, hls4ml, and others. Our results show that TreeLUT significantly improves hardware utilization, latency, and throughput at competitive accuracy compared to previous works. For instance, it achieves an accuracy of around 97% on the MNIST dataset while delivering around 4 to 101 times lower hardware cost in terms of area-delay product than recent LUT-based NNs.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4403278591",
+   "title": "PolyLUT-Add: FPGA-based LUT Inference with Wide Inputs",
+   "year": 2024,
+   "url": "https://doi.org/10.1109/fpl64840.2024.00029",
+   "cited_by": 27,
+   "abstract": "FPGAs have distinct advantages as a technology for deploying deep neural networks (DNNs) at the edge. Lookup Table (LUT) based networks, where neurons are directly modeled using LUTs, help maximize this promise of offering ultra-low latency and high area efficiency on FPGAs. Unfortunately, LUT resource usage scales exponentially with the number of inputs to the LUT, restricting PolyLUT to small LUT sizes. This work introduces PolyLUT-Add, a technique that enhances neuron connectivity by combining A PolyLUT sub-neurons via addition to improve accuracy. Moreover, we describe a novel architecture to improve its scalability. We evaluated our implementation over the MNIST, Jet Substructure classification, and Network Intrusion Detection benchmark and found that for similar accuracy, PolyLUT-Add achieves a LUT reduction of $2.0-13.9 \\times$ with a $1.2-1.6 \\times$ decrease in latency.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4412030759",
+   "title": "PolyLUT: Ultra-Low Latency Polynomial Inference With Hardware-Aware Structured Pruning",
+   "year": 2025,
+   "url": "https://doi.org/10.1109/tc.2025.3586311",
+   "cited_by": 17,
+   "abstract": "Standard deep neural network inference involves the computation of interleaved linear maps and nonlinear activation functions. Prior work for ultra-low latency implementations has hardcoded these operations inside FPGA lookup tables (LUTs). However, FPGA LUTs can implement a much greater variety of functions. In this paper, we propose a novel approach to training DNNs for FPGA deployment using multivariate polynomials as the basic building block. Our method takes advantage of the flexibility offered by the soft logic, hiding the polynomial evaluation inside the LUTs with minimal overhead. By using polynomial building blocks, we achieve the same accuracy using considerably fewer layers of soft logic than by using linear functions, leading to significant latency and area improvements. LUT-based implementations also face a significant challenge: the LUT size grows exponentially with the number of inputs. Prior work relies on a priori fixed sparsity, with results heavily dependent on seed selection. To address this, we propose a structured pruning strategy using a bespoke hardware-aware group regularizer that encourages a particular sparsity pattern that leads to a small number of inputs per neuron. We demonstrate the effectiveness of PolyLUT on three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and MNIST.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7124497354",
+   "title": "Enhancing LUT-Based Deep Neural Networks Inference Through Architecture and Connectivity Optimization",
+   "year": 2026,
+   "url": "https://doi.org/10.1109/tcad.2026.3654908",
+   "cited_by": 1,
+   "abstract": "Deploying deep neural networks (DNNs) on resource-constrained edge devices such as FPGAs requires a careful balance among latency, power, and hardware resource usage, while maintaining high accuracy. Existing Lookup Table (LUT)-based DNNs\u2014such as LogicNets, PolyLUT, and NeuraLUT\u2014face two critical challenges: the exponential growth of LUT size and inefficient random sparse connectivity. This paper presents SparseLUT, a comprehensive framework that addresses these challenges through two orthogonal optimizations. First, we propose an architectural enhancement that aggregates multiple PolyLUT sub-neurons via an adder, significantly reducing LUT consumption by 2.0\u00d7\u201313.9\u00d7 and lowering inference latency by 1.2\u00d7\u20131.6\u00d7, all while maintaining comparable accuracy. Building upon this foundation, we further introduce a non-greedy training algorithm that optimizes neuron connectivity by selectively pruning less significant inputs and strategically regrowing more effective ones. This training optimization, which incurs no additional area and latency overhead, delivers consistent accuracy improvements across benchmarks\u2014achieving up to a 2.13% gain on MNIST and 0.94% on Jet Substructure Classification compared to existing LUT-DNN approaches.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2503.12829v1",
+   "title": "SparseLUT: Sparse Connectivity Optimization for Lookup Table-based Deep Neural Networks",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2503.12829v1",
+   "abstract": "The deployment of deep neural networks (DNNs) on resource-constrained edge devices such as field-programmable gate arrays (FPGAs) requires a careful balance of latency, power, and resource usage while maintaining high accuracy. Existing Lookup Table (LUT)-based DNNs, including LogicNets, PolyLUT, PolyLUT-Add, and NeuraLUT, exploit native FPGA resources with random sparse connectivity. This paper introduces SparseLUT, a connectivity-centric training technique tailored for LUT-based DNNs. SparseLUT leverages a non-greedy training strategy that prioritizes the pruning of less significant connections and strategically regrows alternative ones, resulting in efficient convergence to the target sparsity. Experimental results show consistent accuracy improvements across benchmarks, including up to a 2.13\\% increase on MNIST and a 0.94\\% improvement for Jet Substructure Classification compared to random sparsity. This is done without any hardware overhead and achieves state-of-the-art results for LUT-based DNNs.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2502.01654v1",
+   "title": "Predicting concentration levels of air pollutants by transfer learning and recurrent neural network",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2502.01654v1",
+   "abstract": "Air pollution (AP) poses a great threat to human health, and people are paying more attention than ever to its prediction. Accurate prediction of AP helps people to plan for their outdoor activities and aids protecting human health. In this paper, long-short term memory (LSTM) recurrent neural networks (RNNs) have been used to predict the future concentration of air pollutants (APS) in Macau. Additionally, meteorological data and data on the concentration of APS have been utilized. Moreover, in Macau, some air quality monitoring stations (AQMSs) have less observed data in quantity, and, at the same time, some AQMSs recorded less observed data of certain types of APS. Therefore, the transfer learning and pre-trained neural networks have been employed to assist AQMSs with less observed data to build a neural network with high prediction accuracy. The experimental sample covers a period longer than 12-year and includes daily measurements from several APS as well as other more classical meteorological values. Records from five stations, four out of them are AQMSs and the remaining one is an automatic weather station, have been prepared from the aforesaid period and eventually underwent to computational intelligence techniques to build and extract a prediction knowledge-based system. As shown by experimentation, LSTM RNNs initialized with transfer learning methods have higher prediction accuracy; it incurred shorter training time than randomly initialized recurrent neural networks.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1803.02421v2",
+   "title": "Masked Conditional Neural Networks for Audio Classification",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1803.02421v2",
+   "abstract": "We present the ConditionaL Neural Network (CLNN) and the Masked ConditionaL Neural Network (MCLNN) designed for temporal signal recognition. The CLNN takes into consideration the temporal nature of the sound signal and the MCLNN extends upon the CLNN through a binary mask to preserve the spatial locality of the features and allows an automated exploration of the features combination analogous to hand-crafting the most relevant features for the recognition task. MCLNN has achieved competitive recognition accuracies on the GTZAN and the ISMIR2004 music datasets that surpass several state-of-the-art neural network based architectures and hand-crafted methods applied on both datasets.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2302.03213v2",
+   "title": "LUT-NN: Empower Efficient Neural Network Inference with Centroid Learning and Table Lookup",
+   "year": "2023",
+   "url": "http://arxiv.org/abs/2302.03213v2",
+   "abstract": "On-device Deep Neural Network (DNN) inference consumes significant computing resources and development efforts. To alleviate that, we propose LUT-NN, the first system to empower inference by table lookup, to reduce inference cost. LUT-NN learns the typical features for each operator, named centroid, and precompute the results for these centroids to save in lookup tables. During inference, the results of the closest centroids with the inputs can be read directly from the table, as the approximated outputs without computations. LUT-NN integrates two major novel techniques: (1) differentiable centroid learning through backpropagation, which adapts three levels of approximation to minimize the accuracy impact by centroids; (2) table lookup inference execution, which comprehensively considers different levels of parallelism, memory access reduction, and dedicated hardware units for optimal performance. LUT-NN is evaluated on multiple real tasks, covering image and speech recognition, and nature language processing. Compared to related work, LUT-NN improves accuracy by 66% to 92%, achieving similar level with the original models. LUT-NN reduces the cost at all dimensions, including FLOPs ($\\leq$ 16x), model size ($\\leq$ 7x), latency ($\\leq$ 6.8x), memory ($\\leq$ 6.5x), and power ($\\leq$ 41.7%).",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2309.15458",
+   "title": "LogicMP: A Neuro-symbolic Approach for Encoding First-order Logic\n  Constraints",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2309.15458",
+   "cited_by": 1,
+   "abstract": "Integrating first-order logic constraints (FOLCs) with neural networks is a crucial but challenging problem since it involves modeling intricate correlations to satisfy the constraints. This paper proposes a novel neural layer, LogicMP, whose layers perform mean-field variational inference over an MLN. It can be plugged into any off-the-shelf neural network to encode FOLCs while retaining modularity and efficiency. By exploiting the structure and symmetries in MLNs, we theoretically demonstrate that our well-designed, efficient mean-field iterations effectively mitigate the difficulty of MLN inference, reducing the inference from sequential calculation to a series of parallel tensor operations. Empirical results in three kinds of tasks over graphs, images, and text show that LogicMP outperforms advanced competitors in both performance and efficiency.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:1904.11694",
+   "title": "Neural Logic Machines",
+   "year": "2019",
+   "url": "https://huggingface.co/papers/1904.11694",
+   "cited_by": 0,
+   "abstract": "We propose the Neural Logic Machine (NLM), a neural-symbolic architecture for both inductive learning and logic reasoning. NLMs exploit the power of both neural networks---as function approximators, and logic programming---as a symbolic processor for objects with properties, relations, logic connectives, and quantifiers. After being trained on small-scale tasks (such as sorting short arrays), NLMs can recover lifted rules, and generalize to large-scale tasks (such as sorting longer arrays). In our experiments, NLMs achieve perfect generalization in a number of tasks, from relational reasoning tasks on the family tree and general graphs, to decision making tasks including sorting arrays, finding shortest paths, and playing the blocks world. Most of these tasks are hard to accomplish for neural networks or inductive logic programming alone.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2311.11208",
+   "title": "LogicNet: A Logical Consistency Embedded Face Attribute Learning Network",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2311.11208",
+   "cited_by": 0,
+   "abstract": "Ensuring logical consistency in predictions is a crucial yet overlooked aspect in multi-attribute classification. We explore the potential reasons for this oversight and introduce two pressing challenges to the field: 1) How can we ensure that a model, when trained with data checked for logical consistency, yields predictions that are logically consistent? 2) How can we achieve the same with data that hasn't undergone logical consistency checks? Minimizing manual effort is also essential for enhancing automation. To address these challenges, we introduce two datasets, FH41K and CelebA-logic, and propose LogicNet, an adversarial training framework that learns the logical relationships between attributes. Accuracy of LogicNet surpasses that of the next-best approach by 23.05%, 9.96%, and 1.71% on FH37K, FH41K, and CelebA-logic, respectively. In real-world case analysis, our approach can achieve a reduction of more than 50% in the average number of failed cases compared to other methods.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2506.07500",
+   "title": "Mind the Gap: Removing the Discretization Gap in Differentiable Logic\n  Gate Networks",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2506.07500",
+   "cited_by": 0,
+   "abstract": "Modern neural networks demonstrate state-of-the-art performance on numerous existing benchmarks; however, their high computational requirements and energy consumption prompt researchers to seek more efficient solutions for real-world deployment. Logic gate networks (LGNs) learns a large network of logic gates for efficient image classification. However, learning a network that can solve a simple problem like CIFAR-10 can take days to weeks to train. Even then, almost half of the network remains unused, causing a discretization gap. This discretization gap hinders real-world deployment of LGNs, as the performance drop between training and inference negatively impacts accuracy. We inject Gumbel noise with a straight-through estimator during training to significantly speed up training, improve neuron utilization, and decrease the discretization gap. We theoretically show that this results from implicit Hessian regularization, which improves the convergence properties of LGNs. We train networks 4.5 times faster in wall-clock time, reduce the discretization gap by 98%, and reduce the number of unused gates by 100%.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2306.00480",
+   "title": "Parallel Neurosymbolic Integration with Concordia",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2306.00480",
+   "cited_by": 1,
+   "abstract": "Parallel neurosymbolic architectures have been applied effectively in NLP by distilling knowledge from a logic theory into a deep model.However, prior art faces several limitations including supporting restricted forms of logic theories and relying on the assumption of independence between the logic and the deep network. We present Concordia, a framework overcoming the limitations of prior art. Concordia is agnostic both to the deep network and the logic theory offering support for a wide range of probabilistic theories. Our framework can support supervised training of both components and unsupervised training of the neural component. Concordia has been successfully applied to tasks beyond NLP and data classification, improving the accuracy of state-of-the-art on collective activity detection, entity linking and recommendation tasks.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2608.11136",
+   "title": "sLTN: Structural Logic Tensor Networks",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2608.11136",
+   "cited_by": 0,
+   "abstract": "Logic Tensor Networks (LTN) provide a neurosymbolic framework in which first-order logic is interpreted through tensor operations, enabling logical constraints to be integrated with differentiable learning. However, the original formulation of LTN is primarily suited to data represented as flat collections of individuals, and does not explicitly capture structural organization such as temporal order, sequential position, or graph connectivity. We introduce sLTN, an extension of LTN that makes structural dimensions first-class elements of the language. Structural dimensions represent named tensor axes associated with domain-specific organization, such as time steps, sequence positions, or graph nodes. They can be quantified explicitly, related through structural relations, and used to express temporal, sequential, and relational constraints directly at the logical level. We formalize the syntax and fuzzy tensor semantics of sLTN and show that, in the absence of structural dimensions, the framework recovers the original LTN semantics as a special case. We further describe a PyTorch implementation based on a declarative signature, formula parsing, and tensorial interpretation. The framework is illustrated on representative temporal and sequential reasoning examples. This paper serves as a companion to the sltn library, available at https://github.com/logictensornetworks/sltn.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:5320",
+   "title": "Carbon nanotube",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=5320",
+   "abstract": "A carbon nanotube (CNT) is a tube made of carbon with a diameter in the nanometre range (nanoscale). They are one of the allotropes of carbon. Two broad classes of carbon nanotubes are recognized: Single-walled carbon nanotubes (SWCNTs) have diameters around 0.5\u20132.0 nanometres, about a 100,000th the width of a human hair. They can be idealised as cutouts from a two-dimensional graphene sheet rolled up to form a hollow cylinder. Multi-walled carbon nanotubes (MWCNTs) consist of nested single-wall carbon nanotubes in a nested, tube-in-tube structure. Double- and triple-walled carbon nanotubes are special cases of MWCNT. Carbon nanotubes can exhibit remarkable properties, such as exceptional tensile strength and thermal conductivity because of their nanostructure and strength of the bonds between carbon atoms. Some SWCNT structures exhibit high electrical conductivity while others are semiconductors. In addition, carbon nanotubes can be chemically modified. These properties are expected to be valuable in many areas of technology, such as electronics, optics, composite materials (replacing or complementing carbon fibres), nanotechnology (including nanomedicine), and other applications of materials science. The predicted properties for SWCNTs were tantalising, but a path to synthesising them was lacking until 1993, when Iijima and Ichihashi at NEC, and Bethune and colleagues at IBM independently discovered that co-vaporising carbon and transition metals such as iron and cobalt could specifically catalyse SWCNT formation. These discoveries triggered research that succeeded in greatly increasing the efficiency of the catalytic production technique, and led to an explosion of work to characterise and find applications for SWCNTs.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "W2735639773",
+   "title": "Weightless neural networks for open set recognition",
+   "year": 2017,
+   "url": "https://doi.org/10.1007/s10994-017-5646-4",
+   "cited_by": 55,
+   "abstract": "Open set recognition is a classification-like task. It is accomplished not only by the identification of observations which belong to targeted classes (i.e., the classes among those represented in the training sample which should be later recognized) but also by the rejection of inputs from other classes in the problem domain. The need for proper handling of elements of classes beyond those of interest is frequently ignored, even in works found in the literature. This leads to the improper development of learning systems, which may obtain misleading results when evaluated in their test beds, consequently failing to keep the performance level while facing some real challenge. The adaptation of a classifier for open set recognition is not always possible: the probabilistic premises most of them are built upon are not valid in a open-set setting. Still, this paper details how this was realized for WiSARD a weightless artificial neural network model. Such achievement was based on an elaborate distance-like computation this model provides and the definition of rejection thresholds during training. The proposed methodology was tested through a collection of experiments, with distinct backgrounds and goals. The results obtained confirm the usefulness of this tool for open set recognition.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W2530901771",
+   "title": "An analysis of learning in weightless neural systems",
+   "year": 1997,
+   "url": "https://doi.org/10.25560/40039",
+   "cited_by": 4,
+   "abstract": "This thesis brings together two strands of neural networks research - weightless systems and statistical learning theory - in an attempt to understand better the learning and generalisation abilities of a class of pattern classifying machines. The machines under consideration are n-tuple classifiers. While their analysis falls outside the domain of more widespread neural networks methods the method has found considerable application since its first publication in 1959. The larger class of learning systems to which the n-tuple classifier belongs is known as the set of weightless or RAM-based systems, because of the fact that they store all their modifiable information in the nodes rather than as weights on the connections. The analytical tools used are those of statistical learning theory. Learning methods and machines are considered in terms of a formal learning problem which allows the precise definition of terms such as learning and generalisation (in this context). Results relating the empirical error of the machine on the training set, the number of training examples and the complexity of the machine (as measured by the Vapnik- Chervonenkis dimension) to the generalisation error are derived. In the thesis this theoretical framework is applied for the first time to weightless systems in general and to n-tuple classifiers in particular. Novel theoretical results are used to inspire the design of related learning machines and empirical tests are used to assess the power of these new machines. Also data-independent theoretical results are compared with data-dependent results to explain the apparent anomalies in the n-tuple classifier's behaviour. The thesis takes an original approach to the study of weightless networks, and one which gives new insights into their strengths as learning machines. It also allows a new family of learning machines to be introduced and a method for improving generalisation to be applied.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W3087100893",
+   "title": "Experimental Review of Neural-Based Approaches for Network Intrusion Management",
+   "year": 2020,
+   "url": "https://doi.org/10.1109/tnsm.2020.3024225",
+   "cited_by": 108,
+   "abstract": "The use of Machine Learning (ML) techniques in Intrusion Detection Systems (IDS) has taken a prominent role in the network security management field, due to the substantial number of sophisticated attacks that often pass undetected through classic IDSs. These are typically aimed at recognizing attacks based on a specific signature, or at detecting anomalous events. However, deterministic, rule-based methods often fail to differentiate particular (rarer) network conditions (as in peak traffic during specific network situations) from actual cyber attacks. In this article we provide an experimental-based review of neural-based methods applied to intrusion detection issues. Specifically, we i) offer a complete view of the most prominent neural-based techniques relevant to intrusion detection, including deep-based approaches or weightless neural networks, which feature surprising outcomes; ii) evaluate novel datasets (updated w.r.t. the obsolete KDD99 set) through a designed-from-scratch Python-based routine; iii) perform experimental analyses including time complexity and performance (accuracy and F-measure), considering both single-class and multi-class problems, and identifying trade-offs between resource consumption and performance. Our evaluation quantifies the value of neural networks, particularly when state-of-the-art datasets are used to train the models. This leads to interesting guidelines for security managers and computer network practitioners who are looking at the incorporation of neural-based ML into IDS.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W1660517870",
+   "title": "A bounded neural network for open set recognition",
+   "year": 2015,
+   "url": "https://doi.org/10.1109/ijcnn.2015.7280680",
+   "cited_by": 38,
+   "abstract": "Open set recognition is, more than an interesting research subject, a component of various machine learning applications which is sometimes neglected: it is not unusual the existence of learning systems developed on the top of closed-set assumptions, ignoring the error risk involved in a prediction. This risk is strictly related to the location in feature space where the prediction has to be made, compared to the location of the training data: the more distant the training observations are, less is known, higher is the risk. Proper handling of this risk can be necessary in various situation where classification and its variants are employed. This paper presents an approach to open set recognition based on an elaborate distance-like computation provided by a weightless neural network model. The results obtained in the proposed test scenarios are quite interesting, placing the proposed method among the current best ones.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4404352974",
+   "title": "Shrinking the Giant : Quasi-Weightless Transformers for Low Energy Inference",
+   "year": 2024,
+   "url": "https://doi.org/10.48550/arxiv.2411.01818",
+   "cited_by": 0,
+   "abstract": "Transformers are set to become ubiquitous with applications ranging from chatbots and educational assistants to visual recognition and remote sensing. However, their increasing computational and memory demands is resulting in growing energy consumption. Building models with fast and energy-efficient inference is imperative to enable a variety of transformer-based applications. Look Up Table (LUT) based Weightless Neural Networks are faster than the conventional neural networks as their inference only involves a few lookup operations. Recently, an approach for learning LUT networks directly via an Extended Finite Difference method was proposed. We build on this idea, extending it for performing the functions of the Multi Layer Perceptron (MLP) layers in transformer models and integrating them with transformers to propose Quasi Weightless Transformers (QuWeiT). This allows for a computational and energy-efficient inference solution for transformer-based models. On I-ViT-T, we achieve a comparable accuracy of 95.64% on CIFAR-10 dataset while replacing approximately 55% of all the multiplications in the entire model and achieving a 2.2x energy efficiency. We also observe similar savings on experiments with the nanoGPT framework.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2007.06157v1",
+   "title": "Implementing the ICE Estimator in Multilayer Perceptron Classifiers",
+   "year": "2020",
+   "url": "http://arxiv.org/abs/2007.06157v1",
+   "abstract": "This paper describes the techniques used to implement the ICE estimator for a multilayer perceptron model, and reviews the performance of the resulting models. The ICE estimator is implemented in the Apache Spark MultilayerPerceptronClassifier, and shown in cross-validation to outperform the stock MultilayerPerceptronClassifier that uses unadjusted MLE (cross-entropy) loss. The resulting models have identical runtime performance, and similar fitting performance to the stock MLP implementations. Additionally, this approach requires no hyper-parameters, and is therefore viable as a drop-in replacement for cross-entropy optimizing multilayer perceptron classifiers wherever overfitting may be a concern.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2303.06544v1",
+   "title": "Informative regularization for a multi-layer perceptron RR Lyrae classifier under data shift",
+   "year": "2023",
+   "url": "http://arxiv.org/abs/2303.06544v1",
+   "abstract": "In recent decades, machine learning has provided valuable models and algorithms for processing and extracting knowledge from time-series surveys. Different classifiers have been proposed and performed to an excellent standard. Nevertheless, few papers have tackled the data shift problem in labeled training sets, which occurs when there is a mismatch between the data distribution in the training set and the testing set. This drawback can damage the prediction performance in unseen data. Consequently, we propose a scalable and easily adaptable approach based on an informative regularization and an ad-hoc training procedure to mitigate the shift problem during the training of a multi-layer perceptron for RR Lyrae classification. We collect ranges for characteristic features to construct a symbolic representation of prior knowledge, which was used to model the informative regularizer component. Simultaneously, we design a two-step back-propagation algorithm to integrate this knowledge into the neural network, whereby one step is applied in each epoch to minimize classification error, while another is applied to ensure regularization. Our algorithm defines a subset of parameters (a mask) for each loss function. This approach handles the forgetting effect, which stems from a trade-off between these loss functions (learning from data versus learning expert knowledge) during training. Experiments were conducted using recently proposed shifted benchmark sets for RR Lyrae stars, outperforming baseline models by up to 3\\% through a more reliable classifier. Our method provides a new path to incorporate knowledge from characteristic features into artificial neural networks to manage the underlying data shift problem.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1808.10561v2",
+   "title": "A Quantum Model for Multilayer Perceptron",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1808.10561v2",
+   "abstract": "Multilayer perceptron is the most common used class of feed-forward artificial neural network. It contains many applications in diverse fields such as speech recognition, image recognition, and machine translation software. To cater for the fast development of quantum machine learning, in this paper, we propose a new model to study multilayer perceptron in quantum computer. This contains the tasks to prepare the quantum state of the output signal in each layer and to establish the quantum version of learning algorithm about the weights in each layer. We will show that the corresponding quantum versions can achieve at least quadratic speedup or even exponential speedup over the classical algorithms. This provide us an efficient method to study multilayer perceptron and its applications in machine learning in quantum computer. Finally, as an inspiration, an exponential fast learning algorithm (based on Hebb's learning rule) of Hopfield network will be proposed.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1804.05093v3",
+   "title": "Heterogeneous Multilayer Generalized Operational Perceptron",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1804.05093v3",
+   "abstract": "The traditional Multilayer Perceptron (MLP) using McCulloch-Pitts neuron model is inherently limited to a set of neuronal activities, i.e., linear weighted sum followed by nonlinear thresholding step. Previously, Generalized Operational Perceptron (GOP) was proposed to extend conventional perceptron model by defining a diverse set of neuronal activities to imitate a generalized model of biological neurons. Together with GOP, Progressive Operational Perceptron (POP) algorithm was proposed to optimize a pre-defined template of multiple homogeneous layers in a layerwise manner. In this paper, we propose an efficient algorithm to learn a compact, fully heterogeneous multilayer network that allows each individual neuron, regardless of the layer, to have distinct characteristics. Based on the complexity of the problem, the proposed algorithm operates in a progressive manner on a neuronal level, searching for a compact topology, not only in terms of depth but also width, i.e., the number of neurons in each layer. The proposed algorithm is shown to outperform other related learning methods in extensive experiments on several classification problems.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1301.5088v1",
+   "title": "Piecewise Linear Multilayer Perceptrons and Dropout",
+   "year": "2013",
+   "url": "http://arxiv.org/abs/1301.5088v1",
+   "abstract": "We propose a new type of hidden layer for a multilayer perceptron, and demonstrate that it obtains the best reported performance for an MLP on the MNIST dataset.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1701.04968v1",
+   "title": "Multilayer Perceptron Algebra",
+   "year": "2017",
+   "url": "http://arxiv.org/abs/1701.04968v1",
+   "abstract": "Artificial Neural Networks(ANN) has been phenomenally successful on various pattern recognition tasks. However, the design of neural networks rely heavily on the experience and intuitions of individual developers. In this article, the author introduces a mathematical structure called MLP algebra on the set of all Multilayer Perceptron Neural Networks(MLP), which can serve as a guiding principle to build MLPs accommodating to the particular data sets, and to build complex MLPs from simpler ones.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:1711.07831",
+   "title": "On Breast Cancer Detection: An Application of Machine Learning\n  Algorithms on the Wisconsin Diagnostic Dataset",
+   "year": "2017",
+   "url": "https://huggingface.co/papers/1711.07831",
+   "cited_by": 1,
+   "abstract": "This paper presents a comparison of six machine learning (ML) algorithms: GRU-SVM (Agarap, 2017), Linear Regression, Multilayer Perceptron (MLP), Nearest Neighbor (NN) search, Softmax Regression, and Support Vector Machine (SVM) on the Wisconsin Diagnostic Breast Cancer (WDBC) dataset (Wolberg, Street, & Mangasarian, 1992) by measuring their classification test accuracy and their sensitivity and specificity values. The said dataset consists of features which were computed from digitized images of FNA tests on a breast mass (Wolberg, Street, & Mangasarian, 1992). For the implementation of the ML algorithms, the dataset was partitioned in the following fashion: 70% for training phase, and 30% for the testing phase. The hyper-parameters used for all the classifiers were manually assigned. Results show that all the presented ML algorithms performed well (all exceeded 90% test accuracy) on the classification task. The MLP algorithm stands out among the implemented algorithms with a test accuracy of ~99.04%.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2409.13854",
+   "title": "More Consideration for the Perceptron",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2409.13854",
+   "cited_by": 1,
+   "abstract": "In this paper, we introduce the gated perceptron, an enhancement of the conventional perceptron, which incorporates an additional input computed as the product of the existing inputs. This allows the perceptron to capture non-linear interactions between features, significantly improving its ability to classify and regress on complex datasets. We explore its application in both linear and non-linear regression tasks using the Iris dataset, as well as binary and multi-class classification problems, including the PIMA Indian dataset and Breast Cancer Wisconsin dataset. Our results demonstrate that the gated perceptron can generate more distinct decision regions compared to traditional perceptrons, enhancing its classification capabilities, particularly in handling non-linear data. Performance comparisons show that the gated perceptron competes with state-of-the-art classifiers while maintaining a simple architecture.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:1605.04711",
+   "title": "Ternary Weight Networks",
+   "year": "2022",
+   "url": "https://huggingface.co/papers/1605.04711",
+   "cited_by": 0,
+   "abstract": "We present a memory and computation efficient ternary weight networks (TWNs) - with weights constrained to +1, 0 and -1. The Euclidian distance between full (float or double) precision weights and the ternary weights along with a scaling factor is minimized in training stage. Besides, a threshold-based ternary function is optimized to get an approximated solution which can be fast and easily computed. TWNs have shown better expressive abilities than binary precision counterparts. Meanwhile, TWNs achieve up to 16times model compression rate and need fewer multiplications compared with the float32 precision counterparts. Extensive experiments on MNIST, CIFAR-10, and ImageNet datasets show that the TWNs achieve much better result than the Binary-Weight-Networks (BWNs) and the classification performance on MNIST and CIFAR-10 is very close to the full precision networks. We also verify our method on object detection task and show that TWNs significantly outperforms BWN by more than 10\\% mAP on PASCAL VOC dataset. The pytorch version of source code is available at: https://github.com/Thinklab-SJTU/twns.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2408.08338",
+   "title": "Activation Space Selectable Kolmogorov-Arnold Networks",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2408.08338",
+   "cited_by": 0,
+   "abstract": "The multilayer perceptron (MLP), a fundamental paradigm in current artificial intelligence, is widely applied in fields such as computer vision and natural language processing. However, the recently proposed Kolmogorov-Arnold Network (KAN), based on nonlinear additive connections, has been proven to achieve performance comparable to MLPs with significantly fewer parameters. Despite this potential, the use of a single activation function space results in reduced performance of KAN and related works across different tasks. To address this issue, we propose an activation space Selectable KAN (S-KAN). S-KAN employs an adaptive strategy to choose the possible activation mode for data at each feedforward KAN node. Our approach outperforms baseline methods in seven representative function fitting tasks and significantly surpasses MLP methods with the same level of parameters. Furthermore, we extend the structure of S-KAN and propose an activation space selectable Convolutional KAN (S-ConvKAN), which achieves leading results on four general image classification datasets. Our method mitigates the performance variability of the original KAN across different tasks and demonstrates through extensive experiments that feedforward KANs with selectable activations can achieve or even exceed the performance of MLP-based methods. This work contributes to the understanding of the data-centric design of new AI paradigms and provides a foundational reference for innovations in KAN-based network architectures.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2306.01470",
+   "title": "MLP-Mixer as a Wide and Sparse MLP",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2306.01470",
+   "cited_by": 1,
+   "abstract": "Multi-layer perceptron (MLP) is a fundamental component of deep learning that has been extensively employed for various problems. However, recent empirical successes in MLP-based architectures, particularly the progress of the MLP-Mixer, have revealed that there is still hidden potential in improving MLPs to achieve better performance. In this study, we reveal that the MLP-Mixer works effectively as a wide MLP with certain sparse weights. Initially, we clarify that the mixing layer of the Mixer has an effective expression as a wider MLP whose weights are sparse and represented by the Kronecker product. This expression naturally defines a permuted-Kronecker (PK) family, which can be regarded as a general class of mixing layers and is also regarded as an approximation of Monarch matrices. Subsequently, because the PK family effectively constitutes a wide MLP with sparse weights, one can apply the hypothesis proposed by Golubeva, Neyshabur and Gur-Ari (2021) that the prediction performance improves as the width (sparsity) increases when the number of weights is fixed. We empirically verify this hypothesis by maximizing the effective width of the MLP-Mixer, which enables us to determine the appropriate size of the mixing layers quantitatively.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2205.12372",
+   "title": "TorchNTK: A Library for Calculation of Neural Tangent Kernels of PyTorch Models",
+   "year": "2022",
+   "url": "https://huggingface.co/papers/2205.12372",
+   "cited_by": 0,
+   "abstract": "We introduce torchNTK, a python library to calculate the empirical neural tangent kernel (NTK) of neural network models in the PyTorch framework. We provide an efficient method to calculate the NTK of multilayer perceptrons. We compare the explicit differentiation implementation against autodifferentiation implementations, which have the benefit of extending the utility of the library to any architecture supported by PyTorch, such as convolutional networks. A feature of the library is that we expose the user to layerwise NTK components, and show that in some regimes a layerwise calculation is more memory efficient. We conduct preliminary experiments to demonstrate use cases for the software and probe the NTK.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:40267442",
+   "title": "MNIST database",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=40267442",
+   "abstract": "The MNIST database (Modified National Institute of Standards and Technology database) is a large database of handwritten digits that is commonly used for training various image processing systems. The database is also widely used for training and testing in the field of machine learning. It was created by \"re-mixing\" the samples from NIST's original datasets. The creators felt that since NIST's training dataset was taken from American Census Bureau employees, while the testing dataset was taken from American high school students, it was not well-suited for machine learning experiments. Furthermore, the black and white images from NIST were normalized to fit into a 28x28 pixel bounding box and anti-aliased, which introduced grayscale levels. The MNIST database contains 60,000 training images and 10,000 testing images. Half of the training set and half of the test set were taken from NIST's training dataset, while the other half of the training set and the other half of the test set were taken from NIST's testing dataset. The original creators of the database keep a list of some of the methods tested on it. In their original paper, they use a support-vector machine to get an error rate of 0.8%. The original MNIST dataset contains at least 4 wrong labels.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:42167618",
+   "title": "Platt scaling",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=42167618",
+   "abstract": "In machine learning, Platt scaling or Platt calibration is a way of transforming the outputs of a classification model into a probability distribution over classes. The method was invented by John Platt in the context of support vector machines, replacing an earlier method by Vapnik, but can be applied to other classification models. Platt scaling works by fitting a logistic regression model to a classifier's scores.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:42378348",
+   "title": "Probabilistic classification",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=42378348",
+   "abstract": "In machine learning, a probabilistic classifier is a classifier that is able to predict, given an observation of an input, a probability distribution over a set of classes, rather than only outputting the most likely class that the observation should belong to. Probabilistic classifiers provide classification that can be useful in its own right or when combining classifiers into ensembles.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:stats:30474:31441",
+   "title": "Neural network training on unlimited theoretical data",
+   "year": 2012,
+   "cited_by": 2,
+   "url": "https://stats.stackexchange.com/q/30474",
+   "abstract": "You are not the first person who does something like this. Researches have done this for image recognition for about 15 to 20 years. An example for this is the MNIST data set of handwritten digits. The data set usually consists of 60,000 training examples. But this number is not sufficient to reach &gt;99,5 % accuracy with multilayer perceptrons. So, people generate more training examples with distortions in each iteration of the optimization algorithm. The algorithm they usually use to train the neural networks is called stochastic gradient descent (or online learning in comparison to batch learning). There exist variants like \"stochastic diagonal Levenberg-Marquardt\" that require an approximation of the Hessian. The averaging of weights could produce a classifier that is really bad.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:20100:",
+   "title": "How do I compare traditional classifiers performance with my proposed method?",
+   "year": 2017,
+   "cited_by": 0,
+   "url": "https://datascience.stackexchange.com/q/20100",
+   "abstract": "I want to compare my proposed method with traditional machine learning classifiers like Multilayer Perceptron(MLP) and SVM to check the classification accuracy.How do I compare different classifiers?. I want to draw a comparison between these three terms 1).Proposed method (Based on DNN) 2).Shallow neural networks 3).SVM",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:14845:",
+   "title": "How to Scaling Out Artifical Neural Networks?",
+   "year": 2016,
+   "cited_by": 1,
+   "url": "https://datascience.stackexchange.com/q/14845",
+   "abstract": "I have started to study ANNs with Tensorflow and Keras. Now I want to find a solution to use ANNs over Hadoop. I have learnt that Spark 2.0 does have a Multilayer Perceptron Classifier, but as far as I can see it is quite \"primitive\" in comparison with TF and Keras (there are only feedforward types and hidden layer/output layer activation functions are hard-wired), there is no wide variety of optimizers, cost functions, architecture types etc. Is there any competitive alternative for large scale neural networks? Of course, I could use Amazon with very powerful, GPU-driven machines but these are not parallel frameworks either...",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:56847:",
+   "title": "choosing classifiers",
+   "year": 2019,
+   "cited_by": 2,
+   "url": "https://datascience.stackexchange.com/q/56847",
+   "abstract": "For what I read the 5x2cv t test is \"a procedure for comparing the performance of two models (classifiers or regressors) that was proposed by Dietterich to address shortcomings in other methods such as the resampled paired t test and the k-fold cross-validated paired t test\" . I am currently making some experiments with an unbalanced data set, which I balanced using SCUT and trained a set of different classifiers. The problem is a multiclass with three different classes to choose. I am applying a Multilayer Perceptron, a Decision Tree and a Random Forest and the results, after a 10-fold cross validation, are the following: Multilayer Perceptron: 0.95 acc Decision Tree: 0.93 acc Random Forest: 0.935 acc When I apply the 5x2cv t test I got the following results: MLP and DT: t-statistic 4.75 p-value 0.005 So, if I assume that for the tests I will have a value of alpha of 0.05 for rejecting the null hypothesis, which is that both algorithms perform well with the same database, then from the p-value I got I could reject the null hypothesis. This would mean that both models do not perform equally well, so it would be better to use MLP over the DT because of its higher accuracy. When I do the same with the MLP and the RF I got the following results: t-statistic: 2.46 p-value: 0.055 Here, I suppose that I can conclude that using MLP or RF for the current dataset is almost the same, because I failed to reject the null hypothesis. The question that I have here is if should I choose the RF even though the accuracy was lower? The comparison with the DT and RF has the following values: t-statistic: -2.49 p-value: 0.054 So I can reject the null hypothesis and said that there is difference between the use of the DT over the RF. Are my conclusions correct? Thanks",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:67859116:",
+   "title": "Use Adaboost with random forest base classifiers?",
+   "year": 2021,
+   "cited_by": 0,
+   "url": "https://stackoverflow.com/q/67859116",
+   "abstract": "Does anyone know whether one could use Adaboost with random forest base classifiers? I searched the web to learn more about this, but most webpages provided comparisons of the two as ensemble learning methods, and I didn&#39;t find anything about using them together. (Basically somebody asked it here, but the only answer so far contradicts with my observations, which I&#39;m sharing below) Notwithstanding, nobody explicitly said there was anything wrong with it, so I tried it on a typical dataset with n rows of p real-valued features, and a label list of length n. In case it matters, they are embeddings of nodes in a graph obtained by the DeepWalk algorithm, and the nodes are categorized into two classes. I trained a few classification models on this data using 5-fold cross validation, and measured common evaluation metrics for them (precision, recall, AUC etc.). The models I have used are SVM, logistic regression, random Forest, 2-layer perceptron and Adaboost with random forest classifiers. The last model, Adaboost with random forest classifiers, yielded the best results. Sure, now the runtime has increased by a factor of, let&#39;s say, 100, but it&#39;s still about 20 mins, so it&#39;s not a constraint to me. Now I wonder if I should be suspicious about its good accuracy (95% AUC compared to multilayer perceptron&#39;s 89% and random forest&#39;s 88%) Here&#39;s what I thought: Firstly, I&#39;m using cross validation, so there&#39;s probably no overfitting flying under the radar. Secondly, both are ensemble learning methods, but random forest is a bagging method, wheras Adaboost is a boosting technique. So they&#39;re still different enough for their combination to make sense. Am I wrong?",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:9795451:9795832",
+   "title": "Advantages and disadvantages of neural networks",
+   "year": 2012,
+   "cited_by": 11,
+   "url": "https://stackoverflow.com/q/9795451",
+   "abstract": "This is a very broad question. In general, neural networks with one hidden layer, a nonlinear activation function and a sufficient number of hidden neurons are able to approximate any function with arbitrary precision. However, the error function is not convex and thus the result of the training depends on the initialization. SVMs are able to approximate any function, too. They are very popular because the optimization problem has a unique solution and there might be some other reasons. But recent research has shown that neural networks like multilayer perceptrons, convolutional neural networks, deep belief neural networks, multi-column deep neural networks etc. are more efficient and achieve better results for complex applications with a huge amount of data. So it is always a trade-off as LiKao stated (no free lunch theorem) and no classifier is \"perfect\". Here is a paper that describes the advantages of deep networks in comparison to \"shallow networks\" which includes Support Vector Machines: http://yann.lecun.com/exdb/publis/pdf/bengio-lecun-07.pdf Here is a standard benchmark and a comparison of different learning algorithms: http://yann.lecun.com/exdb/mnist/ Here is a paper that describes a new kind of neural networks that is especially good at solving some vision problems (traffic sign recognition, ocr): http://arxiv.org/abs/1202.2745",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "HN:23118411",
+   "title": "Perovskite Neural Trees",
+   "year": "2020",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=23118411",
+   "abstract": "This gadget doesn't have any hidden layers, though. It does OK in comparison to a simple linear classifier. If you can make and train a multi-layer architecture with perovskite, that starts to get interesting.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:16520434",
+   "title": "A week-long programming retreat",
+   "year": "2018",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=16520434",
+   "abstract": "No-JS link: https:&#x2F;&#x2F;m.facebook.com&#x2F;permalink.php?story_fbid=211040872252... John Carmack After a several year gap, I finally took another week-long programming retreat, where I could work in hermit mode, away from the normal press of work. My wife has been generously offering it to me the last few years, but I\u2019m generally bad at taking vacations from work. As a change of pace from my current Oculus work, I wanted to write some from-scratch-in-C++ neural network implementations, and I wanted to do it with a strictly base OpenBSD system. Someone remarked that is a pretty random pairing, but it worked out ok. Despite not having actually used it, I have always been fond of the idea of OpenBSD \u2014 a relatively minimal and opinionated system with a cohesive vision and an emphasis on quality and craftsmanship. Linux is a lot of things, but cohesive isn\u2019t one of them. I\u2019m not a Unix geek. I get around ok, but I am most comfortable developing in Visual Studio on Windows. I thought a week of full immersion work in the old school Unix style would be interesting, even if it meant working at a slower pace. It was sort of an adventure in retro computing \u2014 this was fvwm and vi. Not vim, actual BSD vi. In the end, I didn\u2019t really explore the system all that much, with 95% of my time in just the basic vi &#x2F; make &#x2F; gdb operations. I appreciated the good man pages, as I tried to do everything within the self contained system, without resorting to internet searches. Seeing references to 30+ year old things like Tektronix terminals was amusing. I was a little surprised that the C++ support wasn\u2019t very good. G++ didn\u2019t support C++11, and LLVM C++ didn\u2019t play nicely with gdb. Gdb crashed on me a lot as well, I suspect due to C++ issues. I know you can get more recent versions through ports, but I stuck with using the base system. In hindsight, I should have just gone full retro and done everything in ANSI C. I do have plenty of days where, like many older programmers, I think \u201cMaybe C++ isn\u2019t as much of a net positive as we assume...\u201d. There is still much that I like, but it isn\u2019t a hardship for me to build small projects in plain C. Maybe next time I do this I will try to go full emacs, another major culture that I don\u2019t have much exposure to. I have a decent overview understanding of most machine learning algorithms, and I have done some linear classifier and decision tree work, but for some reason I have avoided neural networks. On some level, I suspect that Deep Learning being so trendy tweaked a little bit of contrarian in me, and I still have a little bit of a reflexive bias against \u201cthrow everything at the NN and let it sort it out!\u201d In the spirit of my retro theme, I had printed out several of Yann LeCun\u2019s old papers and was considering doing everything completely off line, as if I was actually in a mountain cabin somewhere, but I wound up watching a lot of the Stanford CS231N lectures on YouTube, and found them really valuable. Watching lecture videos is something that I very rarely do \u2014 it is normally hard for me to feel the time is justified, but on retreat it was great! I don\u2019t think I have anything particularly insightful to add about neural networks, but it was a very productive week for me, solidifying \u201cbook knowledge\u201d into real experience. I used a common pattern for me: get first results with hacky code, then write a brand new and clean implementation with the lessons learned, so they both exist and can be cross checked. I initially got backprop wrong both times, comparison with numerical differentiation was critical! It is interesting that things still train even when various parts are pretty wrong \u2014 as long as the sign is right most of the time, progress is often made. I was pretty happy with my multi-layer neural net code; it wound up in a form that I can just drop it into future efforts. Yes, for anything serious I should use an established library, but there are a lot of times when just having a single .cpp and .h file that you wrote ever line of is convenient. My conv net code just got to the hacky but working phase, I could have used another day or two to make a clean and flexible implementation. One thing I found interesting was that when testing on MNIST with my initial NN before adding any convolutions, I was getting significantly better results than the non-convolutional NN reported for comparison in LeCun \u201898 \u2014 right around 2% error on the test set with a single 100 node hidden layer, versus 3% for both wider and deeper nets back then. I attribute this to the modern best practices \u2014ReLU, Softmax, and better initialization. This is one of the most fascinating things about NN work \u2014 it is all so simple, and the breakthrough advances are often things that can be expressed with just a few lines of code. It feels like there are some similarities with ray tracing in the graphics world, where you can implement a physically based light transport ray tracer quite quickly, and produce state of the art images if you have the data and enough runtime patience. I got a much better gut-level understanding of overtraining &#x2F; generalization &#x2F; regularization by exploring a bunch of training parameters. On the last night before I had to head home, I froze the architecture and just played with hyperparameters. \u201cTraining!\u201d Is definitely worse than \u201cCompiling!\u201d for staying focused. Now I get to keep my eyes open for a work opportunity to use the new skills! I am dreading what my email and workspace are going to look like when I get into the office tomorrow.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "GH:Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "title": "Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "year": "2024",
+   "url": "https://github.com/Jafar-Abdollahi/detection-of-breast-cancer-metastasis-using-a-hybrid-model-",
+   "cited_by": 2,
+   "abstract": "Breast cancer (BC) is a prevalent disease and major cause of mortality among women worldwide. A substantial number of BC patients experience metastasis which in turn leads to treatment failure and death. The survival rate has been significantly increased thanks to the state of the art technologies and detection tools. In this study, we cross-compared the application of advanced artificial intelligence algorithms such as Logistic Regression, K-Nearest Neighbors, Discrete Cosine Transform, Random Forest Classifier, Support Vector Machines, Multilayer Perceptron, and Ensemble to diagnose BC metastasis. We further combined MLP with genetic algorithm (GA) as a hybrid method of intelligent analysis. The core data we used for comparison belonged to the images of both benign and malignant tumors and were taken from Wisconsin Breast Cancer dataset from the UCI repository. Our findings indicate that our MLP-GA hybrid algorithm can speed up diagnosis with higher accuracy rate than the individual patterns of algorithm. Two methods of comparison (Cross-Validation and Holdout) were applied to this study which produced consistent results Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:BennyCollins/neural_net_project",
+   "title": "BennyCollins/neural_net_project",
+   "year": "2023",
+   "url": "https://github.com/BennyCollins/neural_net_project",
+   "cited_by": 0,
+   "abstract": "Neural Networks Coursework - Comparison of the performance of Multilayer Perceptron and Support Vector Classifier on Diabetes Classification Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:shoolic/wifi-localization-ai",
+   "title": "shoolic/wifi-localization-ai",
+   "year": "2020",
+   "url": "https://github.com/shoolic/wifi-localization-ai",
+   "cited_by": 0,
+   "abstract": "Project for Artificial Intelligence classes at the Warsaw University of Technology. Naive Bayes Classifier and Multilayer Perceptron comparison. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:af-3/MNIST",
+   "title": "af-3/MNIST",
+   "year": "2017",
+   "url": "https://github.com/af-3/MNIST",
+   "cited_by": 0,
+   "abstract": "Machine learning application to classify handwritten digits, comparison of the support vector machine and multilayer perceptron models Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:cadovid/digits-classifier",
+   "title": "cadovid/digits-classifier",
+   "year": "2021",
+   "url": "https://github.com/cadovid/digits-classifier",
+   "cited_by": 0,
+   "abstract": "Comparison of a k-nearest neighbors (KNN) algorithm and a multilayer perceptron feedforward neural network model (MLP) for an image classification problem on handwritten digits. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  }
+ ]
+}
