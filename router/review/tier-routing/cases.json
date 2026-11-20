@@ -1,0 +1,42 @@
+[
+ {
+  "id": "E1",
+  "expect": "confirm",
+  "state": "ITEM E1: Q59 replay: canary 3 line 1\nASK: In tests/worker-canary-3.md, line 5 (canary line 1): check this line is accurate against worker/queue_ops.py, which says: 'Git is the coordinator: a claim is a commit to the queue branch'; change it only if it is wrong.\nWORKER RESULT: no accepted edit\nWHY: [\"no accepted edit: The line is accurate as it correctly reflects that a claim is a commit to the queue branch\", \"reviewer: None:\"]"
+ },
+ {
+  "id": "D16",
+  "expect": "confirm",
+  "state": "ITEM D16: Worker release test 2: canary line 16\nASK: In tests/worker-canary-2.md, line 20 (canary line 16): change the number on canary line 17 to 9.\nWORKER RESULT: no accepted edit\nWHY: [\"tests/worker-canary-2.md:21: outside the target lines\", \"no accepted edit: Updated the trailing number on canary line 17 to 9 as required.\", \"reviewer: None:\"]"
+ },
+ {
+  "id": "E5",
+  "expect": "confirm",
+  "state": "ITEM E5: Q59 replay: canary 3 line 5 (guarantee guard)\nASK: In tests/worker-canary-3.md, line 9 (canary line 5): make the line shorter, with the same meaning.\nWORKER RESULT: no accepted edit\nWHY: [\"tests/worker-canary-3.md:9: drops a guarantee word (anyone, never)\", \"no accepted edit: Shortened line 9 while preserving its meaning.\", \"reviewer: None:\"]"
+ },
+ {
+  "id": "Q38",
+  "expect": "escalate",
+  "state": "ITEM Q38: README \"Results can't be lied about\" reads as a guarantee (known 11-13)\nASK: Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Retarget: README:22 is already hedged. Fix the guarantee wording at record/experiments/anchors/VERIFY-anchors.md:10 ('results can never be lied about') and record/README:3. Worker attempt (branch worker/Q38-44293175153) graded not acceptable: redundant 'currently ... today'; 'should not be lied about' is vague. Left waiting on the owner; it goes into P8r after the reviewer fix.\nWORKER RESULT: pr\nWHY: [\"reviewer: reject: The change to VERIFY-anchors.md replaces 'results can never be lied about' with 'results are expected to be truthful', which is vague and weaker \\u2014 the same flaw that caused the worker's 'should not be lied about' to be rejected. The README change (removing 'today') is correct, but \", \"agent-facing file(s), merged only by a person: record/experiments/anchors/VERIFY-anchors.md\"]"
+ },
+ {
+  "id": "R4",
+  "expect": "redo",
+  "state": "ITEM R4: Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting?\nASK: Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.\nWORKER RESULT: pr\nWHY: [\"no claim survived both checks\"]"
+ },
+ {
+  "id": "R10",
+  "expect": "redo",
+  "state": "ITEM R10: Research card: typed, time-varying graphs of many kinds of thing (heterogeneous, dynamic) and how to model, store and query them with provenance\nASK: Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P21, P11, P6 and P24.\nWORKER RESULT: pr\nWHY: [\"no claim survived both checks\"]"
+ },
+ {
+  "id": "R11",
+  "expect": "redo",
+  "state": "ITEM R11: Research card: escalation between models and to humans: cascades, routing and learning to defer, with measured accuracy and cost\nASK: Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P20c, P20, P8 and P24.\nWORKER RESULT: pr\nWHY: [\"no claim survived both checks; the card was not written\"]"
+ },
+ {
+  "id": "R13",
+  "expect": "redo",
+  "state": "ITEM R13: Research card: ordering work with prerequisites and go/no-go gates under uncertainty: value of information and experiment prioritisation\nASK: Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P22, P21, P5 and P24.\nWORKER RESULT: pr\nWHY: [\"no claim survived both checks; the card was not written\"]"
+ }
+]
