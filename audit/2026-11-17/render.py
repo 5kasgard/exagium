@@ -6,7 +6,7 @@ Order: can run now (by optional priority, then how many open items it unlocks, d
 import json, sys
 
 KIND = {'test', 'build', 'fix', 'doc', 'infra', 'decision'}
-STATUS = {'open', 'in progress', 'blocked', 'review', 'escalated', 'waiting on the owner', 'scheduled', 'parked', 'done'}   # review/escalated: worker/transitions.py (Q60)
+STATUS = {'open', 'in progress', 'blocked', 'review', 'escalated', 'waiting on the owner', 'scheduled', 'parked', 'done', 'proposed'}   # review/escalated: worker/transitions.py (Q60); proposed: worker/generate.py (P27)
 NEEDS = {'free', 'paid API', 'subscription usage', 'the owner', 'other people'}
 VALUE = {'high': 0, 'medium': 1, 'low': 2}
 SEV = {'critical', 'major', 'minor', 'none'}
@@ -66,7 +66,7 @@ def transition_check():
 for m in transition_check():
     (print(m, file=sys.stderr) if m.startswith('note:') else errs.append(m))
 for i in items:
-    if 'origin' in i and i['origin'] not in ('follow-up', 'new'):   # follow-up: from finishing or checking work; new: a new direction
+    if 'origin' in i and i['origin'] not in ('follow-up', 'new', 'generated'):   # generated: worker/generate.py (P27), born 'proposed'   # follow-up: from finishing or checking work; new: a new direction
         errs.append(f"{i.get('id')}: origin must be follow-up or new")
     for f, allowed in (('kind', KIND), ('status', STATUS), ('needs', NEEDS), ('value', set(VALUE)), ('severity', SEV)):
         if i.get(f) not in allowed:
@@ -133,6 +133,7 @@ groups = [('Can run now', lambda i: i['status'] in ('open', 'in progress') and n
           ('Review by the next tier (a worker result to confirm: no change, or a PR)', lambda i: i['status'] == 'review' and i['needs'] != 'the owner'),
           ('Escalated (a check failed; the next tier takes it)', lambda i: i['status'] == 'escalated' and i['needs'] != 'the owner'),
           ('Needs the owner', lambda i: i['status'] == 'waiting on the owner' or (i['needs'] == 'the owner' and i['status'] not in ('done', 'parked', 'scheduled'))),
+          ('Proposed by the generator (a gate with known-answer controls decides; P27)', lambda i: i['status'] == 'proposed'),
           ('Scheduled', lambda i: i['status'] == 'scheduled'),
           ('Parked', lambda i: i['status'] == 'parked'),
           ('Done', lambda i: i['status'] == 'done')]
