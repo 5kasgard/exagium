@@ -926,5 +926,44 @@ class SplitTypes(unittest.TestCase):
         self.assertIsNone(SP.check(dict(base, experiment="other"), lines, tests)[0])
 
 
+class DigestMetricsFromRuns(unittest.TestCase):
+    """F030: metrics reads claims/releases/expiries from run records, not commit subjects."""
+    def test_metrics_uses_run_records_not_git_log(self):
+        import digest as D
+        from unittest import mock
+        t = dt.datetime(2026, 11, 20, 12, 0, tzinfo=dt.timezone.utc)
+        since = D.Q.iso(t - dt.timedelta(hours=24))
+        q = {"items": [
+            {"id": "Q1", "runs": [
+                {"worker": "worker-1", "at": "2026-11-20T10:00:00Z", "result": "success", "lost_lease": False},
+                {"worker": "worker-2", "at": "2026-11-20T11:00:00Z", "result": "success", "lost_lease": True},
+            ]},
+            {"id": "Q2", "runs": [
+                {"worker": "worker-1", "at": "2026-11-20T12:00:00Z", "result": "success", "lost_lease": False},
+            ]},
+        ]}
+        # Git log that would give different metrics if parsed
+        git_log = "\n".join([
+            "worker: worker-1 claims Q1",
+            "worker: worker-1 releases Q1",
+            "worker: worker-2 claims Q1",
+            "worker: leases expired 'Q1'",
+            "worker: worker-1 claims Q2",
+            "worker: worker-1 releases Q2",
+        ])
+        with mock.patch.object(D, "git", return_value=git_log):
+            out = D.metrics("queue_wt", since, q)
+        # New metrics from run records:
+        # Q1: 2 worker runs (w1, w2) -> claims=2, double=1 (multiple workers), releases=1 (w1), expired=1 (w2 lost_lease)
+        # Q2: 1 worker run (w1) -> claims=1, double=0, releases=1, expired=0
+        # Total: claims=3, releases=2, double=1, expired=1
+        self.assertIn("claims 3", out[0])
+        self.assertIn("releases 2", out[0])
+        self.assertIn("double claims 1", out[0])
+        self.assertIn("lease-expiry commits 1", out[0])
+        # Results from runs
+        self.assertIn("success 3", out[1])
+
+
 if __name__ == "__main__":
     unittest.main()

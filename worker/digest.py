@@ -9,6 +9,7 @@ budget used per pool, and the open list in the queue's own order. The summary is
 sentence in it with a number but no evidence pointer (a path, run ID, commit or item ID) is flagged, as P8 asks.
 """
 import datetime as dt, json, os, re, subprocess, sys
+from collections import defaultdict
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -83,36 +84,29 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
 
 
 def metrics(queue_wt, since, q):
-    """From the queue branch's own history: claims, double claims (an item claimed while another worker holds it),
-    releases, expired leases; and from the items' run notes: results by kind and job type."""
-    subj = git(queue_wt, "log", "--reverse", f"--since={since}", "--format=%s").splitlines()
-    holder, claims, double, releases, expired = {}, 0, [], 0, 0
-    for s_ in subj:
-        m = re.match(r"worker: (worker-\d+) claims (\S+)", s_)
-        if m:
-            claims += 1
-            if holder.get(m.group(2)) not in (None, m.group(1)):
-                double.append(f"{m.group(2)} by {m.group(1)} while {holder[m.group(2)]} held it")
-            holder[m.group(2)] = m.group(1)
-            for x in re.findall(r"'([^']+)'", s_.split("(leases expired", 1)[1] if "(leases expired" in s_ else ""):
-                if x != m.group(2):
-                    holder.pop(x, None)   # review N7: a claim commit can also expire other leases
-            continue
-        m = re.match(r"worker: (worker-\d+) (releases|records \(lease lost\)) (\S+)", s_)
-        if m:
-            releases += 1
-            if holder.get(m.group(3)) == m.group(1):
-                holder.pop(m.group(3))
-            continue
-        if s_.startswith("worker: leases expired"):
-            expired += 1
-            for x in re.findall(r"'([^']+)'", s_):   # an expired lease frees the item (review: no false double claims)
-                holder.pop(x, None)
+    """From the items' run records: claims, double claims (an item worked by multiple workers),
+    releases, expired leases; and results by kind."""
+    claims, releases, expired = 0, 0, 0
+    double = []
     results = {}
+    worker_runs_by_item = defaultdict(list)
     for i in q["items"]:
         for r in i.get("runs", []):
             if r.get("at", "") >= since:
+                worker = r.get("worker")
+                if worker and str(worker).startswith("worker-"):
+                    worker_runs_by_item[i["id"]].append(r)
                 results[str(r.get("result"))] = results.get(str(r.get("result")), 0) + 1
+    for item_id, runs in worker_runs_by_item.items():
+        claims += len(runs)
+        workers = set(r.get("worker") for r in runs)
+        if len(workers) > 1:
+            double.append(f"{item_id}: multiple workers ({', '.join(sorted(workers))})")
+        for r in runs:
+            if r.get("lost_lease"):
+                expired += 1
+            else:
+                releases += 1
     return [f"- claims {claims}, releases {releases}, double claims {len(double)}{': ' + '; '.join(double) if double else ''}, "
             f"lease-expiry commits {expired}",
             f"- results: {', '.join(f'{k} {v}' for k, v in sorted(results.items())) or 'none'}",
