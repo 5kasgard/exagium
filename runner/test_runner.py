@@ -92,6 +92,14 @@ class ContractEquivalenceCheck(unittest.TestCase):
         self.assertIn("out-of-band", section)
 
 
+class ContractFloor(unittest.TestCase):
+    """GLM F065: the floor is reported, not enforced; run.py consumes no floor gate."""
+    def test_floor_is_reported_not_enforced(self):
+        text = open(os.path.join(HERE, "CONTRACT.md")).read()
+        self.assertIn("reported, not enforced", text)
+        self.assertNotRegex(text, r"must beat to count")
+
+
 class CounterExit(unittest.TestCase):
     """GLM F051: count.py exits 1 when reps differ, stdout differs between reps or counting could be switched off;
     the runner took that as a count. Only exit 0 counts now."""
