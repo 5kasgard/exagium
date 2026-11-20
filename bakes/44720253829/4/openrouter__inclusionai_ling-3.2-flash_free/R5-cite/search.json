@@ -1,0 +1,1623 @@
+{
+ "item": {
+  "id": "R5",
+  "title": "Research card (release test 2): How strong are tuned gradient-boosted trees against MLPs and linear models on tabular data?",
+  "kind": "test",
+  "severity": "minor",
+  "status": "done",
+  "needs": "free",
+  "cost": 0,
+  "value": "high",
+  "batch": "B7",
+  "origin": "follow-up",
+  "blocked_by": [],
+  "next": "Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.",
+  "research": {
+   "question": "How strong are tuned gradient-boosted decision trees against MLPs and linear models on tabular benchmarks, and how much tuning do they need?",
+   "queries": [
+    "why do tree-based models still outperform deep learning on tabular data",
+    "gradient boosting versus neural networks tabular benchmark",
+    "hyperparameter tuning budget gradient boosting tabular"
+   ]
+  },
+  "touches": [
+   "research/cards/R5.md"
+  ],
+  "refs": [
+   "worker/RELEASE-TEST-2.md on main",
+   "queue P3"
+  ],
+  "informs": [
+   "P3"
+  ],
+  "runs": [
+   {
+    "result": "merged",
+    "where": "main 53bf41f",
+    "run": "https://github.com/5kasgard/exagium/actions/runs/44505367490",
+    "edits": 3,
+    "why": [],
+    "worker": "worker-44505367490",
+    "at": "2026-11-19T10:27:14Z",
+    "lost_lease": false
+   }
+  ]
+ },
+ "sources": [
+  {
+   "id": "W3202428668",
+   "title": "Deep Neural Networks and Tabular Data: A Survey",
+   "year": 2022,
+   "url": "https://doi.org/10.1109/tnnls.2022.3229161",
+   "cited_by": 1948,
+   "abstract": "Heterogeneous tabular data are the most commonly used form of data and are essential for numerous critical and computationally demanding applications. On homogeneous datasets, deep neural networks have repeatedly shown excellent performance and have therefore been widely adopted. However, their adaptation to tabular data for inference or data generation tasks remains highly challenging. To facilitate further progress in the field, this work provides an overview of state-of-the-art deep learning methods for tabular data. We categorize these methods into three groups: data transformations, specialized architectures, and regularization models. For each of these groups, our work offers a comprehensive overview of the main approaches. Moreover, we discuss deep learning approaches for generating tabular data and also provide an overview over strategies for explaining deep models on tabular data. Thus, our first contribution is to address the main research streams and existing methodologies in the mentioned areas while highlighting relevant challenges and open research questions. Our second contribution is to provide an empirical comparison of traditional machine learning methods with 11 deep learning approaches across five popular real-world tabular datasets of different sizes and with different learning objectives. Our results, which we have made publicly available as competitive benchmarks, indicate that algorithms based on gradient-boosted tree ensembles still mostly outperform deep learning models on supervised learning tasks, suggesting that the research progress on competitive deep learning models for tabular data is stagnating. To the best of our knowledge, this is the first in-depth overview of deep learning approaches for tabular data; as such, this work can serve as a valuable starting point to guide researchers and practitioners interested in deep learning with tabular data.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S1"
+  },
+  {
+   "id": "W4286231567",
+   "title": "Why do tree-based models still outperform deep learning on tabular data?",
+   "year": 2022,
+   "url": "https://doi.org/10.48550/arxiv.2207.08815",
+   "cited_by": 1046,
+   "abstract": "While deep learning has enabled tremendous progress on text and image datasets, its superiority on tabular data is not clear. We contribute extensive benchmarks of standard and novel deep learning methods as well as tree-based models such as XGBoost and Random Forests, across a large number of datasets and hyperparameter combinations. We define a standard set of 45 datasets from varied domains with clear characteristics of tabular data and a benchmarking methodology accounting for both fitting models and finding good hyperparameters. Results show that tree-based models remain state-of-the-art on medium-sized data ($\\sim$10K samples) even without accounting for their superior speed. To understand this gap, we conduct an empirical investigation into the differing inductive biases of tree-based models and Neural Networks (NNs). This leads to a series of challenges which should guide researchers aiming to build tabular-specific NNs: 1. be robust to uninformative features, 2. preserve the orientation of the data, and 3. be able to easily learn irregular functions. To stimulate research on tabular architectures, we contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S2"
+  },
+  {
+   "id": "W7133233387",
+   "title": "When Do Neural Nets Outperform Boosted Trees on Tabular Data?",
+   "year": 2023,
+   "url": "https://doi.org/10.52202/075280-3337",
+   "cited_by": 562,
+   "abstract": "Tabular data is one of the most commonly used types of data in machine learning. Despite recent advances in neural nets (NNs) for tabular data, there is still an active discussion on whether or not NNs generally outperform gradient-boosted decision trees (GBDTs) on tabular data, with several recent works arguing either that GBDTs consistently outperform NNs on tabular data, or vice versa. In this work, we take a step back and question the importance of this debate. To this end, we conduct the largest tabular data analysis to date, comparing 19 algorithms across 176 datasets, and we find that the 'NN vs. GBDT' debate is overemphasized: for a surprisingly high number of datasets, either the performance difference between GBDTs and NNs is negligible, or light hyperparameter tuning on a GBDT is more important than choosing between NNs and GBDTs. A remarkable exception is the recently-proposed prior-data fitted network, TabPFN: although it is effectively limited to training sets of size 3000, we find that it outperforms all other algorithms on average, even when randomly sampling 3000 training datapoints. Next, we analyze dozens of metafeatures to determine what properties of a dataset make NNs or GBDTs better-suited to perform well. For example, we find that GBDTs are much better than NNs at handling skewed or heavy-tailed feature distributions and other forms of dataset irregularities. Our insights act as a guide for practitioners to determine which techniques may work best on their dataset. Finally, with the goal of accelerating tabular data research, we release the TabZilla Benchmark Suite: a collection of the 36 'hardest' of the datasets we study. Our benchmark suite, codebase, and all raw results are available at https://github.com/naszilla/tabzilla.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S3"
+  },
+  {
+   "id": "W4378803232",
+   "title": "eXtreme Gradient Boosting Algorithm with Machine Learning: a Review",
+   "year": 2023,
+   "url": "https://doi.org/10.25007/ajnu.v12n2a1612",
+   "cited_by": 427,
+   "abstract": "The primary task of machine learning is to extract valuable information from the data that is generated every day, process it to learn from it, and take useful actions. Original language process, pattern detection, search engines, medical diagnostics, bioinformatics, and chemical informatics are all examples of application areas for machine learning. XGBoost is a recently released machine learning algorithm that has shown exceptional capability for modeling complex systems and is the most superior machine learning algorithm in terms of prediction accuracy and interpretability and classification versatility. XGBoost is an enhanced distributed scaling enhancement library that is built to be extremely powerful, adaptable, and portable. It uses augmented scaling to incorporate machine learning algorithms. it is a parallel tree boost that addresses a variety of data science problems quickly and accurately. Python remains the language of choice for scientific computing, data science, and machine learning, which boosts performance and productivity by enabling the use of clean low-level libraries and high-level APIs. This paper presents one of the most prominent supervised and semi-supervised learning (SSL) machine learning algorithms in a Python environment.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S4"
+  },
+  {
+   "id": "W7006806681",
+   "title": "Why do tree-based models still outperform deep learning on typical tabular data?",
+   "year": 2022,
+   "url": "https://openalex.org/W7006806681",
+   "cited_by": 417,
+   "abstract": "While deep learning has enabled tremendous progress on text and image datasets, its superiority on tabular data is not clear. We contribute extensive benchmarks of standard and novel deep learning methods as well as tree-based models such as XGBoost and Random Forests, across a large number of datasets and hyperparameter combinations. We define a standard set of 48 datasets from varied domains with clear characteristics of tabular data and a benchmarking methodology account- ing for both fitting models and finding good hyperparameters. Results show that tree-based models remain state-of-the-art on medium-sized data (\u223c10K samples) even without accounting for their superior speed. To understand this gap, we conduct an empirical investigation into the differing inductive biases of tree-based models and neural networks. This leads to a series of challenges which should guide researchers aiming to build tabular-specific neural network: 1. be robust to uninformative features, 2. preserve the orientation of the data, and 3. be able to easily learn irregular functions. To stimulate research on tabular architectures, we contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S5"
+  },
+  {
+   "id": "W3213949891",
+   "title": "Well-tuned Simple Nets Excel on Tabular Datasets",
+   "year": 2021,
+   "url": "https://doi.org/10.48550/arxiv.2106.11189",
+   "cited_by": 323,
+   "abstract": "Tabular datasets are the last \"unconquered castle\" for deep learning, with traditional ML methods like Gradient-Boosted Decision Trees still performing strongly even against recent specialized neural architectures. In this paper, we hypothesize that the key to boosting the performance of neural networks lies in rethinking the joint and simultaneous application of a large set of modern regularization techniques. As a result, we propose regularizing plain Multilayer Perceptron (MLP) networks by searching for the optimal combination/cocktail of 13 regularization techniques for each dataset using a joint optimization over the decision on which regularizers to apply and their subsidiary hyperparameters. We empirically assess the impact of these regularization cocktails for MLPs in a large-scale empirical study comprising 40 tabular datasets and demonstrate that (i) well-regularized plain MLPs significantly outperform recent state-of-the-art specialized neural network architectures, and (ii) they even outperform strong traditional ML methods, such as XGBoost.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S6"
+  },
+  {
+   "id": "W4386221938",
+   "title": "Practical guidelines for the use of gradient boosting for molecular property prediction",
+   "year": 2023,
+   "url": "https://doi.org/10.1186/s13321-023-00743-7",
+   "cited_by": 219,
+   "abstract": "Decision tree ensembles are among the most robust, high-performing and computationally efficient machine learning approaches for quantitative structure-activity relationship (QSAR) modeling. Among them, gradient boosting has recently garnered particular attention, for its performance in data science competitions, virtual screening campaigns, and bioactivity prediction. However, different variants of gradient boosting exist, the most popular being XGBoost, LightGBM and CatBoost. Our study provides the first comprehensive comparison of these approaches for QSAR. To this end, we trained 157,590 gradient boosting models, which were evaluated on 16 datasets and 94 endpoints, comprising 1.4 million compounds in total. Our results show that XGBoost generally achieves the best predictive performance, while LightGBM requires the least training time, especially for larger datasets. In terms of feature importance, the models surprisingly rank molecular features differently, reflecting differences in regularization techniques and decision tree structures. Thus, expert knowledge must always be employed when evaluating data-driven explanations of bioactivity. Furthermore, our results show that the relevance of each hyperparameter varies greatly across datasets and that it is crucial to optimize as many hyperparameters as possible to maximize the predictive performance. In conclusion, our study provides the first set of guidelines for cheminformatics practitioners to effectively train, optimize and evaluate gradient boosting models for virtual screening and QSAR applications.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S7"
+  },
+  {
+   "id": "W4400434847",
+   "title": "Better by default: Strong pre-tuned MLPs and boosted trees on tabular data",
+   "year": 2024,
+   "url": "https://doi.org/10.52202/079017-0837",
+   "cited_by": 196,
+   "abstract": "For classification and regression on tabular data, the dominance of gradient-boosted decision trees (GBDTs) has recently been challenged by often much slower deep learning methods with extensive hyperparameter tuning. We address this discrepancy by introducing (a) RealMLP, an improved multilayer perceptron (MLP), and (b) strong meta-tuned default parameters for GBDTs and RealMLP. We tune RealMLP and the default parameters on a meta-train benchmark with 118 datasets and compare them to hyperparameter-optimized versions on a disjoint meta-test benchmark with 90 datasets, as well as the GBDT-friendly benchmark by Grinsztajn et al. (2022). Our benchmark results on medium-to-large tabular datasets (1K--500K samples) show that RealMLP offers a favorable time-accuracy tradeoff compared to other neural baselines and is competitive with GBDTs in terms of benchmark scores. Moreover, a combination of RealMLP and GBDTs with improved default parameters can achieve excellent results without hyperparameter tuning. Finally, we demonstrate that some of RealMLP's improvements can also considerably improve the performance of TabR with default parameters.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S8"
+  },
+  {
+   "id": "W4403577299",
+   "title": "A Survey on Deep Tabular Learning",
+   "year": 2024,
+   "url": "https://doi.org/10.48550/arxiv.2410.12034",
+   "cited_by": 98,
+   "abstract": "Tabular data, widely used in industries like healthcare, finance, and transportation, presents unique challenges for deep learning due to its heterogeneous nature and lack of spatial structure. This survey reviews the evolution of deep learning models for tabular data, from early fully connected networks (FCNs) to advanced architectures like TabNet, SAINT, TabTranSELU, and MambaNet. These models incorporate attention mechanisms, feature embeddings, and hybrid architectures to address tabular data complexities. TabNet uses sequential attention for instance-wise feature selection, improving interpretability, while SAINT combines self-attention and intersample attention to capture complex interactions across features and data points, both advancing scalability and reducing computational overhead. Hybrid architectures such as TabTransformer and FT-Transformer integrate attention mechanisms with multi-layer perceptrons (MLPs) to handle categorical and numerical data, with FT-Transformer adapting transformers for tabular datasets. Research continues to balance performance and efficiency for large datasets. Graph-based models like GNN4TDL and GANDALF combine neural networks with decision trees or graph structures, enhancing feature representation and mitigating overfitting in small datasets through advanced regularization techniques. Diffusion-based models like the Tabular Denoising Diffusion Probabilistic Model (TabDDPM) generate synthetic data to address data scarcity, improving model robustness. Similarly, models like TabPFN and Ptab leverage pre-trained language models, incorporating transfer learning and self-supervised techniques into tabular tasks. This survey highlights key advancements and outlines future research directions on scalability, generalization, and interpretability in diverse tabular data applications.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S9"
+  },
+  {
+   "id": "W4391893776",
+   "title": "Graph Neural Network contextual embedding for Deep Learning on tabular data",
+   "year": 2024,
+   "url": "https://doi.org/10.1016/j.neunet.2024.106180",
+   "cited_by": 50,
+   "abstract": "All industries are trying to leverage Artificial Intelligence (AI) based on their existing big data which is available in so called tabular form, where each record is composed of a number of heterogeneous continuous and categorical columns also known as features. Deep Learning (DL) has constituted a major breakthrough for AI in fields related to human skills like natural language processing, but its applicability to tabular data has been more challenging. More classical Machine Learning (ML) models like tree-based ensemble ones usually perform better. This paper presents a novel DL model using Graph Neural Network (GNN) more specifically Interaction Network (IN), for contextual embedding and modeling interactions among tabular features. Its results outperform those of a recently published survey with DL benchmark based on seven public datasets, also achieving competitive results when compared to boosted-tree solutions.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S10"
+  },
+  {
+   "id": "W4406151366",
+   "title": "A Hybrid Gradient Boosting and Neural Network Model for Predicting Urban Happiness: Integrating Ensemble Learning with Deep Representation for Enhanced Accuracy",
+   "year": 2025,
+   "url": "https://doi.org/10.3390/make7010004",
+   "cited_by": 40,
+   "abstract": "Urban happiness prediction presents a complex challenge, due to the nonlinear and multifaceted relationships among socio-economic, environmental, and infrastructural factors. This study introduces an advanced hybrid model combining a gradient boosting machine (GBM) and neural network (NN) to address these complexities. Unlike traditional approaches, this hybrid leverages a GBM to handle structured data features and an NN to extract deeper nonlinear relationships. The model was evaluated against various baseline machine learning and deep learning models, including a random forest, CNN, LSTM, CatBoost, and TabNet, using metrics such as RMSE, MAE, R2, and MAPE. The GBM + NN hybrid achieved superior performance, with the lowest RMSE of 0.3332, an R2 of 0.9673, and an MAPE of 7.0082%. The model also revealed significant insights into urban indicators, such as a 10% improvement in air quality correlating to a 5% increase in happiness. These findings underscore the potential of hybrid models in urban analytics, offering both predictive accuracy and actionable insights for urban planners.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S11"
+  },
+  {
+   "id": "W4386874596",
+   "title": "Generating and Imputing Tabular Data via Diffusion and Flow-based Gradient-Boosted Trees",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2309.09968",
+   "cited_by": 37,
+   "abstract": "Tabular data is hard to acquire and is subject to missing values. This paper introduces a novel approach for generating and imputing mixed-type (continuous and categorical) tabular data utilizing score-based diffusion and conditional flow matching. In contrast to prior methods that rely on neural networks to learn the score function or the vector field, we adopt XGBoost, a widely used Gradient-Boosted Tree (GBT) technique. To test our method, we build one of the most extensive benchmarks for tabular data generation and imputation, containing 27 diverse datasets and 9 metrics. Through empirical evaluation across the benchmark, we demonstrate that our approach outperforms deep-learning generation methods in data generation tasks and remains competitive in data imputation. Notably, it can be trained in parallel using CPUs without requiring a GPU. Our Python and R code is available at https://github.com/SamsungSAILMontreal/ForestDiffusion.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers",
+   "sid": "S12"
+  },
+  {
+   "id": "wiki:26649339",
+   "title": "Gradient boosting",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=26649339",
+   "abstract": "Gradient boosting is a machine learning technique based on boosting in a functional space, where the target is pseudo-residuals instead of residuals as in traditional boosting. It gives a prediction model in the form of an ensemble of weak prediction models, i.e., models that make very few assumptions about the data, which are typically simple decision trees. When a decision tree is the weak learner, the resulting algorithm is called gradient-boosted trees; it usually outperforms random forest. As with other boosting methods, a gradient-boosted trees model is built in stages, but it generalizes the other methods by allowing optimization of an arbitrary differentiable loss function.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S13"
+  },
+  {
+   "id": "wiki:233488",
+   "title": "Machine learning",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=233488",
+   "abstract": "Machine learning (ML) is a field of study in artificial intelligence concerned with the development and study of statistical algorithms that can learn from data and generalize to unseen data, and thus perform tasks without being explicitly programmed. Statistics and mathematical optimisation methods compose the foundations of machine learning. Data mining is a related field of study, focusing on exploratory data analysis (EDA) through unsupervised learning. From a theoretical viewpoint, probably approximately correct learning provides a mathematical and statistical framework for describing machine learning. Most traditional machine learning and deep learning algorithms can be described as empirical risk minimisation under this framework. Advances in the field of deep learning have allowed neural networks, a class of statistical algorithms, to surpass many previous machine learning approaches in performance. The resulting dominance of machine learning within the field of AI from the late 2000s and early 2010s onwards was such that the terms \"machine learning\" and \"artificial intelligence\" are now often used interchangeably, even though they are not synonymous.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S14"
+  },
+  {
+   "id": "wiki:69071767",
+   "title": "Prompt engineering",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=69071767",
+   "abstract": "Prompt engineering is the process of structuring natural language inputs (known as prompts) to produce specified outputs from a generative AI model. Context engineering is the related area of software engineering that focuses on the management of non-prompt and prompt contexts supplied to the GenAI model, such as system instructions, metadata, API tools and tokens. It can also be defined as the practice of designing and refining input instructions given to a generative AI model to produce more accurate, relevant, or useful outputs. Effective prompt engineering involves understanding how a model interprets language, and may include techniques such as few-shot prompting, chain-of-thought prompting, and role assignment. During the 2020s AI boom, prompt engineering became regarded as a business capability across corporations and industries. Employees with the title prompt engineer were hired to create prompts that would increase productivity and efficacy, although the individual title has since become less common amid AI models that produce better prompts than humans and corporate training in prompting for general employees. Common prompting techniques include multi-shot, chain-of-thought, and tree-of-thought prompting, as well as assigning roles to the model. Automated prompt generation methods, such as retrieval-augmented generation (RAG), provide for greater accuracy and a wider scope of functions for prompt engineers. Prompt injection is a type of cybersecurity attack that targets machine learning models through malicious prompts.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia",
+   "sid": "S15"
+  },
+  {
+   "id": "SE:stats:300254:",
+   "title": "does feature engineering matter when doing Random Forest or Gradient Boosting?",
+   "year": 2017,
+   "cited_by": 13,
+   "url": "https://stats.stackexchange.com/q/300254",
+   "abstract": "For linear models (such as linear regression, logistic regression, etc), feature engineering is an important step to improve the performance of the models. My question is does it matter if we do any feature engineering while using random forest or gradient boosting? Granted that these models aren&#39;t deep learning models. but\uff0cit seems that some of the feature engineering methods don&#39;t really improve the model. For example: I am doing a binary classification problem, which contains about 200 features\uff0c and 20 of them are categorical features. I did the following: benchmark: ran random forest classifier directly on the original data. I got AUC around 0.93, precision, recall & F-score are around 0.95 \uff08I said around, because statifiedKfold validation is applied, and there are very small variations to the results\uff09 I reduced the feature dimension by doing chi squared test and ANOVA f1 test, the run the model. results are almost identical: AUC around 0.93, precision, recall & F-score are around 0.95 then I one-hot keyed all the categorical features, and then rerun the model, results still almost identical: AUC around 0.93, precision, recall & F-score are around 0.95 Then truncated SVD is applied to reduce features further, and retrain the model, still results are unchanged... at last I added polynomial term, cross term of the remaining features. results are still unchanged... Any suggestions please? thank you.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S16"
+  },
+  {
+   "id": "SE:datascience:136639:",
+   "title": "Data Splitting for Hyperparameter Tuning",
+   "year": 2025,
+   "cited_by": 5,
+   "url": "https://datascience.stackexchange.com/q/136639",
+   "abstract": "I want to do some hyperparameter tuning for my Gradient Boosting Regressor model to reduce the RMSE because when i evaluate the model using test set the RMSE is almost 2 times higher than the MAE. Currently i only split my data into train set and test set. Do i have to split the data into three parts (train set, validation set, and test set) if i want to apply grid search to find the best hyperparameter combination and use the validation set to tune the hyperparameter, or i can just use my current train set?",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S17"
+  },
+  {
+   "id": "SE:ai:35792:35794",
+   "title": "Why are only neural networks (and not SVMs, for example) used for reinforcement learning?",
+   "year": 2022,
+   "cited_by": 5,
+   "url": "https://ai.stackexchange.com/q/35792",
+   "abstract": "The biggest problem with SVMs, random forests, gradient boosting and others for reinforcement learning (RL) is that they are not able to learn online, adjusting for new data as it arrives, and equally importantly forgetting older data. These algorithms learn from fixed datasets, and must be re-trained with whole new datasets if the target dataset changes, in scenarios also known as non-stationary problems. This is a major issue in reinforcement learning for control problems (when you want to find an optimal policy). RL control problems always generate non-stationary target data, because they maintain a current policy - or for off-policy approches, current target policy. That current policy then changes over time as the agent improves its estimates (of e.g. the Q table), which means it is necessary to forget older training data and replace with newer. So one requirement in RL is for online learning algorithms that can handle non-stationary data well - both incorporating new data and smoothly forgetting older data. That includes neural networks. There are not many other non-linear approximators that can do so simply. It is possible to compensate for this lack of online learning in various ways. Some of the model classes, such as random forests and support vector machines, can be extended to learn online - although this seems not to be explored much in deep RL, perhaps due to complexity, or limitations that make it still less flexible choice than neural networks (opinion: looking at the recent dates on these papers compared to the longer history of using NNs with RL, there may be an element of intertia too, and possibility for revisiting using these models in a RL context). You could modify the outer algorithm to be more like policy iteration, collecting large amounts of data for the current policy to form a large batch that is then learned from to replace the previous approximate value function and in turn update the policy from that. That would work for most approximators in theory, but may be very slow and introduces hyperparameter of batch size that will have a large impact. There are unwanted side-effect to online learning in RL using approximators, such as the risk of catastrophic forgetting, where a well-trained agent is not able to distinguish bad choices from good ones because it has not experienced a bad decision for many time steps, and has generalised that \"everything is good now\". This would not be fixed in RL by using large batches and non-online algorithms - if anything it could be worse in those cases, because they would effectively be forced to forget everything between batches. The usual fix for catastrophic forgetting in RL is adding some management of the dataset - e.g. keeping some amount of older experience even though it is technically not part of the current policy&#39;s generated data. they also have a huge number of trainable parameters and are extremely prone to overfitting Overfitting of approximators can happen, but may be less of an issue in practice with RL compared to smaller fixed datasets, because agents are continuously and actively generating new data. Complex environments with lots of resources used to generate experience behave in a lot of ways like \"big data\" datasets, playing to the strengths of large flexible models. In RL there is commonly an overlap with processing image data (and possibly other sensors with return data that can be structured into some grid or graph). In the problem domains related to image comprehension, neural networks are state of the art, so it is no surprise to see them used for approximating action values in the orginal DQN paper for example - with the right architecture NNs are measurably superior, in terms of error metrics, to SVMs, RFs, boosting et al, when fitting this kind of sensor data.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S18"
+  },
+  {
+   "id": "SE:datascience:68635:",
+   "title": "Small number of estimators in gradient boosting",
+   "year": 2020,
+   "cited_by": 4,
+   "url": "https://datascience.stackexchange.com/q/68635",
+   "abstract": "I am tuning a regression gradient boosting-based model to determine the appropriate hyperparameters using 4-folds cross validation. More specifically, I am using XGBoost and lightGBM for the models and Bayesian optimization algorithm for the hyperparameters search (hyperopt) One of the hyperparameter which is being tuned in the number of estimators used for each model. For the 1st round of testing, I starting with number of estimators in the range of 100-300. The outcome from hyperparameters optimization algorithm was that the best number of estimators is 100.I repeated the same analysis where the range of number of estimators was modified to 50-300, this time the outcome from hyperparameters optimization algorithm was that the best number of estimators is 50. I repeated the same analysis for the 3rd time setting the range of possible number of estimators to 2-300 (Just to check the extreme case) this time the outcome from hyperparameters optimization algorithm was that the best number of estimators is 2. The same outcome was noticed both for the XGBoost and lightGBM models. What does this say about my model and data? Does this mean that the best model is Random forest instead of gradient boosting? is it smart to &#39;force&#39; the number of estimators by fixing the hyperparameter value (e.g., 150) and tuning all other parameters? The training dataset has &gt; 0.5M Samples where ~ 90% of the data is zero and the rest is mix of positive and negative values. Should I consider using a different object function rather than MSE? The range of the tuned parameters for LightGBM are: Output: {&#39;subsample_freq&#39;: 16, &#39;num_leaves&#39;: 10, &#39;max_depth&#39;: 6, &#39;colsample_bytree&#39;: 0.7577614465604802, &#39;subsample_for_bin&#39;: 80000, &#39;min_child_samples&#39;: 415, &#39;n_estimators&#39;: 56, &#39;subsample&#39;: 0.6531478473538894, &#39;reg_alpha&#39;: 0.025744268683186224, &#39;reg_lambda&#39;: 0.0001729942781329532} The range of the tuned parameters for XGBoost are: Output: {&#39;gamma&#39;: 2.4257700330471357, &#39;max_depth&#39;: 4, &#39;n_estimators&#39;: 57, &#39;subsample&#39;: 0.5568564232616263, &#39;reg_alpha&#39;: 0.0009876777981446033, &#39;colsample_bytree&#39;: 0.7073279309167877}",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S19"
+  },
+  {
+   "id": "SE:datascience:38392:124930",
+   "title": "Why neural networks do not perform well on structured data?",
+   "year": 2023,
+   "cited_by": 3,
+   "url": "https://datascience.stackexchange.com/q/38392",
+   "abstract": "The paper \"Why do tree-based models still outperform deep learning on tabular data?\" by Grinsztajn, Oyallon, and Varoquaux (arXiv) attempts to tease this out. They have three empirical conclusions (my rephrasings): NNs tend to favor too-smooth solutions. NNs are more likely to overfit to uninformative features. NNs are invariant under rotations of the training data (but problems represented by tabular data have solutions that \"shouldn&#39;t\" be rotation-invariant).",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A",
+   "sid": "S20"
+  },
+  {
+   "id": "HN:39601710",
+   "title": "Why do tree-based models still outperform deep learning on tabular data? (2022)",
+   "year": "2024",
+   "cited_by": 212,
+   "url": "https://news.ycombinator.com/item?id=39601710",
+   "abstract": "Why do tree-based models still outperform deep learning on tabular data? (2022)",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S21"
+  },
+  {
+   "id": "DC:forums.fast.ai:118403",
+   "title": "\ud83d\udcdd Deep Learning Lesson 4 Notes",
+   "year": "2018",
+   "cited_by": 10,
+   "url": "https://forums.fast.ai/t/30983/1",
+   "abstract": "&lt; &lt; &lt; Notes: Lesson 3 \uff5c Notes: Lesson 5 &gt; &gt; &gt; Hi everybody, welcome to lesson 4. 47%20PM We are going to finish our journey through these key applications. We already looked at a range of computer vision applications like image classification, localization, regression etc. We slightly touched NLP...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S22"
+  },
+  {
+   "id": "DC:forums.fast.ai:336655",
+   "title": "When trees outdo neural networks",
+   "year": "2022",
+   "cited_by": 6,
+   "url": "https://forums.fast.ai/t/102435/1",
+   "abstract": "While neural networks perform well on image, text, and audio datasets, they fall behind https://www.deeplearning.ai/the-batch/decision-trees-from-root-to-leaves/ decision trees and their variations for tabular datasets. New research looked into why. What\u2019s new: L\u00e9o Grinsztajn, Edouard Oyallon, an...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S23"
+  },
+  {
+   "id": "HN:46138439",
+   "title": "Show HN: TabPFN Scaling Mode \u2013 Tabular Foundation Model on millions of rows",
+   "year": "2025",
+   "cited_by": 5,
+   "url": "https://news.ycombinator.com/item?id=46138439",
+   "abstract": "I\u2019m excited to announce Scaling Mode for TabPFN-2.5, our tabular foundation model (Large Tabular Model). This removes any fixed upper limits on dataset sizes and extends TabPFN to datasets with millions of rows. What is Scaling Mode? A new pipeline around TabPFN-2.5 designed for large-N workloads, which removes the fixed row limit of TabPFN. The system works with large training sets, constrained only by your compute and memory. We benchmarked Scaling Mode on datasets ranging from 1M to 10M rows, comparing against CatBoost, XGBoost, and LightGBM. Key findings: - Scaling Mode enables TabPFN-2.5 to continue improving performance with more data - Scales dramatically better than TabPFN-2.5 with 50K subsampling - No evidence of the performance gap to gradient boosting shrinking as we scale up - Performance continues to improve strongly with more data on the largest tested datasets To quickly summarise our progress, here's the history of our scaling trajectory: - TabPFN v2 (Jan 2025): 10K rows - TabPFN-2.5 (Nov 2025): 50K rows - Scaling Mode (today): 10M+ rows tested Current limitations: Scaling Mode is designed for companies for now. If you\u2019re working with data at a large scale and want to test it, access is currently only by request to ensure we can support early users properly. Full blog post: https:&#x2F;&#x2F;priorlabs.ai&#x2F;technical-reports&#x2F;large-data-model Request access: https:&#x2F;&#x2F;priorlabs.ai&#x2F;tabpfn&#x2F;large-data Would love to hear feedback from anyone working with large tabular datasets!",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S24"
+  },
+  {
+   "id": "HN:40622770",
+   "title": "Show HN: A self-generalizing, hyperparameter-free gradient boosting machine",
+   "year": "2024",
+   "cited_by": 5,
+   "url": "https://news.ycombinator.com/item?id=40622770",
+   "abstract": "PerpetualBooster is a gradient boosting machine (GBM) algorithm which doesn't have hyperparameters to be tuned so that you can use it without needing hyperparameter optimization packages unlike other GBM algorithms. Similar to AutoML libraries, it has a budget parameter which ranges between (0, 1). Increasing the budget parameter increases predictive power of the algorithm and gives better results on unseen data.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S25"
+  },
+  {
+   "id": "HN:48808428",
+   "title": "Show HN: Skeights \u2013 Serialize sklearn models to safetensors and JSON, no pickle",
+   "year": "2026",
+   "cited_by": 3,
+   "url": "https://news.ycombinator.com/item?id=48808428",
+   "abstract": "We use sklearn in production for time series forecasting in industrial settings. Pickle was causing us constant pain: refactoring our wrapper classes invalidated saved models, and the binary blobs were completely opaque. We built skeights to decompose a fitted estimator into two files. A JSON file for hyperparameters and structure, and a safetensors file for the numeric arrays. The JSON is human-readable and diffable, and safetensors is a well-established safe format from Hugging Face. This allows you to trade models as config. The JSON is just data you can inspect, diff, and version alongside the rest of your config, rather than a binary artefact on the side. It supports most common sklearn estimators (linear models, trees, random forests, gradient boosting, MLPs, pipelines), plus LightGBM and XGBoost. MIT licensed. Blog post with a worked example: https:&#x2F;&#x2F;alxhslm.github.io&#x2F;projects&#x2F;skeights&#x2F; Repo: https:&#x2F;&#x2F;github.com&#x2F;carbon-re&#x2F;skeights `pip install skeights`",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum",
+   "sid": "S26"
+  },
+  {
+   "id": "GH:szilard/benchm-ml",
+   "title": "szilard/benchm-ml",
+   "year": "2022",
+   "url": "https://github.com/szilard/benchm-ml",
+   "cited_by": 1893,
+   "abstract": "A minimal benchmark for scalability, speed and accuracy of commonly used open source implementations (R packages, Python scikit-learn, H2O, xgboost, Spark MLlib etc.) of the top machine learning algorithms for binary classification (random forests, gradient boosted trees, deep neural networks etc.). Topics: data-science, deep-learning, gradient-boosting-machine, h2o, machine-learning, python, r, random-forest, spark, xgboost",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S27"
+  },
+  {
+   "id": "GH:infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "title": "infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "year": "2018",
+   "url": "https://github.com/infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "cited_by": 15,
+   "abstract": "*****PROJECT SPECIFICATION: Machine Learning Capstone Analysis Project***** This capstone project involves machine learning modeling and analysis of clinical, demographic, and brain related derived anatomic measures from human MRI (magnetic resonance imaging) tests (http://www.oasis-brains.org/). The objectives of these measurements are to diagnose the level of Dementia in the individuals and the probability that these individuals may have Alzheimer's Disease (AD). In published studies, Machine Learning has been applied to Alzheimer\u2019s/Dementia identification from MRI scans and related data in the academic papers/theses in References 10 and 11 listed in the References Section below. Recently, a close relative of mine had to undergo a sequence of MRI tests for cognition difficulties.The motivation for choosing this topic for the Capstone project arose from the desire to understand and analyze potential for Dementia and AD from MRI related data. Cognitive testing, clinical assessments and demographic data related to these MRI tests are used in this project. This Capstone project does not use the MRI \"imaging\" data and does not focus on AD, focusses only on Dementia. *****Conclusions, Justification, and Reflections***** [Student adequately summarizes the end-to-end problem solution and discusses one or two particular aspects of the project they found interesting or difficult.] The formulation of OASIS data (Ref 1 and 2) in terms of a dementia classification problem based on demographic and clinical data only (and without directly using the MRI image data), is a simplification that has major advantages and appeal. This means the trained model can classify whether an individual has dementia or not with about 87% accuracy, without having to wait for radiological interpretation of MRI scans. This can provide an early alert for intervention and initiation of treatment for those with onset of dementia. The assumption that the combined cross-sectional and longitudinal datasets would lead to dementia label classification of acceptable accuracy came out to be true. The method required careful data cleaning and data preparation work, converting it to a binary classification problem, as outlined in this notebook. At the outset it was not clear which algorithm(s) would be more appropriate for the binary and multi-label classification problem. The approach of spot checking the algorithms early for accuracy led to the determination of a smaller set of algorithms with higher accuracy (e.g. Gadient Boosting and Random Forest) for a deeper dive examination, e.g. use of a k-fold cross-validation approach in classifying the CDR label. The neural network benchmark model accuracy of 78% for binary classification was exceeded by the classification accuracy of the main output of this study, the trained Gradient Boosting and Random Forest classification models. This builds confidence in the latter model for further training with new data and further classification use for new patients. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S28"
+  },
+  {
+   "id": "GH:mdicio/AutoDeep",
+   "title": "mdicio/AutoDeep",
+   "year": "2026",
+   "url": "https://github.com/mdicio/AutoDeep",
+   "cited_by": 8,
+   "abstract": "AutoML for tabular data: tune, benchmark and deploy gradient-boosted trees, the TabICLv2 foundation model and modern deep tabular networks under a time budget. Web app, CLI and Python API. Topics: automl, benchmarking, catboost, deep-learning, foundation-models, hyperopt, hyperparameter-optimization, lightgbm, machine-learning, python, pytorch, tabular-data, tabular-deep-learning, xgboost",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S29"
+  },
+  {
+   "id": "GH:surpradhan/forecasting-showdown",
+   "title": "surpradhan/forecasting-showdown",
+   "year": "2026",
+   "url": "https://github.com/surpradhan/forecasting-showdown",
+   "cited_by": 3,
+   "abstract": "A rigorous benchmark of 11 time-series forecasting models on hourly energy demand data \u2014 from a seasonal naive baseline to gradient-boosted trees, deep recurrent networks, and a stacking ensemble. Topics: benchmarking, energy-demand, forecasting, machine-learning, python, time-series",
+   "via": "github",
+   "kind": "code",
+   "group": "code",
+   "sid": "S30"
+  }
+ ],
+ "log": [
+  {
+   "api": "openalex",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 6,
+   "s": 0.7
+  },
+  {
+   "api": "arxiv",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "error": "HTTPError: HTTP Error 503: Service Unavailable"
+  },
+  {
+   "api": "semanticscholar",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "wikipedia",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 3,
+   "s": 0.5
+  },
+  {
+   "api": "stackexchange",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 2,
+   "s": 2.9
+  },
+  {
+   "api": "hackernews",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 5,
+   "s": 0.6
+  },
+  {
+   "api": "reddit",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 1,
+   "s": 7.8
+  },
+  {
+   "api": "github",
+   "query": "why do tree-based models still outperform deep learning on tabular data",
+   "n": 2,
+   "s": 0.4
+  },
+  {
+   "api": "openalex",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "arxiv",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "error": "HTTPError: HTTP Error 429: Unknown Error"
+  },
+  {
+   "api": "semanticscholar",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 6,
+   "s": 0.6
+  },
+  {
+   "api": "wikipedia",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 2,
+   "s": 0.3
+  },
+  {
+   "api": "stackexchange",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 9,
+   "s": 5.4
+  },
+  {
+   "api": "hackernews",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 4,
+   "s": 1.3
+  },
+  {
+   "api": "reddit",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 2,
+   "s": 3.6
+  },
+  {
+   "api": "github",
+   "query": "gradient boosting versus neural networks tabular benchmark",
+   "n": 6,
+   "s": 0.7
+  },
+  {
+   "api": "openalex",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 6,
+   "s": 0.5
+  },
+  {
+   "api": "arxiv",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 6,
+   "s": 29.1
+  },
+  {
+   "api": "semanticscholar",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "skipped": "no S2_API_KEY"
+  },
+  {
+   "api": "huggingface",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 6,
+   "s": 0.4
+  },
+  {
+   "api": "wikipedia",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 3,
+   "s": 0.4
+  },
+  {
+   "api": "stackexchange",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 12,
+   "s": 5.2
+  },
+  {
+   "api": "hackernews",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 5,
+   "s": 1.1
+  },
+  {
+   "api": "reddit",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "skipped": "Reddit refuses CI addresses without OAuth (403 on 24 of 24 calls, 2026-11-19); needs an app key (P7b)"
+  },
+  {
+   "api": "discourse",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 1,
+   "s": 3.7
+  },
+  {
+   "api": "github",
+   "query": "hyperparameter tuning budget gradient boosting tabular",
+   "n": 6,
+   "s": 0.8
+  }
+ ],
+ "pool": [
+  {
+   "id": "W4286231567",
+   "title": "Why do tree-based models still outperform deep learning on tabular data?",
+   "year": 2022,
+   "url": "https://doi.org/10.48550/arxiv.2207.08815",
+   "cited_by": 1046,
+   "abstract": "While deep learning has enabled tremendous progress on text and image datasets, its superiority on tabular data is not clear. We contribute extensive benchmarks of standard and novel deep learning methods as well as tree-based models such as XGBoost and Random Forests, across a large number of datasets and hyperparameter combinations. We define a standard set of 45 datasets from varied domains with clear characteristics of tabular data and a benchmarking methodology accounting for both fitting models and finding good hyperparameters. Results show that tree-based models remain state-of-the-art on medium-sized data ($\\sim$10K samples) even without accounting for their superior speed. To understand this gap, we conduct an empirical investigation into the differing inductive biases of tree-based models and Neural Networks (NNs). This leads to a series of challenges which should guide researchers aiming to build tabular-specific NNs: 1. be robust to uninformative features, 2. preserve the orientation of the data, and 3. be able to easily learn irregular functions. To stimulate research on tabular architectures, we contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7006806681",
+   "title": "Why do tree-based models still outperform deep learning on typical tabular data?",
+   "year": 2022,
+   "url": "https://openalex.org/W7006806681",
+   "cited_by": 417,
+   "abstract": "While deep learning has enabled tremendous progress on text and image datasets, its superiority on tabular data is not clear. We contribute extensive benchmarks of standard and novel deep learning methods as well as tree-based models such as XGBoost and Random Forests, across a large number of datasets and hyperparameter combinations. We define a standard set of 48 datasets from varied domains with clear characteristics of tabular data and a benchmarking methodology account- ing for both fitting models and finding good hyperparameters. Results show that tree-based models remain state-of-the-art on medium-sized data (\u223c10K samples) even without accounting for their superior speed. To understand this gap, we conduct an empirical investigation into the differing inductive biases of tree-based models and neural networks. This leads to a series of challenges which should guide researchers aiming to build tabular-specific neural network: 1. be robust to uninformative features, 2. preserve the orientation of the data, and 3. be able to easily learn irregular functions. To stimulate research on tabular architectures, we contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7133233387",
+   "title": "When Do Neural Nets Outperform Boosted Trees on Tabular Data?",
+   "year": 2023,
+   "url": "https://doi.org/10.52202/075280-3337",
+   "cited_by": 562,
+   "abstract": "Tabular data is one of the most commonly used types of data in machine learning. Despite recent advances in neural nets (NNs) for tabular data, there is still an active discussion on whether or not NNs generally outperform gradient-boosted decision trees (GBDTs) on tabular data, with several recent works arguing either that GBDTs consistently outperform NNs on tabular data, or vice versa. In this work, we take a step back and question the importance of this debate. To this end, we conduct the largest tabular data analysis to date, comparing 19 algorithms across 176 datasets, and we find that the 'NN vs. GBDT' debate is overemphasized: for a surprisingly high number of datasets, either the performance difference between GBDTs and NNs is negligible, or light hyperparameter tuning on a GBDT is more important than choosing between NNs and GBDTs. A remarkable exception is the recently-proposed prior-data fitted network, TabPFN: although it is effectively limited to training sets of size 3000, we find that it outperforms all other algorithms on average, even when randomly sampling 3000 training datapoints. Next, we analyze dozens of metafeatures to determine what properties of a dataset make NNs or GBDTs better-suited to perform well. For example, we find that GBDTs are much better than NNs at handling skewed or heavy-tailed feature distributions and other forms of dataset irregularities. Our insights act as a guide for practitioners to determine which techniques may work best on their dataset. Finally, with the goal of accelerating tabular data research, we release the TabZilla Benchmark Suite: a collection of the 36 'hardest' of the datasets we study. Our benchmark suite, codebase, and all raw results are available at https://github.com/naszilla/tabzilla.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W3202428668",
+   "title": "Deep Neural Networks and Tabular Data: A Survey",
+   "year": 2022,
+   "url": "https://doi.org/10.1109/tnnls.2022.3229161",
+   "cited_by": 1948,
+   "abstract": "Heterogeneous tabular data are the most commonly used form of data and are essential for numerous critical and computationally demanding applications. On homogeneous datasets, deep neural networks have repeatedly shown excellent performance and have therefore been widely adopted. However, their adaptation to tabular data for inference or data generation tasks remains highly challenging. To facilitate further progress in the field, this work provides an overview of state-of-the-art deep learning methods for tabular data. We categorize these methods into three groups: data transformations, specialized architectures, and regularization models. For each of these groups, our work offers a comprehensive overview of the main approaches. Moreover, we discuss deep learning approaches for generating tabular data and also provide an overview over strategies for explaining deep models on tabular data. Thus, our first contribution is to address the main research streams and existing methodologies in the mentioned areas while highlighting relevant challenges and open research questions. Our second contribution is to provide an empirical comparison of traditional machine learning methods with 11 deep learning approaches across five popular real-world tabular datasets of different sizes and with different learning objectives. Our results, which we have made publicly available as competitive benchmarks, indicate that algorithms based on gradient-boosted tree ensembles still mostly outperform deep learning models on supervised learning tasks, suggesting that the research progress on competitive deep learning models for tabular data is stagnating. To the best of our knowledge, this is the first in-depth overview of deep learning approaches for tabular data; as such, this work can serve as a valuable starting point to guide researchers and practitioners interested in deep learning with tabular data.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4403577299",
+   "title": "A Survey on Deep Tabular Learning",
+   "year": 2024,
+   "url": "https://doi.org/10.48550/arxiv.2410.12034",
+   "cited_by": 98,
+   "abstract": "Tabular data, widely used in industries like healthcare, finance, and transportation, presents unique challenges for deep learning due to its heterogeneous nature and lack of spatial structure. This survey reviews the evolution of deep learning models for tabular data, from early fully connected networks (FCNs) to advanced architectures like TabNet, SAINT, TabTranSELU, and MambaNet. These models incorporate attention mechanisms, feature embeddings, and hybrid architectures to address tabular data complexities. TabNet uses sequential attention for instance-wise feature selection, improving interpretability, while SAINT combines self-attention and intersample attention to capture complex interactions across features and data points, both advancing scalability and reducing computational overhead. Hybrid architectures such as TabTransformer and FT-Transformer integrate attention mechanisms with multi-layer perceptrons (MLPs) to handle categorical and numerical data, with FT-Transformer adapting transformers for tabular datasets. Research continues to balance performance and efficiency for large datasets. Graph-based models like GNN4TDL and GANDALF combine neural networks with decision trees or graph structures, enhancing feature representation and mitigating overfitting in small datasets through advanced regularization techniques. Diffusion-based models like the Tabular Denoising Diffusion Probabilistic Model (TabDDPM) generate synthetic data to address data scarcity, improving model robustness. Similarly, models like TabPFN and Ptab leverage pre-trained language models, incorporating transfer learning and self-supervised techniques into tabular tasks. This survey highlights key advancements and outlines future research directions on scalability, generalization, and interpretability in diverse tabular data applications.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2407.00956",
+   "title": "A Closer Look at Deep Learning Methods on Tabular Datasets",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2407.00956",
+   "cited_by": 0,
+   "abstract": "Tabular data is prevalent across diverse domains in machine learning. While classical methods like tree-based models have long been effective, Deep Neural Network (DNN)-based methods have recently demonstrated promising performance. However, the diverse characteristics of methods and the inherent heterogeneity of tabular datasets make understanding and interpreting tabular methods both challenging and prone to unstable observations. In this paper, we conduct in-depth evaluations and comprehensive analyses of tabular methods, with a particular focus on DNN-based models, using a benchmark of over 300 tabular datasets spanning a wide range of task types, sizes, and domains. First, we perform an extensive comparison of 32 state-of-the-art deep and tree-based methods, evaluating their average performance across multiple criteria. Although method ranks vary across datasets, we empirically find that top-performing methods tend to concentrate within a small subset of tabular models, regardless of the criteria used. Next, we investigate whether the training dynamics of deep tabular models can be predicted based on dataset properties. This approach not only offers insights into the behavior of deep tabular methods but also identifies a core set of \"meta-features\" that reflect dataset heterogeneity. The other subset includes datasets where method ranks are consistent with the overall benchmark, acting as a reliable probe for further tabular analysis.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2402.03970",
+   "title": "Tabular Data: Is Deep Learning all you need?",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2402.03970",
+   "cited_by": 0,
+   "abstract": "Tabular data represent one of the most prevalent data formats in applied machine learning, largely because they accommodate a broad spectrum of real-world problems. Existing literature has studied many of the shortcomings of neural architectures on tabular data and has repeatedly confirmed the scalability and robustness of gradient-boosted decision trees across varied datasets. However, recent deep learning models have not been subjected to a comprehensive evaluation under conditions that allow for a fair comparison with existing classical approaches. This situation motivates an investigation into whether recent deep-learning paradigms outperform classical ML methods on tabular data. Our survey fills this gap by benchmarking seventeen state-of-the-art methods, spanning neural networks, classical ML and AutoML techniques. Our empirical results over 68 diverse datasets from a well-established benchmark indicate a paradigm shift, where Deep Learning methods outperform classical approaches.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2106.03253",
+   "title": "Tabular Data: Deep Learning is Not All You Need",
+   "year": "2021",
+   "url": "https://huggingface.co/papers/2106.03253",
+   "cited_by": 1,
+   "abstract": "A key element in solving real-life data science problems is selecting the types of models to use. Tree ensemble models (such as XGBoost) are usually recommended for classification and regression problems with tabular data. However, several deep learning models for tabular data have recently been proposed, claiming to outperform XGBoost for some use cases. This paper explores whether these deep models should be a recommended option for tabular data by rigorously comparing the new deep models to XGBoost on various datasets. In addition to systematically comparing their performance, we consider the tuning and computation they require. Our study shows that XGBoost outperforms these deep models across the datasets, including the datasets used in the papers that proposed the deep models. We also demonstrate that XGBoost requires much less tuning. On the positive side, we show that an ensemble of deep models and XGBoost performs better on these datasets than XGBoost alone.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2106.11959",
+   "title": "Revisiting Deep Learning Models for Tabular Data",
+   "year": "2021",
+   "url": "https://huggingface.co/papers/2106.11959",
+   "cited_by": 0,
+   "abstract": "The existing literature on deep learning for tabular data proposes a wide range of novel architectures and reports competitive results on various datasets. However, the proposed models are usually not properly compared to each other and existing works often use different benchmarks and experiment protocols. As a result, it is unclear for both researchers and practitioners what models perform best. Additionally, the field still lacks effective baselines, that is, the easy-to-use models that provide competitive performance across different problems. In this work, we perform an overview of the main families of DL architectures for tabular data and raise the bar of baselines in tabular DL by identifying two simple and powerful deep architectures. The first one is a ResNet-like architecture which turns out to be a strong baseline that is often missing in prior works. The second model is our simple adaptation of the Transformer architecture for tabular data, which outperforms other solutions on most tasks. Both models are compared to many existing architectures on a diverse set of tasks under the same training and tuning protocols. We also compare the best DL models with Gradient Boosted Decision Trees and conclude that there is still no universally superior solution.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2403.00963",
+   "title": "Tree-Regularized Tabular Embeddings",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2403.00963",
+   "cited_by": 0,
+   "abstract": "Tabular neural network (NN) has attracted remarkable attentions and its recent advances have gradually narrowed the performance gap with respect to tree-based models on many public datasets. While the mainstreams focus on calibrating NN to fit tabular data, we emphasize the importance of homogeneous embeddings and alternately concentrate on regularizing tabular inputs through supervised pretraining. Specifically, we extend a recent work (DeepTLF) and utilize the structure of pretrained tree ensembles to transform raw variables into a single vector (T2V), or an array of tokens (T2T). Without loss of space efficiency, these binarized embeddings can be consumed by canonical tabular NN with fully-connected or attention-based building blocks. Through quantitative experiments on 88 OpenML datasets with binary classification task, we validated that the proposed tree-regularized representation not only tapers the difference with respect to tree-based models, but also achieves on-par and better performance when compared with advanced NN models. Most importantly, it possesses better robustness and can be easily scaled and generalized as standalone encoder for tabular modality. Codes: https://github.com/milanlx/tree-regularized-embedding.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:26649339",
+   "title": "Gradient boosting",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=26649339",
+   "abstract": "Gradient boosting is a machine learning technique based on boosting in a functional space, where the target is pseudo-residuals instead of residuals as in traditional boosting. It gives a prediction model in the form of an ensemble of weak prediction models, i.e., models that make very few assumptions about the data, which are typically simple decision trees. When a decision tree is the weak learner, the resulting algorithm is called gradient-boosted trees; it usually outperforms random forest. As with other boosting methods, a gradient-boosted trees model is built in stages, but it generalizes the other methods by allowing optimization of an arbitrary differentiable loss function.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:233488",
+   "title": "Machine learning",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=233488",
+   "abstract": "Machine learning (ML) is a field of study in artificial intelligence concerned with the development and study of statistical algorithms that can learn from data and generalize to unseen data, and thus perform tasks without being explicitly programmed. Statistics and mathematical optimisation methods compose the foundations of machine learning. Data mining is a related field of study, focusing on exploratory data analysis (EDA) through unsupervised learning. From a theoretical viewpoint, probably approximately correct learning provides a mathematical and statistical framework for describing machine learning. Most traditional machine learning and deep learning algorithms can be described as empirical risk minimisation under this framework. Advances in the field of deep learning have allowed neural networks, a class of statistical algorithms, to surpass many previous machine learning approaches in performance. The resulting dominance of machine learning within the field of AI from the late 2000s and early 2010s onwards was such that the terms \"machine learning\" and \"artificial intelligence\" are now often used interchangeably, even though they are not synonymous.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:69071767",
+   "title": "Prompt engineering",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=69071767",
+   "abstract": "Prompt engineering is the process of structuring natural language inputs (known as prompts) to produce specified outputs from a generative AI model. Context engineering is the related area of software engineering that focuses on the management of non-prompt and prompt contexts supplied to the GenAI model, such as system instructions, metadata, API tools and tokens. It can also be defined as the practice of designing and refining input instructions given to a generative AI model to produce more accurate, relevant, or useful outputs. Effective prompt engineering involves understanding how a model interprets language, and may include techniques such as few-shot prompting, chain-of-thought prompting, and role assignment. During the 2020s AI boom, prompt engineering became regarded as a business capability across corporations and industries. Employees with the title prompt engineer were hired to create prompts that would increase productivity and efficacy, although the individual title has since become less common amid AI models that produce better prompts than humans and corporate training in prompting for general employees. Common prompting techniques include multi-shot, chain-of-thought, and tree-of-thought prompting, as well as assigning roles to the model. Automated prompt generation methods, such as retrieval-augmented generation (RAG), provide for greater accuracy and a wider scope of functions for prompt engineers. Prompt injection is a type of cybersecurity attack that targets machine learning models through malicious prompts.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:datascience:38392:124930",
+   "title": "Why neural networks do not perform well on structured data?",
+   "year": 2023,
+   "cited_by": 3,
+   "url": "https://datascience.stackexchange.com/q/38392",
+   "abstract": "The paper \"Why do tree-based models still outperform deep learning on tabular data?\" by Grinsztajn, Oyallon, and Varoquaux (arXiv) attempts to tease this out. They have three empirical conclusions (my rephrasings): NNs tend to favor too-smooth solutions. NNs are more likely to overfit to uninformative features. NNs are invariant under rotations of the training data (but problems represented by tabular data have solutions that \"shouldn&#39;t\" be rotation-invariant).",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:110967:126461",
+   "title": "Why Deep Learning / Neural Networs don&#39;t achieve state of the art results in tabular data problems?",
+   "year": 2024,
+   "cited_by": 3,
+   "url": "https://datascience.stackexchange.com/q/110967",
+   "abstract": "A few years later after this post, some authors wrote a paper at NeurIPS about it. Why do tree-based models still outperform deep learning on typical tabular data? https://proceedings.neurips.cc/paper_files/paper/2022/file/0378c7692da36807bdec87ab043cdadc-Paper-Datasets_and_Benchmarks.pdf The twitter thread (https://twitter.com/GaelVaroquaux/status/1549422403889106944) A chatGPT summary of the thread (unrevised) The gap in performance between deep architectures and tree models narrows on large datasets, but such datasets are exceptions for tabular data. Smoothing outcomes in feature space narrows the gap, as deep architectures struggle with irregular patterns, while tree models are not affected by smoothness. Uninformative features have a greater impact on MLP-like neural architectures. Removing the least informative features narrows the performance gap. Data non-invariance by rotation suggests that learning procedures should be rotationally invariant. After applying random rotations to the data, deep architectures outperform tree models, which excel in rotational invariance.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "HN:39601710",
+   "title": "Why do tree-based models still outperform deep learning on tabular data? (2022)",
+   "year": "2024",
+   "cited_by": 212,
+   "url": "https://news.ycombinator.com/item?id=39601710",
+   "abstract": "Why do tree-based models still outperform deep learning on tabular data? (2022)",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:39851558",
+   "title": "Ask HN: What things are happening in ML that we can't hear over the din of LLMs?",
+   "year": "2024",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=39851558",
+   "abstract": "So, from the perspective I have within the subfield I work in, explainable AI (XAI), we're seeing a bunch of fascinating developments. First, as you mentioned, Rudin continues to prove that the reason for using AI&#x2F;ML is that we don't understand the problem well enough; otherwise we wouldn't even think to use it! So, pushing our focus to better understand the problem, and then levy ML concepts and techniques (including \"classical AI\" and statistical learning), we're able to make something that not only outperforms some state-of-the-art in most metrics, but often even is much less resource intensive to create and deploy (in compute, data, energy, and human labour), with added benefits from direct interpretability and post-hoc explanations. One example has been the continued primacy of tree ensembles on tabular datasets [0], even for the larger datasets, though they truly shine on the small to medium datasets that actually show up in practice, which from Tigani's observations [1] would include most of those who think they have big data. Second, we're seeing practical examples of exactly this outside Rudin! In particular, people are using ML more to do live parameter fine-tuning that outwise would need more exhaustive searches or human labour that are difficult for real-time feedback, or copious human ingenuity to resolve in a closed-form solution. Opus 1.5 is introducing some experimental work here, as are a few approaches in video and image encoding. These are domains where, as in the first, we understand the problem, but also understand well enough that there's search spaces we simply don't know enough about to be able to dramatically reduce. Approaches like this have been bubbling out of other sciences (physics, complexity theory, bioinformatics, etc) that lead to some interesting work in distillation and extraction of new models from ML, or \"physically aware\" operators that dramatically improve neural nets, such as Fourier Neural Operators (FNO) [2], which embeds FFTs rather than forcing it to be relearned (as has been found to often happen) for remarkable speed-ups with PDEs such as for fluid dynamics, and has already shown promise with climate modelling [3], material science [4]. There are also many more operators, which all work completely differently, yet bring human insight back to the problem, and sometimes lead to extracting a new model for us to use without the ML! Understanding begets understanding, so the \"shifting goalposts\" of techniques considered \"AI\" is a good thing! Third, specifically to improvements in explainability, we've seen the Neural Tangent Kernel (NTK) [5] rapidly go from strength to strength since its introduction. While rooted in core explainability vis a vis making neural nets more mathematically tractable to analysis, not only inspiring other approaches [6] and behavioural understanding of neural nets [7, 8], but novel ML itself [9] with ways to transfer the benefits of neural networks to far less resource intensive techniques; which [9]'s RFM kernel machine proves competitive with the best tree ensembles from [0], and even has advantage on numerical data (plus outperforms prior NTK based kernel machines). An added benefit is the approach used to underpin [9] itself leads to new interpretation and explanation techniques, similar to integrated gradients [10, 11] but perhaps more reminiscent of the idea in [6]. Finally, specific to XAI, we're seeing people actually deal with the problem that, well, people aren't really using this stuff! XAI in particular, yes, but also the myriad of interpretable models a la Rudin or the significant improvements found in hybrid approaches and reinforcement learning. Cicero [12], for example, does have an LLM component, but uses it in a radically different way compared to most people's current conception of LLMs (though, again, ironically closer to the \"classic\" LLMs for semantic markup), much like the AlphaGo series altered the way the deep learning component was utilised by embedding and hybridising it [13] (its successors obviating even the traditional supervised approach through self-play [14], and beyond Go). This is all without even mentioning the neurosymbolic and other approaches to embed \"classical AI\" in deep learning (such as RETRO [15]). Despite these successes, adoption of these approaches is still very far behind, especially compared to the zeitgeist of ChatGPT style LLMs (and general hype around transformers), and arguably much worse for XAI due to the barrier between adoption and deeper usage [16]. This is still early days, however, and again to harken Rudin, we don't understand the problem anywhere near well enough, and that extends to XAI and ML as problem domains themselves. Things we can actually understand seem a far better approach to me, but without getting too Monkey's Paw about it, I'd posit that we should really consider if some GPT-N or whatever is actually what we want , even if it did achieve what we thought we wanted. Constructing ML with useful and efficient inductive bias is a much harder challenge than we ever anticipated, hence the eternal 20 years away problem, so I just think it would perhaps be a better use of our time to make stuff like this, where we know what is actually going on, instead of just theoretically . It'll have a part, no doubt, Cicero showed that there's clear potential, but people seem to be realising \"... is all you need\" and \"scaling laws\" were just a myth (or worse, marketing). Plus, all those delays to the 20 years weren't for nothing, and there's a lot of really capable, understandable techniques just waiting to be used, with more being developed and refined every year. After all, look at the other comments! So many different areas, particularly within deep learning (such as NeRFs or NAS [17]), which really show we have so much left to learn. Exciting! [0]: L\u00e9o Grinsztajn et al. \"Why do tree-based models still outperform deep learning on tabular data?\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2207.08815 [1]: Jordan Tigani \"Big Data is Dead\" https:&#x2F;&#x2F;motherduck.com&#x2F;blog&#x2F;big-data-is-dead&#x2F; [2]: Zongyi Li et al. \"Fourier Neural Operator for Parametric Partial Differential Equations\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2010.08895 [3]: Jaideep Pathak et al. \"FourCastNet: A Global Data-driven High-resolution Weather Model using Adaptive Fourier Neural Operators\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2202.11214 [4]: Huaiqian You et al. \"Learning Deep Implicit Fourier Neural Operators with Applications to Heterogeneous Material Modeling\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2203.08205 [5]: Arthur Jacot et al. \"Neural Tangent Kernel: Convergence and Generalization in Neural Networks\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;1806.07572 [6]: Pedro Domingos \"Every Model Learned by Gradient Descent Is Approximately a Kernel Machine\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2012.00152 [7]: Alexander Atanasov et al. \"Neural Networks as Kernel Learners: The Silent Alignment Effect\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2111.00034 [8]: Yilan Chen et al. \"On the Equivalence between Neural Network and Support Vector Machine\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2111.06063 [9]: Adityanarayanan Radhakrishnan et al. \"Mechanism of feature learning in deep fully connected networks and kernel machines that recursively learn features\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2212.13881 [10]: Mukund Sundararajan et al. \"Axiomatic Attribution for Deep Networks\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;1703.01365 [11]: Pramod Mudrakarta \"Did the model understand the questions?\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;1805.05492 [12]: META FAIR Diplomacy Team et al. \"Human-level play in the game of Diplomacy by combining language models with strategic reasoning\" https:&#x2F;&#x2F;www.science.org&#x2F;doi&#x2F;10.1126&#x2F;science.ade9097 [13]: DeepMind et al. \"Mastering the game of Go with deep neural networks and tree search\" https:&#x2F;&#x2F;www.nature.com&#x2F;articles&#x2F;nature16961 [14]: DeepMind et al. \"Mastering the game of Go without human knowledge\" https:&#x2F;&#x2F;www.nature.com&#x2F;articles&#x2F;nature24270 [15]: Sebastian Borgeaud et al. \"Improving language models by retrieving from trillions of tokens\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2112.04426 [16]: Umang Bhatt et al. \"Explainable Machine Learning in Deployment\" https:&#x2F;&#x2F;dl.acm.org&#x2F;doi&#x2F;10.1145&#x2F;3351095.3375624 [17]: M. F. Kasim et al. \"Building high accuracy emulators for scientific simulations with deep neural architecture search\" https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2001.08055",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:37851788",
+   "title": "Inverted Transformers Are Effective for Time Series Forecasting",
+   "year": "2023",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=37851788",
+   "abstract": "DL also don\u2019t win at medium scale tabular data. This paper mentions why and how DL could might better (if it indeed can, with limited sized data) Why do tree-based models still outperform deep learning on tabular data? https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2207.08815",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:forums.fast.ai:74040",
+   "title": "RNN for Predicting Sporting Game Outcomes",
+   "year": "2018",
+   "cited_by": 1,
+   "url": "https://forums.fast.ai/t/18417/1",
+   "abstract": "As a little side project, I\u2019ve been experimenting with the efficacy of an RNN to predict if a team will win a game given a sequence of the team\u2019s prior games and some other features about the team and the opponent (e.g. offensive efficiency, defensive efficiency, strength-of-schedule, etc.). I\u2019ve...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "GH:dl1683/Why-Trees-Outperform-Neural-Networks-on-Tabular-Data",
+   "title": "dl1683/Why-Trees-Outperform-Neural-Networks-on-Tabular-Data",
+   "year": "2025",
+   "url": "https://github.com/dl1683/Why-Trees-Outperform-Neural-Networks-on-Tabular-Data",
+   "cited_by": 0,
+   "abstract": "Visuals from the paper \"Why do tree-based models still outperform deep learning on tabular data? \" Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:SnowHE-hub/ExpML",
+   "title": "SnowHE-hub/ExpML",
+   "year": "2026",
+   "url": "https://github.com/SnowHE-hub/ExpML",
+   "cited_by": 0,
+   "abstract": "Built end-to-end ML experimentation platform with Optuna AutoML and MLflow tracking; ran 200+ experiments comparing tree-based models against MLPs across 3 tabular datasets, with documented analysis of when deep learning outperforms gradient boosting on tabular data. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "W4386874596",
+   "title": "Generating and Imputing Tabular Data via Diffusion and Flow-based Gradient-Boosted Trees",
+   "year": 2023,
+   "url": "https://doi.org/10.48550/arxiv.2309.09968",
+   "cited_by": 37,
+   "abstract": "Tabular data is hard to acquire and is subject to missing values. This paper introduces a novel approach for generating and imputing mixed-type (continuous and categorical) tabular data utilizing score-based diffusion and conditional flow matching. In contrast to prior methods that rely on neural networks to learn the score function or the vector field, we adopt XGBoost, a widely used Gradient-Boosted Tree (GBT) technique. To test our method, we build one of the most extensive benchmarks for tabular data generation and imputation, containing 27 diverse datasets and 9 metrics. Through empirical evaluation across the benchmark, we demonstrate that our approach outperforms deep-learning generation methods in data generation tasks and remains competitive in data imputation. Notably, it can be trained in parallel using CPUs without requiring a GPU. Our Python and R code is available at https://github.com/SamsungSAILMontreal/ForestDiffusion.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4406151366",
+   "title": "A Hybrid Gradient Boosting and Neural Network Model for Predicting Urban Happiness: Integrating Ensemble Learning with Deep Representation for Enhanced Accuracy",
+   "year": 2025,
+   "url": "https://doi.org/10.3390/make7010004",
+   "cited_by": 40,
+   "abstract": "Urban happiness prediction presents a complex challenge, due to the nonlinear and multifaceted relationships among socio-economic, environmental, and infrastructural factors. This study introduces an advanced hybrid model combining a gradient boosting machine (GBM) and neural network (NN) to address these complexities. Unlike traditional approaches, this hybrid leverages a GBM to handle structured data features and an NN to extract deeper nonlinear relationships. The model was evaluated against various baseline machine learning and deep learning models, including a random forest, CNN, LSTM, CatBoost, and TabNet, using metrics such as RMSE, MAE, R2, and MAPE. The GBM + NN hybrid achieved superior performance, with the lowest RMSE of 0.3332, an R2 of 0.9673, and an MAPE of 7.0082%. The model also revealed significant insights into urban indicators, such as a 10% improvement in air quality correlating to a 5% increase in happiness. These findings underscore the potential of hybrid models in urban analytics, offering both predictive accuracy and actionable insights for urban planners.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4391893776",
+   "title": "Graph Neural Network contextual embedding for Deep Learning on tabular data",
+   "year": 2024,
+   "url": "https://doi.org/10.1016/j.neunet.2024.106180",
+   "cited_by": 50,
+   "abstract": "All industries are trying to leverage Artificial Intelligence (AI) based on their existing big data which is available in so called tabular form, where each record is composed of a number of heterogeneous continuous and categorical columns also known as features. Deep Learning (DL) has constituted a major breakthrough for AI in fields related to human skills like natural language processing, but its applicability to tabular data has been more challenging. More classical Machine Learning (ML) models like tree-based ensemble ones usually perform better. This paper presents a novel DL model using Graph Neural Network (GNN) more specifically Interaction Network (IN), for contextual embedding and modeling interactions among tabular features. Its results outperform those of a recently published survey with DL benchmark based on seven public datasets, also achieving competitive results when compared to boosted-tree solutions.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4392909858",
+   "title": "EC-NAS: Energy Consumption Aware Tabular Benchmarks for Neural Architecture Search",
+   "year": 2024,
+   "url": "https://doi.org/10.1109/icassp48485.2024.10448303",
+   "cited_by": 36,
+   "abstract": "Energy consumption from the selection, training, and deployment of deep learning models has seen a significant uptick recently. This work aims to facilitate the design of energy-efficient deep learning models that require less computational resources and prioritize environmental sustainability by focusing on the energy consumption. Neural architecture search (NAS) benefits from tabular benchmarks, which evaluate NAS strategies cost-effectively through pre-computed performance statistics. We advocate for including energy efficiency as an additional performance criterion in NAS. To this end, we introduce an enhanced tabular benchmark encompassing data on energy consumption for varied architectures. The benchmark, designated as EC-NAS1, has been made available in an open-source format to advance research in energy-conscious NAS. EC-a surrogate model to predict energy consumption, aiding in diminishing the energy expenditure of the dataset creation. Our findings emphasize the potential of EC-NAS by leveraging multi-objective optimization algorithms, revealing a balance between energy usage and accuracy. This suggests the feasibility of identifying energy-lean architectures with little or no compromise in performance.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4378803232",
+   "title": "eXtreme Gradient Boosting Algorithm with Machine Learning: a Review",
+   "year": 2023,
+   "url": "https://doi.org/10.25007/ajnu.v12n2a1612",
+   "cited_by": 427,
+   "abstract": "The primary task of machine learning is to extract valuable information from the data that is generated every day, process it to learn from it, and take useful actions. Original language process, pattern detection, search engines, medical diagnostics, bioinformatics, and chemical informatics are all examples of application areas for machine learning. XGBoost is a recently released machine learning algorithm that has shown exceptional capability for modeling complex systems and is the most superior machine learning algorithm in terms of prediction accuracy and interpretability and classification versatility. XGBoost is an enhanced distributed scaling enhancement library that is built to be extremely powerful, adaptable, and portable. It uses augmented scaling to incorporate machine learning algorithms. it is a parallel tree boost that addresses a variety of data science problems quickly and accurately. Python remains the language of choice for scientific computing, data science, and machine learning, which boosts performance and productivity by enabling the use of clean low-level libraries and high-level APIs. This paper presents one of the most prominent supervised and semi-supervised learning (SSL) machine learning algorithms in a Python environment.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4416425425",
+   "title": "TabAttackBench: A benchmark for adversarial attacks on tabular data",
+   "year": 2025,
+   "url": "https://doi.org/10.1016/j.eswa.2025.130491",
+   "cited_by": 17,
+   "abstract": "Adversarial attacks pose a significant threat to machine learning models by inducing incorrect predictions through imperceptible perturbations to input data. While these attacks are well studied in unstructured domains such as images, their behaviour on tabular data remains underexplored due to mixed feature types and complex inter-feature dependencies. This study introduces a comprehensive benchmark that evaluates adversarial attacks on tabular datasets with respect to both effectiveness and imperceptibility. We assess five white-box attack algorithms (FGSM, BIM, PGD, DeepFool, and C&W) across four representative models (LR, MLP, TabTransformer and FT-Transformer) using eleven datasets spanning finance, energy, and healthcare domains. The benchmark employs four quantitative imperceptibility metrics (proximity, sparsity, deviation, and sensitivity) to characterise perturbation realism. The analysis quantifies the trade-off between these two aspects and reveals consistent differences between attack types, with \u2113 \u221e -based attacks achieving higher success but lower subtlety, and \u2113 2 -based attacks offering more realistic perturbations. The benchmark findings offer actionable insights for designing more imperceptible adversarial attacks, advancing the understanding of adversarial vulnerability in tabular machine learning.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2506.16791",
+   "title": "TabArena: A Living Benchmark for Machine Learning on Tabular Data",
+   "year": "2025",
+   "url": "https://huggingface.co/papers/2506.16791",
+   "cited_by": 4,
+   "abstract": "With the growing popularity of deep learning and foundation models for tabular data, the need for standardized and reliable benchmarks is higher than ever. However, current benchmarks are static. Their design is not updated even if flaws are discovered, model versions are updated, or new models are released. To address this, we introduce TabArena, the first continuously maintained living tabular benchmarking system. To launch TabArena, we manually curate a representative collection of datasets and well-implemented models, conduct a large-scale benchmarking study to initialize a public leaderboard, and assemble a team of experienced maintainers. Our results highlight the influence of validation method and ensembling of hyperparameter configurations to benchmark models at their full potential. While gradient-boosted trees are still strong contenders on practical tabular datasets, we observe that deep learning methods have caught up under larger time budgets with ensembling. At the same time, foundation models excel on smaller datasets. Finally, we show that ensembles across models advance the state-of-the-art in tabular machine learning and investigate the contributions of individual models. We launch TabArena with a public leaderboard, reproducible code, and maintenance protocols to create a living benchmark available at https://tabarena.ai.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2311.05877",
+   "title": "A Performance-Driven Benchmark for Feature Selection in Tabular Deep Learning",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2311.05877",
+   "cited_by": 0,
+   "abstract": "Academic tabular benchmarks often contain small sets of curated features. In contrast, data scientists typically collect as many features as possible into their datasets, and even engineer new features from existing ones. To prevent overfitting in subsequent downstream modeling, practitioners commonly use automated feature selection methods that identify a reduced subset of informative features. Existing benchmarks for tabular feature selection consider classical downstream models, toy synthetic datasets, or do not evaluate feature selectors on the basis of downstream performance. Motivated by the increasing popularity of tabular deep learning, we construct a challenging feature selection benchmark evaluated on downstream neural networks including transformers, using real datasets and multiple methods for generating extraneous features. We also propose an input-gradient-based analogue of Lasso for neural networks that outperforms classical feature selection methods on challenging problems such as selecting from corrupted or second-order features.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:669675",
+   "title": "Cluster analysis",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=669675",
+   "abstract": "Cluster analysis, or clustering, is a data analysis technique aimed at partitioning a set of objects into groups such that objects within the same group (called a cluster) exhibit greater similarity to one another (in some specific sense defined by the analyst) than to those in other groups (clusters). It is a main task of exploratory data analysis, and a common technique for statistical data analysis, used in many fields, including pattern recognition, image analysis, information retrieval, bioinformatics, data compression, computer graphics and machine learning. Cluster analysis refers to a family of algorithms and tasks rather than one specific algorithm. It can be achieved by various algorithms that differ significantly in their understanding of what constitutes a cluster and how to efficiently find them. Popular notions of clusters include groups with small distances between cluster members, dense areas of the data space, intervals or particular statistical distributions. Clustering can therefore be formulated as a multi-objective optimization problem. The appropriate clustering algorithm and parameter settings (including parameters such as the distance function to use, a density threshold or the number of expected clusters) depend on the individual data set and intended use of the results. Cluster analysis as such is not an automatic task, but an iterative process of knowledge discovery or interactive multi-objective optimization that involves trial and failure. It is often necessary to modify data preprocessing and model parameters until the result achieves the desired properties. Besides the term clustering, there are a number of terms with similar meanings, including automatic classification, numerical taxonomy, botryology (from Greek: \u03b2\u03cc\u03c4\u03c1\u03c5\u03c2 'grape'), typological analysis, and community detection. The subtle differences are often in the use of the results: while in data mining, the resulting groups are the matter of interest, in automatic classification the resulting discriminative power is of interest. Cluster analysis originated in anthropology by Driver and Kroeber in 1932 and introduced to psychology by Joseph Zubin in 1938 and Robert Tryon in 1939 and famously used by Cattell beginning in 1943 for trait theory classification in personality psychology.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:49082762",
+   "title": "List of datasets for machine-learning research",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=49082762",
+   "abstract": "These datasets are used in machine learning (ML) research and have been cited in peer-reviewed academic journals. Datasets are an integral part of the field of machine learning. Major advances in this field can result from advances in learning algorithms (such as deep learning), computer hardware, and, less intuitively, the availability of high-quality training datasets. High-quality labeled training datasets for supervised and semi-supervised machine-learning algorithms are usually difficult and expensive to produce because of the large amount of time needed to label the data. Although they do not need to be labeled, high-quality unlabeled datasets for unsupervised learning can also be difficult and costly to produce. Many organizations, including governments, publish and share their datasets, often using common metadata formats (such as Croissant). The datasets are classified, based on the licenses, into two groups: open data and non-open data. The datasets from various governmental-bodies are presented in List of open government data sites. The datasets are ported on open data portals. They are made available for searching, depositing and accessing through interfaces like Open API. The datasets are made available as various sorted types and subtypes.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:stats:300254:",
+   "title": "does feature engineering matter when doing Random Forest or Gradient Boosting?",
+   "year": 2017,
+   "cited_by": 13,
+   "url": "https://stats.stackexchange.com/q/300254",
+   "abstract": "For linear models (such as linear regression, logistic regression, etc), feature engineering is an important step to improve the performance of the models. My question is does it matter if we do any feature engineering while using random forest or gradient boosting? Granted that these models aren&#39;t deep learning models. but\uff0cit seems that some of the feature engineering methods don&#39;t really improve the model. For example: I am doing a binary classification problem, which contains about 200 features\uff0c and 20 of them are categorical features. I did the following: benchmark: ran random forest classifier directly on the original data. I got AUC around 0.93, precision, recall & F-score are around 0.95 \uff08I said around, because statifiedKfold validation is applied, and there are very small variations to the results\uff09 I reduced the feature dimension by doing chi squared test and ANOVA f1 test, the run the model. results are almost identical: AUC around 0.93, precision, recall & F-score are around 0.95 then I one-hot keyed all the categorical features, and then rerun the model, results still almost identical: AUC around 0.93, precision, recall & F-score are around 0.95 Then truncated SVD is applied to reduce features further, and retrain the model, still results are unchanged... at last I added polynomial term, cross term of the remaining features. results are still unchanged... Any suggestions please? thank you.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stats:513623:",
+   "title": "How to stabilize model performance?",
+   "year": 2021,
+   "cited_by": 0,
+   "url": "https://stats.stackexchange.com/q/513623",
+   "abstract": "I am performing a regression classification to predict genes that are likely to cause disease. I have 600 rows of training genes by 8 features. Although only 50 genes have a score &gt;0.9 (on a scale of 0 to 1, where 1 is definitely causing disease and 0 is a gene not causing the disease) and unfortunately cannot increase this, whilst I also have ~400 genes &lt;0.1 I benchmark a few models using nested cross-validation and Bayesian hyperparameter tuning (models: gradient boosting, extreme gradient boosting, random forest, support vector machine, and k-nearest neighbors). I assess model performance with all the metrics scikit-learn has to offer for regression classification (MSE, MAE, max error, r2, etc.). However when I re-run the same code I get small flucuations in these measures (e.g. r2 changes from 0.70 to 0.71. Differences in performance have only been +/- 0.01 on my re-runs, but this concerns me as I thought I&#39;ve done everything to make sure the performance is stable. Is there anything I can do further check/ensure model performance stability? I thought about removing some of the genes that have &lt;0.1 score to reduce the imbalance between them and the few genes that score &gt;0.9 but I&#39;m not sure if this is good practice? Also wouldn&#39;t go for synthetically increasing high scored genes as I&#39;m not sure that&#39;s trustworthy either. I have also: Set the seed globally (to 0) I select the 8 features using the Boruta algorithm and check model performance further with Checked that the imputation on the data before machine learning also outputs a stable dataset (so the data going into the models is the same every time). I use missforest random forest imputation for this. For the tree-based models I don&#39;t scale or normalize data but for the other non-tree-based I do scaling. Gradient boosting is my top model so in theory if its performance was stable I&#39;d go for using that model, and so as an example the parameter tuning I do looks like: I also use sklearn&#39;s for which I also set the same seed of 0.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stats:431968:",
+   "title": "Combining features linearly before non-linear modelling",
+   "year": 2019,
+   "cited_by": 0,
+   "url": "https://stats.stackexchange.com/q/431968",
+   "abstract": "I want to construct a model like this: $$y = g(X, Z)$$ $$X = \\alpha_1 x_1 + \\alpha_2 x_2 + \\dots + \\alpha_n x_n$$ $$Z = \\beta_1 z_1 + \\beta_2 z_2 + \\dots + \\beta_n z_n$$ Where $x_i \\text{ and } z_i$ are input features and $\\alpha_i \\text{ and } \\beta_i$ are coefficients to be estimated. $g()$ is a non-linear function to be learned. Some motivations behind my design of the model: I have observed that the target (say sales) could be impacted by several \"dimensions\" such as weather, income, etc. The relationship however, cannot be captured by simple linear model. Let&#39;s say Gradient Boosting is a viable option for non-linear modelling here. In addition, for each dimension, I have input from different regions (Temperature of New York City, LA, etc) and that&#39;s why I have not just one $x$ but $x_1, x_2, \\dots, x_n$. I believe that I should aggregate them linearly because how temperature impacts the sales should be consistent across regions. The challenge is that I have no idea beforehand what weights ($\\alpha_1, \\alpha_2, \\dots, \\alpha_n$) would be ideal to use. I hope there is a way that I can jointly learn the non-linear transformation as well as the coefficients. However the only way I can think about is neural network but I&#39;m afraid with very small sample size (less than 50 data points) I cannot afford to do NN. I tried but the performance of the model would fluctuate violently with random initialization and it definitely cannot outperform my benchmark which is gradient boosting with only takes $x_1 \\text{ and } z_1$. Am I missing anything here. Sorry for being verbose. Many thanks in advance!",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:11272:11293",
+   "title": "Is boosting resistant to overfitting for both number of iterations and number of features?",
+   "year": 2016,
+   "cited_by": 2,
+   "url": "https://datascience.stackexchange.com/q/11272",
+   "abstract": "I can&#39;t speak from a theoretical perspective, but I can say that in practice overfitting with a large number of features is not an issue with gradient boosting. I work at a huge financial institution that has been doing credit risk modeling for decades, and for the past decade or so they have almost exclusively been doing their variable selection using gradient boosting. Gradient boosting (along with any tree-based method) can be used to find relative feature importances (based on how much error is reduced after each split). Statisticians where I work will often use gradient boosting to narrow down 2,000 or so features into a more manageable 10-15 by taking the top ranked features. These features are then fed into a logistic regression model, which is more interpretable than gradient boosting. Even on the hold-out partition, the gradient boosting algorithm built on the 2,000 features generally outperforms the logistic regression model. The gradient boosting model is thus used for variable selection and predictive performance benchmarking.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:56139:56243",
+   "title": "what do we actually study in machine learning?",
+   "year": 2019,
+   "cited_by": 2,
+   "url": "https://datascience.stackexchange.com/q/56139",
+   "abstract": "I want to point out one aspect which is not adequately reflected in the previous answers. When you start with linear regression, you basically I) propose some model (a way how to represent the relation between $y$ and $X$), e.g. a linear function, and II) you specify a loss function (the sum of squared residuals). The aim is to find coefficients (or weights), which map $X$ to $y$ in a way so that there is no \u201cbetter way\u201d to predict $y$ (viz. minimise the sum of square residuals). In the case of linear regression, you have two options: solve the problem analytically or by gradient decent. Optimal coefficients/weights (vector beta) are given by: $$ (X&#39;X)^{-1} X&#39;y=\\beta. $$ So there is no need for gradient decent in this case. It is just simple matrix algebra. Here is a minimal example in R, demonstrating how it works: Source: https://www.r-bloggers.com/regression-via-gradient-descent-in-r/ Results: So as you can see, there is not much of a machine involved in solving the problem (apart of doing the math of course). So why machine learning? Increasing computational power has made it possible to solve very complex problems using gradient decent. The idea is that you depart from simple solutions and look for better, more complex ways to map $X$ to $y$. You can think about changing the base procedure, e.g. use decision trees instead of a linear function. Since one tree may be only a weak learner, you can combine (or ensemble) trees to a random forest. Or you go even further and use boosting, in which you repeatedly use information contained in the residual to improve your fit. Usually very small trees are used to do this, but you can boost on linear regression as well. Here is a little example for L2 boosting: (from: Boosting Algorithms: Regularization, Prediction and Model Fitting) The problem here is that you do not only need to solve one regression, but 10000 (in the example here). In real world applications, the amount of math that has to be done is immense (counts for boosting and neural nets as well). So what is machine learning? You want to let \u201cthe machine learn things\u201d (recognise patterns in data, recognise images, make prediction based on that etc) and you will likely be unable to do this learning task on your own using pen and paper. Improved computing capacity over time has enabled us to solve very complex problems. And because of this cheap resource, new tools and methods develop. You can do things today on your laptop which literally seemed impossible in the late 1990s. Of course you need to tell \u201cthe machine\u201d how to learn. This is a lot of statistics but also computer science. Neural nets for example have mostly been advanced by computer scientists. Ultimately, the machine is merely a tool, but a very useful one.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:60531:72133",
+   "title": "Popular classification algorithms over time",
+   "year": 2020,
+   "cited_by": 1,
+   "url": "https://datascience.stackexchange.com/q/60531",
+   "abstract": "Gradient Boosting performs well for problems that have a medium amount of tabular data. Many problems on Kaggle are in that style. Currently, Deep Learning holds many of the state-of-the-art benchmarks. Deep Learning generally performs better as the amount of data grows. Deep Learning performs better on other types of data (images and text). No single machine learning algorithm is best in all cases, often called the \"no free lunch theorem\".",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:40145154:",
+   "title": "XGBoost (Gradient Boosting) vs Random Forest",
+   "year": 2016,
+   "cited_by": 0,
+   "url": "https://stackoverflow.com/q/40145154",
+   "abstract": "(Hope this is a right forum for this type of question, if not please kindly suggest.) What is the performance of gradient boosting in XGBoost library versus Random Forest? Are there any benchmark numbers comparing the two? I am about to start some work on classification and regression on many-millions events from a dataset (at least 6GB, upto TB). Thanks",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:60137453:",
+   "title": "How does Lightgbm (or other boosted trees implementations with 2nd order approximations of the loss) work for L1 losses?",
+   "year": 2020,
+   "cited_by": 3,
+   "url": "https://stackoverflow.com/q/60137453",
+   "abstract": "I&#39;ve been trying to understand how Lightgbm handless L1 loses (MAE, MAPE, HUBER) According to this article, the gain during a split should depend only on the first and second derivatives of the loss function. This is due to the fact that Lightgbm uses a second order approximation to the loss function and consequently we can approximate the loss as follows For L1 losses however, the absolute value of the gradient of the loss is constant and its hessian 0. I&#39;ve also read that to deal with this, for loss functions with hessian = 0 we should rather use 1 as the Hessian: \"For these objective function with first_order_gradient is constant, LightGBM has a special treatment for them: (...) it will use the constant gradient for the tree structure learning, but use the residual for the leaf output calculation, with percentile function, e.g. 50% for MAE. This solution is from sklearn, and is proven to work in many benchmarks.\" However, even using constant hessian doesn&#39;t make sense to me: if for instance when using MAE the gradient is the sign of the error, the squared gradient doesn&#39;t give us information. Does it mean that when the gradient is constant, LightGbm does not use the second order approximation, and defaults to traditional gradient boosting? On the other hand, when reading about GOSS boosting the original lightgbm paper for the GOSS boosting strategy, the authors consider the square of the sum of the gradients. I see the same problem as above: if the gradient of the MAE is the sign of the error, how does taking the square of the gradient reflect a gain? Does it mean that also GOSS won&#39;t work with loss functions with constant gradient? Thanks in advance,",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:52916855:",
+   "title": "Fusing learners with preprocessing in mlr - what settings to use?",
+   "year": 2018,
+   "cited_by": 0,
+   "url": "https://stackoverflow.com/q/52916855",
+   "abstract": "I am conducting a benchmark analysis comparing different learners (logistic regression, gradient boosting, random forest, extreme gradient boosting) with the package. I understand that there are two different types of preprocessing (data and learner dependent and independent). Now I would like to conduct the data dependent preprocessing using the &#39;s wrapper functionality . However, I am unsure about the settings. As far as I understand correctly, I should impute missings with median (or mean) for logistic regression, however for tree-based models for example with very great values. Question 1) How would I impute NAs with very great values in the code below (for the tree-based models)? Next, as far as I understand correctly, I should cut off outliers for the logistic regression (e.g. at 99%, and 1%). However, for tree-based models that is not necessary. Question 2) How can I cut off outlier (e.g. at 99%, and 1%) in the code below? Lastly, (again, if I understood correctly) I should standardize the data for the logistic regression. However, I can only find the \"center\" option within the which is not exactly the same. Question 3) How can I standardize in the code below? Many thanks in advance!!",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "HN:46138439",
+   "title": "Show HN: TabPFN Scaling Mode \u2013 Tabular Foundation Model on millions of rows",
+   "year": "2025",
+   "cited_by": 5,
+   "url": "https://news.ycombinator.com/item?id=46138439",
+   "abstract": "I\u2019m excited to announce Scaling Mode for TabPFN-2.5, our tabular foundation model (Large Tabular Model). This removes any fixed upper limits on dataset sizes and extends TabPFN to datasets with millions of rows. What is Scaling Mode? A new pipeline around TabPFN-2.5 designed for large-N workloads, which removes the fixed row limit of TabPFN. The system works with large training sets, constrained only by your compute and memory. We benchmarked Scaling Mode on datasets ranging from 1M to 10M rows, comparing against CatBoost, XGBoost, and LightGBM. Key findings: - Scaling Mode enables TabPFN-2.5 to continue improving performance with more data - Scales dramatically better than TabPFN-2.5 with 50K subsampling - No evidence of the performance gap to gradient boosting shrinking as we scale up - Performance continues to improve strongly with more data on the largest tested datasets To quickly summarise our progress, here's the history of our scaling trajectory: - TabPFN v2 (Jan 2025): 10K rows - TabPFN-2.5 (Nov 2025): 50K rows - Scaling Mode (today): 10M+ rows tested Current limitations: Scaling Mode is designed for companies for now. If you\u2019re working with data at a large scale and want to test it, access is currently only by request to ensure we can support early users properly. Full blog post: https:&#x2F;&#x2F;priorlabs.ai&#x2F;technical-reports&#x2F;large-data-model Request access: https:&#x2F;&#x2F;priorlabs.ai&#x2F;tabpfn&#x2F;large-data Would love to hear feedback from anyone working with large tabular datasets!",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:8487526",
+   "title": "Machine-Learning Maestro Michael Jordan on the Delusions of Big Data and Others",
+   "year": "2014",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=8487526",
+   "abstract": "&gt; ... how exactly none of those are the ones with the necessary PhDs in statistics and algorithms to get anything of any value done. I see it almost the other way around: Companies strictly demand PhD's for Big Data jobs and can't find this unicorn. Yet we live in a time where we don't need a PhD program to receive education from the likes of Ng, LeCun and Langford. We live in a time where curiosity and dedication can net you valuable results. Where CUDA-hackers can beat university teams. The entire field of big data visualization requires innate aptitude and creativity, not so much an expensive PhD program. I suspect Paul Graham, when solving his spam problem with ML, benefited more from his philosophy education than his computer science education. Of course, having a PhD. still shows dedication and talent. But it is no guarantee for practical ML skills, it can even hamper research and results, when too much power is given to theory and reputation is at stake. In my experience Machine Learning was locked up in academics, and even in academics it was subdivided. The idea that \"you need to be an ML expert, before you can run an algo\" is detrimental to the field, not helping so much in adopting a wider industry use of ML. Those ML experts set the academic benchmarks that amateurs were able to beat by trying out Random Forests and Gradient Boosting. I predict that ML will become part of the IT-stack, as much as databases have. Nowadays, you do not need to be a certified DBA to set up a database. It is helpful and in some cases heavily advisable, but databases now see a much wider adoption by laypeople. This is starting to happen in ML. I think more hobbyists are right now toying with convolutional neural networks, than there are serious researchers in this area. These hobbyists can surely find and contribute valuable practical insights. Tuning parameters is basically a gridsearch. You can bruteforce this. In goes some ranges of parameters, out come the best params found. Fairly easy to explain to a programmer. Adapting existing algorithms is ML researcher territory. That is a few miles above the business people extracting valuable&#x2F;actionable insight from (big or small or tedious) data. Also there is a wide range of big data engineers making it physically possible to have the \"necessary\" PhD's extract value from Big Data.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:48761815",
+   "title": "Pure-Python symbolic regression that rediscovered Kepler's law from 8 data point",
+   "year": "2026",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=48761815",
+   "abstract": "What My Project Does GP_ELITE is a symbolic regression engine in pure Python: given (X, y) data, it searches for a readable mathematical formula linking them, instead of a black-box model. To show what that means concretely: I gave it nothing but the 8 planets' distance from the Sun and orbital period \u2014 8 data points \u2014 and asked for a formula. It returned: T = a \u00b7 sqrt(a) (i.e. a^1.5), R\u00b2 = 1.000000 That's Kepler's Third Law (T\u00b2 \u221d a\u00b3), which took Kepler ~10 years to find in 1618. GP_ELITE found it in ~3 seconds. Reproducible: examples&#x2F;kepler_demo.py. v0.2.0 (this week) added the parts that make it reliable: Levenberg-Marquardt constant fitting (constants come back at machine precision \u2014 Coulomb's q1\u00b7q2&#x2F;(4\u03c0\u03b5r\u00b2) is recovered exactly), multi-restart with a merged candidate archive, a Pareto front output (the full complexity \u2194 accuracy staircase, not just one champion), and a guarded forecasting mode for extrapolating trends beyond your data without the usual GP blow-ups. Pure Python&#x2F;NumPy \u2014 pip install gp-elite, no compiler, no Julia. Target Audience Anyone with small experimental datasets (\u226410 variables, 100\u20135000 points) who wants to understand a relationship, not just predict it: lab engineers, scientists, students. One concrete use case that drove development: battery degradation (SOH) forecasting \u2014 the guarded mode gives you an honest bracket of scenarios (a Pareto front from a conservative straight line to richer bounded laws) instead of one overconfident curve. Production-usable for that niche (built-in hold-out validation, regression-tested); not aimed at large-scale ML. Comparison vs gplearn (the established pure-Python option): I ran both on the same frozen benchmark \u2014 15 Feynman physics equations, identical data and splits, generous budget for gplearn. Exact symbolic recovery (machine precision): GP_ELITE 10&#x2F;15 (67%) vs gplearn 6&#x2F;15 (40%). gplearn recovers the constant-free formulas and stalls as soon as a \u00bd or a 4\u03c0 appears (no real constant optimization); LM fitting is what closes that gap. Every number is reproducible: PYTHONHASHSEED=0 python benchmarks&#x2F;feynman_bench.py 0 15 and benchmarks&#x2F;duel.py in the repo. vs PySR &#x2F; Operon (the state of the art): they are stronger on speed and scale, and I'm not claiming otherwise \u2014 but they require a Julia or C++ toolchain. GP_ELITE's whole point is zero barrier: pip install and go. vs neural nets &#x2F; gradient boosting: those win on raw accuracy for large data, but give you a black box \u2014 GP_ELITE gives you the actual equation. Honest limits: weak on chaotic targets (tested on Collatz), degrades past ~6 variables with decoy features, and pure Python costs wall-time on big data. Code (MIT): https:&#x2F;&#x2F;github.com&#x2F;ariel95500-create&#x2F;gp-elite",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:48424675",
+   "title": "Trees to Flows and Back: Unifying Decision Trees and Diffusion Models",
+   "year": "2026",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=48424675",
+   "abstract": "Decision trees and diffusion models are ostensibly disparate model classes, one discrete and hierarchical, the other continuous and dynamic. This work unifies the two by establishing a crisp mathematical correspondence between hierarchical decision trees and diffusion processes in appropriate limiting regimes. Our unification reveals a shared optimization principle: \\emph{Global Trajectory Score Matching (GTSM)}, for which gradient boosting (in an idealized version) is asymptotically optimal. We underscore the conceptual value of our work through two key practical instantiations: \\treeflow, which achieves competitive generation quality on tabular data with higher fidelity and a 2\\times computational speedup, and \\dsmtree, a novel distillation method that transfers hierarchical decision logic into neural networks, matching teacher performance within 2\\% on many benchmarks.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:forums.fast.ai:336655",
+   "title": "When trees outdo neural networks",
+   "year": "2022",
+   "cited_by": 6,
+   "url": "https://forums.fast.ai/t/102435/1",
+   "abstract": "While neural networks perform well on image, text, and audio datasets, they fall behind https://www.deeplearning.ai/the-batch/decision-trees-from-root-to-leaves/ decision trees and their variations for tabular datasets. New research looked into why. What\u2019s new: L\u00e9o Grinsztajn, Edouard Oyallon, an...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:forums.fast.ai:118403",
+   "title": "\ud83d\udcdd Deep Learning Lesson 4 Notes",
+   "year": "2018",
+   "cited_by": 10,
+   "url": "https://forums.fast.ai/t/30983/1",
+   "abstract": "&lt; &lt; &lt; Notes: Lesson 3 \uff5c Notes: Lesson 5 &gt; &gt; &gt; Hi everybody, welcome to lesson 4. 47%20PM We are going to finish our journey through these key applications. We already looked at a range of computer vision applications like image classification, localization, regression etc. We slightly touched NLP...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "GH:szilard/benchm-ml",
+   "title": "szilard/benchm-ml",
+   "year": "2022",
+   "url": "https://github.com/szilard/benchm-ml",
+   "cited_by": 1893,
+   "abstract": "A minimal benchmark for scalability, speed and accuracy of commonly used open source implementations (R packages, Python scikit-learn, H2O, xgboost, Spark MLlib etc.) of the top machine learning algorithms for binary classification (random forests, gradient boosted trees, deep neural networks etc.). Topics: data-science, deep-learning, gradient-boosting-machine, h2o, machine-learning, python, r, random-forest, spark, xgboost",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "title": "infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "year": "2018",
+   "url": "https://github.com/infomindgithub/Machine-Learning-Engineer-Nanodegree-Capstone-PROJECT-ANALYSIS",
+   "cited_by": 15,
+   "abstract": "*****PROJECT SPECIFICATION: Machine Learning Capstone Analysis Project***** This capstone project involves machine learning modeling and analysis of clinical, demographic, and brain related derived anatomic measures from human MRI (magnetic resonance imaging) tests (http://www.oasis-brains.org/). The objectives of these measurements are to diagnose the level of Dementia in the individuals and the probability that these individuals may have Alzheimer's Disease (AD). In published studies, Machine Learning has been applied to Alzheimer\u2019s/Dementia identification from MRI scans and related data in the academic papers/theses in References 10 and 11 listed in the References Section below. Recently, a close relative of mine had to undergo a sequence of MRI tests for cognition difficulties.The motivation for choosing this topic for the Capstone project arose from the desire to understand and analyze potential for Dementia and AD from MRI related data. Cognitive testing, clinical assessments and demographic data related to these MRI tests are used in this project. This Capstone project does not use the MRI \"imaging\" data and does not focus on AD, focusses only on Dementia. *****Conclusions, Justification, and Reflections***** [Student adequately summarizes the end-to-end problem solution and discusses one or two particular aspects of the project they found interesting or difficult.] The formulation of OASIS data (Ref 1 and 2) in terms of a dementia classification problem based on demographic and clinical data only (and without directly using the MRI image data), is a simplification that has major advantages and appeal. This means the trained model can classify whether an individual has dementia or not with about 87% accuracy, without having to wait for radiological interpretation of MRI scans. This can provide an early alert for intervention and initiation of treatment for those with onset of dementia. The assumption that the combined cross-sectional and longitudinal datasets would lead to dementia label classification of acceptable accuracy came out to be true. The method required careful data cleaning and data preparation work, converting it to a binary classification problem, as outlined in this notebook. At the outset it was not clear which algorithm(s) would be more appropriate for the binary and multi-label classification problem. The approach of spot checking the algorithms early for accuracy led to the determination of a smaller set of algorithms with higher accuracy (e.g. Gadient Boosting and Random Forest) for a deeper dive examination, e.g. use of a k-fold cross-validation approach in classifying the CDR label. The neural network benchmark model accuracy of 78% for binary classification was exceeded by the classification accuracy of the main output of this study, the trained Gradient Boosting and Random Forest classification models. This builds confidence in the latter model for further training with new data and further classification use for new patients. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:mdicio/AutoDeep",
+   "title": "mdicio/AutoDeep",
+   "year": "2026",
+   "url": "https://github.com/mdicio/AutoDeep",
+   "cited_by": 8,
+   "abstract": "AutoML for tabular data: tune, benchmark and deploy gradient-boosted trees, the TabICLv2 foundation model and modern deep tabular networks under a time budget. Web app, CLI and Python API. Topics: automl, benchmarking, catboost, deep-learning, foundation-models, hyperopt, hyperparameter-optimization, lightgbm, machine-learning, python, pytorch, tabular-data, tabular-deep-learning, xgboost",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:surpradhan/forecasting-showdown",
+   "title": "surpradhan/forecasting-showdown",
+   "year": "2026",
+   "url": "https://github.com/surpradhan/forecasting-showdown",
+   "cited_by": 3,
+   "abstract": "A rigorous benchmark of 11 time-series forecasting models on hourly energy demand data \u2014 from a seasonal naive baseline to gradient-boosted trees, deep recurrent networks, and a stacking ensemble. Topics: benchmarking, energy-demand, forecasting, machine-learning, python, time-series",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:AbhayNath001/Advanced-Anomaly-Detection-with-Graph-Neural-Networks-Autoencoders",
+   "title": "AbhayNath001/Advanced-Anomaly-Detection-with-Graph-Neural-Networks-Autoencoders",
+   "year": "2026",
+   "url": "https://github.com/AbhayNath001/Advanced-Anomaly-Detection-with-Graph-Neural-Networks-Autoencoders",
+   "cited_by": 2,
+   "abstract": "Design and prototype two advanced anomaly detection approaches for fraud detection \u2014 a Graph Neural Network (GNN) model and a Variational Autoencoder (VAE) model \u2014 and benchmark them against a traditional gradient-boosted baseline. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:Suyash-11/Telecom-Customer-Churn-Prediction",
+   "title": "Suyash-11/Telecom-Customer-Churn-Prediction",
+   "year": "2018",
+   "url": "https://github.com/Suyash-11/Telecom-Customer-Churn-Prediction",
+   "cited_by": 1,
+   "abstract": "Predicted whether a customer is going to churn or not depending on his past and current personal information, Services availed and overall expenses. A logistic regression model was primarily used to benchmark performance and was used to compare performance of Decision tree, Gradient Boosting Machine, Neural Network, and Ensemble Model. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "W4400434847",
+   "title": "Better by default: Strong pre-tuned MLPs and boosted trees on tabular data",
+   "year": 2024,
+   "url": "https://doi.org/10.52202/079017-0837",
+   "cited_by": 196,
+   "abstract": "For classification and regression on tabular data, the dominance of gradient-boosted decision trees (GBDTs) has recently been challenged by often much slower deep learning methods with extensive hyperparameter tuning. We address this discrepancy by introducing (a) RealMLP, an improved multilayer perceptron (MLP), and (b) strong meta-tuned default parameters for GBDTs and RealMLP. We tune RealMLP and the default parameters on a meta-train benchmark with 118 datasets and compare them to hyperparameter-optimized versions on a disjoint meta-test benchmark with 90 datasets, as well as the GBDT-friendly benchmark by Grinsztajn et al. (2022). Our benchmark results on medium-to-large tabular datasets (1K--500K samples) show that RealMLP offers a favorable time-accuracy tradeoff compared to other neural baselines and is competitive with GBDTs in terms of benchmark scores. Moreover, a combination of RealMLP and GBDTs with improved default parameters can achieve excellent results without hyperparameter tuning. Finally, we demonstrate that some of RealMLP's improvements can also considerably improve the performance of TabR with default parameters.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7223412924",
+   "title": "Tuned on paper, not in practice: How much does hyperparameter tuning improve classifiers on small tabular datasets?",
+   "year": 2026,
+   "url": "https://doi.org/10.55529/jaimlnn.62.120.133",
+   "cited_by": 0,
+   "abstract": "Hyperparameter tuning is routinely reported as a source of improvement in applied machine learning, but the gain is usually judged by the same cross-validation scores that were used to select the hyperparameters. This study measures how much of that gain survives on data untouched by the search. Logistic regression, a radial-basis support vector machine, a random forest, histogram gradient boosting and a multilayer perceptron were evaluated on seven public tabular datasets with 208\u20131797 samples, comparing library default hyperparameters with configurations found by random search over 20 candidates. A nested design was used: tuning took place inside 3-fold cross-validation on the development data of each of five outer folds, and both the defaults and the selected configurations were then scored once on the held-out outer fold, giving 175 paired comparisons. Measured by the inner cross-validation, tuning improved balanced accuracy by 1.34 percentage points on average and appeared to beat the defaults in 66\u2013100% of runs, depending on the model. On the held-out folds, the realised gain was 0.34 percentage points, tuning improved accuracy in only 76 of 175 comparisons (30 were unchanged), and no model showed a significant gain (Wilcoxon p \u2265 0.455). The apparent gain was therefore about four times the realised gain (p = 2.2 \u00d7 10\u22125). The discrepancy arose because the inner score of the selected configuration was optimistically biased (+0.26 points) while that of the defaults was pessimistically biased (\u22120.74 points). Increasing the search budget from 5 to 20 trials did not increase the realised gain consistently, and the best tuned model outperformed the best default model on only two of seven datasets. On small tabular datasets, defaults are strong baselines, and reported tuning gains should be measured on held-out data rather than on the scores used for selection.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W3213949891",
+   "title": "Well-tuned Simple Nets Excel on Tabular Datasets",
+   "year": 2021,
+   "url": "https://doi.org/10.48550/arxiv.2106.11189",
+   "cited_by": 323,
+   "abstract": "Tabular datasets are the last \"unconquered castle\" for deep learning, with traditional ML methods like Gradient-Boosted Decision Trees still performing strongly even against recent specialized neural architectures. In this paper, we hypothesize that the key to boosting the performance of neural networks lies in rethinking the joint and simultaneous application of a large set of modern regularization techniques. As a result, we propose regularizing plain Multilayer Perceptron (MLP) networks by searching for the optimal combination/cocktail of 13 regularization techniques for each dataset using a joint optimization over the decision on which regularizers to apply and their subsidiary hyperparameters. We empirically assess the impact of these regularization cocktails for MLPs in a large-scale empirical study comprising 40 tabular datasets and demonstrate that (i) well-regularized plain MLPs significantly outperform recent state-of-the-art specialized neural network architectures, and (ii) they even outperform strong traditional ML methods, such as XGBoost.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W7160911335",
+   "title": "Stratified Bootstrap Validation and Bayesian-Grid Tuning for Robust Gradient Boosting Ensembles on Clinical Tabular Data",
+   "year": 2026,
+   "url": "https://doi.org/10.23977/infse.2026.070106",
+   "cited_by": 0,
+   "abstract": "Risk stratification on high-dimensional clinical tabular data poses fundamental challenges arising from feature heterogeneity, class imbalance, and the tension between predictive accuracy and interpretability required for principled decision support. This paper presents a two-stage ensemble learning framework that integrates gradient boosting machines with logistic regression baselines under a hybrid Bayesian-Grid hyperparameter optimization scheme reinforced by Bootstrap resampling validation. The proposed architecture employs systematic data preprocessing through statistical imputation, robust outlier detection, and feature standardization, followed by a three-model ensemble combining XGBoost, LightGBM, and regularized logistic regression. A hierarchical hyperparameter optimization pipeline fuses the global exploration capability of Bayesian optimization with the local refinement of grid search, while Bootstrap resampling with 500 iterations ensures parameter stability and provides confidence intervals on the resulting performance estimates. Strict separation between training and held-out test partitions preserves the integrity of generalization assessment to previously unseen patient records. Experimental evaluation on a clinical cohort of 1,247 records collected over a seven-year horizon achieves an overall risk stratification accuracy of 92.3%, substantially exceeding the 68.5% accuracy of the conventional single-marker baseline. The framework attains an area under the receiver operating characteristic curve of 0.946, an F1 score of 91.8%, and a recall of 90.1%, validating its practical utility for interpretable clinical decision support systems.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4313400966",
+   "title": "Case Study II: Tuning of Gradient Boosting (xgboost)",
+   "year": 2022,
+   "url": "https://doi.org/10.1007/978-981-19-5170-1_9",
+   "cited_by": 10,
+   "abstract": "Abstract This case study gives a hands-on description of Hyperparameter Tuning (HPT) methods discussed in this book. The Extreme Gradient Boosting (XGBoost) method and its implementation was chosen, because it is one of the most powerful methods in many Machine Learning (ML) tasks, especially when standard tabular data should be analyzed. This case study follows the same HPT pipeline as the first and third studies: after the data set is provided and pre-processed, the experimental design is set up. Next, the HPT experiments are performed. The R package is used as a \u201cdatascope\u201d to analyze the results from the HPT runs from several perspectives: in addition to Classification and Regression Trees (CART), the analysis combines results from the surface, sensitivity, and parallel plots with a classical regression analysis. Severity is used to discuss the practical relevance of the results from an error-statistical point-of-view. The well-proven R package is used as a uniform interface from the methods of the packages and to the ML methods. The corresponding source code is explained in a comprehensible manner.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "W4386221938",
+   "title": "Practical guidelines for the use of gradient boosting for molecular property prediction",
+   "year": 2023,
+   "url": "https://doi.org/10.1186/s13321-023-00743-7",
+   "cited_by": 219,
+   "abstract": "Decision tree ensembles are among the most robust, high-performing and computationally efficient machine learning approaches for quantitative structure-activity relationship (QSAR) modeling. Among them, gradient boosting has recently garnered particular attention, for its performance in data science competitions, virtual screening campaigns, and bioactivity prediction. However, different variants of gradient boosting exist, the most popular being XGBoost, LightGBM and CatBoost. Our study provides the first comprehensive comparison of these approaches for QSAR. To this end, we trained 157,590 gradient boosting models, which were evaluated on 16 datasets and 94 endpoints, comprising 1.4 million compounds in total. Our results show that XGBoost generally achieves the best predictive performance, while LightGBM requires the least training time, especially for larger datasets. In terms of feature importance, the models surprisingly rank molecular features differently, reflecting differences in regularization techniques and decision tree structures. Thus, expert knowledge must always be employed when evaluating data-driven explanations of bioactivity. Furthermore, our results show that the relevance of each hyperparameter varies greatly across datasets and that it is crucial to optimize as many hyperparameters as possible to maximize the predictive performance. In conclusion, our study provides the first set of guidelines for cheminformatics practitioners to effectively train, optimize and evaluate gradient boosting models for virtual screening and QSAR applications.",
+   "via": "openalex",
+   "kind": "paper",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2007.09855v5",
+   "title": "Wide Boosting",
+   "year": "2020",
+   "url": "http://arxiv.org/abs/2007.09855v5",
+   "abstract": "Gradient Boosting (GB) is a popular methodology used to solve prediction problems by minimizing a differentiable loss function, $L$. GB performs very well on tabular machine learning (ML) problems; however, as a pure ML solver it lacks the ability to fit models with probabilistic but correlated multi-dimensional outputs, for example, multiple correlated Bernoulli outputs. GB also does not form intermediate abstract data embeddings, one property of Deep Learning that gives greater flexibility and performance on other types of problems. This paper presents a simple adjustment to GB motivated in part by artificial neural networks. Specifically, our adjustment inserts a matrix multiplication between the output of a GB model and the loss, $L$. This allows the output of a GB model to have increased dimension prior to being fed into the loss and is thus ``wider'' than standard GB implementations. We call our method Wide Boosting (WB) and show that WB outperforms GB on mult-dimesional output tasks and that the embeddings generated by WB contain are more useful in downstream prediction tasks than GB output predictions alone.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1703.01785v3",
+   "title": "Forward and Reverse Gradient-Based Hyperparameter Optimization",
+   "year": "2017",
+   "url": "http://arxiv.org/abs/1703.01785v3",
+   "abstract": "We study two procedures (reverse-mode and forward-mode) for computing the gradient of the validation error with respect to the hyperparameters of any iterative learning algorithm such as stochastic gradient descent. These procedures mirror two methods of computing gradients for recurrent neural networks and have different trade-offs in terms of running time and space requirements. Our formulation of the reverse-mode procedure is linked to previous work by Maclaurin et al. [2015] but does not require reversible dynamics. The forward-mode procedure is suitable for real-time hyperparameter updates, which may significantly speed up hyperparameter optimization on large datasets. We present experiments on data cleaning and on learning task interactions. We also present one large-scale experiment where the use of previous gradient-based methods would be prohibitive.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:1811.00620v1",
+   "title": "Efficient Online Hyperparameter Optimization for Kernel Ridge Regression with Applications to Traffic Time Series Prediction",
+   "year": "2018",
+   "url": "http://arxiv.org/abs/1811.00620v1",
+   "abstract": "Computational efficiency is an important consideration for deploying machine learning models for time series prediction in an online setting. Machine learning algorithms adjust model parameters automatically based on the data, but often require users to set additional parameters, known as hyperparameters. Hyperparameters can significantly impact prediction accuracy. Traffic measurements, typically collected online by sensors, are serially correlated. Moreover, the data distribution may change gradually. A typical adaptation strategy is periodically re-tuning the model hyperparameters, at the cost of computational burden. In this work, we present an efficient and principled online hyperparameter optimization algorithm for Kernel Ridge regression applied to traffic prediction problems. In tests with real traffic measurement data, our approach requires as little as one-seventh of the computation time of other tuning methods, while achieving better or similar prediction accuracy.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2101.02289v1",
+   "title": "Hyperboost: Hyperparameter Optimization by Gradient Boosting surrogate models",
+   "year": "2021",
+   "url": "http://arxiv.org/abs/2101.02289v1",
+   "abstract": "Bayesian Optimization is a popular tool for tuning algorithms in automatic machine learning (AutoML) systems. Current state-of-the-art methods leverage Random Forests or Gaussian processes to build a surrogate model that predicts algorithm performance given a certain set of hyperparameter settings. In this paper, we propose a new surrogate model based on gradient boosting, where we use quantile regression to provide optimistic estimates of the performance of an unobserved hyperparameter setting, and combine this with a distance metric between unobserved and observed hyperparameter settings to help regulate exploration. We demonstrate empirically that the new method is able to outperform some state-of-the art techniques across a reasonable sized set of classification problems.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2502.01634v1",
+   "title": "Online Gradient Boosting Decision Tree: In-Place Updates for Efficient Adding/Deleting Data",
+   "year": "2025",
+   "url": "http://arxiv.org/abs/2502.01634v1",
+   "abstract": "Gradient Boosting Decision Tree (GBDT) is one of the most popular machine learning models in various applications. However, in the traditional settings, all data should be simultaneously accessed in the training procedure: it does not allow to add or delete any data instances after training. In this paper, we propose an efficient online learning framework for GBDT supporting both incremental and decremental learning. To the best of our knowledge, this is the first work that considers an in-place unified incremental and decremental learning on GBDT. To reduce the learning cost, we present a collection of optimizations for our framework, so that it can add or delete a small fraction of data on the fly. We theoretically show the relationship between the hyper-parameters of the proposed optimizations, which enables trading off accuracy and cost on incremental and decremental learning. The backdoor attack results show that our framework can successfully inject and remove backdoor in a well-trained model using incremental and decremental learning, and the empirical results on public datasets confirm the effectiveness and efficiency of our proposed online learning framework and optimizations.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "arXiv:2602.05786v4",
+   "title": "Selecting Hyperparameters for Tree-Boosting",
+   "year": "2026",
+   "url": "http://arxiv.org/abs/2602.05786v4",
+   "abstract": "Tree-boosting is a widely used machine learning technique for tabular data. However, its out-of-sample accuracy is critically dependent on multiple hyperparameters. In this article, we empirically compare several popular methods for hyperparameter optimization for tree-boosting including random grid search, the tree-structured Parzen estimator (TPE), Gaussian-process-based Bayesian optimization (GP-BO), Hyperband, the sequential model-based algorithm configuration (SMAC) method, and deterministic full grid search using $59$ regression and binary classification data sets. We find that the SMAC method clearly outperforms all the other considered methods on average, and it gives stable performance across a diverse collection of tabular data sets under a fixed tuning budget, which is relevant for users who cannot afford extensive manual trial-and-error tuning. We further observe that (i) a relatively large number of trials larger than $100$ is typically required for accurate tuning, (ii) using default values for hyperparameters or a full search over a small grid often yields very inaccurate models, (iii) all considered hyperparameters can have a material effect on the accuracy of tree-boosting, i.e., there is no small set of hyperparameters that is more important than others, and (iv) choosing the number of boosting iterations using early stopping yields more accurate results compared to including it in the search space for regression tasks.",
+   "via": "arxiv",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2402.14335",
+   "title": "HyperFast: Instant Classification for Tabular Data",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2402.14335",
+   "cited_by": 0,
+   "abstract": "Training deep learning models and performing hyperparameter tuning can be computationally demanding and time-consuming. Meanwhile, traditional machine learning methods like gradient-boosting algorithms remain the preferred choice for most tabular data applications, while neural network alternatives require extensive hyperparameter tuning or work only in toy datasets under limited settings. In this paper, we introduce HyperFast, a meta-trained hypernetwork designed for instant classification of tabular data in a single forward pass. HyperFast generates a task-specific neural network tailored to an unseen dataset that can be directly used for classification inference, removing the need for training a model. We report extensive experiments with OpenML and genomic data, comparing HyperFast to competing tabular data neural networks, traditional ML methods, AutoML systems, and boosting machines. HyperFast shows highly competitive results, while being significantly faster. Additionally, our approach demonstrates robust adaptability across a variety of classification tasks with little to no fine-tuning, positioning HyperFast as a strong solution for numerous applications and rapid model deployment. HyperFast introduces a promising paradigm for fast classification, with the potential to substantially decrease the computational burden of deep learning. Our code, which offers a scikit-learn-like interface, along with the trained HyperFast model, can be found at https://github.com/AI-sandbox/HyperFast.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2301.02819",
+   "title": "ExcelFormer: Can a DNN be a Sure Bet for Tabular Prediction?",
+   "year": "2023",
+   "url": "https://huggingface.co/papers/2301.02819",
+   "cited_by": 0,
+   "abstract": "Data organized in tabular format is ubiquitous in real-world applications, and users often craft tables with biased feature definitions and flexibly set prediction targets of their interests. Thus, a rapid development of a robust, effective, dataset-versatile, user-friendly tabular prediction approach is highly desired. While Gradient Boosting Decision Trees (GBDTs) and existing deep neural networks (DNNs) have been extensively utilized by professional users, they present several challenges for casual users, particularly: (i) the dilemma of model selection due to their different dataset preferences, and (ii) the need for heavy hyperparameter searching, failing which their performances are deemed inadequate. In this paper, we delve into this question: Can we develop a deep learning model that serves as a \"sure bet\" solution for a wide range of tabular prediction tasks, while also being user-friendly for casual users? We delve into three key drawbacks of deep tabular models, encompassing: (P1) lack of rotational variance property, (P2) large data demand, and (P3) over-smooth solution. We propose ExcelFormer, addressing these challenges through a semi-permeable attention module that effectively constrains the influence of less informative features to break the DNNs' rotational invariance property (for P1), data augmentation approaches tailored for tabular data (for P2), and attentive feedforward network to boost the model fitting capability (for P3). These designs collectively make ExcelFormer a \"sure bet\" solution for diverse tabular datasets. Extensive and stratified experiments conducted on real-world datasets demonstrate that our model outperforms previous approaches across diverse tabular data prediction tasks, and this framework can be friendly to casual users, offering ease of use without the heavy hyperparameter tuning.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2402.11137",
+   "title": "TuneTables: Context Optimization for Scalable Prior-Data Fitted Networks",
+   "year": "2024",
+   "url": "https://huggingface.co/papers/2402.11137",
+   "cited_by": 0,
+   "abstract": "While tabular classification has traditionally relied on from-scratch training, a recent breakthrough called prior-data fitted networks (PFNs) challenges this approach. Similar to large language models, PFNs make use of pretraining and in-context learning to achieve strong performance on new tasks in a single forward pass. However, current PFNs have limitations that prohibit their widespread adoption. Notably, TabPFN achieves very strong performance on small tabular datasets but is not designed to make predictions for datasets of size larger than 1000. In this work, we overcome these limitations and substantially improve the performance of PFNs via context optimization. We introduce TuneTables, a parameter-efficient fine-tuning strategy for PFNs that compresses large datasets into a smaller learned context. We conduct extensive experiments on 19 algorithms over 98 datasets and find that TuneTables achieves the best performance on average, outperforming boosted trees such as CatBoost, while optimizing fewer than 5% of TabPFN's parameters. Furthermore, we show that TuneTables can be used as an interpretability tool and can even be used to mitigate biases by optimizing a fairness objective. We open-source our code and raw results at https://github.com/penfever/TuneTables.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2602.11139",
+   "title": "TabICLv2: A better, faster, scalable, and open tabular foundation model",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2602.11139",
+   "cited_by": 7,
+   "abstract": "Tabular foundation models, such as TabPFNv2 and TabICL, have recently dethroned gradient-boosted trees at the top of predictive benchmarks, demonstrating the value of in-context learning for tabular data. We introduce TabICLv2, a new state-of-the-art foundation model for regression and classification built on three pillars: (1) a novel synthetic data generation engine designed for high pretraining diversity; (2) various architectural innovations, including a new scalable softmax in attention improving generalization to larger datasets without prohibitive long-sequence pretraining; and (3) optimized pretraining protocols, notably replacing AdamW with the Muon optimizer. On the TabArena and TALENT benchmarks, TabICLv2 without any tuning surpasses the performance of the current state of the art, RealTabPFN-2.5 (hyperparameter-tuned, ensembled, and fine-tuned on real data). With only moderate pretraining compute, TabICLv2 generalizes effectively to million-scale datasets under 50GB GPU memory while being markedly faster than RealTabPFN-2.5. We provide extensive ablation studies to quantify these contributions and commit to open research by first releasing inference code and model weights at https://github.com/soda-inria/tabicl, with synthetic data engine and pretraining code to follow.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "HF:2607.05380",
+   "title": "TabPack: Efficient Hyperparameter Ensembles for Tabular Deep Learning",
+   "year": "2026",
+   "url": "https://huggingface.co/papers/2607.05380",
+   "cited_by": 1,
+   "abstract": "In deep learning for tabular data, efficient ensembles of multilayer perceptrons (MLPs) have recently emerged as effective and practical architectures. Existing methods of this kind use the same hyperparameters for all underlying MLPs, which requires hyperparameter tuning for achieving the best performance. In this work, we introduce TabPack, an efficient MLP ensemble with strong out-of-the-box performance and reduced reliance on traditional tuning. In a single run, TabPack samples and trains many MLPs with different hyperparameters efficiently in parallel and selects ensemble members on the fly during training. Thus, TabPack only requires specifying ranges from which to sample MLP hyperparameter rather than exact hyperparameter values, which naturally demands less precision for good performance. In experiments on medium-to-large public datasets, TabPack with default settings performs on par with extensively tuned prior methods, thus substantially reducing effort and compute resources needed to achieve competitive results on tabular tasks. Notably, running the default TabPack configuration on a modern MacBook took less time than tuning some baselines on an industry-grade GPU.",
+   "via": "huggingface",
+   "kind": "preprint",
+   "group": "papers"
+  },
+  {
+   "id": "wiki:60992857",
+   "title": "Federated learning",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=60992857",
+   "abstract": "Federated learning (also known as collaborative learning) is a machine learning technique in a setting where multiple entities (often called clients) collaboratively train a model while keeping their data decentralized, rather than centrally stored. A defining characteristic of federated learning is data heterogeneity. Because client data is decentralized, data samples held by each client may not be independently and identically distributed. Federated learning is generally concerned with and motivated by issues such as data privacy, data minimization, and data access rights. Its applications involve a variety of research areas including defence, telecommunications, the Internet of things, and pharmaceuticals.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:70774614",
+   "title": "Proximal policy optimization",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=70774614",
+   "abstract": "Proximal policy optimization (PPO) is a reinforcement learning (RL) algorithm for training an intelligent agent. Specifically, it is a policy gradient method, often used for deep RL when the policy network is very large.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "wiki:1180641",
+   "title": "Stochastic gradient descent",
+   "year": null,
+   "url": "https://en.wikipedia.org/?curid=1180641",
+   "abstract": "Stochastic gradient descent (often abbreviated SGD) is an iterative method for optimizing an objective function with suitable smoothness properties (e.g. differentiable or subdifferentiable). It can be regarded as a stochastic approximation of gradient descent optimization, since it replaces the actual gradient (calculated from the entire data set) by an estimate thereof, calculated from a randomly selected subset of the data. Especially in high-dimensional optimization problems this reduces the computational burden, achieving faster iterations in exchange for a lower convergence rate. The basic idea behind stochastic approximation can be traced back to the Robbins\u2013Monro algorithm of the 1950s. Today, stochastic gradient descent has become an important optimization method in machine learning.",
+   "via": "wikipedia",
+   "kind": "encyclopedia",
+   "group": "encyclopedia"
+  },
+  {
+   "id": "SE:stats:526480:",
+   "title": "Hyperparameter tuning of gradient boosting and neural network quantile regression",
+   "year": 2021,
+   "cited_by": 1,
+   "url": "https://stats.stackexchange.com/q/526480",
+   "abstract": "I have am using Sklearns GradientBoostingRegressor for quantile regression as wells as a nonlinear neural network implemented in Keras. I do however not know how to find the hyperparameters. For the GradientBoostingRegressor a separate regression is fitted for each quantile. Do I find a new set of hyperparameters for every quantile or do I fit the same set of hyperparameters for every quantile? And for Keras how do I decide on the hyperparameters as the way I have implemented the model, it predicts all quantiles at the same time. Below is an example of my implementation in Keras:",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stats:205727:",
+   "title": "Hyperparameter optimization on large dataset",
+   "year": 2016,
+   "cited_by": 0,
+   "url": "https://stats.stackexchange.com/q/205727",
+   "abstract": "I have a huge dataset and want to carry out regression, such as gradient boosting. The problem is that the dataset is huge and hyperparameter optimization is computational expensive, especially I use cross validation for that. Is it OK to do the hyperparameter optimization on subsets of the dataset? Then can I average these hyperparameters from different subsets and use that to train my model on the whole dataset?",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stats:529549:",
+   "title": "Hyperparameter tuning of quantile gradient boosting regression and linear quantile regression",
+   "year": 2021,
+   "cited_by": 1,
+   "url": "https://stats.stackexchange.com/q/529549",
+   "abstract": "I have am using Sklearns GradientBoostingRegressor for quantile regression as wells as a linear neural network implemented in Keras. I do however not know how to find the hyperparameters. For the GradientBoostingRegressor a separate regression is fitted for each quantile. Do I find a new set of hyperparameters for every quantile or do I fit the same set of hyperparameters for every quantile? A possibility is to use the RandomizedSearchCV, but which &#39;scoring&#39; should I use? And for Keras how do I decide on the hyperparameters as the way I have implemented the model, it predicts all quantiles at the same time. The hyperparameters that I want to choose are the lr and rho. Below is an example of my implementation in Keras: EDIT: I have discovered that in the RandomizedSearchCV it is possible to use the to construct your own scorer. I have tried to implement a loss function but it does not work: Here is specified outside of the definition.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:46120:",
+   "title": "Gradient Boosting RandomSearchCV or GridSearchCV",
+   "year": 2019,
+   "cited_by": 2,
+   "url": "https://datascience.stackexchange.com/q/46120",
+   "abstract": "In your algorithms, when you use Gradient Boosting, do you prefer RandomSearchCV or GridSearchCV in order to optimize your hyperparameters ? Thanks for sharing your experience.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:68635:",
+   "title": "Small number of estimators in gradient boosting",
+   "year": 2020,
+   "cited_by": 4,
+   "url": "https://datascience.stackexchange.com/q/68635",
+   "abstract": "I am tuning a regression gradient boosting-based model to determine the appropriate hyperparameters using 4-folds cross validation. More specifically, I am using XGBoost and lightGBM for the models and Bayesian optimization algorithm for the hyperparameters search (hyperopt) One of the hyperparameter which is being tuned in the number of estimators used for each model. For the 1st round of testing, I starting with number of estimators in the range of 100-300. The outcome from hyperparameters optimization algorithm was that the best number of estimators is 100.I repeated the same analysis where the range of number of estimators was modified to 50-300, this time the outcome from hyperparameters optimization algorithm was that the best number of estimators is 50. I repeated the same analysis for the 3rd time setting the range of possible number of estimators to 2-300 (Just to check the extreme case) this time the outcome from hyperparameters optimization algorithm was that the best number of estimators is 2. The same outcome was noticed both for the XGBoost and lightGBM models. What does this say about my model and data? Does this mean that the best model is Random forest instead of gradient boosting? is it smart to &#39;force&#39; the number of estimators by fixing the hyperparameter value (e.g., 150) and tuning all other parameters? The training dataset has &gt; 0.5M Samples where ~ 90% of the data is zero and the rest is mix of positive and negative values. Should I consider using a different object function rather than MSE? The range of the tuned parameters for LightGBM are: Output: {&#39;subsample_freq&#39;: 16, &#39;num_leaves&#39;: 10, &#39;max_depth&#39;: 6, &#39;colsample_bytree&#39;: 0.7577614465604802, &#39;subsample_for_bin&#39;: 80000, &#39;min_child_samples&#39;: 415, &#39;n_estimators&#39;: 56, &#39;subsample&#39;: 0.6531478473538894, &#39;reg_alpha&#39;: 0.025744268683186224, &#39;reg_lambda&#39;: 0.0001729942781329532} The range of the tuned parameters for XGBoost are: Output: {&#39;gamma&#39;: 2.4257700330471357, &#39;max_depth&#39;: 4, &#39;n_estimators&#39;: 57, &#39;subsample&#39;: 0.5568564232616263, &#39;reg_alpha&#39;: 0.0009876777981446033, &#39;colsample_bytree&#39;: 0.7073279309167877}",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:datascience:136639:",
+   "title": "Data Splitting for Hyperparameter Tuning",
+   "year": 2025,
+   "cited_by": 5,
+   "url": "https://datascience.stackexchange.com/q/136639",
+   "abstract": "I want to do some hyperparameter tuning for my Gradient Boosting Regressor model to reduce the RMSE because when i evaluate the model using test set the RMSE is almost 2 times higher than the MAE. Currently i only split my data into train set and test set. Do i have to split the data into three parts (train set, validation set, and test set) if i want to apply grid search to find the best hyperparameter combination and use the validation set to tune the hyperparameter, or i can just use my current train set?",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:ai:12738:12775",
+   "title": "How is regression machine learning?",
+   "year": 2019,
+   "cited_by": 0,
+   "url": "https://ai.stackexchange.com/q/12738",
+   "abstract": "What you are asking touches upon two very different approaches to machine learning: The empirical approach (many people just call this &#39;machine learning&#39;, and some people like to call it &#39;algorithmic machine learning&#39;) The statistical approach (some people like to call this &#39;statistical machine learning&#39;) The purely empirical approach is very goal-oriented - think discriminative models that are only used for prediction. You really only care about whether the data fits the training + test data well according to whichever metric you&#39;ve selected. The statistical approach is very process-oriented - you would want to identify the processes that generate the data, the distributions they follow, whether your results are statistically significant, etc. Along this spectrum, most folks fall somewhere into the middle. What you&#39;ve described is closer to statistical machine learning - to practitioners of the other approach, regression only means that you are trying to predict for a continuous target variable (whereas classification would be for a discrete target variable). Then you might poke around the data a bit, fiddle around with features & hyperparameters, and try out a lot of different regression algorithms, going from OLS, SVMs, nearest neighbour regressors, random forests, gradient boosted trees, and maybe even RNNs, etc. In the extreme case, a purist of this approach wouldn&#39;t care about the statistics or whatever the underlying distributions are at all, but only care if the final regression gives good results in practice. While there are clear risks with this approach (especially when the underlying assumptions of the models fall apart), it can give good results, especially when the practitioner is a good coder and can try out lots of possibilities very quickly, and even produce novel algorithms. The fact is that maths does sometimes lag development of other fields - Fourier analysis for example, and deep neural networks. Another very approximate analogy would be science vs engineering.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:ai:31773:31776",
+   "title": "Why is the validation accuracy lower in case of CNN?",
+   "year": 2021,
+   "cited_by": 2,
+   "url": "https://ai.stackexchange.com/q/31773",
+   "abstract": "To get a full understanding of your problem, one would like to know what approximately the $n$-features are. Whether, it is about the geometrical structure, protein is described by a graph, where vertices correspond to atoms and edges to bonds within them - I would consider use of , there is some research, that has demonstrated the success of for protein prediction: Structure-based protein function prediction using graph convolutional networks Protein Interface Prediction using Graph Convolutional Networks In case, your data is some general form tabular data with features of different nature and form - like some continuous features, binary features, categorical features, whatever, there is no notion of proximity between different features. The efficiency of CNN is based a lot on the ability of them to have a notion of locality, aggregate the information from the neighborhood, and construct the hierarchy of low-level (for several neighboring pixels) features and global (that understand the image or a signal as a whole) features. Two neighboring pixes from the cat&#39;s ear have a notion of proximity and relatedness, whereas the red color and square shape do not have. For unstructured tabular data I would recommend to start from some : Random forest Gradient boosting EDIT Seems like what you receive as input is a matrix of pairwise distances $\\rho(i, j)$ between all possible amino residues - Protein contact map. I would think about it as a weighted adjacency matrix. However, there is a rather special structure, Therefore, there is no need for generic GNN, most likely. In the literature, the recent research solves this problem with the help of CNN: Improved protein structure prediction using predicted interresidue orientations A fully open-source framework for deep learning protein real-valued distances Probably, you should tune some hyperparameters, or introduce residual connections, if there are no such at the moment.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:ai:35792:35794",
+   "title": "Why are only neural networks (and not SVMs, for example) used for reinforcement learning?",
+   "year": 2022,
+   "cited_by": 5,
+   "url": "https://ai.stackexchange.com/q/35792",
+   "abstract": "The biggest problem with SVMs, random forests, gradient boosting and others for reinforcement learning (RL) is that they are not able to learn online, adjusting for new data as it arrives, and equally importantly forgetting older data. These algorithms learn from fixed datasets, and must be re-trained with whole new datasets if the target dataset changes, in scenarios also known as non-stationary problems. This is a major issue in reinforcement learning for control problems (when you want to find an optimal policy). RL control problems always generate non-stationary target data, because they maintain a current policy - or for off-policy approches, current target policy. That current policy then changes over time as the agent improves its estimates (of e.g. the Q table), which means it is necessary to forget older training data and replace with newer. So one requirement in RL is for online learning algorithms that can handle non-stationary data well - both incorporating new data and smoothly forgetting older data. That includes neural networks. There are not many other non-linear approximators that can do so simply. It is possible to compensate for this lack of online learning in various ways. Some of the model classes, such as random forests and support vector machines, can be extended to learn online - although this seems not to be explored much in deep RL, perhaps due to complexity, or limitations that make it still less flexible choice than neural networks (opinion: looking at the recent dates on these papers compared to the longer history of using NNs with RL, there may be an element of intertia too, and possibility for revisiting using these models in a RL context). You could modify the outer algorithm to be more like policy iteration, collecting large amounts of data for the current policy to form a large batch that is then learned from to replace the previous approximate value function and in turn update the policy from that. That would work for most approximators in theory, but may be very slow and introduces hyperparameter of batch size that will have a large impact. There are unwanted side-effect to online learning in RL using approximators, such as the risk of catastrophic forgetting, where a well-trained agent is not able to distinguish bad choices from good ones because it has not experienced a bad decision for many time steps, and has generalised that \"everything is good now\". This would not be fixed in RL by using large batches and non-online algorithms - if anything it could be worse in those cases, because they would effectively be forced to forget everything between batches. The usual fix for catastrophic forgetting in RL is adding some management of the dataset - e.g. keeping some amount of older experience even though it is technically not part of the current policy&#39;s generated data. they also have a huge number of trainable parameters and are extremely prone to overfitting Overfitting of approximators can happen, but may be less of an issue in practice with RL compared to smaller fixed datasets, because agents are continuously and actively generating new data. Complex environments with lots of resources used to generate experience behave in a lot of ways like \"big data\" datasets, playing to the strengths of large flexible models. In RL there is commonly an overlap with processing image data (and possibly other sensors with return data that can be structured into some grid or graph). In the problem domains related to image comprehension, neural networks are state of the art, so it is no surprise to see them used for approximating action values in the orginal DQN paper for example - with the right architecture NNs are measurably superior, in terms of error metrics, to SVMs, RFs, boosting et al, when fitting this kind of sensor data.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:50664480:",
+   "title": "hyperparameter tuning in sklearn using RandomizedSearchCV taking lot of time",
+   "year": 2018,
+   "cited_by": 1,
+   "url": "https://stackoverflow.com/q/50664480",
+   "abstract": "I am dealing with a data set consists of 13 features and 550068 rows. I did k-fold cross validation and selected value as 10, and then selected the best model which has least root mean square error in my case the model is Gradient boosting regressor. Then I did hyperparameter tuning here is my code: its taking a lot of time for hyperparameter tuning it almost took 48 hours but not yet completed.I tried different different n_jobs and n_iters and cv values but the process is not speeding up.enter image description here.I also divided my dataset into 5 equal parts and tried parameter tuning on single part But it is not working. It&#39;s taking a lot of time for single part also. I am using windows10 os and processor intel i5 7th generation.can any one help me to figure out this problem. Thanks in advance.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:76386411:",
+   "title": "How can I implement RandomizedSearchCV for GradientBoostingRegressor in scikit-learn instead of GridSearchCV?",
+   "year": 2023,
+   "cited_by": -2,
+   "url": "https://stackoverflow.com/q/76386411",
+   "abstract": "I am trying to run a regression model using sklearn GradientBoostingRegressor. I have seen some GridSearchCV implementations for the hyperparameter tuning, however in order to reduce the computation time I would like to implement RandomizedSearch. Unfortunately I could not make these both run together. Could you please help me how to implement? My script for GridSearchCV is below, I unfortunately could not manage it to convert to RandomizedSearchCV using gradient boosting estimator.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "SE:stackoverflow:61973342:",
+   "title": "XGBoost Hyperparameter Tuning using Hyperopt",
+   "year": 2020,
+   "cited_by": 0,
+   "url": "https://stackoverflow.com/q/61973342",
+   "abstract": "I am trying to tune my XGBClassifier model. But I am failing to do so. Please find the code below and please help me clean and edit the code. I believe I am doing something wrong in the objective function, as I am trying to edit the objective function of LightGBM. Please help me.",
+   "via": "stackexchange",
+   "kind": "Q&A",
+   "group": "Q&A"
+  },
+  {
+   "id": "HN:40622770",
+   "title": "Show HN: A self-generalizing, hyperparameter-free gradient boosting machine",
+   "year": "2024",
+   "cited_by": 5,
+   "url": "https://news.ycombinator.com/item?id=40622770",
+   "abstract": "PerpetualBooster is a gradient boosting machine (GBM) algorithm which doesn't have hyperparameters to be tuned so that you can use it without needing hyperparameter optimization packages unlike other GBM algorithms. Similar to AutoML libraries, it has a budget parameter which ranges between (0, 1). Increasing the budget parameter increases predictive power of the algorithm and gives better results on unseen data.",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:48808428",
+   "title": "Show HN: Skeights \u2013 Serialize sklearn models to safetensors and JSON, no pickle",
+   "year": "2026",
+   "cited_by": 3,
+   "url": "https://news.ycombinator.com/item?id=48808428",
+   "abstract": "We use sklearn in production for time series forecasting in industrial settings. Pickle was causing us constant pain: refactoring our wrapper classes invalidated saved models, and the binary blobs were completely opaque. We built skeights to decompose a fitted estimator into two files. A JSON file for hyperparameters and structure, and a safetensors file for the numeric arrays. The JSON is human-readable and diffable, and safetensors is a well-established safe format from Hugging Face. This allows you to trade models as config. The JSON is just data you can inspect, diff, and version alongside the rest of your config, rather than a binary artefact on the side. It supports most common sklearn estimators (linear models, trees, random forests, gradient boosting, MLPs, pipelines), plus LightGBM and XGBoost. MIT licensed. Blog post with a worked example: https:&#x2F;&#x2F;alxhslm.github.io&#x2F;projects&#x2F;skeights&#x2F; Repo: https:&#x2F;&#x2F;github.com&#x2F;carbon-re&#x2F;skeights `pip install skeights`",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:39349877",
+   "title": "Visualization of a dense grid search over neural network hyperparameters",
+   "year": "2024",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=39349877",
+   "abstract": "AutoML and [Partially] automated feature engineering have hyperparameters too. Some algorithms have no hyperparameters. And, OT did a complete grid search instead of a PSO or gradient descent, for which there are also adversarial cases. Featuretools supports Dask EntitySets for larger-than-RAM feature matrices, or pandas on multiple cores: https:&#x2F;&#x2F;featuretools.alteryx.com&#x2F;en&#x2F;stable&#x2F;guides&#x2F;using_dask... \"Hyperparameter optimization with Dask\": https:&#x2F;&#x2F;examples.dask.org&#x2F;machine-learning&#x2F;hyperparam-opt.ht... : &gt; HyperbandSearchCV is Dask-ML\u2019s meta-estimator to find the best hyperparameters. It can be used as an alternative to RandomizedSearchCV to find similar hyper-parameters in less time by not wasting time on hyper-parameters that are not promising. Specifically, it is almost guaranteed that it will find high performing models with minimal training. Note that e.g. TabPFN is faster or converges more quickly than xgboost and other gradient boosting with hyperparameter methods: https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=37269376#37274671 \"Stochastic gradient descent written in SQL\" (2023) https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=35063522 : &gt; What are some adversarial cases for gradient descent, and&#x2F;or what sort of e.g. DVC.org or W3C PROV provenance information should be tracked for a production ML workflow?",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:33486914",
+   "title": "TabPFN: Transformer Solves Small Tabular Classification in a Second",
+   "year": "2022",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=33486914",
+   "abstract": "From https:&#x2F;&#x2F;twitter.com&#x2F;FrankRHutter&#x2F;status&#x2F;1583410845307977733 : &gt; This may revolutionize data science: we introduce TabPFN, a new tabular data classification method that takes 1 second & yields SOTA performance (better than hyperparameter-optimized gradient boosting in 1h). Current limits: up to 1k data points, 100 features, 10 classes. 1&#x2F;6 [Faster and more accurate than gradient boosting for tabular data: Catboost, LightGBM, XGBoost]",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "HN:6772408",
+   "title": "Machine learning is easier than it looks",
+   "year": "2013",
+   "cited_by": null,
+   "url": "https://news.ycombinator.com/item?id=6772408",
+   "abstract": "My take on this is somewhat different - my background is pure mathematics in my undergraduate degree, then applied machine learning at Facebook (ads optimization) and GS (algo trading), and currently at graduate school in ML. My take is that 'applying' machine learning is much easier than one would think, but 'understanding' machine learning is _much_ harder than one would think. I imagine most people start with an application - that's why they're interested in the first place. Applying an ML algorithm to a given dataset is trivial - only a few lines in R&#x2F;Python with scikits-learn, etc. There's even a handy cheat-sheet [1] to tell you which algorithm to use. Your regression model spits out a few parameters, some estimates of quality of fit, maybe some pretty graphs, and you can call it a day. The next stage is implementation - up until now, the black box has been spitting out parameters, and you want to understand what these numbers actually are and how they are determined. This means getting your hands dirty with the nitty-gritty of ML algorithms - understanding the algorithms statistical basis, understanding the computational performance of the algorithms (as you alluded to), and reading textbooks&#x2F;journal articles. Many of these algorithms have a simple 'kernel' of an idea that can be obscured by a lot of mathematical sophistication - For SVM, the idea of finding a plane that separates your data as much as possible, logistic regression is just finding the line of best fit in logit space, k-means is just of repeatedly assigning points to clusters then updating clusters, etc. It's not _that_ difficult to get working implementations of these algorithms (although debugging an incorrect implementation can be frustrating). You can implement simple versions of gradient boosting machines - a theoretically sophisticated technique that often works very well in practice - in around 100 lines of Python [2] or Go [3]. You can get implement Hopfield networks (a basic neural network for unsupervised learning) in Julia [4] and Haskell [5] without much trouble either. I think where a lot of the value from spending 3-5+ years in graduate school comes in when you an off-the-shelf technique isn't cutting it - maybe you're overfitting, you want to play with hyperparameters, your datasets are scaling faster than the off-the-shelf implementations can deal with them, etc. Solving these kind of problems is where a lot of the mathematical&#x2F;statistical sophistication can come into play - Bayesian hyperparameter optimization of existing ML techniques improved on state-of-the-art in image processing [6], understanding _why_ the LASSO works (and understanding when it doesn't) can mean having to understand the distribution of eigenvalues of random Gaussian matrices [7]. That's saying nothing of figuring out how to take an existing algorithm and scaling it out in parallel across 1000+ machines [8], which can mean using some deep convex optimization theory [9] to justify your approximations and prove that the approximated model you learn is well-behaved, etc. I suspect that some of the gulf between ML in practice and theory arises from the differing goals in the two parties. If you just want an parameter estimation, then a lot of the rigour will seem useless, and if you want to understand a procedure deeply, you can't do away with rigour. Take the k-means paper used in the article. In the screenshot, the paper's author is presenting results of the flavour &gt; Under weak conditions on the data, as the number of iterations increases, regardless of the random choices made, the k-means clustering tends towards a good clustering of the data. Depending on your viewpoint, this result is either obvious, non-obvious, or irrelevant. To prove this needs (at a glance) theorems from topology, measure theory, martingale convergence, etc. I suppose some people find that fascinating, and want to understand _why_ this is true, and what 'good', 'tends', and 'weak' _mean_ in the above statement - and some people just find this irrelevant to their goal of finding similar blog articles. Both viewpoints are reasonable, but I suspect this divergence is the cause of the articles like these. Applying machine learning isn't that hard, but _understanding_ it is. [1]: https:&#x2F;&#x2F;lh3.ggpht.com&#x2F;-ME24ePzpzIM&#x2F;UQLWTwurfXI&#x2F;AAAAAAAAANw&#x2F;W... [2]: http:&#x2F;&#x2F;www.trungh.com&#x2F;2013&#x2F;04&#x2F;a-short-introduction-to-gradie... [3]: https:&#x2F;&#x2F;github.com&#x2F;ajtulloch&#x2F;decisiontrees [4]: https:&#x2F;&#x2F;github.com&#x2F;johnmyleswhite&#x2F;HopfieldNets.jl [5]: https:&#x2F;&#x2F;github.com&#x2F;ajtulloch&#x2F;hopfield-networks [6]: http:&#x2F;&#x2F;arxiv.org&#x2F;pdf&#x2F;1206.2944.pdf [7]: http:&#x2F;&#x2F;arxiv.org&#x2F;pdf&#x2F;math&#x2F;0410542v3.pdf [8]: http:&#x2F;&#x2F;books.nips.cc&#x2F;papers&#x2F;files&#x2F;nips25&#x2F;NIPS2012_0598.pdf [9]: http:&#x2F;&#x2F;www.cs.berkeley.edu&#x2F;~jduchi&#x2F;projects&#x2F;DuchiHaSi10.pdf",
+   "via": "hackernews",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "DC:discuss.huggingface.co:277745",
+   "title": "Benchmarking System One small LLM decision APIs vs. in-process tree ensembles and exact TreeSHAP on 64-feature tabular payloads",
+   "year": "2026",
+   "cited_by": 0,
+   "url": "https://discuss.huggingface.co/t/191865/1",
+   "abstract": "There has been a lot of discussion lately around \"System One\" decision models: fast, small LLM endpoints tuned to return structured routing choices, rubric scores, or risk probabilities inside application code for ~90-210 ms at $100-$345 per 1M calls. If the input is a messy PDF, support ticket, ...",
+   "via": "discourse",
+   "kind": "forum",
+   "group": "forum"
+  },
+  {
+   "id": "GH:ilyassLambardi/Supervised-end-to-end-project-on-tabular-Data",
+   "title": "ilyassLambardi/Supervised-end-to-end-project-on-tabular-Data",
+   "year": "2026",
+   "url": "https://github.com/ilyassLambardi/Supervised-end-to-end-project-on-tabular-Data",
+   "cited_by": 2,
+   "abstract": "End-to-end supervised ML pipeline for Boston Housing price prediction \u2014 EDA, feature engineering, baseline & gradient boosting models (XGBoost, LightGBM, CatBoost), Optuna hyperparameter tuning, stacking ensemble, and SHAP interpretation Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:HRANIK841823/Boosting-Algorithm",
+   "title": "HRANIK841823/Boosting-Algorithm",
+   "year": "2026",
+   "url": "https://github.com/HRANIK841823/Boosting-Algorithm",
+   "cited_by": 0,
+   "abstract": "Production-ready implementations and pedagogical guides for AdaBoost, Gradient Boosting, and XGBoost frameworks. Features comprehensive hyperparameter tuning, overfitting control mechanics, and comparative performance evaluation for tabular machine learning tasks. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:MohammadrezaRafieinejadaut/Predictive-Sales-Analytics",
+   "title": "MohammadrezaRafieinejadaut/Predictive-Sales-Analytics",
+   "year": "2026",
+   "url": "https://github.com/MohammadrezaRafieinejadaut/Predictive-Sales-Analytics",
+   "cited_by": 0,
+   "abstract": "End-to-end sales prediction pipeline using tabular data preprocessing, feature engineering, and hyperparameter-tuned gradient boosting models (CatBoost, LightGBM, XGBoost). Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:bibhutikandi/Boosting-method-in-machine-learning",
+   "title": "bibhutikandi/Boosting-method-in-machine-learning",
+   "year": "2026",
+   "url": "https://github.com/bibhutikandi/Boosting-method-in-machine-learning",
+   "cited_by": 0,
+   "abstract": "An optimized implementation of the Gradient Boosting algorithm from scratch in Python. Features customizable hyperparameters, early stopping to prevent overfitting, and fast training performance. Perfect for tabular data classification and regression tasks. Detailed documentation, performance benchmarks, and usage examples included. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:CardoAI/TabPFNPractitioner",
+   "title": "CardoAI/TabPFNPractitioner",
+   "year": "2026",
+   "url": "https://github.com/CardoAI/TabPFNPractitioner",
+   "cited_by": 0,
+   "abstract": "If tabular foundation models are genuinely different, then our workflows should change too. This repo explores exactly that: missing values, categorical variables, preprocessing, feature engineering, hyperparameters, evaluation, and everything else practitioners deal with when moving from gradient boosting to tabular foundation models. Topics:",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  },
+  {
+   "id": "GH:AstraLibernis/zarbor",
+   "title": "AstraLibernis/zarbor",
+   "year": "2026",
+   "url": "https://github.com/AstraLibernis/zarbor",
+   "cited_by": 0,
+   "abstract": "Gradient-boosted trees, random forests and regularised linear models for tabular CSV, in dependency-free Zig - with cross-validation and four hyperparameter search strategies as first-class subcommands. Topics: decision-trees, gbdt, gradient-boosting, hyperparameter-tuning, machine-learning, random-forest, tabular-data, zig",
+   "via": "github",
+   "kind": "code",
+   "group": "code"
+  }
+ ]
+}

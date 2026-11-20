@@ -1,0 +1,22 @@
+{
+ "baseline": "openrouter,inclusionai/ling-3.2-flash:free",
+ "rule": "(queue P32, reader fallback): a reader qualifies if, over the bundles, it fails no call,\nits replies parse every time, and its decision-kept claims are at least 80% of the baseline's (the first POOL,MODEL\ngiven). Among those that qualify, the free one with the most kept claims is the fallback; ties go to the cheaper pool\n(the one with more headroom in the ledger).",
+ "readers": {
+  "openrouter,inclusionai/ling-3.2-flash:free": {
+   "bundles": 6,
+   "reader_fail": 6,
+   "claims": 0,
+   "script_kept": 0,
+   "decider_kept": 0,
+   "model_fail": [
+    "R3-cite: quota: reader call failed",
+    "R5-cite: quota: reader call failed",
+    "R6-cite: reader call failed",
+    "R7-cite: quota: reader call failed",
+    "R8-cite: quota: reader call failed",
+    "R9-cite: quota: reader call failed"
+   ],
+   "qualifies": false
+  }
+ }
+}
