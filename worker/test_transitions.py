@@ -202,6 +202,17 @@ class CheckerMajority(unittest.TestCase):
             rd = self.run_read([j({"keep": [0, 1, 2]})] * 3)
         self.assertEqual(rd["check"]["shadow_nemotron"]["keep"], [0, 1, 2])
 
+    def test_decider_judges_every_verified_claim(self):
+        """P32 cap test adopted: with the decision model up, all script-verified claims are judged (not the first 6)."""
+        import research_job as R
+        seen = []
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "x"}), \
+                mock.patch.object(R, "decide_claims", lambda q, kept, calls: seen.append(len(kept)) or {"keep": [0, 7], "p_keep": [0.9] + [0.1] * 6 + [0.9]}):
+            rd = self.run_read([], n=8)
+        self.assertEqual(seen, [8])
+        self.assertEqual(len(rd["script_kept"]), 8)
+        self.assertEqual(rd["check"]["keep"], [0, 7])
+
     def test_decider_failure_falls_back_to_the_majority(self):
         import research_job as R
         j = json.dumps

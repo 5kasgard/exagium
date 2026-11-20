@@ -458,12 +458,14 @@ def _read(out, d, q, calls, ask):
         # nothing (router/review/checker-consistency, 2026-11-19). So: at most MAX_CHECKED claims, checked CHUNK at a time,
         # each chunk by CHECK_CALLS calls; a claim is kept if a strict majority of its chunk's usable replies keep it, and a
         # chunk with fewer than 2 usable replies is a model failure. Grades from the first usable reply of each chunk.
+        # P32 cap test ADOPTED 2026-11-20 (run 44733739497; blind review 44736203102: 1 of the 7 extra claims rejected, the
+        # rule allowed 1): the decision model judges every script-verified claim, up to MAX_DECIDED, in one request. Over 4
+        # items it kept 23 against 15 under the old first-6 cap. The Nemotron majority, used only when the decision model
+        # fails, still sees the first MAX_CHECKED.
         kept_all = kept[:MAX_DECIDED]
-        kept = kept[:MAX_CHECKED]
-        # P32 cap test: with DECIDE_ALL=1 the decision model also judges every script-verified claim (one request); recorded
-        # beside the live decision, which is unchanged, so both are measured on the same claims
-        decided_all = decide_claims(q, kept_all, calls) if os.environ.get("DECIDE_ALL") == "1" and os.environ.get("OPENROUTER_API_KEY") else None
-        decided = decide_claims(q, kept, calls) if os.environ.get("OPENROUTER_API_KEY") else None
+        decided = decide_claims(q, kept_all, calls) if os.environ.get("OPENROUTER_API_KEY") else None
+        decided_all = decided
+        kept = kept_all if decided is not None and decided.get("keep") is not None and os.environ.get("SHADOW") != "1" else kept[:MAX_CHECKED]
         keep, grades, votes_all, notes = [], {}, [], []
         # 2026-11-20 (owner: optimise): the Nemotron majority runs only when the decision model fails. As a shadow it cost
         # 6 NIM calls and minutes per card; in its trial the decider passed 6/6 known answers twice and every disagreement
