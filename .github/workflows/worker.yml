@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+      actions: write   # lanes: start more worker runs when more items are ready (P20e)
     outputs:
       item: ${{ steps.out.outputs.item }}
       type: ${{ steps.out.outputs.type }}
@@ -82,6 +83,22 @@ jobs:
         run: |
           echo "item=${ITEM:-}" >> "$GITHUB_OUTPUT"; echo "type=${ITEM:+$TYPE}" >> "$GITHUB_OUTPUT"; echo "stopped=${STOPPED:-}" >> "$GITHUB_OUTPUT"
           echo "item=${ITEM:-none} stopped=${STOPPED:-no}"
+      - name: lanes - more items ready, start more runs, up to LANES at once (P20e; owner 2026-11-20 "parallel within limits")
+        # Each run still claims one item through the queue's compare-and-push (overlap tested in P8's race test) and still
+        # reserves its own budget in the ledger, so lanes add speed, not spend. A run that finds nothing goes idle as before.
+        # Data: the worker ran one item at a time while up to 6 research items were ready (R14-R19, 2026-11-19/20).
+        if: env.ITEM != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          R: ${{ github.repository }}
+          LANES: 3
+        run: |
+          if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused"; exit 0; fi
+          ready=$(python3 -I worker/queue_ops.py ready "$RUNNER_TEMP/q" | grep -c . || true)
+          live=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=50" -q '[.workflow_runs[] | select(.status=="queued" or .status=="waiting" or .status=="pending" or .status=="requested" or .status=="in_progress")] | length')
+          add=$(( ready < LANES - live ? ready : LANES - live )); [ "$add" -gt 0 ] || { echo "ready $ready, live runs $live: no new lane"; exit 0; }
+          for k in $(seq 1 "$add"); do gh workflow run worker.yml -R "$R" --ref main; done
+          echo "ready $ready, live runs $live: started $add more"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: env.ITEM != ''
         with:
