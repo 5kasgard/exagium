@@ -5664,6 +5664,93 @@
      "result": "decision model p=0.692; controls 0.997/0.002"
     }
    ]
+  },
+  {
+   "id": "K8",
+   "title": "Add a script guard that rejects guarantee-weakening edits",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q59",
+   "generated_at": "2026-11-20T12:43:32Z",
+   "code": {
+    "files": [
+     "worker/generate.py"
+    ],
+    "test": "worker/test_worker.py"
+   },
+   "touches": [
+    "worker/generate.py"
+   ],
+   "next": "In the reviewer's accept path in worker/generate.py (grep for where the reviewer's approve/reject decision is made), add a mechanical check that compares each edited line with its original. If the original contains a guarantee marker ('never', 'cannot', 'by anyone', 'at all', 'whatever', 'under no circumstances') and the edited line does not contain the same marker, reject the edit. A rejected edit is restored and ends as no change. Test: the E3 pair ('Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' -> 'Results cannot be changed or deleted once recorded.') must be rejected, and a true same-strength rewrite that keeps every marker must still be accepted. Correct when both assertions pass and the existing worker tests still pass.",
+   "refs": [
+    "queue Q59",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K9",
+   "title": "Grade E3 by exact expected line in the canary grader",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q59",
+   "generated_at": "2026-11-20T12:43:32Z",
+   "code": {
+    "files": [
+     "worker/grade_canary3.py"
+    ],
+    "test": "worker/test_worker.py"
+   },
+   "touches": [
+    "worker/grade_canary3.py"
+   ],
+   "next": "In worker/grade_canary3.py, change the E3 outcome from a soft meaning check to an exact expected line: the output must contain the text 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' verbatim, and any edit that removes 'by anyone at all' or 'never' fails. Add a unit test in worker/test_worker.py with a known-answer control: the original line passes and the 'cannot ... once recorded' rewrite fails. Correct when the grader reports E3 FAIL on the rewrite and PASS on the unchanged line, and E1, E2 and E4 keep their existing results.",
+   "refs": [
+    "queue Q59",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K10",
+   "title": "Run valgrind under limits.c in confine mode",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q62",
+   "generated_at": "2026-11-20T12:43:32Z",
+   "code": {
+    "files": [
+     "runner/jail.py"
+    ],
+    "test": "runner/test_runner.py"
+   },
+   "touches": [
+    "runner/jail.py"
+   ],
+   "next": "In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass.",
+   "refs": [
+    "queue Q62",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "low",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
