@@ -236,7 +236,11 @@ def drain_code(wt, ask, record):
                 why.append("merge refused by GitHub: " + (m.stderr or m.stdout)[-200:])
                 ok = False
         note = f"tier ({MODEL}): PR #{n} " + ("merged" if ok else "not merged: " + "; ".join(why)) + f"; model: {reason}"[:400]
-        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "escalate", note)
+        conflict = not ok and len(why) == 1 and "merge conflicts" in why[0]
+        if conflict:   # approved, but another merged PR touched the same lines: redone on today's main, not escalated
+            subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{REPO}/pulls/{n}", "-f", "state=closed"], capture_output=True, text=True)
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
+                    note + ("; closed for a redo on today's main" if conflict else ""))
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
 
 
