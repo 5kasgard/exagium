@@ -9625,7 +9625,7 @@
    "id": "K27",
    "title": "Give the timed run the counted run's cwd and HOME",
    "kind": "fix",
-   "status": "in progress",
+   "status": "escalated",
    "origin": "generated",
    "split_from": "Q79",
    "generated_at": "2026-11-20T22:51:02Z",
@@ -9658,11 +9658,21 @@
      "worker": "generator-gate",
      "outcome": "accept",
      "result": "decision model p=0.988; controls 0.995/0.003"
+    },
+    {
+     "result": "no accepted edit",
+     "where": "https://github.com/5kasgard/exagium/actions/runs/44832463910",
+     "run": "https://github.com/5kasgard/exagium/actions/runs/44832463910",
+     "edits": 0,
+     "why": [
+      "reviewer: reject: The change only sets cwd for timed() and does not ensure HOME is set like count(), nor does it verify that count() already uses the same cwd, so it does not fully satisfy ITEM K27"
+     ],
+     "worker": "worker-44832463910",
+     "at": "2026-11-20T22:59:13Z",
+     "lost_lease": false,
+     "outcome": "guard_blocked"
     }
-   ],
-   "claimed_by": "worker-44832463910",
-   "claimed_at": "2026-11-20T22:52:39Z",
-   "lease_until": "2026-11-21T00:52:39Z"
+   ]
   }
  ],
  "batches": [
