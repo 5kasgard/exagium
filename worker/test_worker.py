@@ -309,3 +309,20 @@ class Generate(unittest.TestCase):
         self.assertEqual(TR.next_status("proposed", "reject"), "parked")
         with self.assertRaises(TR.NotAllowed):
             TR.next_status("proposed", "claim")
+
+
+class FallbackReader(unittest.TestCase):
+    def test_429_reads_on_fallback_pool(self):
+        import tempfile
+        seen = []
+
+        def ask(engine, model, prompt):
+            seen.append(engine)
+            if engine == "cloudflare":
+                return {"ok": False, "status": 429, "text": None, "error": "spent"}
+            return {"ok": True, "status": 200, "text": '{"claims": [], "open_questions": []}'}
+        with tempfile.TemporaryDirectory() as d:
+            R._read(d, {"sources": [], "item": {}}, "q?", [], ask)
+            r = json.load(open(os.path.join(d, "read.json")))
+        self.assertEqual(seen, ["cloudflare", "nvidia"])
+        self.assertEqual(r["model_fail"], [])

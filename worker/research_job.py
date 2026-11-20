@@ -26,6 +26,8 @@ READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
 if os.environ.get("READER_OVERRIDE"):   # arm tests only (P32): same weights on another pool, e.g. "nvidia,openai/gpt-oss-120b"
     READER = tuple(os.environ["READER_OVERRIDE"].split(",", 1))
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
+FALLBACK_READER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")   # reader bake 44720253829: 6/6 reads, 21 decision-kept claims;
+# the only free reader with no failed call (gpt-oss-120b: NIM 410, OpenRouter :free 404; free OpenRouter readers rate-limited upstream)
 DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OPENROUTER_API_KEY is set; 6/6 known answers twice, identical probabilities (router/review/checker-relevance)
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
 CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
@@ -436,6 +438,9 @@ def _read(out, d, q, calls, ask):
     src = "\n\n".join(f"[{s['sid']}] ({s['kind']}, {s['via']}) {s['title']} ({s['year']}). {s['abstract'][:1500]}" for s in d["sources"])
     model_fail = []   # infrastructure, not evidence: "no claims" must mean the sources held none (review of Q60, 1)
     r = ask(*READER, READ_PROMPT.format(question=q, sources=src))
+    if not r["ok"] and r.get("status") == 429 and READER != FALLBACK_READER:
+        # the pool's allowance is spent (Cloudflare's rolling 24 h): read on the fallback pool instead of waiting
+        r = ask(*FALLBACK_READER, READ_PROMPT.format(question=q, sources=src))
     reading = parse_json(r["text"]) if r["ok"] else None
     if reading is None:
         model_fail.append(("quota: " if r.get("status") == 429 else "") + ("reader call failed" if not r["ok"] else "reader reply was not JSON"))   # 429 = the pool's allowance is spent: a budget wait, not a failure
