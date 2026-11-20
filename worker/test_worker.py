@@ -363,3 +363,45 @@ class ClaudeCost(unittest.TestCase):
         self.assertAlmostEqual(engines.claude_cost("claude-sonnet-5-5", 1_000_000, 100_000), 3.0)
         with self.assertRaises(ValueError):
             engines.anthropic_call("claude-unpriced", "hi")
+
+
+class Tier(unittest.TestCase):
+    def test_decide_checks_the_redo_question(self):
+        import tier as TI
+        ctx = TI.CONTROLS[0][0]
+        d, why = TI.decide(ctx, lambda p: '{"decision": "redo", "question": "How accurate are gradient-boosted trees against MLPs on tabular benchmarks?", "queries": ["xgboost vs mlp tabular", "tabular deep learning benchmark", "tree ensembles neural nets"], "reason": "off-topic sources"}')
+        self.assertEqual((d["decision"], why), ("redo", None))
+        d, why = TI.decide(ctx, lambda p: '{"decision": "redo", "question": "bad", "queries": []}')
+        self.assertIsNone(d); self.assertIn("script check", why)
+        d, why = TI.decide(ctx, lambda p: 'no json')
+        self.assertIsNone(d)
+        d, _ = TI.decide(ctx, lambda p: '{"decision": "escalate", "reason": "needs a key"}')
+        self.assertEqual(d["decision"], "escalate")
+
+    def test_controls_gate_moves_nothing(self):
+        import tier as TI, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            rc = TI.run("/nonexistent", d, ask=lambda p: '{"decision": "escalate", "reason": "x"}')   # control 1 wants redo
+            rec = json.load(open(os.path.join(d, "tier.json")))
+        self.assertEqual(rc, 0)
+        self.assertEqual(rec["items"], [])
+        self.assertEqual([c["got"] for c in rec["controls"]], ["escalate", "escalate"])
+
+    def test_candidates(self):
+        import tier as TI
+        q = {"items": [{"id": "R1", "status": "escalated", "research": {"question": "q"}, "runs": [{"outcome": "no_claims"}]},
+                       {"id": "R2", "status": "escalated", "research": {"question": "q"}, "runs": [{"outcome": "failed"}]},
+                       {"id": "R3", "status": "open", "research": {"question": "q"}, "runs": [{"outcome": "no_claims"}]}]}
+        self.assertEqual([i["id"] for i in TI.candidates(q)], ["R1"])
+
+    def test_summarise(self):
+        import tier as TI, tempfile
+        with tempfile.TemporaryDirectory() as d:
+            json.dump({"sources": [{"title": "TabPFN v2"}], "log": [{"api": "arxiv", "n": 3}]}, open(os.path.join(d, "search.json"), "w"))
+            json.dump({"script_dropped": [[{"claim": "c1", "quote": "q1"}, "quote not found"]],
+                       "script_kept": [{"claim": "c2", "quote": "q2"}], "check": {"keep": [], "decider": {"p_keep": [0.2]}}},
+                      open(os.path.join(d, "read.json"), "w"))
+            s = TI.summarise({"research": {"question": "Q?", "queries": ["a"]}}, d)
+        self.assertIn("DROPPED by script (quote not found): c1", s["claims"])
+        self.assertIn("DROPPED by checker (p=0.20): c2", s["claims"])
+        self.assertEqual((s["n"], s["log"]), (1, "arxiv:3"))

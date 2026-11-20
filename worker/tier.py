@@ -1,0 +1,184 @@
+"""The tier above the free workers, on the owner's Claude API credit (queue P31; owner 2026-11-20: judgement off the
+subscription the owner also uses). v1 drains escalated research items whose last run found no claims.
+
+python3 -I worker/tier.py QUEUE_WT OUT_DIR   (needs CLAUDE_API_KEY and GH_TOKEN; writes OUT_DIR/calls.jsonl for the ledger)
+
+Per run, before any item: two known-answer controls (CONTROLS) go to the same model with the same prompt. If either
+comes back wrong, nothing is moved: the items wait for the next tier (the Claude shift, then the owner).
+Per item (at most MAX_ITEMS): the last run's artifact (read.json, search.json) is summarised by script - question,
+source titles, the reader's claims with their quotes, why each was dropped, the decision model's probabilities - and
+the model chooses: "redo" with a narrower question and new queries (both script-checked as the generator's are), or
+"escalate" to the owner with a reason. The move goes through queue_ops.move, so transitions.py and render.py check it.
+Nothing the model writes is executed; its question and queries are data the research job searches with.
+"""
+import json, os, re, subprocess, sys, zipfile, io
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
+import queue_ops as Q
+import generate as G
+
+MODEL = "claude-haiku-5-5"   # $0.10/$0.50 per M tokens up to 100k-token prompts (Anthropic pricing, 2026-11-20)
+MAX_ITEMS = 3
+REPO = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
+
+PROMPT = """You review a research job that found no usable claims. Decide what happens next.
+
+QUESTION: {question}
+QUERIES: {queries}
+SOURCES READ ({n}): {titles}
+READER'S CLAIMS AND WHY EACH WAS DROPPED:
+{claims}
+SEARCH LOG: {log}
+
+Choose one:
+- "redo": the sources did not fit the question (off-topic search results, or a question with several parts that the
+  sources answer only in part). Give a narrower question that published work can answer, and 3-5 new search queries.
+- "escalate": the evidence needs something the job cannot reach (a paid or keyed source, full texts, data that is not
+  published), or the question itself is wrong for a literature search. Say what is needed.
+
+Reply with JSON only: {{"decision": "redo" or "escalate", "question": "...?", "queries": ["..."], "reason": "one sentence"}}"""
+
+CONTROLS = [
+    ({"question": "How accurate are gradient-boosted trees against small MLPs on tabular data, and at what training cost?",
+      "queries": ["gradient boosting vs neural networks tabular"], "n": 6,
+      "titles": "Bagpipe making in the Highlands; Medieval wool trade; Tidal power in Scotland; Golf course drainage; "
+                "Whisky cask chemistry; Celtic knotwork patterns",
+      "claims": "(none: the reader found nothing relevant)", "log": "all sources answered"}, "redo"),
+    ({"question": "What do YouTube commenters report about running TabPFN on laptops?",
+      "queries": ["TabPFN laptop youtube comments"], "n": 0, "titles": "(none)",
+      "claims": "(none)", "log": "youtube: skipped (needs YOUTUBE_API_KEY, not set); every other source: 0 results"}, "escalate"),
+]
+
+
+def summarise(item, art):
+    """Script summary of the last run's artifact for the prompt (no model text is trusted for anything but this)."""
+    s = json.load(open(os.path.join(art, "search.json"))) if os.path.exists(os.path.join(art, "search.json")) else {}
+    r = json.load(open(os.path.join(art, "read.json"))) if os.path.exists(os.path.join(art, "read.json")) else {}
+    titles = "; ".join(x.get("title", "")[:90] for x in (s.get("sources") or [])[:30]) or "(none)"
+    lines = []
+    for c, why in (r.get("script_dropped") or [])[:8]:
+        if isinstance(c, dict):
+            lines.append(f"- DROPPED by script ({why}): {str(c.get('claim'))[:200]} | quote: {str(c.get('quote'))[:160]}")
+    chk = r.get("check") or {}
+    p = (chk.get("decider") or {}).get("p_keep") or []
+    for k, c in enumerate((r.get("script_kept") or [])[:6]):
+        kept = chk.get("keep") is not None and k in (chk.get("keep") or [])
+        lines.append(f"- {'KEPT' if kept else 'DROPPED by checker'}{f' (p={p[k]:.2f})' if k < len(p) else ''}: "
+                     f"{str(c.get('claim'))[:200]} | quote: {str(c.get('quote'))[:160]}")
+    log = ", ".join(f"{x.get('api')}:{x.get('n', 'skip' if 'skipped' in x else 'ERR')}" for x in (s.get("log") or [])[:30])
+    return {"question": item["research"]["question"], "queries": item["research"]["queries"],
+            "n": len(s.get("sources") or []), "titles": titles, "claims": "\n".join(lines) or "(none)", "log": log or "(none)"}
+
+
+def decide(ctx, ask):
+    reply = ask(PROMPT.format(question=ctx["question"], queries="; ".join(ctx["queries"]), n=ctx["n"], titles=ctx["titles"],
+                              claims=ctx["claims"], log=ctx["log"]))
+    m = re.search(r"\{.*\}", reply or "", re.S)
+    try:
+        d = json.loads(m.group(0)) if m else None
+    except json.JSONDecodeError:
+        d = None
+    if not isinstance(d, dict) or d.get("decision") not in ("redo", "escalate"):
+        return None, "reply not the asked JSON"
+    if d["decision"] == "redo":
+        ok, why = G.check({"question": d.get("question"), "queries": d.get("queries")})
+        if not ok:
+            return None, f"redo question failed the script check: {why}"
+        d.update(question=ok["question"], queries=ok["queries"])
+    return d, None
+
+
+def artifact(run_url, dest):
+    """Download the 'draft' artifact of a worker run (read.json, search.json)."""
+    rid = re.search(r"/runs/(\d+)", run_url or "")
+    if not rid:
+        return False
+    out = subprocess.run(["gh", "api", f"repos/{REPO}/actions/runs/{rid.group(1)}/artifacts", "-q",
+                          '.artifacts[] | select(.name=="draft") | .id'], capture_output=True, text=True)
+    aid = out.stdout.strip().split("\n")[0]
+    if not aid:
+        return False
+    z = subprocess.run(["gh", "api", f"repos/{REPO}/actions/artifacts/{aid}/zip"], capture_output=True)
+    if z.returncode:
+        return False
+    os.makedirs(dest, exist_ok=True)
+    with zipfile.ZipFile(io.BytesIO(z.stdout)) as f:
+        for n in ("read.json", "search.json"):
+            if n in f.namelist():
+                f.extract(n, dest)
+    return True
+
+
+def candidates(q):
+    out = []
+    for i in q["items"]:
+        runs = i.get("runs") or []
+        if i.get("status") == "escalated" and i.get("research") and runs and runs[-1].get("outcome") == "no_claims":
+            out.append(i)
+    return out[:MAX_ITEMS]
+
+
+def run(wt, out, ask=None):
+    os.makedirs(out, exist_ok=True)
+    calls = []
+    if ask is None:
+        import engines
+
+        def ask(prompt):
+            r = engines.anthropic_call(MODEL, prompt, max_tokens=1200)
+            calls.append({k: r.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")})
+            return r.get("text")
+    record = {"controls": [], "items": []}
+    try:
+        for ctx, want in CONTROLS:
+            d, why = decide(ctx, ask)
+            record["controls"].append({"want": want, "got": d and d["decision"], "why": why})
+        if any(c["got"] != c["want"] for c in record["controls"]):
+            print("tier: a control came back wrong; nothing moved", json.dumps(record["controls"]))
+            return 0
+        Q.sync(wt)
+        for item in candidates(Q.load(wt)):
+            art = os.path.join(out, item["id"])
+            if not artifact(item["runs"][-1].get("run"), art):
+                record["items"].append({"id": item["id"], "skipped": "no artifact"}); continue
+            d, why = decide(summarise(item, art), ask)
+            if not d:
+                record["items"].append({"id": item["id"], "skipped": why}); continue
+            note = f"tier ({MODEL}, controls passed): {d['decision']}: {str(d.get('reason'))[:300]}"
+            if d["decision"] == "redo":
+                rc = redo(wt, item["id"], d, note)
+            else:
+                rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note)
+            record["items"].append({"id": item["id"], "decision": d, "rc": rc})
+        return 0
+    finally:
+        json.dump(record, open(os.path.join(out, "tier.json"), "w"), indent=1)
+        with open(os.path.join(out, "calls.jsonl"), "w") as f:
+            for c in calls:
+                f.write(json.dumps(c) + "\n")
+        print("tier:", json.dumps(record)[:3000])
+
+
+def redo(wt, item_id, d, note):
+    """Narrow the question (the old one kept in history), then escalated -> open through the transition table."""
+    for _ in range(Q.TRIES):
+        Q.sync(wt)
+        q = Q.load(wt)
+        i = next(x for x in q["items"] if x["id"] == item_id)
+        if i["status"] != "escalated":
+            return 0
+        i.setdefault("research_history", []).append(dict(i["research"]))
+        i["research"] = {"question": d["question"], "queries": d["queries"]}
+        to = Q.T.next_status(i["status"], "redo")
+        i.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": f"tier-{MODEL}", "outcome": "redo", "result": note})
+        i["status"] = to
+        Q.save(wt, q)
+        if Q.commit_push(wt, f"tier: {item_id} redo with a narrower question -> {to}"):
+            return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(run(sys.argv[1], sys.argv[2]))

@@ -1,0 +1,34 @@
+# The tier above the free workers on the owner's Claude API credit (worker/tier.py, queue P31): drains escalated research
+# items with Claude Haiku 5.5 after two known-answer controls pass. Ledgered in the dollar-capped "anthropic" pool.
+# Runs no model text: the model's question and queries are search data. Every 3 hours, and on demand.
+name: tier
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: tier
+  cancel-in-progress: false
+jobs:
+  drain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write   # the queue branch and the ledger
+      actions: read     # the worker runs' artifacts
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the queue and ledger with the checkout token; no artifact
+      - name: reserve, drain, record
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global user.name exagium-tier; git config --global user.email tier@exagium.invalid
+          if gh api "repos/$GITHUB_REPOSITORY/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo paused; exit 0; fi
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "tier-$GITHUB_RUN_ID" "anthropic:5:4" || { echo "no Claude API budget today"; exit 0; }
+          git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
+          rc=0; python3 -I worker/tier.py "$RUNNER_TEMP/q" "$RUNNER_TEMP/tier" || rc=$?
+          [ -s "$RUNNER_TEMP/tier/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "tier-$GITHUB_RUN_ID" "$RUNNER_TEMP/tier/calls.jsonl" || true
+          exit $rc
