@@ -119,11 +119,11 @@ def regate(wt, decide_fn, calls):
     Q.sync(wt)
     q = Q.load(wt)
     by = {i["id"]: i for i in q["items"]}
-    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("origin") == "generated"][:MAX_PER_DAY]
+    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("generated_from") in by][:MAX_PER_DAY]
     if not pend:
         return []
     pairs = controls() + [(i["research"]["question"], by[i["generated_from"]]["title"], by[i["generated_from"]].get("next", ""))
-                          for i in pend if i.get("generated_from") in by]
+                          for i in pend]
     ps, err = decide_fn(pairs)
     outcomes = gate_outcomes(ps, len(pairs) - 2)
     print(f"regate: {[i['id'] for i in pend]} p={ps} err={err}")

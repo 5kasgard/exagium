@@ -380,9 +380,24 @@ jobs:
           n=$(python3 -c "import json;print(sum(o=='accept' for _,o in json.load(open('$RUNNER_TEMP/gen/generate.json')).get('moved',[])))" 2>/dev/null || echo 0)
           echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "generator exit $rc, accepted $n"
           cat "$RUNNER_TEMP/gen/generate.json" 2>/dev/null | head -c 6000   # drafts, gate probabilities and controls, for the record
+      - name: no item was ready - split big open items into worker-sized code items (worker/split.py; Haiku drafts, decision model gates)
+        id: split
+        if: needs.claim.outputs.item == ''
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}       # the splitter's draft (prompt text only; nothing is run here)
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # the gate
+        run: |
+          echo "accepted=0" >> "$GITHUB_OUTPUT"
+          [ -d "$RUNNER_TEMP/gl" ] || { git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/gl" FETCH_HEAD; }
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:2:6,openrouter:1" || { echo "no budget: not splitting"; exit 0; }
+          [ -d "$RUNNER_TEMP/gq" ] || { git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD; }
+          rc=0; python3 -I worker/split.py "$RUNNER_TEMP/gq" . "$RUNNER_TEMP/split" | tee "$RUNNER_TEMP/split.log" || rc=$?
+          [ -s "$RUNNER_TEMP/split/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || true
+          n=$(grep -c "'accept')" "$RUNNER_TEMP/split.log" 2>/dev/null || echo 0)
+          echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "splitter exit $rc, accepted $n"
       - name: wait 30 minutes, then start the worker unless paused or already started
         run: |
-          [ "${{ steps.gen.outputs.accepted }}" -gt 0 ] 2>/dev/null && echo "new items accepted: starting the worker now" || sleep 1800
+          if [ "${{ steps.gen.outputs.accepted }}" -gt 0 ] 2>/dev/null || [ "${{ steps.split.outputs.accepted }}" -gt 0 ] 2>/dev/null; then echo "new items accepted: starting the worker now"; else sleep 1800; fi
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused"; exit 0; fi
           busy=$(gh api "repos/$R/actions/workflows/worker.yml/runs?per_page=10" -q '[.workflow_runs[] | select(.status=="queued" or .status=="pending" or .status=="waiting" or (.status=="in_progress" and .id != ${{ github.run_id }}))] | length')
           if [ "$busy" -gt 0 ]; then echo "a worker run is already queued or running ($busy)"; exit 0; fi

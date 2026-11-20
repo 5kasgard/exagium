@@ -513,3 +513,25 @@ class TierRedoCap(unittest.TestCase):
         i = {"runs": [{"worker": "tier-claude-haiku-5-5", "outcome": "redo"}, {"worker": "worker-1", "outcome": "no_claims"},
                       {"worker": "claude-shift-x", "outcome": "redo"}]}
         self.assertEqual(TI.tier_redos(i), 1)
+
+
+class Split(unittest.TestCase):
+    def test_check(self):
+        import split as SP
+        lines, tests = {"worker/diagnose.py": 160, "worker/ledger.py": 200, "worker/big.py": 900}, ["worker/test_worker.py"]
+        ok, why = SP.check({"title": "Add classes() to diagnose", "files": ["worker/diagnose.py"], "test": "worker/test_worker.py",
+                            "next": "Add a function that returns the class names."}, lines, tests)
+        self.assertIsNone(why)
+        for bad in ({"title": "Change the ledger caps now", "files": ["worker/ledger.py"], "test": "worker/test_worker.py", "next": "x" * 30},
+                    {"title": "Edit a big file somewhere", "files": ["worker/big.py"], "test": "worker/test_worker.py", "next": "x" * 30},
+                    {"title": "Add classes() to diagnose", "files": ["worker/diagnose.py"], "test": "worker/test_nope.py", "next": "x" * 30},
+                    {"title": "Too many files here", "files": ["worker/diagnose.py"] * 3, "test": "worker/test_worker.py", "next": "x" * 30}):
+            self.assertIsNone(SP.check(bad, lines, tests)[0], bad["title"])
+
+    def test_candidates(self):
+        import split as SP
+        q = {"items": [{"id": "P1", "status": "open", "kind": "build", "value": "high"},
+                       {"id": "P2", "status": "open", "kind": "build", "blocked_by": ["P9"]}, {"id": "P9", "status": "open", "kind": "doc"},
+                       {"id": "P3", "status": "open", "kind": "build", "research": {"question": "q"}},
+                       {"id": "K2", "status": "proposed", "split_from": "P4"}, {"id": "P4", "status": "open", "kind": "fix"}]}
+        self.assertEqual([i["id"] for i in SP.candidates(q)], ["P1"])
