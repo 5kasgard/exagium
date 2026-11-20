@@ -1,0 +1,134 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S5",
+    "claim": "DWNs compare favorably against leading approaches for tabular datasets with higher average rank.",
+    "quote": "DWNs also compare favorably against leading approaches for tabular datasets, with higher average rank.",
+    "kind": "result",
+    "evidence": "reported"
+   },
+   {
+    "source": "S2",
+    "claim": "PolyLUT is demonstrated on network intrusion detection, jet identification at CERN, and MNIST digit recognition.",
+    "quote": "We demonstrate the effectiveness of this approach in three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and handwritten digit recognition using the MNIST dataset.",
+    "kind": "result",
+    "evidence": "reported"
+   },
+   {
+    "source": "S12",
+    "claim": "LogicNets and PolyLUT are existing LUT-DNN approaches that rely on fixed sparsity masks.",
+    "quote": "existing LUT-DNN approaches (e.g., LogicNets, PolyLUT, PolyLUT-Add, and NeuraLUT) that rely on fixed sparsity masks.",
+    "kind": "prior art",
+    "evidence": "reported"
+   },
+   {
+    "source": "S24",
+    "claim": "An open implementation converts trained differentiable weightless neural networks into pipelined Verilog for FPGA deployment.",
+    "quote": "Turn trained differentiable weightless neural networks into pipelined, synthesizable Verilog for FPGA deployment.",
+    "kind": "method",
+    "evidence": "reported"
+   }
+  ],
+  "open_questions": [
+   "No source reports CPU inference cost for any weightless/LUT family compared with small MLPs.",
+   "BTHOWeN is not mentioned in any source.",
+   "Open implementations for WiSARD, ULEEN, and LogicNets are not documented in these sources.",
+   "Results on text data are not reported for any family.",
+   "PolyLUT and ULEEN evaluations focus on FPGA deployment, not CPU inference.",
+   "DWN tabular results are reported but without CPU vs MLP inference cost comparison."
+  ],
+  "reader_tries": [
+   {
+    "pool": "nvidia",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "status": 200,
+    "ok": true
+   }
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S5",
+   "claim": "DWNs compare favorably against leading approaches for tabular datasets with higher average rank.",
+   "quote": "DWNs also compare favorably against leading approaches for tabular datasets, with higher average rank.",
+   "kind": "result",
+   "evidence": "reported"
+  },
+  {
+   "source": "S2",
+   "claim": "PolyLUT is demonstrated on network intrusion detection, jet identification at CERN, and MNIST digit recognition.",
+   "quote": "We demonstrate the effectiveness of this approach in three tasks: network intrusion detection, jet identification at the CERN Large Hadron Collider, and handwritten digit recognition using the MNIST dataset.",
+   "kind": "result",
+   "evidence": "reported"
+  },
+  {
+   "source": "S12",
+   "claim": "LogicNets and PolyLUT are existing LUT-DNN approaches that rely on fixed sparsity masks.",
+   "quote": "existing LUT-DNN approaches (e.g., LogicNets, PolyLUT, PolyLUT-Add, and NeuraLUT) that rely on fixed sparsity masks.",
+   "kind": "prior art",
+   "evidence": "reported"
+  },
+  {
+   "source": "S24",
+   "claim": "An open implementation converts trained differentiable weightless neural networks into pipelined Verilog for FPGA deployment.",
+   "quote": "Turn trained differentiable weightless neural networks into pipelined, synthesizable Verilog for FPGA deployment.",
+   "kind": "method",
+   "evidence": "reported"
+  }
+ ],
+ "script_dropped": [],
+ "check": {
+  "keep": [
+   0,
+   1
+  ],
+  "grades": {
+   "0": "reported",
+   "1": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1
+   ],
+   "p_keep": [
+    0.9448,
+    0.7791,
+    0.0484,
+    0.3889
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    1
+   ],
+   "grades": {
+    "0": "reported",
+    "1": "reported"
+   },
+   "votes": [
+    [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     []
+    ],
+    [
+     [],
+     [],
+     []
+    ]
+   ],
+   "notes": "Claims 0 and 1 are kept as they directly answer the question with supported quotes, while claim 2 is excluded for not addressing open implementations, non-image; Claims 0 and 1 are supported by their quotes and directly address the question's criterion of results on non-image data; claim 2 does not pertain to open implem; None of the claims address all three required aspects (open implementations, non-image results, CPU inference cost vs. small MLPs) for any weightless or lookup-; Claim 0 adds 'open' not present in the quote and does not address the question's focus on non-image data results or CPU inference cost compared to small MLPs.; The claim does not address the question about specific weightless neural network families, non-image data results, or CPU inference cost comparisons.; Claim 0 adds 'open implementation' not in the quote and does not address the question's focus on non-image data and CPU inference cost."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
