@@ -1,0 +1,3 @@
+<!-- openrouter particle-ai/particle-1:free status=429 latency=0.52s -->
+
+{"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"particle-ai/particle-1:free is temporarily rate-limited upstream. Please retry shortly, or add your own provider key to use your own limits: https://openrouter.ai/workspaces/default/byok","provider_name":"Particle AI","is_byok":false,"provider_error_code":"fleet_capacity_exhausted","limit_source":"upstream_provider_shared_pool","remedy_hint":"Retry shortly, add your own provider key to use your own limits (https://openrouter.ai/workspaces/default/byok), or route to another provider with provider routing: https://openro
