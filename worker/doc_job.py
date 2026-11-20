@@ -215,7 +215,7 @@ def _draft(out, b, item, files, calls, ask):
     model_fail = []   # a failed model call is an infrastructure failure, never a judgement on the item (review of Q60, 1)
     proposal = parse_json(d["text"]) if d["ok"] else None
     if proposal is None:
-        model_fail.append("drafter call failed" if not d["ok"] else "drafter reply was not JSON")
+        model_fail.append(("quota: " if d.get("status") == 429 else "") + ("drafter call failed" if not d["ok"] else "drafter reply was not JSON"))   # 429 = the pool's allowance is spent: a budget wait, not a failure
         proposal = {"edits": [], "note": model_fail[-1]}
     edits, reasons = check_edits(item, files, proposal.get("edits"))
     review = None
@@ -242,7 +242,8 @@ def apply(repo, out):
     if files != b["files"]:
         res = {"result": "stale", "why": ["a target file changed since the bundle was made"], "edits": 0}
     elif d.get("model_fail"):
-        res = {"result": "failed_call", "why": d["model_fail"], "edits": 0}
+        quota = all(str(m).startswith("quota: ") for m in d["model_fail"])
+        res = {"result": "quota" if quota else "failed_call", "why": d["model_fail"], "edits": 0}
     else:
         edits, reasons = check_edits(item, files, d["proposal"].get("edits"))   # checked again here, with no keys
         verdict = (d.get("review") or {}).get("verdict")

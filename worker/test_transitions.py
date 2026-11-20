@@ -206,3 +206,9 @@ class CheckerMajority(unittest.TestCase):
         self.assertEqual(rd["check"]["keep"], [0, 2])
         self.assertEqual(rd["check"]["decider_error"], "status 429")
 
+
+class Quota(unittest.TestCase):
+    def test_quota_is_a_budget_wait_not_a_failure(self):
+        self.assertEqual(T.classify({"result": "quota", "why": ["quota: reader call failed"]}, True, "none"), "budget")
+        self.assertEqual(T.next_status("in progress", "budget"), "open")
+

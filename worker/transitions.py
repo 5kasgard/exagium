@@ -48,6 +48,8 @@ def classify(result, staged_empty, landed):
     if landed in ("merged", "pr", "pr_not_created"):
         return landed
     r = result.get("result", "")
+    if r == "quota":
+        return "budget"          # a provider's allowance is spent (HTTP 429): wait for the reset, not a failure (2026-11-20)
     if r == "failed_call":
         return "failed"          # a model call failed: infrastructure, counts toward escalation like any failure
     if r == "stale":

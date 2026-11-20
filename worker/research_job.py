@@ -384,7 +384,7 @@ def _read(out, d, q, calls, ask):
     r = ask(*READER, READ_PROMPT.format(question=q, sources=src))
     reading = parse_json(r["text"]) if r["ok"] else None
     if reading is None:
-        model_fail.append("reader call failed" if not r["ok"] else "reader reply was not JSON")
+        model_fail.append(("quota: " if r.get("status") == 429 else "") + ("reader call failed" if not r["ok"] else "reader reply was not JSON"))   # 429 = the pool's allowance is spent: a budget wait, not a failure
         reading = {"claims": [], "open_questions": [], "error": model_fail[-1]}
     kept, dropped = verified(reading.get("claims"), d["sources"])
     check = None
@@ -445,7 +445,8 @@ def card(repo, out):
     if not re.fullmatch(r"[A-Za-z0-9._-]+", item["id"]) or rel not in item.get("touches", []):
         raise SystemExit(f"refused: item id {item['id']!r} or its touches don't allow {rel}")
     if rd.get("model_fail"):
-        res = {"result": "failed_call", "why": rd["model_fail"], "claims": 0, "path": rel}
+        quota = all(str(m).startswith("quota: ") for m in rd["model_fail"])
+        res = {"result": "quota" if quota else "failed_call", "why": rd["model_fail"], "claims": 0, "path": rel}
         json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
         print(json.dumps(res)); return 0
     if os.path.exists(path):
