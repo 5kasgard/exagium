@@ -1,0 +1,15 @@
+FAILED: prop-44832956087-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 210, in <module>
+    main()
+  File "/w/train.py", line 156, in main
+    val_acc, params = train_model(X_tr, y_tr, X_val, y_val, d, K, H, C, rng)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 121, in train_model
+    loss, g_emb, g_W1, g_b1, g_W2, g_b2 = loss_and_grad(
+                                          ^^^^^^^^^^^^^^
+  File "/w/train.py", line 94, in loss_and_grad
+    np.add.at(grad_emb[j], X_batch[:, j], grad_concat[:, j*K:(j+1)*K])
+                           ^^^^^^^
+NameError: name 'X_batch' is not defined
+
