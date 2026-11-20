@@ -9,12 +9,16 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 | Q67 | B3 | tasks/sat |
 | Q25 | B1 | Q70 | B3 | tasks |
 | Q28 | B4 | Q63 | B3 | record/experiments/anchors/RESULTS.md, record/experiments/anchors/VERIFY-anchors.md |
+| Q28 | B4 | Q80 | B3 | record/experiments/anchors/RESULTS.md, record/experiments/anchors/VERIFY-anchors.md |
 | Q36 | B5 | Q65 | B3 | loop/README.md |
 | Q36 | B5 | Q68 | B3 | loop/README.md |
 | Q36 | B5 | Q69 | B3 | loop/README.md |
 | Q36 | B5 | Q71 | B3 | loop/README.md |
+| Q36 | B5 | Q78 | B3 | loop/README.md |
+| Q36 | B5 | Q81 | B3 | loop/README.md |
 | Q38 | B5 | Q63 | B3 | record/README.md, record/experiments/anchors/VERIFY-anchors.md |
 | Q38 | B5 | Q68 | B3 | record/README.md |
+| Q38 | B5 | Q80 | B3 | record/README.md, record/experiments/anchors/VERIFY-anchors.md |
 | Q39 | B5 | P8 | B3 | worker/test_worker.py |
 | Q39 | B5 | P20c | B3 | worker/test_worker.py |
 | Q39 | B5 | P20d | B3 | worker/test_worker.py |
@@ -28,9 +32,12 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q39 | B5 | K18 | B3 | worker/test_worker.py |
 | Q39 | B5 | K19 | B3 | worker/test_worker.py |
 | Q39 | B5 | Q68 | B3 | VERIFY.md |
+| Q39 | B5 | Q78 | B3 | VERIFY.md |
 | Q44 | B5 | Q65 | B3 | loop/candidates |
 | Q44 | B5 | Q69 | B3 | loop/candidates |
 | Q44 | B5 | Q71 | B3 | loop/candidates |
+| Q44 | B5 | Q78 | B3 | loop/candidates |
+| Q44 | B5 | Q81 | B3 | loop/candidates |
 | Q54 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
 | Q54 | B1 | G19 | B3 | runner/candidates/label-knn/infer.c |
 | Q54 | B1 | Q67 | B3 | tasks/sat |
@@ -38,6 +45,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q54 | B1 | Q71 | B3 | runner/candidates |
 | Q54 | B1 | Q75 | B3 | runner/candidates |
 | Q54 | B1 | Q76 | B3 | runner/candidates |
+| Q54 | B1 | Q81 | B3 | runner/candidates |
 | P3 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
 | P3 | B1 | G19 | B3 | runner/candidates/label-knn/infer.c |
 | P3 | B1 | Q67 | B3 | tasks/sat |
@@ -45,6 +53,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P3 | B1 | Q71 | B3 | runner/candidates |
 | P3 | B1 | Q75 | B3 | runner/candidates |
 | P3 | B1 | Q76 | B3 | runner/candidates |
+| P3 | B1 | Q81 | B3 | runner/candidates |
 | P7 | B7 | R21 | B3 | research/cards/R21.md |
 | P7 | B7 | R22 | B9 | research/cards/R22.md |
 | P7 | B7 | D23 | B3 | .github/workflows/research.yml |
@@ -54,6 +63,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7 | B7 | D27 | B3 | .github/workflows/research.yml |
 | P7 | B7 | Q66 | B3 | .github/workflows/research.yml |
 | P7 | B7 | Q73 | B3 | research |
+| P7 | B7 | Q77 | B3 | research |
 | P10 | B8 | D23 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D24 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D25 | B3 | .github/workflows/whole-audit.yml |
@@ -87,6 +97,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7d | B7 | P26g | B3 | worker/research_job.py |
 | P7d | B7 | Q67 | B3 | worker/research_job.py |
 | P7e | B7 | Q73 | B3 | research/sources |
+| P7e | B7 | Q77 | B3 | research/sources |
 | P14 | B10 | D23 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D24 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D25 | B3 | .github/workflows/machines.yml |
@@ -96,35 +107,49 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P14 | B10 | Q66 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | Q69 | B3 | loop/results/machines-* |
 | P14 | B10 | Q71 | B3 | loop/results/machines-* |
+| P14 | B10 | Q78 | B3 | loop/results/machines-* |
+| P14 | B10 | Q81 | B3 | loop/results/machines-* |
 | P15 | B10 | Q65 | B3 | loop/results/hardware-* |
 | P15 | B10 | Q69 | B3 | loop/results/hardware-* |
 | P15 | B10 | Q71 | B3 | loop/results/hardware-* |
+| P15 | B10 | Q78 | B3 | loop/results/hardware-* |
+| P15 | B10 | Q81 | B3 | loop/results/hardware-* |
 | P18 | B1 | Q70 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | P18 | B1 | Q71 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | P18 | B1 | Q75 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | P18 | B1 | Q76 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
+| P18 | B1 | Q81 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | R4 | B7 | Q73 | B3 | research/cards/R4.md |
+| R4 | B7 | Q77 | B3 | research/cards/R4.md |
 | P23 | B1 | G14 | B3 | runner/CONTRACT.md |
 | P23 | B1 | Q70 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | Q71 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | Q75 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | Q76 | B3 | runner/CONTRACT.md, runner/run.py |
+| P23 | B1 | Q79 | B3 | runner/run.py |
+| P23 | B1 | Q81 | B3 | runner/CONTRACT.md, runner/run.py |
 | R10 | B7 | Q73 | B3 | research/cards/R10.md |
+| R10 | B7 | Q77 | B3 | research/cards/R10.md |
 | P5a | B1 | Q70 | B3 | runner/candidates/label-mlp2l |
 | P5a | B1 | Q71 | B3 | runner/candidates/label-mlp2l |
 | P5a | B1 | Q75 | B3 | runner/candidates/label-mlp2l |
 | P5a | B1 | Q76 | B3 | runner/candidates/label-mlp2l |
+| P5a | B1 | Q81 | B3 | runner/candidates/label-mlp2l |
 | P5c | B1 | Q70 | B3 | runner/candidates/label-emblin, runner/results |
 | P5c | B1 | Q71 | B3 | runner/candidates/label-emblin, runner/results |
 | P5c | B1 | Q75 | B3 | runner/candidates/label-emblin, runner/results |
 | P5c | B1 | Q76 | B3 | runner/candidates/label-emblin, runner/results |
+| P5c | B1 | Q81 | B3 | runner/candidates/label-emblin, runner/results |
 | P7f | B7 | Q59 | B3 | worker/research_job.py |
 | P7f | B7 | P26a | B3 | worker/research_job.py |
 | P7f | B7 | P26g | B3 | worker/research_job.py |
 | P7f | B7 | Q67 | B3 | worker/research_job.py |
 | P7f | B7 | Q73 | B3 | research/store |
+| P7f | B7 | Q77 | B3 | research/store |
 | R15 | B7 | Q73 | B3 | research/cards/R15.md |
+| R15 | B7 | Q77 | B3 | research/cards/R15.md |
 | R22 | B9 | Q73 | B3 | research/cards/R22.md |
+| R22 | B9 | Q77 | B3 | research/cards/R22.md |
 | K5 | B3 | K16 | B1 | runner/test_runner.py |
 | G1 | B3 | K16 | B1 | runner/test_runner.py |
 | G14 | B3 | K16 | B1 | runner/test_runner.py |
@@ -136,6 +161,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K16 | B1 | Q71 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
 | K16 | B1 | Q75 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
 | K16 | B1 | Q76 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
+| K16 | B1 | Q81 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
 
 ## Batches (related items done together)
 
@@ -152,7 +178,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B2 Router: spend caps and usage log | all done | - |  | Both in router/engines.py: one edit, one test file, one live probe, one review. P5 (proposer) also edits engines.py, so B2 lands before B3. | Small Claude change plus router tests; free review; the live probe on CI checks it. |
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 
-## Can run now (57)
+## Can run now (62)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -213,6 +239,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q74 | B3 |  | minor | medium | fix | Axiom: the audit hash joins fields with | and no escaping, so moving text across fields keeps the hash (found 2026-11-04, never reported) | Found in the 4 Nov live tamper test across the owner's repos: Axiom src/lib/audit.js hashes fields joined with '|' without escaping; moving text containing '|' from one field into the next gives an identical hash that still verifies. Axiom is private and outside the Forge: the owner decides whether it is fixed there (canonical encoding, as the Forge's record uses). | owner 2026-11-21: every item ever mentioned; claude/forge-tool-fit-register.md |
 | Q75 | B3 |  | minor | medium | test | Weights reproduce byte for byte on arm64 too (Q55's pin covers x86 only) | From runner/README.md limits, never filed: Q55 pinned OpenBLAS's kernel type so text weights match across two x86 CPU families. arm64 runners are free (ubuntu-24.04-arm). Test, rule fixed before running: retrain every runner candidate on arm64 twice; holds if every weights file matches the x86 bytes. | owner 2026-11-21: every item ever mentioned; claude/forge-tool-fit-register.md |
 | Q76 | B3 |  | minor | medium | test | Run one full test-split plan through the runner end to end (the gate has never fired) | GLM F110 and the analysis report's recommendation 4: the runner's test gate (a ledger plan freezing every digest) is enforced in code but never exercised. Use a baseline-only plan (no proposal: public test labels can be memorised, Q25) so the chain ledger plan -> frozen digests -> test score -> verdict runs once for real. | owner 2026-11-21: every item ever mentioned; claude/forge-tool-fit-register.md |
+| Q77 | B3 |  | minor | medium | build | Training on execution traces (ground meaning in effects on machine state) | From HANDOFF-item4-loop open list item 6 and the 4 Nov vision chat, never filed: train small models on machine-level execution traces rather than bytes. Start as literature: what has been tried, at what size, and what a first Forge-sized test would measure. | owner 2026-11-21: every item ever mentioned |
+| Q78 | B3 |  | minor | medium | fix | A jail for containers that refuse /proc mounts, or a stated CI-only path for those verifiers | From HANDOFF-item4-loop inbox, never filed: some verifier hosts (kata/gVisor-style containers, GLM's kernel-5.10 sandbox) cannot host bubblewrap or confine, so outside verifiers there cannot run the loop's attack claim. Either a third jail mode or a documented 'verify on CI' path with the commands. | owner 2026-11-21: every item ever mentioned |
+| Q79 | B3 |  | minor | medium | fix | Same cwd, HOME and visible files in the counted and the timed runs | From HANDOFF-item4-loop inbox, never filed: differences between the valgrind-counted run and the native timed run are cheap tells a candidate could use to behave differently when counted. The runner now checks that the outputs match (GLM F052); removing the tells is the other half. | owner 2026-11-21: every item ever mentioned |
+| Q80 | B3 |  | minor | medium | decision | Run the record monitor from an account outside the owner's control, on a schedule | The analysis report's recommendation 6 and the trust model's own named gap: record.py monitor (the only check that catches a rewritten and re-anchored history) is a command, not a service, and anything the owner controls can be stopped by the owner. Needs the owner: which outside account or service runs it (Q63 first gives the monitor a test and a workflow). | owner 2026-11-21: every item ever mentioned |
+| Q81 | B3 |  | minor | medium | test | Writer-level standard errors on optdigits (items from one writer are not independent) | From HANDOFF-item4-loop inbox, never filed: optdigits items come from writers, and per-item SEs treat them as independent, which overstates precision. Test, rule fixed before running: recompute the plan-2 and P5 comparisons with writer-clustered SEs where writer ids exist; report which verdicts change. | owner 2026-11-21: every item ever mentioned |
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
 | Q62 | B3 |  | minor | low | fix | Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states) | CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths. | audit/reviews/gemini-20261120/ on main (e4867d3): F004 (reproduced; the gap is stated in runner/jail.py lines 10-12) |
