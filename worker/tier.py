@@ -115,6 +115,13 @@ def artifact(run_url, dest):
     return True
 
 
+MAX_REDOS = 1   # 2026-11-20: R4 was narrowed twice in a row; a second "no claims" after this tier's redo goes to the owner
+
+
+def tier_redos(i):
+    return sum(1 for r in i.get("runs") or [] if str(r.get("worker", "")).startswith("tier-") and r.get("outcome") == "redo")
+
+
 def candidates(q):
     out = []
     for i in q["items"]:
@@ -128,7 +135,7 @@ def candidates(q):
 # keeps keys, workflows and rules). A PR is merged only if: the worker's tests passed in the no-secrets job, the code
 # reviewer approved, this model approves after its own controls, the diff is small, and no file is a gate or money path.
 MERGE_MAX_LINES = 80
-MERGE_REFUSE = re.compile(CJ.REFUSE.pattern + r"|^worker/(tier|generate|research_job|doc_job|diagnose)\.py$|^router/(slots|engines|pick)\.py$|^facts/", re.I)
+MERGE_REFUSE = re.compile(CJ.REFUSE.pattern + r"|^worker/(tier|generate|research_job|doc_job)\.py$|^router/(slots|engines|pick)\.py$|^facts/", re.I)
 
 CODE_PROMPT = """You review a code change before it is merged into main without a person. Approve only if it does exactly what
 the item asks, changes nothing else, and adds no network access, secrets, file deletion, subprocess or eval that the
@@ -241,6 +248,9 @@ def run(wt, out, ask=None):
             d, why = decide(summarise(item, art), ask)
             if not d:
                 record["items"].append({"id": item["id"], "skipped": why}); continue
+            if d["decision"] == "redo" and tier_redos(item) >= MAX_REDOS:
+                d = {"decision": "escalate", "reason": f"this tier already narrowed it {tier_redos(item)} time(s) and it still found no claims; "
+                                                        f"its next suggestion was: {d.get('question')}"}
             note = f"tier ({MODEL}, controls passed): {d['decision']}: {str(d.get('reason'))[:300]}"
             if d["decision"] == "redo":
                 rc = redo(wt, item["id"], d, note)

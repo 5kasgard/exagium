@@ -505,3 +505,11 @@ class TierMerge(unittest.TestCase):
         q = {"items": [{"id": "K1", "status": "review", "code": {"files": ["a"]}, "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/9"}]},
                        {"id": "K2", "status": "review", "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/10"}]}]}
         self.assertEqual([(i["id"], n) for i, n in TI.code_prs(q)], [("K1", 9)])
+
+
+class TierRedoCap(unittest.TestCase):
+    def test_count(self):
+        import tier as TI
+        i = {"runs": [{"worker": "tier-claude-haiku-5-5", "outcome": "redo"}, {"worker": "worker-1", "outcome": "no_claims"},
+                      {"worker": "claude-shift-x", "outcome": "redo"}]}
+        self.assertEqual(TI.tier_redos(i), 1)
