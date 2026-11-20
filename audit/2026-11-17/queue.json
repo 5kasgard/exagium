@@ -4024,6 +4024,29 @@
    "next": "0.9864 on optdigits dev (CI, jail), above gbdt 0.979 and mlp16 0.977. PLAN.md: no proposal enters runner/candidates on main without a separate check by Claude or the owner. Check (2026-11-19, Claude, first read): a deeper MLP, reads only train data, own falsifier stated; likely a capacity effect (P1's lesson) rather than a new structure. Next: copy as label-mlp2l, run on text and adult with paired SE against mlp16 and gbdt, report whether depth helps beyond digits. 2026-11-20 08:30 Brisbane: checked and admitted as runner/candidates/label-mlp2l (main 4d285cc7, code unchanged); runner run 44626963486 on digits, text, adult. RULE, fixed before results: depth helps on a task if label-mlp2l beats label-mlp16 by more than 2 paired SE there; it is an advance on the task if no other candidate is as accurate within 1 SE and cheaper in Ir/item. Forecast (Claude): helps on text (p 0.5), on adult (p 0.3); on digits this dev split cannot settle it (P5b does). RESULT (main 01737acc, runner/results/2026-11-20-p5a/): depth helps on digits only (+0.0094 ± 0.0040 vs mlp16; held-out P5b +0.0175); adult -0.0060 ± 0.0031, text -0.0500 ± 0.0062 (below linear); dominated on both. Reproduces on all three. Forecast Brier 0.17. Next for P5: proposals per task, and the accuracy-cost front as the board's winner rule (P5b)."
   },
   {
+   "id": "P5c",
+   "title": "Check the cheapest accurate adult proposal (prop-44642441286-0, embeddings + linear = an additive per-value lookup): as accurate as gbdt at about 1/11 the instructions on dev; held-out check",
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "batch": "B1",
+   "origin": "follow-up",
+   "blocked_by": [],
+   "touches": [
+    "runner/candidates/label-emblin/",
+    "runner/results/"
+   ],
+   "refs": [
+    "proposals branch: proposals/prop-44642441286-0, proposals/LEADERBOARD.md",
+    "runner/results/2026-11-20-p5a/decision.txt",
+    "runner/proposals/PLAN.md"
+   ],
+   "next": "Found by script over proposals/LEADERBOARD.md (203 proposals, 129 valid) on 2026-11-20 by the scheduled Claude shift, following P5a's 'next for P5: the accuracy-cost front'. Adult: prop-44642441286-0 dev 0.8663 +/- 0.0042 at 658 Ir/item (result.json on the proposals branch); label-gbdt 0.8664 at 7,570 Ir/item, label-linear 0.8524 at 719 (runner/results/2026-11-20-p5a/decision.txt). Claude's first read of its reply.md: per-feature learned embeddings (D chosen on the last 20% of train) concatenated into one linear layer; a linear map of embeddings folds to a per-feature, per-value table of class scores, i.e. an additive lookup model (one-hot linear), which fits 658 Ir/item. Caveat: it is the best of 31 valid adult proposals on dev, so its dev number carries selection (winner's curse); only a held-out run counts. Text and digits: no new front point (text best 0.3858 at 318,474 Ir is dominated by gbdt 0.3923 at 131,154; digits best ties the admitted label-mlp2l at higher cost). NEXT: Claude reads train.py and infer.c in full (P5a's check: reads only train data, deterministic, no test access), admits as runner/candidates/label-emblin unchanged, runs dev and held-out (P5b's method) with paired SE against label-gbdt and label-linear. RULE, fixed now: an advance on adult if on held-out its accuracy minus gbdt's is above -2 paired SE and its Ir/item is below gbdt's; it beats linear if its held-out margin over label-linear exceeds 2 paired SE. Forecast (Claude): advance p 0.55, beats linear p 0.8."
+  },
+  {
    "id": "P7f",
    "title": "Research depth: the scan finds, a drill restructures full text into a queryable store, models query only what fits their context",
    "kind": "build",
@@ -4960,7 +4983,8 @@
     "Q25",
     "P18",
     "Q56b",
-    "P23"
+    "P23",
+    "P5c"
    ],
    "why": "All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data.",
    "worker": "Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs."
