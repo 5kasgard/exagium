@@ -6289,7 +6289,7 @@
    "id": "G3",
    "title": "F045: The decisions_* scripts write raw provider error bodies (e.read() decoded, truncated but unscrubbed by any red",
    "kind": "fix",
-   "status": "review",
+   "status": "done",
    "origin": "review",
    "review": "glm-20261120:F045",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -6327,6 +6327,12 @@
      "at": "2026-11-20T21:00:35Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-20T21:19:11Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #14 merged; model: The diff routes the decisions_route HTTP error body through engines._scrub before it reaches both the committed JSON and stdout, adds a regression test that fails without the fix, and makes no other behavioral or network changes; the only additions are the needed engines import and the test. I could not verify that engines._scrub masks sk-or-v1- keys as '***', which the test assumes.",
+     "outcome": "confirm"
     }
    ]
   },
