@@ -1,0 +1,65 @@
+# Free fallback readers for the research worker, on bundles saved by a rerank-arm run (worker/reader_bake.py).
+# Free models only by default; the baseline is the first reader. Calls are reserved in and recorded to the shared ledger.
+name: reader-bake
+on:
+  workflow_dispatch:
+    inputs:
+      arm_run:
+        description: "rerank-arm run id whose saved cite bundles to read (router-runs arms/<id>/<item>/cite)"
+        required: true
+      readers:
+        description: "POOL,MODEL entries, space-separated; the first is the baseline"
+        default: "nvidia,nvidia/nemotron-3-ultra-550b-a55b openrouter,particle-ai/particle-1:free openrouter,nvidia/nemotron-3.5-super-vl:free openrouter,baidu/ernie-5.5-flash-preview:free openrouter,inclusionai/ling-3.2-flash:free"
+permissions: {}
+concurrency:
+  group: reader-bake
+  cancel-in-progress: false
+jobs:
+  bake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: bundles and reservation
+        env:
+          ARM: ${{ github.event.inputs.arm_run }}
+          READERS: ${{ github.event.inputs.readers }}
+        run: |
+          case "$ARM" in ''|*[!0-9]*) echo "arm_run must be a run id"; exit 1;; esac
+          git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
+          ls -d "$RUNNER_TEMP/rr/arms/$ARM"/*/cite | tr '\n' ',' | sed 's/,$//' > "$RUNNER_TEMP/bundles.txt"
+          nb=$(tr ',' '\n' < "$RUNNER_TEMP/bundles.txt" | grep -c .); [ "$nb" -ge 1 ] || { echo "no bundles"; exit 1; }
+          nor=0; nnv=0
+          for r in $READERS; do case "$r" in openrouter,*:free) nor=$((nor + nb * 2));; nvidia,*) nnv=$((nnv + nb)); nor=$((nor + nb));; *) echo "only free OpenRouter models and NIM here: $r"; exit 1;; esac; done
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID" "openrouter:$nor,nvidia:$((nnv + 1))"
+      - name: read
+        env:
+          READERS: ${{ github.event.inputs.readers }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          set -o pipefail
+          python3 -I worker/reader_bake.py "$RUNNER_TEMP/bake" "$(cat "$RUNNER_TEMP/bundles.txt")" $READERS 2>&1 | tee "$RUNNER_TEMP/bake.log"
+      - name: record the calls
+        if: ${{ always() }}
+        run: |
+          [ -s "$RUNNER_TEMP/bake/usage.jsonl" ] || exit 0
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "bake-$GITHUB_RUN_ID" "$RUNNER_TEMP/bake/usage.jsonl" || echo "ledger record failed"
+      - name: save on router-runs
+        if: ${{ always() }}
+        run: |
+          [ -d "$RUNNER_TEMP/bake" ] || exit 0
+          cp "$RUNNER_TEMP/bake.log" "$RUNNER_TEMP/bake/" 2>/dev/null || true
+          echo "$GITHUB_SHA arm=${{ github.event.inputs.arm_run }}" > "$RUNNER_TEMP/bake/source.txt"
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+            mkdir -p bakes && rm -rf "bakes/$GITHUB_RUN_ID" && cp -r "$RUNNER_TEMP/bake" "bakes/$GITHUB_RUN_ID"
+            git add bakes && git commit -qm "reader bake $GITHUB_RUN_ID"
+            git push -q origin router-runs && { echo "pushed on try $i"; exit 0; }
+            sleep $((i * 7))
+          done
+          exit 1
