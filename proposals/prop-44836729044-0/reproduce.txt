@@ -1,0 +1,9 @@
+FAILED: prop-44836729044-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 133, in <module>
+    main()
+  File "/w/train.py", line 61, in main
+    logits = bias + np.sum(lin[xb, np.arange(256)[:, None], :], axis=1)  # WRONG: need proper indexing
+                           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (64,14) (256,1) 
+
