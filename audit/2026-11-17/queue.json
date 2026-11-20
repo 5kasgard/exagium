@@ -5930,7 +5930,7 @@
    "id": "K10",
    "title": "Run valgrind under limits.c in confine mode",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "Q62",
    "generated_at": "2026-11-20T12:43:32Z",
@@ -5974,6 +5974,12 @@
      "at": "2026-11-20T13:01:36Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-20T13:06:33Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #13 not merged: model verdict: reject; model: The diff prepends `_limits_args(120, False)` to the shared `counter_confine` argument list, which the docstring says runs inside the bubblewrap jail, so it may change the bubblewrap path the item says to keep unchanged. It also does not show the confine-mode valgrind command line or any test confirming the limits.c wrapper is applied, and its comment contradicts the docstring about where ",
+     "outcome": "escalate"
     }
    ]
   },

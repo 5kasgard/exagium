@@ -120,12 +120,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| K10 | B3 |  | minor | low | fix | Run valgrind under limits.c in confine mode | In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass. | queue Q62; worker/split.py |
-
 ## Escalated (a check failed; the next tier takes it) (6)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
@@ -137,7 +131,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D26 | B3 |  | minor | medium | fix | Failed run, unknown: .github/workflows/tier.yml:unknown | Filed by worker/diagnose.py from run 44739347561 (.github/workflows/tier.yml). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44739347561 |
 | D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
 
-## Needs the owner (8)
+## Needs the owner (9)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -149,6 +143,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R22 | B9 |  | minor | high | test | How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve depen | Worker job (research): literature card for P21. Why: It directly informs the next step's need for typed link semantics, cycle resolution, and downstream recheck behavior in a manipulable dependency web. | queue P21; queue P27 (generator) |
 | R4 | B7 |  | minor | high | test | Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting? | Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P3 |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
+| K10 | B3 |  | minor | low | fix | Run valgrind under limits.c in confine mode | In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass. | queue Q62; worker/split.py |
 
 ## Parked (23)
 
