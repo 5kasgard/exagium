@@ -41,7 +41,9 @@ def probe(p):
         except ssl.SSLCertVerificationError:
             return False
     if k == "openrouter_listed":
-        ids = {m["id"] for m in json.loads(get("https://openrouter.ai/api/v1/models"))["data"]}
+        # output_modalities=all: the default list leaves out decision and rerank models (2026-11-20: the decider and the
+        # reranker read as "gone" while both answered; 741 models listed this way against 477 by default)
+        ids = {m["id"] for m in json.loads(get("https://openrouter.ai/api/v1/models?output_modalities=all"))["data"]}
         return p["model"] in ids
     if k == "openrouter_key":   # the account's allowances, as the key endpoint reports them
         return field(json.loads(get("https://openrouter.ai/api/v1/key", "OPENROUTER_API_KEY"))["data"], p["field"])
