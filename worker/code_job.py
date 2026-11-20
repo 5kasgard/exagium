@@ -32,7 +32,10 @@ NEXT STEP: {next}
 FILES YOU MAY CHANGE (complete contents):
 {files}
 
-TEST THAT MUST PASS AFTER YOUR CHANGE: {test}
+FILES TO READ FOR CONTEXT (do not edit):
+{context}
+
+TEST FILE (you may add tests to it; existing tests must keep passing): {test}
 {test_src}
 
 Reply with one or more edit blocks in exactly this form, and nothing else:
@@ -76,15 +79,21 @@ def context(item_path, repo, out):
     if bad or not files or not TEST.fullmatch(test) or not os.path.isfile(os.path.join(repo, test)):
         raise SystemExit(f"code item refused (files must exist, be listed in touches, not be refused paths; test must be "
                          f"an existing tests file): files {bad or files}, test {test!r}")
+    # the item's test file is editable too: sub-items say "add a test", and the coder could not (PRs #10-#12, 2026-11-20)
+    files = files + ([test] if test not in files else [])
+    ctx = [p for p in (c.get("context") or [])[:2] if allowed(p) and os.path.isfile(os.path.join(repo, p)) and p not in files]
     src = {p: open(os.path.join(repo, p), encoding="utf-8").read() for p in files}
-    if any(s.count("\n") > MAX_LINES for s in src.values()):
+    ctx_src = {p: open(os.path.join(repo, p), encoding="utf-8").read()[:20000] for p in ctx}
+    if any(s.count("\n") > MAX_LINES for p, s in src.items() if p != test):
         raise SystemExit(f"a file is over {MAX_LINES} lines: split the item (worker-sized work only)")
     tsrc = open(os.path.join(repo, test), encoding="utf-8").read()
     os.makedirs(out, exist_ok=True)
     json.dump({"item": item, "files": src, "test": test,
                "prompt": PROMPT.format(id=item["id"], title=item["title"], next=item["next"][:2000], test=test,
-                                       files="\n\n".join(f"--- {p} ---\n{s}" for p, s in src.items()),
-                                       test_src=tsrc[:8000])}, open(os.path.join(out, "bundle.json"), "w"), indent=1)
+                                       files="\n\n".join(f"--- {p} ---\n{s}" for p, s in src.items() if p != test),
+                                       test_src=tsrc[-12000:],
+                                       context="\n\n".join(f"--- {p} (read only) ---\n{s}" for p, s in ctx_src.items()) or "(none)")},
+              open(os.path.join(out, "bundle.json"), "w"), indent=1)
     return 0
 
 

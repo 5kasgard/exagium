@@ -191,7 +191,8 @@ def merge_decision(item, files, verdict):
     lines = sum(f.get("additions", 0) + f.get("deletions", 0) for f in files)
     if lines > MERGE_MAX_LINES:
         why.append(f"{lines} changed lines (over {MERGE_MAX_LINES})")
-    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in (item.get("code") or {}).get("files", [])]
+    own = (item.get("code") or {}).get("files", []) + [(item.get("code") or {}).get("test")]
+    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in own]
     if bad:
         why.append(f"files a person merges, or not the item's own: {', '.join(bad)}")
     if verdict != "approve":

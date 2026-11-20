@@ -39,8 +39,11 @@ CODE FILES (path, lines):
 
 TEST FILES: {tests}
 
-Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "test": "path/test_x.py",
-"next": "exactly what to change and how to tell it is right"}}]}}"""
+Each sub-item edits its 1-2 files and may add tests to its test file. Name up to 2 other files the coder must read to
+get data formats and interfaces right ("context"); it sees nothing else. Say in "next" which test to add.
+
+Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "test": "path/test_x.py", "context": ["path.py"],
+"next": "exactly what to change, and the test that shows it is right"}}]}}"""
 
 ASK = ("Pair {k}: is its SUBITEM a correct, self-contained small code change that moves its ITEM's NEXT STEP forward, sized "
        "for one model call that edits the 1 or 2 files named? Vague, off-topic, too large, or not what the item needs: no.")
@@ -76,7 +79,8 @@ def check(sub, lines, tests):
         return None, f"no such tests file: {test}"
     if not 10 <= len(sub["title"]) <= 160 or len(sub["next"]) < 20:
         return None, "title or next too short"
-    return {"title": " ".join(sub["title"].split()), "files": files, "test": test, "next": sub["next"][:1500]}, None
+    ctx = [c for c in (sub.get("context") or []) if isinstance(c, str) and c in lines and CJ.allowed(c) and c not in files][:2]
+    return {"title": " ".join(sub["title"].split()), "files": files, "test": test, "context": ctx, "next": sub["next"][:1500]}, None
 
 
 def recently_tried(i):
@@ -191,7 +195,8 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                 kid = f"K{n}"; n += 1
                 q["items"].append({"id": kid, "title": s["title"], "kind": "fix", "status": "proposed", "origin": "generated",
                                    "split_from": p["id"], "generated_at": Q.iso(Q.now()),
-                                   "code": {"files": s["files"], "test": s["test"]}, "touches": list(s["files"]),
+                                   "code": {"files": s["files"], "test": s["test"], "context": s["context"]},
+                                   "touches": list(s["files"]) + [s["test"]],
                                    "next": s["next"], "refs": [f"queue {p['id']}", "worker/split.py"], "severity": "minor",
                                    "needs": "free", "cost": 0, "value": p.get("value", "medium"), "blocked_by": [],
                                    "batch": p.get("batch", "B3")})

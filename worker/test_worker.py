@@ -478,10 +478,11 @@ class CodeJob(unittest.TestCase):
 
     def test_job_type_and_cover(self):
         import queue_ops as QO
-        i = {"code": {"files": ["worker/diagnose.py"], "test": "worker/test_worker.py"}, "touches": ["worker/diagnose.py"]}
+        i = {"code": {"files": ["worker/diagnose.py"], "test": "worker/test_worker.py"}, "touches": ["worker/diagnose.py", "worker/test_worker.py"]}
         self.assertEqual(QO.job_type(i), "code")
         self.assertTrue(QO.covered(i))
         self.assertFalse(QO.covered(dict(i, touches=[])))
+        self.assertFalse(QO.covered(dict(i, touches=["worker/diagnose.py"])))   # the test file is written too, so it is touched
 
     def test_tests_failed_is_a_failure(self):
         import transitions as TR

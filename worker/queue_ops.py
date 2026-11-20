@@ -123,7 +123,7 @@ def covered(i):
         return all(isinstance(x, dict) and x.get("path") in t for x in i["targets"])
     if job_type(i) == "code":
         c = i.get("code") or {}
-        return bool(c.get("files")) and all(f in t for f in c["files"])
+        return bool(c.get("files")) and all(f in t for f in c["files"] + ([c["test"]] if c.get("test") else []))
     return f"research/cards/{i.get('id')}.md" in t
 
 
