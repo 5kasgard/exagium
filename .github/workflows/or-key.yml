@@ -1,0 +1,25 @@
+# What the OpenRouter key's account is allowed (no secret printed): free-tier flag, credit limit, usage. Owner 2026-11-20:
+# "I already have $10 of credit, so shouldn't I already have the higher limit?"
+name: or-key
+on: workflow_dispatch
+permissions: {}
+jobs:
+  key:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: key and credits
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          for path in ("key", "credits"):
+              req = urllib.request.Request("https://openrouter.ai/api/v1/" + path, headers={"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
+              try:
+                  d = json.loads(urllib.request.urlopen(req, timeout=30).read()).get("data") or {}
+              except Exception as e:
+                  print(path, "error", str(e)[:200]); continue
+              d.pop("label", None)   # the label can carry part of the key
+              print(path, json.dumps(d))
+          PY
