@@ -13,8 +13,9 @@ to be worth running unattended.
    (`worker/ledger.py`, shared with the queue worker).
 2. **propose** (holds the key; runs no generated code): `runner/proposals/propose.py` builds the prompt and makes one
    call per proposal to Nemotron 3 Ultra (NVIDIA NIM, free). Tasks rotate over optdigits, text and adult.
-3. **score** (no secrets; read-only token): `runner/proposals/extract.py` takes exactly the three fenced blocks
-   (hypothesis, `train.py`, `infer.c`), with size limits, into `runner/candidates/prop-<run>-<k>/` on the runner only.
+3. **score** (no secrets; read-only token): `runner/proposals/extract.py` takes the first fenced block of each kind
+   (hypothesis, `train.py`, `infer.c`) and ignores any further same-kind blocks, with size limits, into
+   `runner/candidates/prop-<run>-<k>/` on the runner only.
    `runner/run.py reproduce` (twice, in the jail) and `evaluate --split dev` with the card's baselines. Dev only: no
    proposal goes to the test gate (Q25: public test labels could be memorised).
 4. **record** (no key; writes the `proposals` branch and the ledger): prompt, reply, files, result and a leaderboard.

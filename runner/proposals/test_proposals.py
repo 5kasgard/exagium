@@ -29,6 +29,14 @@ class Extract(unittest.TestCase):
             self.assertNotIn("other", open(os.path.join(d, "train.py")).read())
 
 
+class PlanDoc(unittest.TestCase):
+    def test_plan_says_first_block_of_each_kind(self):
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "PLAN.md")
+        text = open(path).read()
+        self.assertIn("the first fenced block of each kind", text)
+        self.assertNotIn("takes exactly the three fenced blocks", text)
+
+
 def items(scores):
     return [{"score": s} for s in scores]
 
