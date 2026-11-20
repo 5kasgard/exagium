@@ -39,7 +39,10 @@ jobs:
       - name: budget headroom before claiming (review N1)
         if: env.PAUSED != '1'
         run: |
-          if git ls-remote --exit-code origin worker-runs >/dev/null; then
+          rc=0; git ls-remote --exit-code origin worker-runs >/dev/null || rc=$?
+          # GLM F007: only "no such branch" (2) takes the no-ledger path; any other failure stops here, loudly
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then echo "::error::ls-remote failed ($rc): no budget check possible"; exit 1; fi
+          if [ "$rc" -eq 0 ]; then
             git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r0" FETCH_HEAD
             # which job types today's budget can still pay for (same specs as the reserve step); claim only those
             # research projects 600 neurons for its one Cloudflare call: measured max 438, all 23 Cloudflare calls in ledger/calls.jsonl
@@ -69,7 +72,10 @@ jobs:
       - name: reserve budget (1 drafter or reader call, 1 checker call; neurons projected per job type)
         if: env.ITEM != ''
         run: |
-          if git ls-remote --exit-code origin worker-runs >/dev/null; then
+          rc=0; git ls-remote --exit-code origin worker-runs >/dev/null || rc=$?
+          # GLM F007: only "no such branch" (2) takes the no-ledger path; any other failure stops here, loudly
+          if [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then echo "::error::ls-remote failed ($rc): no budget check possible"; exit 1; fi
+          if [ "$rc" -eq 0 ]; then
             git worktree add -q --detach "$RUNNER_TEMP/r" origin/worker-runs 2>/dev/null || { git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD; }
           else
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
@@ -346,7 +352,8 @@ jobs:
     # nothing else restarted the worker, so it sat 4 h with R18 and R19 ready (2026-11-20 01:53-06:00Z). Waiting 30 minutes
     # first keeps a failing provider from being hammered; a repeat failure escalates the item through transitions.py.
     needs: [claim, land]
-    if: ${{ always() && needs.claim.result == 'success' && ((needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '') || (needs.claim.outputs.item != '' && needs.land.outputs.status == 'open')) }}
+    # GLM F008: a failed claim (tests, checkout, a crash) also re-polls, else only the unreliable cron restarted the worker
+    if: ${{ always() && (needs.claim.result == 'failure' || (needs.claim.result == 'success' && ((needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '') || (needs.claim.outputs.item != '' && needs.land.outputs.status == 'open')))) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     concurrency:   # one idle poll waiting at a time
@@ -373,7 +380,7 @@ jobs:
           cd "$RUNNER_TEMP/fr" && git add facts/status.json && { git diff --cached --quiet || { git commit -qm "facts: check, run $GITHUB_RUN_ID (rc $rc)" && git push -q origin HEAD:worker-runs || echo "status push failed (next idle run retries)"; }; }
       - name: no item was ready - file research questions for open items (P27 kind 1; free models; runs no model text)
         id: gen
-        if: needs.claim.outputs.item == ''
+        if: needs.claim.result == 'success' && needs.claim.outputs.item == ''
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # the generator's draft and gate calls (prompt text only)
         run: |
@@ -388,7 +395,7 @@ jobs:
           cat "$RUNNER_TEMP/gen/generate.json" 2>/dev/null | head -c 6000   # drafts, gate probabilities and controls, for the record
       - name: no item was ready - split big open items into worker-sized code items (worker/split.py; Haiku drafts, decision model gates)
         id: split
-        if: needs.claim.outputs.item == ''
+        if: needs.claim.result == 'success' && needs.claim.outputs.item == ''
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}       # the splitter's draft (prompt text only; nothing is run here)
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # the gate
@@ -461,8 +468,9 @@ jobs:
             -q '[.workflow_runs[] | select(.status=="queued" or .status=="waiting" or .status=="pending" or .status=="requested")] | length')
           if [ "$waiting" -gt 0 ]; then echo "a worker run is already waiting ($waiting): not chaining"; exit 0; fi
           today=$(date -u +%F)
-          chained=$(gh api "repos/$R/actions/workflows/worker.yml/runs?event=workflow_dispatch&created=>=$today&per_page=100" \
-            -q '[.workflow_runs[] | select(.triggering_actor.login=="github-actions[bot]")] | length')
+          # --paginate: one page held at most 100, so the 200 cap could never fire (GLM F002)
+          chained=$(gh api --paginate "repos/$R/actions/workflows/worker.yml/runs?event=workflow_dispatch&created=>=$today&per_page=100" \
+            -q '[.workflow_runs[] | select(.triggering_actor.login=="github-actions[bot]")] | length' | awk '{s+=$1} END {print s+0}')
           if [ "$chained" -ge "$CHAIN_CAP" ]; then echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"; exit 0; fi
           gh workflow run worker.yml -R "$R" --ref main
           echo "chained run $((chained + 1)) of $CHAIN_CAP today (UTC $today)"

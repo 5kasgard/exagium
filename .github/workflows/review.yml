@@ -55,7 +55,10 @@ jobs:
         run: |
           [ -s "$RUNNER_TEMP/usage.jsonl" ] || exit 0
           git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          [ -d "$RUNNER_TEMP/led/.git" ] || [ -f "$RUNNER_TEMP/led/.git" ] || { echo "no ledger worktree"; exit 0; }
+          if ! { [ -d "$RUNNER_TEMP/led/.git" ] || [ -f "$RUNNER_TEMP/led/.git" ]; }; then   # GLM F010: retry, then fail visibly
+            rm -rf "$RUNNER_TEMP/led"; git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD \
+              || { echo "::error::no ledger worktree: these calls are not in the shared caps (they stay in reviews/$GITHUB_RUN_ID/usage.jsonl)"; exit 1; }
+          fi
           python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "review-$GITHUB_RUN_ID" "$RUNNER_TEMP/usage.jsonl" || echo "ledger record failed (calls stay in reviews/$GITHUB_RUN_ID/usage.jsonl)"
       - name: save the replies on router-runs
         run: |

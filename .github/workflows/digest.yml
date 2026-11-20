@@ -11,7 +11,21 @@ defaults:
   run:
     shell: bash
 jobs:
+  gate:   # GLM F005: the pause switch stops the digest too, like every other automated consumer
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      paused: ${{ steps.p.outputs.paused }}
+    steps:
+      - id: p
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo paused=1 >> "$GITHUB_OUTPUT"; echo paused; fi
   facts:
+    needs: gate
+    if: ${{ needs.gate.outputs.paused != '1' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
