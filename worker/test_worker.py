@@ -639,7 +639,8 @@ class GLMReview20261120(unittest.TestCase):
             seen.append(os.environ.get("READER_OVERRIDE"))
             json.dump({}, open(os.path.join(p, "read.json"), "w")); open(os.path.join(p, "calls.jsonl"), "w").close()
         with tempfile.TemporaryDirectory() as d, mock.patch.object(RB.rj, "read", fake_read), \
-                mock.patch.dict(os.environ, {}):
+                mock.patch.object(RB.rj, "READER", RB.rj.READER), mock.patch.object(RB.rj, "CHECK_CALLS", RB.rj.CHECK_CALLS), \
+                mock.patch.dict(os.environ, {}):   # main() sets module globals: restore them for the other tests
             b = os.path.join(d, "x", "b1"); os.makedirs(b); open(os.path.join(b, "search.json"), "w").write("{}")
             try:
                 RB.main(os.path.join(d, "out"), [b], ["nvidia,m1", "cloudflare,m2"])
