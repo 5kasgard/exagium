@@ -6896,7 +6896,7 @@
    "id": "G5",
    "title": "F046: review.py itself reads any path given as argv[1] with no allowlist, traversal or symlink check (line 11: 'prom",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "review",
    "review": "glm-20261120:F046",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -6910,7 +6910,7 @@
     "router/review.py",
     "router/test_router.py"
    ],
-   "next": "Fix review finding glm-20261120:F046 (security, medium). Claim: review.py itself reads any path given as argv[1] with no allowlist, traversal or symlink check (line 11: 'prompt, out = open(sys.argv[1]).read(), sys.argv[2]') - the documented invariant 'the prompt is a committed file' is enforced only by review.yml's shell, not in code. Evidence at router/review.py lines [3, 5]: usage: review.py PROMPT_FILE OUT_DIR ENGINE:MODEL [ENGINE:MODEL ...]\nAn outside review that doesn't pass through the author's hands: the prompt is a committed file, the reply\nis saved as received. Exit 0 if at least one engine answered. Proposed fix: Validate the prompt path in review.py itself (resolved under router/review/, no .., tracked regular file) so the invariant holds for every caller, not just review.yml. Add a test in router/test_router.py that fails on the current code and passes after the fix. Change nothing else.",
+   "next": "Fix review finding glm-20261120:F046 (security, medium). Claim: review.py itself reads any path given as argv[1] with no allowlist, traversal or symlink check (line 11: 'prompt, out = open(sys.argv[1]).read(), sys.argv[2]') - the documented invariant 'the prompt is a committed file' is enforced only by review.yml's shell, not in code. Evidence at router/review.py lines [3, 5]: usage: review.py PROMPT_FILE OUT_DIR ENGINE:MODEL [ENGINE:MODEL ...]\nAn outside review that doesn't pass through the author's hands: the prompt is a committed file, the reply\nis saved as received. Exit 0 if at least one engine answered. Proposed fix: Validate the prompt path in review.py itself (resolved under router/review/, no .., tracked regular file) so the invariant holds for every caller, not just review.yml. Add a test in router/test_router.py that fails on the current code and passes after the fix. Change nothing else. PREVIOUS ATTEMPT REJECTED: reviewer: reject: Introduces a subprocess call to git for tracking checks, which was not requested by the item. Do the whole item, with a test.",
    "refs": [
     "audit/reviews/glm-20261120/findings.jsonl",
     "worker/intake_review.py"
@@ -6934,6 +6934,12 @@
      "at": "2026-11-20T21:05:34Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-20T21:51:49Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: Introduces a subprocess call to git for tracking checks, which was not requested by the item"
     }
    ]
   },
