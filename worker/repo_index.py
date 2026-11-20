@@ -84,6 +84,31 @@ def rank(mods, text, k=8):
                   key=lambda m: (m["path"] not in named, -score[m["path"]]))[:k]
 
 
+def rank_bm25(mods, text, k=8, k1=1.5, b=0.75):
+    """Okapi BM25 over the same per-module words (ported from RabbitHole rabbithole/search.py LocalCorpusProvider, owner's
+    repo; P26). Kept beside rank() until experiments/retrieval_bm25.py decides which one the jobs use."""
+    docs = {m["path"]: words(m["path"] + " " + m["doc"] + " " + " ".join(p["sig"] + " " + p["doc"] for p in m["parts"]))
+            for m in mods}
+    df = {}
+    for ws in docs.values():
+        for w in set(ws):
+            df[w] = df.get(w, 0) + 1
+    n, avg = len(docs), (sum(len(w) for w in docs.values()) / len(docs)) if docs else 0.0
+    q = words(text)
+    score = {}
+    for p, ws in docs.items():
+        s, dl = 0.0, len(ws)
+        for t in q:
+            if t in df:
+                tf = ws.count(t)
+                idf = math.log(1.0 + (n - df[t] + 0.5) / (df[t] + 0.5))
+                s += idf * (tf * (k1 + 1) / (tf + k1 * (1 - b + b * dl / max(1.0, avg))))
+        score[p] = s
+    named = {m["path"] for m in mods if m["path"] in text or os.path.basename(m["path"]) in text}
+    return sorted((m for m in mods if score[m["path"]] > 0 or m["path"] in named),
+                  key=lambda m: (m["path"] not in named, -score[m["path"]]))[:k]
+
+
 def show(ms, max_parts=25):
     out = []
     for m in ms:
