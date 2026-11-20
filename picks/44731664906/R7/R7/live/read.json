@@ -1,0 +1,175 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S1",
+    "claim": "The best-performing agent setup, OpenAI's o1-preview with AIDE scaffolding, achieves at least a Kaggle bronze medal level in 16.9% of MLE-bench competitions.",
+    "quote": "the best-performing setup--OpenAI's o1-preview with AIDE scaffolding--achieves at least the level of a Kaggle bronze medal in 16.9% of competitions",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "A Claude v3 Opus agent achieves a 37.5% average success rate across MLAgentBench tasks.",
+    "quote": "a Claude v3 Opus agent is the best in terms of success rate. It can build compelling ML models over many tasks in MLAgentBench with 37.5% average success rate",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "Success rates on MLAgentBench span from 100% on older datasets to 0% on recent Kaggle challenges potentially post-dating LM training.",
+    "quote": "success rates vary considerably; they span from 100% on well-established older datasets to as low as 0% on recent Kaggle challenges created potentially after the underlying LM was trained",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "The best search strategy and operator pairing increases the MLE-bench lite medal success rate from 39.6% to 47.7%.",
+    "quote": "Our best pairing of search strategy and operator set achieves a state-of-the-art result on MLE-bench lite, increasing the success rate of achieving a Kaggle medal from 39.6% to 47.7%",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "MLE-STAR achieves medals in 64% of Kaggle competitions on MLE-bench Lite.",
+    "quote": "MLE-STAR achieves medals in 64% of the Kaggle competitions on the MLE-bench Lite, significantly outperforming the best alternative",
+    "kind": "result",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "How do success rates differ for smaller open-weight models versus frontier proprietary models on these benchmarks?",
+   "What are the typical failure modes when agents score 0% on recent Kaggle challenges?",
+   "How do iterative debugging and multi-attempt evaluations (e.g., MLE-Dojo) change single-attempt success rates?",
+   "What is the compute cost per successful solution at these reported success rates?",
+   "How well do MLE-bench and MLAgentBench results generalize to real-world ML engineering tasks beyond competition formats?"
+  ],
+  "reader_tries": [
+   {
+    "pool": "nvidia",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "status": 200,
+    "ok": true
+   }
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S1",
+   "claim": "The best-performing agent setup, OpenAI's o1-preview with AIDE scaffolding, achieves at least a Kaggle bronze medal level in 16.9% of MLE-bench competitions.",
+   "quote": "the best-performing setup--OpenAI's o1-preview with AIDE scaffolding--achieves at least the level of a Kaggle bronze medal in 16.9% of competitions",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "A Claude v3 Opus agent achieves a 37.5% average success rate across MLAgentBench tasks.",
+   "quote": "a Claude v3 Opus agent is the best in terms of success rate. It can build compelling ML models over many tasks in MLAgentBench with 37.5% average success rate",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "Success rates on MLAgentBench span from 100% on older datasets to 0% on recent Kaggle challenges potentially post-dating LM training.",
+   "quote": "success rates vary considerably; they span from 100% on well-established older datasets to as low as 0% on recent Kaggle challenges created potentially after the underlying LM was trained",
+   "kind": "failure mode",
+   "evidence": "measured"
+  },
+  {
+   "source": "S6",
+   "claim": "The best search strategy and operator pairing increases the MLE-bench lite medal success rate from 39.6% to 47.7%.",
+   "quote": "Our best pairing of search strategy and operator set achieves a state-of-the-art result on MLE-bench lite, increasing the success rate of achieving a Kaggle medal from 39.6% to 47.7%",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S8",
+   "claim": "MLE-STAR achieves medals in 64% of Kaggle competitions on MLE-bench Lite.",
+   "quote": "MLE-STAR achieves medals in 64% of the Kaggle competitions on the MLE-bench Lite, significantly outperforming the best alternative",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2,
+   3,
+   4
+  ],
+  "grades": {
+   "0": "measured",
+   "1": "reported",
+   "2": "reported",
+   "4": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "p_keep": [
+    0.9475,
+    0.65,
+    0.9276,
+    0.7391,
+    0.5822
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "grades": {
+    "0": "measured",
+    "1": "reported",
+    "2": "reported",
+    "4": "reported"
+   },
+   "votes": [
+    [
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      0,
+      1,
+      2
+     ],
+     [
+      0,
+      1,
+      2
+     ]
+    ],
+    [
+     [
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      1
+     ]
+    ]
+   ],
+   "notes": "All three claims are directly supported by their quotes and answer the question about LLM agent performance on MLE-bench and MLAgentBench.; All three claims are directly supported by their quotes and answer the question, but grades corrected from measured to reported as quotes lack methodological de; All three claims are directly supported by their quotes and answer the question, but the quotes do not describe measurement methods, so grades are corrected to ; Claim 1 directly answers the question with a reported success rate for MLE-STAR on MLE-bench Lite; claim 0 does not directly answer the question and is dropped.; Both claims are exactly supported by their quotes and directly answer the question, but the quotes only report results without describing measurement methods, s; Both claims are supported by quotes and directly answer the question, but the quotes only report results without describing measurement methods, so grades are c"
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
