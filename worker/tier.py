@@ -22,6 +22,7 @@ import code_job as CJ
 
 MODEL = "claude-haiku-5-5"   # $0.10/$0.50 per M tokens up to 100k-token prompts (Anthropic pricing, 2026-11-20)
 MAX_ITEMS = 3
+MAX_PRS = 12   # 2026-11-21: 15 PRs arrived in 18 minutes and the tier took 3 per run (its controls run once per run)
 REPO = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
 
 PROMPT = """You review a research job that found no usable claims. Decide what happens next.
@@ -190,7 +191,7 @@ def code_prs(q):
             m = re.search(r"/pull/(\d+)", str(r.get("where", "")))
             if m:
                 out.append((i, int(m.group(1))))
-    return out[:MAX_ITEMS]
+    return out[:MAX_PRS]
 
 
 def merge_decision(item, files, verdict):
