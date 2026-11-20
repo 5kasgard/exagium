@@ -113,7 +113,7 @@ def _overlap(a, b):
 
 
 def job_type(i):
-    return "doc" if i.get("targets") else "research" if i.get("research") else None
+    return "doc" if i.get("targets") else "research" if i.get("research") else "code" if i.get("code") else None
 
 
 def covered(i):
@@ -121,6 +121,9 @@ def covered(i):
     t = set(i.get("touches", []))
     if job_type(i) == "doc":
         return all(isinstance(x, dict) and x.get("path") in t for x in i["targets"])
+    if job_type(i) == "code":
+        c = i.get("code") or {}
+        return bool(c.get("files")) and all(f in t for f in c["files"])
     return f"research/cards/{i.get('id')}.md" in t
 
 

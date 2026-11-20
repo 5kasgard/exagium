@@ -460,3 +460,29 @@ class DiagnoseMore(unittest.TestCase):
         self.assertEqual(DG.classify("E: Failed to fetch x 503  Service Unavailable"), "transient")
         self.assertEqual(DG.classify("probe failed: HTTP Error 401: Unauthorized"), "auth")
         self.assertEqual(DG.error_tail("a\nb\n##[error]boom\ncleanup"), ["a", "b", "##[error]boom"])
+
+
+class CodeJob(unittest.TestCase):
+    def test_edits_and_paths(self):
+        import code_job as C
+        files = {"a.py": "x = 1\ny = 2\n"}
+        ok, why = C.check_edits(files, [{"path": "a.py", "old": "y = 2", "new": "y = 3"}])
+        self.assertEqual((len(ok), why), (1, []))
+        self.assertEqual(C.apply_edits(files, ok)["a.py"], "x = 1\ny = 3\n")
+        for bad in ([{"path": "b.py", "old": "x", "new": "y"}], [{"path": "a.py", "old": " = ", "new": "="}],
+                    [{"path": "a.py", "old": "x = 1", "new": "x = 1"}], [], "no"):
+            self.assertEqual(C.check_edits(files, bad)[0], [])
+        for p in (".github/workflows/x.yml", "worker/ledger.py", "worker/code_job.py", "audit/q.json", "../x.py", "/etc/passwd", "my_secret.py"):
+            self.assertFalse(C.allowed(p), p)
+        self.assertTrue(C.allowed("worker/diagnose.py"))
+
+    def test_job_type_and_cover(self):
+        import queue_ops as QO
+        i = {"code": {"files": ["worker/diagnose.py"], "test": "worker/test_worker.py"}, "touches": ["worker/diagnose.py"]}
+        self.assertEqual(QO.job_type(i), "code")
+        self.assertTrue(QO.covered(i))
+        self.assertFalse(QO.covered(dict(i, touches=[])))
+
+    def test_tests_failed_is_a_failure(self):
+        import transitions as TR
+        self.assertEqual(TR.classify({"result": "tests_failed"}, True, "none"), "failed")

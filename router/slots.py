@@ -25,6 +25,13 @@ SLOTS = {
     # grading 29/30 twice; paid DeepSeek V4.1 Flash 1017 last
     "reviewer": [("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"), ("openrouter", "nvidia/nemotron-3.5-super-vl:free"),
                  ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017")],
+    # code job (worker/code_job.py): free Nemotron 3 Ultra first; paid DeepSeek V4.1 Flash 1017 (Deep-SWE 74.2%, its paper,
+    # arXiv 2609.19969) then GLM-5.3 Flash when the run reserved paid budget
+    "coder": [("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"), ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017"),
+              ("openrouter_paid", "z-ai/glm-5.3-flash")],
+    # code reviewer of another family than the first coder: gpt-oss-120b (Groq, Cloudflare), then paid GLM-5.3 Flash
+    "code_reviewer": [("groq", "openai/gpt-oss-120b"), ("cloudflare", "@cf/openai/gpt-oss-120b"),
+                      ("openrouter_paid", "z-ai/glm-5.3-flash")],
     "reader": [("cloudflare", "@cf/openai/gpt-oss-120b"), ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"),
                ("openrouter_paid", "z-ai/glm-5.3-flash"), ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017")],
 }

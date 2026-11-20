@@ -51,6 +51,7 @@ jobs:
             # the free OpenRouter readers were rate-limited upstream on 5-6 of 6 reads)
             if python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:600,nvidia:6,openrouter:1; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=cloudflare:1:600,nvidia:6,openrouter:1" >> "$GITHUB_ENV"
             elif python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" nvidia:7,openrouter:1; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=nvidia:7,openrouter:1" >> "$GITHUB_ENV"; fi
+            python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" nvidia:2,groq:1 && types="${types:+$types,}code"   # coder and its reviewer
             echo "TYPES=$types" >> "$GITHUB_ENV"; echo "job types with budget today: ${types:-none}"
             if [ -z "$types" ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
           fi
@@ -74,7 +75,7 @@ jobs:
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
               && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
           fi
-          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; else spec=${RESEARCH_SPEC:-cloudflare:1:600,nvidia:6,openrouter:1}; fi
+          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; elif [ "$TYPE" = code ]; then spec=nvidia:2,groq:1; else spec=${RESEARCH_SPEC:-cloudflare:1:600,nvidia:6,openrouter:1}; fi
           rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"
@@ -83,7 +84,7 @@ jobs:
           fi
           echo "reserve exit $rc"
           # paid fallbacks for the reader (router/slots.py), reserved separately so a spent dollar cap never blocks free work
-          if [ "$rc" = 0 ] && [ "$TYPE" = research ] && python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "openrouter_paid:2:5"; then
+          if [ "$rc" = 0 ] && { [ "$TYPE" = research ] || [ "$TYPE" = code ]; } && python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "openrouter_paid:3:8"; then
             echo "PAID=1" >> "$GITHUB_ENV"; fi
       - id: out
         name: outputs, written once (a second write of a job output doesn't replace the first; release test, R2)
@@ -134,6 +135,7 @@ jobs:
       - name: prompt bundle (doc) or literature search by API scripts (research)
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context claim/claim.json . job
+          elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py context claim/claim.json . job
           else python3 -I worker/research_job.py search claim/claim.json job; fi
           cp claim/claim.json job/
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
@@ -165,14 +167,42 @@ jobs:
           TYPE: ${{ needs.claim.outputs.type }}
           PAID_FALLBACK: ${{ needs.claim.outputs.paid }}   # 1 when the claim reserved paid reader fallbacks (dollar-capped ledger pool)
         run: |
-          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job; else python3 -I worker/research_job.py read job; fi
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job
+          elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py draft job
+          else python3 -I worker/research_job.py read job; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
         with:
           name: draft
           path: job/
+  test:
+    # code items only: the model-written change runs HERE and nowhere else - no secrets, a read-only token, no push
+    needs: [claim, draft]
+    if: ${{ always() && needs.claim.outputs.type == 'code' && needs.draft.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: draft
+          path: job
+      - name: apply the edits and run the item's test, then the CI suite (no secrets in this job)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/venv" && "$RUNNER_TEMP/venv/bin/pip" install -q numpy 2>/dev/null || true
+          "$RUNNER_TEMP/venv/bin/python" -I worker/code_job.py test . job || echo "test step exit $?"
+          mkdir -p tested && cp job/test.json tested/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: always()
+        with:
+          name: test
+          path: tested/
   land:
-    needs: [claim, prepare, draft]
+    needs: [claim, prepare, draft, test]
     if: ${{ always() && needs.claim.outputs.item != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -194,6 +224,12 @@ jobs:
         with:
           name: draft
           path: job
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        if: needs.claim.outputs.type == 'code'
+        continue-on-error: true
+        with:
+          name: test
+          path: job
       - name: check, apply, merge or open a PR
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
@@ -203,13 +239,17 @@ jobs:
             echo "OUTCOME=failed" >> "$GITHUB_ENV"; exit 0
           fi
           rc=0
-          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job || rc=$?; else python3 -I worker/research_job.py card . job || rc=$?; fi
+          if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job || rc=$?
+          elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py apply . job || rc=$?
+          else python3 -I worker/research_job.py card . job || rc=$?; fi
           if [ "$rc" != 0 ] || [ ! -f job/result.json ]; then
             python3 -I worker/note.py note.json "failed: the check or apply step exited $rc" "" "$RUN_URL"
             echo "OUTCOME=failed" >> "$GITHUB_ENV"; exit 0
           fi
           res=$(python3 -c "import json;print(json.load(open('job/result.json')).get('result',''))")
           msg=$(python3 -I worker/note.py msg "$ITEM" "$TYPE" job/result.json)
+          if [ "$TYPE" = code ]; then python3 -c "import json;print('\n'.join(json.load(open('job/bundle.json'))['files']))" | xargs -r git add --   # only the item's own files
+          fi
           git add -A -- '*.md' ':!job/**'   # job/ holds run files, never content (Q59: job/empty-card.md went into PRs #5, #6); stage first: a research card is a new file, which plain git diff would not see
           if git diff --cached --quiet; then
             python3 -I worker/note.py note.json "no accepted edit" "$RUN_URL" "$RUN_URL" job/result.json
