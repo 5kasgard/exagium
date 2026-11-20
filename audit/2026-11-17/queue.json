@@ -6930,6 +6930,140 @@
    "value": "medium",
    "blocked_by": [],
    "batch": "B3"
+  },
+  {
+   "id": "K11",
+   "title": "Flag dependants when a registered fact changes",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P30",
+   "generated_at": "2026-11-20T21:08:22Z",
+   "code": {
+    "files": [
+     "facts/check.py"
+    ],
+    "test": "facts/test_check.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "facts/check.py",
+    "facts/test_check.py"
+   ],
+   "next": "In facts/check.py, when a probe returns a value different from the registered value, make the failure outcome include the list of dependants (items, workflows, cards) that the fact's register entry names. Read those names from a 'dependants' field on each entry in facts/register.json; if the field is missing, emit an empty list and do not crash. Add a test in facts/test_check.py: a fixture register with one fact whose dependants are ['P21', 'R18'] and a probe returning a changed value must produce a failure whose dependants are exactly those two names. A probe returning the same value must still produce a pass with no dependants.",
+   "refs": [
+    "queue P30",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K12",
+   "title": "Log each detected change as a dated event for the 14-day count",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P30",
+   "generated_at": "2026-11-20T21:08:22Z",
+   "code": {
+    "files": [
+     "facts/check.py"
+    ],
+    "test": "facts/test_check.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "facts/check.py",
+    "facts/test_check.py"
+   ],
+   "next": "In facts/check.py, every time a changed value is detected, append one JSON line to facts/changes.jsonl with fact id, old value, new value, detected_at (UTC ISO time), and whether the fact has dependants. Do not append for same-value passes. Keep the file path a module constant so tests can redirect it to a temporary directory. Add a test in facts/test_check.py: running the check twice with a probe that changes between runs must produce exactly one line in the temporary changes file, with the correct fact id and old and new values, and running it with an unchanged probe must add no lines.",
+   "refs": [
+    "queue P30",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K13",
+   "title": "Encode the valid-rate keep/switch rule as one pure function",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P5",
+   "generated_at": "2026-11-20T21:08:22Z",
+   "code": {
+    "files": [
+     "runner/proposals/judge.py"
+    ],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "runner/proposals/extract.py",
+     "runner/proposals/propose.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/proposals/judge.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "next": "In judge.py, add a pure function decide_switch(valid, total) that returns KEEP or SWITCH using the thresholds written in PLAN.md (the Wilson-interval rule, so it can be checked against the board's current state of 16 valid of 26, giving KEEP). Use it in place of any inline comparison. Add a test in test_proposals.py that checks 16/26 gives KEEP, 0/20 gives SWITCH, and a total of 0 gives SWITCH without dividing by zero.",
+   "refs": [
+    "queue P5",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K14",
+   "title": "Record step writes no secret values",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P5",
+   "generated_at": "2026-11-20T21:08:22Z",
+   "code": {
+    "files": [
+     "runner/records.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [
+     "runner/proposals/propose.py",
+     "runner/run.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/records.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In records.py, make the record writer drop any field whose name matches key, token, secret, or password (case-insensitive) before writing the JSON record, and raise if a value that looks like an API key prefix appears anywhere in the payload. Add a test in test_runner.py that writes a record containing an api_key field and a nested token, then checks that neither key appears in the file on disk and that the rest of the record is intact.",
+   "refs": [
+    "queue P5",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
