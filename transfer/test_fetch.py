@@ -4,6 +4,7 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(__file__))
 import tasks  # noqa: E402
+import meter  # noqa: E402
 
 GOOD = b"pinned bytes\n"
 
@@ -51,6 +52,20 @@ class Fetch(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(tasks.SOURCES, src, clear=True), \
                 mock.patch.object(tasks.urllib.request, "urlopen", urlopen), self.assertRaises(urllib.error.URLError):
             tasks.fetch("x.data", d)
+
+
+class MeterTimeout(unittest.TestCase):
+    def test_wall_ns_has_timeout(self):
+        calls = []
+
+        def fake_run(*args, **kwargs):
+            calls.append(kwargs)
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(meter.subprocess, "run", fake_run):
+            meter.wall_ns("prog", "w", "x", 0, 0)
+        self.assertIn("timeout", calls[0])
+        self.assertEqual(calls[0]["timeout"], meter.TIMEOUT_S)
 
 
 if __name__ == "__main__":
