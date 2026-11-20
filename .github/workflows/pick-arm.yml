@@ -1,0 +1,60 @@
+# Paper-heavy vs live source pick on saved pools (worker/pick_arm.py), one parallel job per item. Same reader for both arms.
+name: pick-arm
+on:
+  workflow_dispatch:
+    inputs:
+      arm_run:
+        description: "rerank-arm run whose saved pools to use (router-runs arms/<id>)"
+        default: "44712474121"
+      items:
+        description: "JSON list of item ids"
+        default: '["R3","R5","R6","R7","R8","R9"]'
+      reader:
+        default: "nvidia,nvidia/nemotron-3-ultra-550b-a55b"
+permissions: {}
+jobs:
+  arm:
+    strategy:
+      fail-fast: false
+      matrix:
+        item: ${{ fromJSON(github.event.inputs.items) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - name: reserve
+        env:
+          ARM: ${{ github.event.inputs.arm_run }}
+        run: |
+          case "$ARM" in ''|*[!0-9]*) echo "arm_run must be a run id"; exit 1;; esac
+          git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "pick-$GITHUB_RUN_ID-${{ strategy.job-index }}" "nvidia:14,openrouter:2"
+      - name: both arms
+        env:
+          READER_OVERRIDE: ${{ github.event.inputs.reader }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ITEM: ${{ matrix.item }}
+          ARM: ${{ github.event.inputs.arm_run }}
+        run: |
+          case "$ITEM" in R[0-9]*) ;; *) echo "bad item"; exit 1;; esac
+          python3 -I worker/pick_arm.py "$RUNNER_TEMP/rr/arms/$ARM" "$RUNNER_TEMP/out" "$ITEM"
+      - name: record and save
+        if: ${{ always() }}
+        env:
+          ITEM: ${{ matrix.item }}
+        run: |
+          [ -s "$RUNNER_TEMP/out/usage.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "pick-$GITHUB_RUN_ID-${{ strategy.job-index }}" "$RUNNER_TEMP/out/usage.jsonl" || true
+          [ -d "$RUNNER_TEMP/out" ] || exit 0
+          for i in 1 2 3 4 5 6; do
+            git fetch -q origin router-runs && git checkout -q -B router-runs FETCH_HEAD
+            mkdir -p "picks/$GITHUB_RUN_ID" && rm -rf "picks/$GITHUB_RUN_ID/$ITEM" && cp -r "$RUNNER_TEMP/out" "picks/$GITHUB_RUN_ID/$ITEM"
+            git add picks && git commit -qm "pick arm $GITHUB_RUN_ID $ITEM"
+            git push -q origin router-runs && exit 0
+            sleep $((i * 7))
+          done
+          exit 1

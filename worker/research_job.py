@@ -294,14 +294,14 @@ def search(item_path, out):
     return 0
 
 
-def pick(pool, kinds, scores=None):
+def pick(pool, kinds, scores=None, per_kind=None):
     """The reader's sources: per kind, the PER_KIND candidates with the highest key. The key is the citation count, or,
     in P32's rerank arm, the reranker's relevance score for the item's question (scores: one per pool entry)."""
     key = (lambda i: -(pool[i].get("cited_by") or 0)) if scores is None else (lambda i: -scores[i])
     picked = []
     for k in kinds:
         idx = sorted((i for i, x in enumerate(pool) if x["group"] == k), key=key)
-        picked += [dict(pool[i], **({} if scores is None else {"rerank": round(scores[i], 4)})) for i in idx[:PER_KIND[k]]]
+        picked += [dict(pool[i], **({} if scores is None else {"rerank": round(scores[i], 4)})) for i in idx[:(per_kind or PER_KIND)[k]]]
     for i, s in enumerate(picked):
         s["sid"] = f"S{i + 1}"
     return picked
