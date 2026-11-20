@@ -12,11 +12,13 @@ def cand(scores, ir):
 
 
 class Rules(unittest.TestCase):
-    def run_it(self, props):
+    def run_it(self, props, drop=None):
         n = 400
         base = {"label-gbdt": cand([1] * 380 + [0] * 20, 40000), "label-mlp16": cand([1] * 376 + [0] * 24, 8700),
                 "label-linear": cand([1] * 360 + [0] * 40, 5000)}
         r = dict(base, **{p: props.get(p, cand([1] * 370 + [0] * 30, 20000)) for p in decide.PROPS})
+        if drop:
+            r.pop(drop)
         with tempfile.TemporaryDirectory() as d:
             cp, bp = os.path.join(d, "c.json"), os.path.join(d, "b.md")
             json.dump({"candidates": r}, open(cp, "w"))
@@ -35,6 +37,12 @@ class Rules(unittest.TestCase):
         txt = self.run_it({})
         self.assertIn("**0 of 5** hold", txt)
         self.assertIn("**0 of 5** advance", txt)
+
+    def test_f061_missing_baseline_is_undecidable(self):
+        """GLM F061: with a baseline absent, all() over the rest held vacuously narrower rules."""
+        txt = self.run_it({decide.PROPS[0]: cand([1] * 398 + [0] * 2, 9000)}, drop="label-gbdt")
+        self.assertIn("undecidable", txt)
+        self.assertIn("**0 of 5** hold", txt)
 
 
 if __name__ == "__main__":

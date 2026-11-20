@@ -14,3 +14,9 @@
 Rule 1 (above every family): **0 of 5** hold.
 Rule 2 (accuracy-cost front, no baseline as accurate within 1 SE and cheaper, or more accurate and no dearer): **3 of 5** advance.
 Rule 3 (winner's curse): mean drop dev -> confirmation, proposals +0.0079, baselines +0.0027; excess +0.0052.
+
+
+**2026-11-21 amendment (GLM review F061-F063).** decide.py had a second domination clause (more accurate and no dearer)
+that PLAN.md never registered; it is gone. Re-run on this confirm.json with the board of that date: every row and every
+rule count is identical (3 of 5 advance). A missing baseline is now "undecidable", and an unreadable dev score for one
+of the five is an error.
