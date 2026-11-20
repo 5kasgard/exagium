@@ -46,6 +46,18 @@ class Check(unittest.TestCase):
         rc, _ = self.go({"x": 999, "y": 999}, status={"a": recent, "b": recent}, now=now)
         self.assertEqual(rc, 0)   # neither probed: both checked within their recheck window
 
+    def test_keyed_facts_only_with_keyed(self):
+        reg = {"facts": REG["facts"] + [{"id": "k", "keyed": True, "probe": {"kind": "z"}, "value": 5, "recheck_days": 1, "cited_by": ["K"]}]}
+        seen = []
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(check, "probe", lambda p: seen.append(p["kind"]) or {"x": 1, "y": "v", "z": 6}[p["kind"]]):
+            r = os.path.join(d, "r.json"); json.dump(reg, open(r, "w"))
+            self.assertEqual(check.run(r, os.path.join(d, "s1.json")), 0)                 # keyless run: k untouched
+            self.assertEqual(check.run(r, os.path.join(d, "s2.json"), keyed=True), 2)     # keyed run: only k, and it changed
+        self.assertEqual(seen, ["x", "y", "z"])
+
+    def test_field(self):
+        self.assertEqual(check.field({"a": {"b": 3}}, "a.b"), 3)
+
 
 if __name__ == "__main__":
     unittest.main()

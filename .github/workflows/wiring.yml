@@ -1,0 +1,42 @@
+# Daily check that what the code assumes about providers is still true (queue P30, keyed part): each model the live
+# pipeline calls is still listed by its pool, and each account allowance the ledger caps are derived from is unchanged.
+# Owner 2026-11-20, after the OpenRouter cap sat at 30 for a 1,000-a-day account: "what else must not be correctly wired".
+# Holds provider keys for read-only list/status endpoints; runs no generated code and calls no model.
+name: wiring
+on:
+  schedule:
+    - cron: "41 */6 * * *"
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: wiring
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write   # facts/status-keyed.json on worker-runs
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the status file with the checkout token; no artifact
+        with:
+          fetch-depth: 1
+      - name: keyed facts
+        id: facts
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/fr" FETCH_HEAD
+          mkdir -p "$RUNNER_TEMP/fr/facts"
+          rc=0; python3 -I facts/check.py facts/register.json "$RUNNER_TEMP/fr/facts/status-keyed.json" --keyed || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          cd "$RUNNER_TEMP/fr" && git add facts/status-keyed.json && { git diff --cached --quiet || { git commit -qm "facts (keyed): run $GITHUB_RUN_ID (rc $rc)" && git push -q origin HEAD:worker-runs || echo "status push failed"; }; }
+      - name: a changed or unreachable fact fails the run
+        if: steps.facts.outputs.rc != '0'
+        run: |
+          echo "::error::a provider fact changed or could not be checked (rc ${{ steps.facts.outputs.rc }}): see the step above"; exit 1

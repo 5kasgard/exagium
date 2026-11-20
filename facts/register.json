@@ -111,6 +111,112 @@
    "cited_by": [
     "queue P31 (qualified judgement-tier candidate, 2026-11-20)"
    ]
+  },
+  {
+   "id": "or-free-daily-limit",
+   "keyed": true,
+   "probe": {
+    "kind": "openrouter_key",
+    "field": "free_model_daily_requests.limit"
+   },
+   "value": 1000,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/ledger.py CAPS openrouter (cap = half: 500; was wrongly 30 until 2026-11-20)"
+   ]
+  },
+  {
+   "id": "or-is-free-tier",
+   "keyed": true,
+   "probe": {
+    "kind": "openrouter_key",
+    "field": "is_free_tier"
+   },
+   "value": false,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/ledger.py CAPS openrouter (the 1,000/day allowance needs $10 of credit bought)"
+   ]
+  },
+  {
+   "id": "cf-reader",
+   "keyed": true,
+   "probe": {
+    "kind": "cloudflare_listed",
+    "model": "@cf/openai/gpt-oss-120b"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/research_job.py READER (the only source of this model left: NIM 410, OpenRouter :free 404)",
+    "router/pick.py REVIEWERS"
+   ]
+  },
+  {
+   "id": "nim-checker",
+   "keyed": true,
+   "probe": {
+    "kind": "nim_listed",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/research_job.py CHECKER",
+    "worker/doc_job.py reviewer",
+    "router/pick.py REVIEWERS",
+    "rerank-arm.yml reader"
+   ]
+  },
+  {
+   "id": "groq-drafter",
+   "keyed": true,
+   "probe": {
+    "kind": "groq_listed",
+    "model": "openai/gpt-oss-120b"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/doc_job.py DRAFTER",
+    "router/pick.py REVIEWERS"
+   ]
+  },
+  {
+   "id": "or-decider-free",
+   "probe": {
+    "kind": "openrouter_listed",
+    "model": "perplexity/pplx-decider-v1.3:free"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/research_job.py DECIDER (decides keep/drop live, P31)"
+   ]
+  },
+  {
+   "id": "or-reranker-free",
+   "probe": {
+    "kind": "openrouter_listed",
+    "model": "nvidia/nemotron-3.5-rerank-8b:free"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "worker/research_job.py RERANKER (P32 arm)"
+   ]
+  },
+  {
+   "id": "or-nemotron35-super-free",
+   "probe": {
+    "kind": "openrouter_listed",
+    "model": "nvidia/nemotron-3.5-super-vl:free"
+   },
+   "value": true,
+   "recheck_days": 1,
+   "cited_by": [
+    "router/pick.py REVIEWERS (P31 qualified)"
+   ]
   }
  ]
 }

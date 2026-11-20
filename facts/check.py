@@ -1,14 +1,25 @@
 """Check due facts in facts/register.json by script, no model (queue P30). Usage:
-python3 -I facts/check.py REGISTER STATUS_JSON   -> exit 0 all same or not due, 2 if any changed, 3 if a probe could not run.
+python3 -I facts/check.py REGISTER STATUS_JSON [--keyed]   -> exit 0 all same or not due, 2 if any changed, 3 if a probe could not run.
+Facts marked "keyed" need a provider key (model lists, account allowances): checked only with --keyed, in wiring.yml,
+which holds the keys and runs no generated code; the worker's idle job checks the rest without keys.
 STATUS_JSON keeps each fact's last check; it lives on the worker-runs branch, not in the register (the register is the claim)."""
-import datetime as dt, hashlib, json, os, socket, ssl, sys, urllib.request
+import datetime as dt, hashlib, json, os, socket, ssl, sys, urllib.parse, urllib.request
 
 TIMEOUT = 60
 
 
-def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "exagium-facts"}), timeout=TIMEOUT) as r:
+def get(url, key_env=None):
+    h = {"User-Agent": "exagium-facts"}
+    if key_env:
+        h["Authorization"] = "Bearer " + os.environ[key_env]
+    with urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=TIMEOUT) as r:
         return r.read()
+
+
+def field(d, path):
+    for k in path.split("."):
+        d = d[k]
+    return d
 
 
 def probe(p):
@@ -32,17 +43,29 @@ def probe(p):
     if k == "openrouter_listed":
         ids = {m["id"] for m in json.loads(get("https://openrouter.ai/api/v1/models"))["data"]}
         return p["model"] in ids
+    if k == "openrouter_key":   # the account's allowances, as the key endpoint reports them
+        return field(json.loads(get("https://openrouter.ai/api/v1/key", "OPENROUTER_API_KEY"))["data"], p["field"])
+    if k in ("nim_listed", "groq_listed"):
+        url = {"nim_listed": ("https://integrate.api.nvidia.com/v1/models", "NVIDIA_API_KEY"),
+               "groq_listed": ("https://api.groq.com/openai/v1/models", "GROQ_API_KEY")}[k]
+        return p["model"] in {m["id"] for m in json.loads(get(*url))["data"]}
+    if k == "cloudflare_listed":
+        url = (f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/ai/models/search?"
+               + urllib.parse.urlencode({"search": p["model"].split("/")[-1], "per_page": 100}))
+        return p["model"] in {m.get("name") for m in json.loads(get(url, "CLOUDFLARE_API_TOKEN"))["result"]}
     if k == "hf_dataset_license":
         return (json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}")).get("cardData") or {}).get("license")
     raise ValueError(f"unknown probe kind {k}")
 
 
-def run(register, status_path, now=None):
+def run(register, status_path, now=None, keyed=False):
     now = now or dt.datetime.now(dt.timezone.utc)
     reg = json.load(open(register))
     st = json.load(open(status_path)) if os.path.exists(status_path) else {}
     changed, broken = [], []
     for f in reg["facts"]:
+        if bool(f.get("keyed")) != keyed:
+            continue
         last = st.get(f["id"], {})
         if last.get("at") and now - dt.datetime.fromisoformat(last["at"]) < dt.timedelta(days=f.get("recheck_days", 1)):
             continue
@@ -62,9 +85,9 @@ def run(register, status_path, now=None):
         print("CHANGED", m)
     for m in broken:
         print("PROBE FAILED", m)
-    print(f"facts: {len(changed)} changed, {len(broken)} probe failures, {len(reg['facts'])} registered")
+    print(f"facts: {len(changed)} changed, {len(broken)} probe failures, {sum(bool(f.get('keyed')) == keyed for f in reg['facts'])} registered ({'keyed' if keyed else 'keyless'})")
     return 2 if changed else 3 if broken else 0
 
 
 if __name__ == "__main__":
-    sys.exit(run(sys.argv[1], sys.argv[2]))
+    sys.exit(run(sys.argv[1], sys.argv[2], keyed="--keyed" in sys.argv[3:]))
