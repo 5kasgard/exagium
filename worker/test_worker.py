@@ -716,5 +716,38 @@ class IntakeReview(unittest.TestCase):
                 self.assertEqual(IR.file_items(d, items), [])   # filed once already: nothing new
 
 
+
+class NewFiles(unittest.TestCase):
+    """Owner 2026-11-21: the worker builds as well as edits; an item may create one small file in an existing folder."""
+    def test_code_job_creates_a_file(self):
+        import code_job as C
+        with tempfile.TemporaryDirectory() as d:
+            repo, out = os.path.join(d, "r"), os.path.join(d, "o")
+            os.makedirs(os.path.join(repo, "worker")); open(os.path.join(repo, "worker", "test_x.py"), "w").write("# t\n")
+            item = {"id": "K99", "title": "a new module", "next": "write it", "touches": ["worker/nu.py", "worker/test_x.py"],
+                    "code": {"files": ["worker/nu.py"], "new": ["worker/nu.py"], "test": "worker/test_x.py"}}
+            json.dump({"item": item}, open(os.path.join(d, "item.json"), "w"))
+            C.context(os.path.join(d, "item.json"), repo, out)
+            b = json.load(open(os.path.join(out, "bundle.json")))
+            self.assertEqual(b["files"]["worker/nu.py"], "")
+            r = C.parse_reply("<<<<<<< SEARCH worker/nu.py\n=======\ndef f():\n    return 1\n>>>>>>> REPLACE\nNOTE: new")
+            ok, why = C.check_edits(b["files"], r["edits"])
+            self.assertEqual((len(ok), why), (1, []))
+            self.assertEqual(C.apply_edits(b["files"], ok)["worker/nu.py"], "def f():\n    return 1\n")
+            # an existing file still needs exactly-once old text, and creation is refused where it is not declared
+            self.assertEqual(C.check_edits({"a.py": "x\n"}, [{"path": "a.py", "old": "", "new": "y"}])[0], [])
+            for bad in (".github/x.py", "worker/nu.sh", "nofolder/x.py"):
+                self.assertFalse(C.new_ok(repo, bad), bad)
+
+    def test_split_allows_one_new_file_in_an_existing_folder(self):
+        import split as SP
+        lines, tests = {"worker/a.py": 10, "worker/test_worker.py": 50}, ["worker/test_worker.py"]
+        base = {"title": "Add a small helper module", "test": "worker/test_worker.py", "next": "x" * 30}
+        self.assertIsNotNone(SP.check(dict(base, files=["worker/nu.py"], new=["worker/nu.py"]), lines, tests)[0])
+        for files, new in ((["other/nu.py"], ["other/nu.py"]), (["worker/nu.py"], []), (["worker/b.py", "worker/c.py"], ["worker/b.py", "worker/c.py"]),
+                           ([".github/x.py"], [".github/x.py"])):
+            self.assertIsNone(SP.check(dict(base, files=files, new=new), lines, tests)[0], files)
+
+
 if __name__ == "__main__":
     unittest.main()

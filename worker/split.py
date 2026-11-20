@@ -28,7 +28,7 @@ MAX_SUB = 3
 DIRS = ("worker", "router", "runner", "facts", "transfer")
 
 PROMPT = """Split one queue item into at most 3 small code changes, each doable by one model call that edits 1 or 2
-existing files and keeps the tests passing. Only steps that move the item's NEXT STEP forward. If no part of the item can
+files (existing, or at most one new file of under 80 lines in an existing folder: the merge gate takes 80 changed lines) and keeps the tests passing. Only steps that move the item's NEXT STEP forward. If no part of the item can
 be done this way (it needs a person, money, new infrastructure or data that does not exist), reply {{"subitems": []}}.
 
 ITEM {id}: {title}
@@ -42,7 +42,10 @@ TEST FILES: {tests}
 Each sub-item edits its 1-2 files and may add tests to its test file. Name up to 2 other files the coder must read to
 get data formats and interfaces right ("context"); it sees nothing else. Say in "next" which test to add.
 
-Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "test": "path/test_x.py", "context": ["path.py"],
+A sub-item that creates a file lists it in "files" and in "new". Building something new is fine when it is small: a new
+module of a few functions, with its tests, is one sub-item.
+
+Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "new": [], "test": "path/test_x.py", "context": ["path.py"],
 "next": "exactly what to change, and the test that shows it is right"}}]}}"""
 
 ASK = ("Pair {k}: is its SUBITEM a correct, self-contained small code change that moves its ITEM's NEXT STEP forward, sized "
@@ -72,15 +75,22 @@ def check(sub, lines, tests):
     files, test = sub.get("files"), sub.get("test")
     if not isinstance(files, list) or not 1 <= len(files) <= 2:
         return None, "1 or 2 files"
+    new = sub.get("new") or []
+    if not isinstance(new, list) or len(new) > 1 or any(f not in files for f in new):
+        return None, "at most one new file, and it must be in files"
+    dirs = {os.path.dirname(p) for p in lines}
     for f in files:
-        if f not in lines or not CJ.allowed(f) or lines[f] > CJ.MAX_LINES:
+        if f in new:   # owner 2026-11-21: the worker builds, not only edits; a new file in a folder that already exists
+            if not isinstance(f, str) or f in lines or not CJ.allowed(f) or not f.endswith(CJ.NEW_EXT) or os.path.dirname(f) not in dirs:
+                return None, f"new file not allowed: {f}"
+        elif f not in lines or not CJ.allowed(f) or lines[f] > CJ.MAX_LINES:
             return None, f"file not allowed, missing or too long: {f}"
     if test not in tests:
         return None, f"no such tests file: {test}"
     if not 10 <= len(sub["title"]) <= 160 or len(sub["next"]) < 20:
         return None, "title or next too short"
     ctx = [c for c in (sub.get("context") or []) if isinstance(c, str) and c in lines and CJ.allowed(c) and c not in files][:2]
-    return {"title": " ".join(sub["title"].split()), "files": files, "test": test, "context": ctx, "next": sub["next"][:1500]}, None
+    return {"title": " ".join(sub["title"].split()), "files": files, "new": new, "test": test, "context": ctx, "next": sub["next"][:1500]}, None
 
 
 def recently_tried(i):
@@ -195,7 +205,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                 kid = f"K{n}"; n += 1
                 q["items"].append({"id": kid, "title": s["title"], "kind": "fix", "status": "proposed", "origin": "generated",
                                    "split_from": p["id"], "generated_at": Q.iso(Q.now()),
-                                   "code": {"files": s["files"], "test": s["test"], "context": s["context"]},
+                                   "code": {"files": s["files"], "test": s["test"], "context": s["context"], "new": s["new"]},
                                    "touches": list(s["files"]) + [s["test"]],
                                    "next": s["next"], "refs": [f"queue {p['id']}", "worker/split.py"], "severity": "minor",
                                    "needs": "free", "cost": 0, "value": p.get("value", "medium"), "blocked_by": [],

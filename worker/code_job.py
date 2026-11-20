@@ -23,6 +23,13 @@ MAX_LINES = 600
 REFUSE = re.compile(r"^\.github/|^worker/(ledger|queue_ops|transitions|code_job)\.py$|^audit/|secret|token|credential|(^|/)\.git(/|$)"
                     r"|^runner/(jail|limits|count)\.|^loop/|seccomp|landlock|sandbox", re.I)
 TEST = re.compile(r"^[\w./-]+/test_[\w-]+\.py$")
+NEW_EXT = (".py", ".md", ".json", ".c", ".h", ".txt")   # files an item may create (code.new); owner 2026-11-21: build, not only edit
+
+
+def new_ok(repo, p):
+    """A file an item may create: allowed, not there yet, in a folder that exists, of a plain source or text type."""
+    return allowed(p) and p.endswith(NEW_EXT) and not os.path.exists(os.path.join(repo, p)) \
+        and os.path.isdir(os.path.join(repo, os.path.dirname(p) or "."))
 CI_TESTS = ["worker/test_worker.py", "worker/test_transitions.py", "runner/proposals/test_proposals.py", "facts/test_check.py",
             "runner/proposals/confirm/test_decide.py", "router/test_pick.py"]
 
@@ -31,7 +38,7 @@ PROMPT = """You change code in a repository to do what one queue item asks. Chan
 ITEM {id}: {title}
 NEXT STEP: {next}
 
-FILES YOU MAY CHANGE (complete contents):
+FILES YOU MAY CHANGE (complete contents; an empty one is a new file you create):
 {files}
 
 FILES TO READ FOR CONTEXT (do not edit):
@@ -49,6 +56,7 @@ the replacement lines
 >>>>>>> REPLACE
 
 To add a new function, SEARCH for a line it should follow and repeat that line at the start of the replacement.
+To write a new (empty) file, leave the SEARCH part empty: the SEARCH line, then ======= on the next line.
 Finish with one line: NOTE: what you changed and why."""
 
 REVIEW = """You review a proposed code change. Approve only if it does what the item asks, changes nothing else, adds no
@@ -75,16 +83,17 @@ def allowed(path):
 def context(item_path, repo, out):
     item = json.load(open(item_path))["item"]
     c = item.get("code") or {}
-    files, test = c.get("files") or [], c.get("test", "")
+    files, test, new = c.get("files") or [], c.get("test", ""), set(c.get("new") or [])
     bad = [p for p in files if not allowed(p) or p not in item.get("touches", [])
-           or not os.path.isfile(os.path.join(repo, p))]
+           or not (os.path.isfile(os.path.join(repo, p)) or (p in new and new_ok(repo, p)))]
     if bad or not files or not TEST.fullmatch(test) or not os.path.isfile(os.path.join(repo, test)):
         raise SystemExit(f"code item refused (files must exist, be listed in touches, not be refused paths; test must be "
                          f"an existing tests file): files {bad or files}, test {test!r}")
     # the item's test file is editable too: sub-items say "add a test", and the coder could not (PRs #10-#12, 2026-11-20)
     files = files + ([test] if test not in files else [])
     ctx = [p for p in (c.get("context") or [])[:2] if allowed(p) and os.path.isfile(os.path.join(repo, p)) and p not in files]
-    src = {p: open(os.path.join(repo, p), encoding="utf-8").read() for p in files}
+    src = {p: open(os.path.join(repo, p), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, p)) else ""
+           for p in files}   # a new file starts empty
     ctx_src = {p: open(os.path.join(repo, p), encoding="utf-8").read()[:20000] for p in ctx}
     if any(s.count("\n") > MAX_LINES for p, s in src.items() if p != test):
         raise SystemExit(f"a file is over {MAX_LINES} lines: split the item (worker-sized work only)")
@@ -99,7 +108,7 @@ def context(item_path, repo, out):
     return 0
 
 
-BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(.*?)\n=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)
+BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(?:(.*?)\n)?=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)
 
 
 def parse_reply(text):
@@ -124,7 +133,7 @@ def check_edits(files, edits):
             why.append(f"malformed edit {str(e)[:100]}"); continue
         if e["path"] not in files:
             why.append(f"{e['path']}: not a file this item may change"); continue
-        n = files[e["path"]].count(e["old"]) if e["old"] else 0
+        n = files[e["path"]].count(e["old"]) if e["old"] else (1 if files[e["path"]] == "" else 0)   # empty old: a new file
         if n != 1:
             why.append(f"{e['path']}: 'old' occurs {n} times (must be exactly once)"); continue
         if e["old"] == e["new"]:
@@ -138,7 +147,10 @@ def apply_edits(files, edits):
     in one file could misapply); a conflicting edit raises, which the callers treat as no usable change."""
     new = dict(files)
     for e in edits:
-        if new[e["path"]].count(e["old"]) != 1:
+        if not e["old"] and new[e["path"]] == "":   # writing a new file
+            new[e["path"]] = e["new"] if e["new"].endswith("\n") else e["new"] + "\n"
+            continue
+        if not e["old"] or new[e["path"]].count(e["old"]) != 1:
             raise ValueError(f"{e['path']}: an earlier edit changed the text this edit replaces")
         new[e["path"]] = new[e["path"]].replace(e["old"], e["new"], 1)
     return new
@@ -209,7 +221,8 @@ def apply(repo, out):
     b = json.load(open(os.path.join(out, "bundle.json")))
     d = json.load(open(os.path.join(out, "draft.json")))
     t = json.load(open(os.path.join(out, "test.json"))) if os.path.exists(os.path.join(out, "test.json")) else {}
-    files = {p: open(os.path.join(repo, p), encoding="utf-8").read() for p in b["files"]}
+    files = {p: open(os.path.join(repo, p), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, p)) else ""
+             for p in b["files"]}   # a file the item creates is still absent here (and must be: else it is stale)
     if files != b["files"]:
         res = {"result": "stale", "why": ["a file changed since the bundle was made"], "edits": 0}
     elif d.get("model_fail"):

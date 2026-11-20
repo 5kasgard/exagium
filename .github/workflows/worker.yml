@@ -260,7 +260,7 @@ jobs:
           fi
           res=$(python3 -c "import json;print(json.load(open('job/result.json')).get('result',''))")
           msg=$(python3 -I worker/note.py msg "$ITEM" "$TYPE" job/result.json)
-          if [ "$TYPE" = code ]; then python3 -c "import json;print('\n'.join(json.load(open('job/bundle.json'))['files']))" | xargs -r git add --   # only the item's own files
+          if [ "$TYPE" = code ]; then python3 -c "import json;print('\n'.join(json.load(open('job/bundle.json'))['files']))" | while read -r f; do [ -e "$f" ] && git add -- "$f"; done; true   # only the item's own files (a file it was allowed to create but did not is skipped)
           fi
           git add -A -- '*.md' ':!job/**'   # job/ holds run files, never content (Q59: job/empty-card.md went into PRs #5, #6); stage first: a research card is a new file, which plain git diff would not see
           if git diff --cached --quiet; then
