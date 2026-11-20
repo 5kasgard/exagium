@@ -133,7 +133,7 @@ jobs:
               "$PY" runner/run.py reproduce --data "$RUNNER_TEMP/built" --task "$task" --cand "$name" \
                 --out "out/$k/reproduce.json" > "out/$k/reproduce.txt" 2>&1 || true
               "$PY" runner/run.py evaluate --data "$RUNNER_TEMP/built" --task "$task" --cand majority label-linear "$name" \
-                --split dev --rounds 3 --out "out/$k/dev.json" > "out/$k/dev.txt" 2>&1 || true
+                --split dev --rounds 3 --out "out/$k/dev.json" --records "out/$k/records" > "out/$k/dev.txt" 2>&1 || true   # counter records kept (GLM F055)
               tail -n 5 "out/$k/reproduce.txt" "out/$k/dev.txt" || true
             fi
             python3 -I runner/proposals/judge.py one "$name" "$st" "out/$k/reproduce.json" "out/$k/dev.json" "out/$k/result.json" "$task"
@@ -197,6 +197,9 @@ jobs:
               d="$P/proposals/prop-$SRC-$k"; mkdir -p "$d"
               for f in task prompt.md reply.md reproduce.txt dev.txt result.json; do   # at most 2 MB each (review 44486820706, 6)
                 [ -f "$src/$k/$f" ] && [ "$(stat -c %s "$src/$k/$f")" -le 2000000 ] && cp "$src/$k/$f" "$d/" || true
+              done
+              for r in "$src/$k"/records/*.json; do   # the counter records behind the board's Ir numbers (GLM F055)
+                [ -f "$r" ] && [ "$(stat -c %s "$r")" -le 2000000 ] && mkdir -p "$d/records" && cp "$r" "$d/records/" || true
               done
               [ -f "$src/$k/result.json" ] || python3 -I runner/proposals/judge.py one "prop-$SRC-$k" "not scored" x x "$d/result.json"
             done

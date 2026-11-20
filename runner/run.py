@@ -162,9 +162,11 @@ def count(c, inp, n, outdir):
     body = {k: v for k, v in rec.items() if k != "digest_sha256"}
     if L.sha256_bytes(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()) != rec["digest_sha256"]:
         raise Failed(f"{c['name']}: counter record digest does not match")
-    with open(os.path.join(outdir, f"{c['name']}-n{n}-{rec['digest_sha256'][:16]}.json"), "wb") as f:
+    path = os.path.join(outdir, f"{c['name']}-n{n}-{rec['digest_sha256'][:16]}.json")
+    with open(path, "wb") as f:
         f.write(r.stdout)
-    return rec["reps"][0]["counts"]["Ir"], rec["reps"][0]["stdout_sha256"]
+    return rec["reps"][0]["counts"]["Ir"], rec["reps"][0]["stdout_sha256"], {"name": os.path.basename(path),
+                                                                           "sha256": hashlib.sha256(r.stdout).hexdigest()}
 
 
 def check(t, split, out, inp=None, key=None):
@@ -258,8 +260,8 @@ def cmd_evaluate(a):
             if out0 != b"":   # F053: with no items there is nothing to answer
                 raise Failed(f"{c['name']}: with N = 0 it must write no records (wrote {len(out0)} bytes)")
             rec_dir = a.records or os.path.join(work, "records")
-            ir_n, sha_n = count(c, inp, n, rec_dir)
-            ir_0, sha_0 = count(c, empty, 0, rec_dir)
+            ir_n, sha_n, rec_n = count(c, inp, n, rec_dir)
+            ir_0, sha_0, rec_0 = count(c, empty, 0, rec_dir)
             # F052: the counted run must be the run that was scored, else the instruction count measures another program
             if sha_n != hashlib.sha256(out).hexdigest() or sha_0 != hashlib.sha256(out0).hexdigest():
                 raise Failed(f"{c['name']}: output under the counter differs from the native output")
@@ -267,7 +269,7 @@ def cmd_evaluate(a):
                                   code={f: sha_file(os.path.join(c["dir"], f)) for f in CODE},
                                   items=items, output_b64=base64.b64encode(out).decode(),
                                   ir_n=ir_n, ir_0=ir_0, ir_per_item=(ir_n - ir_0) / n,
-                                  counter_exit=[0, 0], ns_n=[], ns_0=[])
+                                  counter_exit=[0, 0], counter_records=[rec_n, rec_0], ns_n=[], ns_0=[])
         rng = random.Random(a.seed)
         order = list(cs)
         rows = records.read(inp)

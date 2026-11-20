@@ -223,5 +223,7 @@ def check():
                                f"{out!r}): {r.stderr.decode(errors='replace')[-500:]}")
     check_compile()   # Q56: candidate C is compiled in the jail, and a host #include must fail
     f = _bwrap_flags() if L.JAIL["mode"] == "bwrap" else {}
-    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True, counter_filtered=True, compile_jailed=True,
+    return dict(mode=L.JAIL["mode"], limits=LIMITS, seccomp_on_candidates=True, compile_jailed=True,
+                # probed only on the bwrap path above; in confine mode nothing checked it, so it is not claimed (GLM F058)
+                counter_filtered=True if L.JAIL["mode"] == "bwrap" else None,
                 disable_userns=f.get("disable_userns"), tmpfs_size=f.get("size") and TMPFS_BYTES)
