@@ -28,6 +28,7 @@ jobs:
         run: |
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
           if git fetch -q origin worker-runs; then git worktree add -q --detach "$RUNNER_TEMP/r" FETCH_HEAD; else mkdir -p "$RUNNER_TEMP/r"; fi
+          mkdir -p out && python3 -I worker/diagnose.py scan 24 out/diagnose.json || echo "diagnose exit $?"
           python3 -I worker/digest.py facts . "$RUNNER_TEMP/q" "$RUNNER_TEMP/r" out
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:

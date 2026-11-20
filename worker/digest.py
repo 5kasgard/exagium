@@ -69,6 +69,10 @@ def facts(main_wt, queue_wt, runs_wt, out, hours=24):
                      f"{', waits on ' + ', '.join(waits) if waits else ''}{', worker-ready' if i.get('targets') and not waits else ''}]: {i['title'][:120]}")
     lines += ["", "## Worker measures (queue P9: measured by script every day)"] + metrics(queue_wt, since, q)
     lines += ["", "## Loop measures (owner 2026-11-20: is it getting faster, and who still has to step in?)"] + loop_metrics(q, since, ledgers)
+    dpath = os.path.join(out, "diagnose.json")
+    if os.path.exists(dpath):
+        import diagnose
+        lines += ["", "## Failed runs by class (worker/diagnose.py; what the system does with each)"] + diagnose.report(json.load(open(dpath)))
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, "facts.md"), "w").write("\n".join(lines) + "\n")
     print("\n".join(lines[:40]))

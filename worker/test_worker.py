@@ -429,3 +429,34 @@ class GenerateControls(unittest.TestCase):
         self.assertEqual(len(c), 2)
         self.assertEqual(c[0][1], c[1][1])   # same item, a useful and an off-topic question
         self.assertNotIn("R5", repr(c))     # no live queue text in a control
+
+
+class Diagnose(unittest.TestCase):
+    """Rules written from the failed runs of 2026-11-19/20 (samples below are their log tails)."""
+    def test_classes(self):
+        import diagnose as DG
+        tb = ('Traceback (most recent call last):\n  File "/home/runner/work/exagium/exagium/runner/proposals/propose.py", line 30, in families\n'
+              "    doc = x\nIndexError: list index out of range\n##[error]Process completed with exit code 1.")
+        self.assertEqual(DG.classify(tb), "code_bug")
+        self.assertEqual(DG.signature(tb), "runner/proposals/propose.py:families IndexError")
+        self.assertEqual(DG.classify("openrouter: cap reached (19 calls made or held; cap {'calls': 30})"), "budget")
+        self.assertEqual(DG.classify("CHANGED or-decider-free: registered True, now False; cited by: x"), "fact_changed")
+        self.assertEqual(DG.classify("particle-ai/particle-1:free is temporarily rate-limited upstream"), "rate_limited")
+        self.assertEqual(DG.classify("Ran 3 tests\nFAILED (failures=1)"), "test_failed")
+        self.assertEqual(DG.classify("something odd\n##[error]Process completed with exit code 1."), "unknown")
+
+    def test_report(self):
+        import diagnose as DG
+        rows = {"runs": [{"class": "budget", "workflow": "rerank-arm"}, {"class": "code_bug", "workflow": "propose", "signature": "a.py:f E"},
+                         {"class": "code_bug", "workflow": "propose", "signature": "a.py:f E"}]}
+        out = DG.report(rows)
+        self.assertEqual(out[0], "- 3 failed runs")
+        self.assertIn("code_bug 2 (propose) -> escalated item; a.py:f E", out[1])
+
+
+class DiagnoseMore(unittest.TestCase):
+    def test_transient_and_auth(self):
+        import diagnose as DG
+        self.assertEqual(DG.classify("E: Failed to fetch x 503  Service Unavailable"), "transient")
+        self.assertEqual(DG.classify("probe failed: HTTP Error 401: Unauthorized"), "auth")
+        self.assertEqual(DG.error_tail("a\nb\n##[error]boom\ncleanup"), ["a", "b", "##[error]boom"])

@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write   # the queue branch and the ledger
-      actions: read     # the worker runs' artifacts
+      actions: read     # the worker runs' artifacts; failed runs' logs (diagnose)
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the queue and ledger with the checkout token; no artifact
       - name: reserve, drain, record
@@ -29,6 +29,8 @@ jobs:
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
           python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "tier-$GITHUB_RUN_ID" "anthropic:5:4" || { echo "no Claude API budget today"; exit 0; }
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
+          # failed runs of the last 3 h, classified by script; code bugs, test failures and unknowns become escalated items
+          python3 -I worker/diagnose.py scan 3 "$RUNNER_TEMP/diag.json" && python3 -I worker/diagnose.py file "$RUNNER_TEMP/q" "$RUNNER_TEMP/diag.json" || echo "diagnose exit $?"
           rc=0; python3 -I worker/tier.py "$RUNNER_TEMP/q" "$RUNNER_TEMP/tier" || rc=$?
           [ -s "$RUNNER_TEMP/tier/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "tier-$GITHUB_RUN_ID" "$RUNNER_TEMP/tier/calls.jsonl" || true
           exit $rc
