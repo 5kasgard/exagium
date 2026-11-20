@@ -1,0 +1,40 @@
+You review claims extracted from paper abstracts for a literature card. You see only the question, the claim and its quote.
+For each claim answer two things: does the quote support the claim with nothing added (no extra interpretation, number or
+conclusion), and does the claim help answer the QUESTION directly (not merely the same field)? Keep only if both are yes.
+
+Reply with JSON only: {"verdicts": [{"n": 1, "keep": true or false, "reason": "one sentence"}, ...]}
+
+CLAIM 1
+QUESTION: What methods distill trained neural networks into readable programs, rules, decision trees or code, and how much of the network's accuracy do they keep?
+CLAIM: This work claims to be the first to distill deep neural networks into vanilla decision trees on multi-class datasets.
+QUOTE: "To the best of our knowledge, we are the first to distill Deep Neural Networks into vanilla decision trees on multi-class datasets."
+
+CLAIM 2
+QUESTION: What methods distill trained neural networks into readable programs, rules, decision trees or code, and how much of the network's accuracy do they keep?
+CLAIM: Any neural network with any activation function can be exactly represented as a decision tree with no loss of accuracy.
+QUOTE: "In this manuscript, we show that any neural network with any activation function can be represented as a decision tree. The representation is equivalence and not an approximation, thus keeping the accuracy of the neural network exactly as is."
+
+CLAIM 3
+QUESTION: What methods distill trained neural networks into readable programs, rules, decision trees or code, and how much of the network's accuracy do they keep?
+CLAIM: The exact decision tree equivalence holds for fully connected and convolutional networks with skip connections and normalizations.
+QUOTE: "The analysis holds both for fully connected and convolutional networks, which may or may not also include skip connections and/or normalizations."
+
+CLAIM 4
+QUESTION: How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?
+CLAIM: Overtraining with fresh data reduces contamination effects, while supervised fine-tuning effects depend on pretraining contamination level.
+QUOTE: "Overtraining with fresh data reduces the effects of contamination, whereas supervised finetuning on the training set can either increase or decrease performance on test data, depending on the amount of pretraining contamination."
+
+CLAIM 5
+QUESTION: How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?
+CLAIM: N-Day-Bench pulls fresh vulnerability cases monthly from GitHub advisories, using pre-patch code to test models in a sandboxed shell.
+QUOTE: "Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase."
+
+CLAIM 6
+QUESTION: How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?
+CLAIM: Monthly refresh of test cases keeps the test set ahead of contamination or makes the contamination window honest.
+QUOTE: "The monthly refresh keeps the test set ahead of contamination — or at least makes the contamination window honest."
+
+CLAIM 7
+QUESTION: How do machine-learning benchmarks keep models and agents from memorising or overfitting to public test labels, and what held-out or fresh-data practices are used?
+CLAIM: AGI Gauntlet uses obfuscated non-web prompt vectors to bypass dataset contamination and test reasoning beyond memorization.
+QUOTE: "Using obfuscated, non-web prompt vectors, it bypasses dataset contamination to stress-test true executive reasoning—pushing models past memorized training data to the precise point where their logic collapses."
