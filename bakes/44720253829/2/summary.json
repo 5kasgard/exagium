@@ -1,0 +1,21 @@
+{
+ "baseline": "openrouter,nvidia/nemotron-3.5-super-vl:free",
+ "rule": "(queue P32, reader fallback): a reader qualifies if, over the bundles, it fails no call,\nits replies parse every time, and its decision-kept claims are at least 80% of the baseline's (the first POOL,MODEL\ngiven). Among those that qualify, the free one with the most kept claims is the fallback; ties go to the cheaper pool\n(the one with more headroom in the ledger).",
+ "readers": {
+  "openrouter,nvidia/nemotron-3.5-super-vl:free": {
+   "bundles": 6,
+   "reader_fail": 5,
+   "claims": 4,
+   "script_kept": 3,
+   "decider_kept": 3,
+   "model_fail": [
+    "R3-cite: reader call failed",
+    "R5-cite: reader call failed",
+    "R6-cite: reader call failed",
+    "R8-cite: reader call failed",
+    "R9-cite: reader call failed"
+   ],
+   "qualifies": false
+  }
+ }
+}
