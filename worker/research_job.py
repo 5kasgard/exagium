@@ -23,6 +23,8 @@ import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
+if os.environ.get("READER_OVERRIDE"):   # arm tests only (P32): same weights on another pool, e.g. "nvidia,openai/gpt-oss-120b"
+    READER = tuple(os.environ["READER_OVERRIDE"].split(",", 1))
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
 DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OPENROUTER_API_KEY is set; 6/6 known answers twice, identical probabilities (router/review/checker-relevance)
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
@@ -282,16 +284,54 @@ def search(item_path, out):
                 if len(s["abstract"].split()) >= 12 and key not in seen:
                     seen.add(key)
                     sources.append(s)
-    picked = []
-    for k in kinds:
-        g = sorted((x for x in sources if x["group"] == k), key=lambda x: -(x.get("cited_by") or 0))
-        picked += g[:PER_KIND[k]]
-    sources = picked
-    for i, s in enumerate(sources):
-        s["sid"] = f"S{i + 1}"
-    json.dump({"item": item, "sources": sources, "log": log}, open(os.path.join(out, "search.json"), "w"), indent=1)
+    pool = [dict(s) for s in sources]   # every candidate, so an arm test can re-pick from the same pool (P32)
+    sources = pick(pool, kinds)
+    json.dump({"item": item, "sources": sources, "log": log, "pool": pool}, open(os.path.join(out, "search.json"), "w"), indent=1)
     print(f"{len(sources)} sources with abstracts; " + ", ".join(f"{x['api']}:{x.get('n', 'skip' if 'skipped' in x else 'ERR')}" for x in log))
     return 0
+
+
+def pick(pool, kinds, scores=None):
+    """The reader's sources: per kind, the PER_KIND candidates with the highest key. The key is the citation count, or,
+    in P32's rerank arm, the reranker's relevance score for the item's question (scores: one per pool entry)."""
+    key = (lambda i: -(pool[i].get("cited_by") or 0)) if scores is None else (lambda i: -scores[i])
+    picked = []
+    for k in kinds:
+        idx = sorted((i for i, x in enumerate(pool) if x["group"] == k), key=key)
+        picked += [dict(pool[i], **({} if scores is None else {"rerank": round(scores[i], 4)})) for i in idx[:PER_KIND[k]]]
+    for i, s in enumerate(picked):
+        s["sid"] = f"S{i + 1}"
+    return picked
+
+
+RERANKER = "nvidia/nemotron-3.5-rerank-8b:free"   # P32 arm only; not in the live pipeline until the arm test passes
+
+
+def rerank_scores(question, pool, calls):
+    """One OpenRouter rerank request over the whole pool. Returns a score per pool entry, or None on any failure."""
+    docs = [f"{s['title']}. {s['abstract'][:1000]}" for s in pool]
+    body = {"model": RERANKER, "query": question, "documents": docs, "top_n": len(docs)}
+    req = urllib.request.Request("https://openrouter.ai/api/v1/rerank", data=json.dumps(body).encode(), method="POST",
+                                 headers={"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"], "Content-Type": "application/json"})
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            resp, st = json.loads(r.read()), r.status
+    except (urllib.error.URLError, TimeoutError, ValueError) as e:
+        resp, st = {"error": str(e)[:200]}, getattr(e, "code", 0)
+    calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": RERANKER,
+                  "ok": st == 200, "status": st, "latency_s": round(time.time() - t0, 2), "usage": resp.get("usage") or {}})
+    res = resp.get("results") if st == 200 else None
+    if not isinstance(res, list):
+        return None, f"status {st}: {str(resp.get('error', 'no results'))[:150]}"
+    scores = [None] * len(docs)
+    for x in res:
+        if isinstance(x, dict) and isinstance(x.get("index"), int) and 0 <= x["index"] < len(docs) \
+                and isinstance(x.get("relevance_score"), (int, float)):
+            scores[x["index"]] = float(x["relevance_score"])
+    if any(v is None for v in scores):
+        return None, f"{sum(v is None for v in scores)} of {len(docs)} documents had no score"
+    return scores, None
 
 
 def parse_json(text):

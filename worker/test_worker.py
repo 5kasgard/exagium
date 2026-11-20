@@ -201,3 +201,42 @@ class GuaranteeWords(unittest.TestCase):
         self.assertEqual(D.lost_guarantee("Results can never be changed, by anyone.", "Results cannot be changed."), ["anyone", "never"])
         self.assertEqual(D.lost_guarantee("The cap is 4,000.", "The cap is 5,000."), [])
         self.assertEqual(D.lost_guarantee("It must run.", "It must always run."), [])
+
+
+class Rerank(unittest.TestCase):
+    """P32: the citation pick is the live behaviour; the rerank arm only changes the sort key."""
+    pool = [{"title": f"t{i}", "abstract": "a " * 20, "group": g, "cited_by": c}
+            for i, (g, c) in enumerate([("papers", 5), ("papers", 50), ("papers", 1), ("forum", 0), ("forum", 3)])]
+
+    def test_cite_order(self):
+        old = R.PER_KIND.copy()
+        try:
+            R.PER_KIND.update({"papers": 2, "forum": 1})
+            p = R.pick(self.pool, ["papers", "forum"])
+            self.assertEqual([x["title"] for x in p], ["t1", "t0", "t4"])
+            self.assertEqual([x["sid"] for x in p], ["S1", "S2", "S3"])
+            q = R.pick(self.pool, ["papers", "forum"], [0.1, 0.2, 0.9, 0.8, 0.0])
+            self.assertEqual([x["title"] for x in q], ["t2", "t1", "t3"])
+            self.assertNotIn("sid", self.pool[0])   # the pool is not changed
+        finally:
+            R.PER_KIND.clear(); R.PER_KIND.update(old)
+
+    def test_scores_parse(self):
+        import io, unittest.mock as m
+
+        class Resp(io.BytesIO):
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        body = {"results": [{"index": 1, "relevance_score": 0.7}, {"index": 0, "relevance_score": 0.2}]}
+        calls = []
+        with m.patch.dict(os.environ, {"OPENROUTER_API_KEY": "test"}), \
+                m.patch("urllib.request.urlopen", return_value=Resp(json.dumps(body).encode())):
+            s, err = R.rerank_scores("q", self.pool[:2], calls)
+        self.assertEqual((s, err), ([0.2, 0.7], None))
+        body["results"].pop()
+        with m.patch.dict(os.environ, {"OPENROUTER_API_KEY": "test"}), \
+                m.patch("urllib.request.urlopen", return_value=Resp(json.dumps(body).encode())):
+            s, err = R.rerank_scores("q", self.pool[:2], calls)
+        self.assertIsNone(s); self.assertIn("1 of 2", err)
+        self.assertEqual(len(calls), 2)
