@@ -149,15 +149,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R15 | B7 | Q77 | B3 | research/cards/R15.md |
 | R22 | B9 | Q73 | B3 | research/cards/R22.md |
 | R22 | B9 | Q77 | B3 | research/cards/R22.md |
-| K5 | B3 | K16 | B1 | runner/test_runner.py |
-| G1 | B3 | K16 | B1 | runner/test_runner.py |
-| G19 | B3 | K16 | B1 | runner/test_runner.py |
-| K14 | B3 | K16 | B1 | runner/test_runner.py |
-| K16 | B1 | Q70 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
-| K16 | B1 | Q71 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
-| K16 | B1 | Q75 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
-| K16 | B1 | Q76 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
-| K16 | B1 | Q81 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
 
 ## Batches (related items done together)
 
@@ -263,11 +254,10 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (4)
+## Review by the next tier (a worker result to confirm: no change, or a PR) (3)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
-| K16 | B1 |  | minor | high | fix | Wider k grid for kNN and tree candidates | In runner/candidates/label-knn/train.py widen the k grid beyond its current upper edge of 15 (for example to 1, 3, 5, 9, 15, 25, 41, 61) so the best k selected on the tuning split is no longer pinned at the grid edge on text and adult. Keep selection on the tuning split only. In runner/test_runner.py add a test that the grid contains values above 15 and that the selected k is taken from the tuning split, not the test split. | queue P3; worker/split.py |
 | K20 | B3 |  | minor | high | fix | Encode the P31 qualification rule and choose the judgement model from recorded grading runs | Add qualifies(runs) and choose(models) to worker/tier.py. A run is {controls_right: int of 5, agree: int of 30, cost: float, latency_s: float}. A model qualifies only if it has at least two runs, every run has controls_right == 5 and agree >= 27. choose() returns the qualified model with the lowest total cost, then the lowest median latency. Test in worker/test_worker.py: Particle-1 (two runs of 5/5 and 30/30) qualifies; Perplexity Decider with one run of 29/30 does not; Nemotron (two runs of 5/5 and 29/30) qualifies; ERNIE with one run that spent all tokens and one 5/5 run does not; choose() over Particle-1 and Nemotron picks the cheaper one. | queue P31; worker/split.py |
 | K19 | B3 |  | minor | medium | fix | Q59: known-answer controls inside the canary grader | In worker/grade_canary3.py, add a control step to ok(item, before, after, result) and main(): before grading the four live targets, run the same ok() check on built-in known-answer cases with fixed expected verdicts: one where the 'after' line equals 'before' with a check-only result (must pass), one where the reworded guarantee from E3 is returned as a change (must fail), and one where a false number is corrected exactly (must pass). If any control gets the wrong verdict, main() exits nonzero and grades nothing. Add a test in worker/test_worker.py that imports the grader, checks that the three controls return the expected verdicts, and checks that a grader with a broken ok() (for example one that always returns True) is caught by the controls. | queue Q59; worker/split.py |
 | K24 | B3 |  | minor | medium | fix | F041: refuse paid Anthropic calls at the engines level | In anthropic_call (and in call() for engine 'anthropic'), run paid_guard(engine, prompt_chars, max_tokens) before any request is built, and raise Refused when allow_paid is false or the cap is reached. Test: with allow_paid=False, anthropic_call and call('anthropic', ...) raise Refused and the injected _send is never called. | queue Q67; worker/split.py |
@@ -370,7 +360,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (94)
+## Done (95)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -391,6 +381,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | R11 | B7 | 1 | minor | high | test | Research card: escalation between models and to humans: cascades, routing and learning to defer, with measured accuracy and cost | Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P20c, P20, P8 and P24. | queue P20c, P20, P8 |
 | R13 | B7 | 1 | minor | high | test | Research card: ordering work with prerequisites and go/no-go gates under uncertainty: value of information and experiment prioritisation | Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P22, P21, P5 and P24. | queue P22, P21, P5 |
 | R14 | B7 | 1 | minor | high | test | Research card: how automated labs and AI-scientist systems organise experiments, knowledge and agents | Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P5, P11, P20, P9 and P24. | queue P5, P11, P20, P9 |
+| K16 | B1 |  | minor | high | fix | Wider k grid for kNN and tree candidates | In runner/candidates/label-knn/train.py widen the k grid beyond its current upper edge of 15 (for example to 1, 3, 5, 9, 15, 25, 41, 61) so the best k selected on the tuning split is no longer pinned at the grid edge on text and adult. Keep selection on the tuning split only. In runner/test_runner.py add a test that the grid contains values above 15 and that the selected k is taken from the tuning split, not the test split. | queue P3; worker/split.py |
 | Q04 |  |  | major | high | fix | Ledger writer installs 35 unpinned transitive packages in a job that can sign attestations | Done (main 3089926): record/requirements-writer.txt pins 37 packages by sha256; all three record.yml installs and the record-e2e append job use --require-hashes --only-binary=:all:. Separate review: merge (lock recompiled identically, all 37 cp312/abi3 wheels verified, OSV clean). Live: record run 44184453334 green, entries 1-4 attested, nothing unverifiable. Left as minor follow-ups: no refresh process (add a Renovate/Dependabot rule or a scheduled recompile diff); VERIFY.md:70, record/README.md:20 and record.py hints still suggest unpinned installs; e2e-main keeps its old install until updated. | A-security M3; S2 confirmed (37 resolved, 2 pinned); main:.github/workflows/record.yml:49 |
 | Q12 |  |  | major | high | fix | loop.yml steps end in `|| true`: CI cannot fail (22 of 23 runs green) | Done (main 05328a4): loop.yml steps record and return their exit code; later steps and uploads run with !cancelled(); first live run 44165621757. | B F4; C F5; S2 reproduced |
 | Q13 |  |  | major | high | fix | One bad proposal in ledger/inbox blocks every proposal and skips the 48 h upgrade check | Done (main 05328a4): ingest checks each proposal alone; good ones are written and committed, a refused one stays in ledger/inbox/ (not moved to ledger/rejected/: the writer commits only attested entries) and the run fails red after the commit; never filed as an orphan; the 48 h check runs even if append fails. 4 new tests. Live: record run 44165855411 green (empty inbox, upgrade job passed). | B F5; S2 reproduced (worse than reported) |
