@@ -1,0 +1,42 @@
+# Make worker-sized work on demand (the idle job does the same when nothing is ready): the splitter (worker/split.py) and
+# the research-question generator (worker/generate.py). Model text is parsed as data; nothing is run. Starts the worker
+# when anything was accepted.
+name: make-work
+on:
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: make-work
+  cancel-in-progress: false
+jobs:
+  make:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write   # the queue branch and the ledger
+      actions: write    # start the worker
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the queue and ledger with the checkout token; no artifact
+      - name: split, generate, start
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/gl" FETCH_HEAD
+          git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD
+          acc=0
+          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:2:6,openrouter:1"; then
+            python3 -I worker/split.py "$RUNNER_TEMP/gq" . "$RUNNER_TEMP/split" | tee "$RUNNER_TEMP/split.log" || true
+            [ -s "$RUNNER_TEMP/split/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || true
+            cat "$RUNNER_TEMP/split/split.json" 2>/dev/null | head -c 6000
+            acc=$((acc + $(grep -c "'accept')" "$RUNNER_TEMP/split.log" || true)))
+          fi
+          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "openrouter:4"; then
+            python3 -I worker/generate.py "$RUNNER_TEMP/gq" "$RUNNER_TEMP/gen" | tee "$RUNNER_TEMP/gen.log" || true
+            [ -s "$RUNNER_TEMP/gen/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "$RUNNER_TEMP/gen/calls.jsonl" || true
+            acc=$((acc + $(grep -c "'accept')" "$RUNNER_TEMP/gen.log" || true)))
+          fi
+          echo "accepted $acc"
+          [ "$acc" -gt 0 ] && gh workflow run worker.yml -R "$GITHUB_REPOSITORY" --ref main && echo "worker started" || true
