@@ -200,7 +200,7 @@ def _scrub(s):
     return re.sub(r"(account|org|organization|user)(_?id)?(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2\3***\4", s, flags=re.I) if s else s
 
 
-def call(engine, model, prompt, system=None, max_tokens=2000):
+def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False):
     if engine in ("nvidia", "groq") and system is None:   # free pools the worker uses; router/pick.py spreads reviews to them (2026-11-20)
         return compat_call(engine, model, prompt, max_tokens=max_tokens)
     paid_guard(engine, len(prompt) + len(system or ""), max_tokens)
@@ -208,7 +208,7 @@ def call(engine, model, prompt, system=None, max_tokens=2000):
     msgs = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": prompt}]
     text, usage = None, None
     if engine == "openrouter":
-        if not model.endswith(":free") and os.environ.get("ROUTER_ALLOW_PAID") != "1":
+        if not model.endswith(":free") and not allow_paid and os.environ.get("ROUTER_ALLOW_PAID") != "1":
             raise ValueError(f"refusing paid OpenRouter model {model}: the account holds credit; set ROUTER_ALLOW_PAID=1 only with the owner's approval")
         st, j = _post("https://openrouter.ai/api/v1/chat/completions",
                       {"model": model, "messages": msgs, "max_tokens": max_tokens},

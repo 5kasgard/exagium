@@ -60,6 +60,8 @@ def classify(result, staged_empty, landed):
         return "retry"           # the target changed under the run: redo, not a failure
     if not staged_empty or r == "merge":
         return "failed"          # a change was ready but did not land, or nothing was staged for an accepted change
+    if r == "no_edits":
+        return "failed"          # a code job with no usable edit (Gemini review F009: used to park in review as "pr")
     if r == "tests_failed":
         return "failed"          # a code change whose tests failed in the no-secrets test job (worker/code_job.py)
     if r == "duplicate":

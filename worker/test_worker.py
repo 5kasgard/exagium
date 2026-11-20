@@ -535,3 +535,28 @@ class Split(unittest.TestCase):
                        {"id": "P3", "status": "open", "kind": "build", "research": {"question": "q"}},
                        {"id": "K2", "status": "proposed", "split_from": "P4"}, {"id": "P4", "status": "open", "kind": "fix"}]}
         self.assertEqual([i["id"] for i in SP.candidates(q)], ["P1"])
+
+
+class GeminiReview20261120(unittest.TestCase):
+    """Reproductions of the Gemini review findings fixed on 2026-11-20 (F009-F012, F002)."""
+    def test_f010_paths_and_overlap(self):
+        import code_job as C
+        for p in ("./.github/x.yml", "worker//ledger.py", "worker/./ledger.py", "a\\\\b.py"):
+            self.assertFalse(C.allowed(p), p)
+        files = {"a.py": "abc\n"}
+        with self.assertRaises(ValueError):
+            C.apply_edits(files, [{"path": "a.py", "old": "abc", "new": "xyz"}, {"path": "a.py", "old": "abc", "new": "q"}])
+
+    def test_f009_no_edits_is_a_failure(self):
+        import transitions as TR
+        self.assertEqual(TR.classify({"result": "no_edits"}, True, "none"), "failed")
+
+    def test_f002_reserve_additive(self):
+        import ledger as LG, tempfile, subprocess as sp
+        with tempfile.TemporaryDirectory() as wt:
+            os.makedirs(os.path.join(wt, "ledger"))
+            with unittest.mock.patch.object(LG, "sync", lambda w: None), unittest.mock.patch.object(LG, "push", lambda *a: True):
+                LG.reserve(wt, "r1", "openrouter_paid:2:5")
+                LG.reserve(wt, "r1", "openrouter_paid:2:5")
+                led = LG.load(LG.day_path(wt))
+        self.assertAlmostEqual(led["openrouter_paid"]["pending_usd"]["r1"], 0.02)

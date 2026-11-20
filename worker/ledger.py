@@ -136,9 +136,9 @@ def reserve(wt, run, spec):
             e.setdefault("pending_calls", {})[run] = e.get("pending_calls", {}).get(run, 0) + n
             if "neurons" in cap:
                 e["neurons_reserved"] += n * est
-                e.setdefault("pending", {})[run] = n * est   # replaced by the actual use when the run is recorded
+                e.setdefault("pending", {})[run] = e.get("pending", {}).get(run, 0) + n * est   # additive (Gemini F002); replaced by the actual use when the run is recorded
             if "usd" in cap:
-                e.setdefault("pending_usd", {})[run] = n * est / 1000
+                e.setdefault("pending_usd", {})[run] = e.get("pending_usd", {}).get(run, 0) + n * est / 1000
             e["runs"].append(run)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         if push(wt, [p], f"ledger: {run} reserves {spec}"):

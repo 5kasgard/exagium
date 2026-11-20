@@ -53,7 +53,11 @@ Reply with JSON only: {{"verdict": "approve" or "reject", "reason": "one sentenc
 
 
 def allowed(path):
-    return isinstance(path, str) and not REFUSE.search(path) and not path.startswith("/") and ".." not in path.split("/")
+    """F010: the path is checked as written AND normalised, so './.github/x' or 'worker//ledger.py' cannot slip past REFUSE."""
+    if not isinstance(path, str) or path.startswith("/") or ".." in path.split("/") or "\\" in path:
+        return False
+    norm = os.path.normpath(path)
+    return norm == path and not REFUSE.search(norm)
 
 
 def context(item_path, repo, out):
@@ -96,8 +100,12 @@ def check_edits(files, edits):
 
 
 def apply_edits(files, edits):
+    """Sequential, and each edit's "old" must still occur exactly once after the edits before it (F010: overlapping edits
+    in one file could misapply); a conflicting edit raises, which the callers treat as no usable change."""
     new = dict(files)
     for e in edits:
+        if new[e["path"]].count(e["old"]) != 1:
+            raise ValueError(f"{e['path']}: an earlier edit changed the text this edit replaces")
         new[e["path"]] = new[e["path"]].replace(e["old"], e["new"], 1)
     return new
 
@@ -121,8 +129,12 @@ def draft(out):
             proposal = {"edits": []}
         edits, why = check_edits(b["files"], proposal.get("edits"))
         review = None
+        try:
+            new = apply_edits(b["files"], edits) if edits else None
+        except ValueError as e:
+            new, edits, why = None, [], why + [str(e)]
         if edits:
-            dd = D.diff(b["files"], apply_edits(b["files"], edits))
+            dd = D.diff(b["files"], new)
             review, _, _ = slots.run("code_reviewer", REVIEW.format(id=item["id"], title=item["title"], next=item["next"][:1500], diff=dd[:20000]), ask, obj)
             if review is None:
                 fail.append("reviewer gave no usable reply")
@@ -140,8 +152,12 @@ def test(repo, out):
     d = json.load(open(os.path.join(out, "draft.json")))
     edits, why = check_edits(b["files"], d["proposal"].get("edits"))
     res = {"passed": False, "edits": len(edits), "why": why, "runs": []}
-    if edits and not d.get("model_fail"):
-        for p, s in apply_edits(b["files"], edits).items():
+    try:
+        applied = apply_edits(b["files"], edits) if edits else None
+    except ValueError as e:
+        applied, res["why"] = None, why + [str(e)]
+    if applied and not d.get("model_fail"):
+        for p, s in applied.items():
             open(os.path.join(repo, p), "w", encoding="utf-8").write(s)
         ok = True
         for t in [b["test"]] + [x for x in CI_TESTS if x != b["test"]]:
@@ -168,16 +184,22 @@ def apply(repo, out):
     else:
         edits, why = check_edits(files, d["proposal"].get("edits"))
         verdict = (d.get("review") or {}).get("verdict")
-        if not edits:
-            res = {"result": "pr", "proposed": 0, "why": why or ["no edit proposed"], "edits": 0}
-        elif verdict == "reject":
-            res = {"result": "rejected", "why": [f"reviewer: {(d.get('review') or {}).get('reason', '')}"[:300]], "edits": 0}
+        if not edits:   # Gemini review 2026-11-20 F009: was "pr", which parked the item in review with nothing to review
+            res = {"result": "no_edits", "why": why or ["no edit proposed"], "edits": 0}
+        elif verdict != "approve":   # F010: only an explicit approval goes on (a missing or odd verdict used to pass)
+            res = {"result": "rejected", "why": [f"reviewer: {verdict}: {(d.get('review') or {}).get('reason', '')}"[:300]], "edits": 0}
         elif not t.get("passed"):
             res = {"result": "tests_failed", "why": [f"{x['test']} rc {x['rc']}" for x in t.get("runs", []) if x["rc"]] or ["tests did not run"], "edits": 0}
         else:
-            for p, s in apply_edits(files, edits).items():
+            try:
+                new = apply_edits(files, edits)
+            except ValueError as e:
+                res = {"result": "no_edits", "why": [str(e)], "edits": 0}
+                json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
+                return 0
+            for p, s in new.items():
                 open(os.path.join(repo, p), "w", encoding="utf-8").write(s)
-            open(os.path.join(out, "change.diff"), "w").write(D.diff(files, apply_edits(files, edits)))
+            open(os.path.join(out, "change.diff"), "w").write(D.diff(files, new))
             # code always lands as a PR: "pr" result with the reviewer's verdict and the test record for the next tier
             res = {"result": "pr", "proposed": len(edits), "why": ["code change: tests passed; a PR for the next tier"],
                    "edits": len(edits), "review": d.get("review"), "tests": [(x["test"], x["rc"]) for x in t["runs"]], "code": True}
