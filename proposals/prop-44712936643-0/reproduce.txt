@@ -1,0 +1,12 @@
+FAILED: prop-44712936643-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 186, in <module>
+    main()
+  File "/w/train.py", line 74, in main
+    logit, lin_sum, emb_sum, emb_batch = forward(Xb)
+                                         ^^^^^^^^^^^
+  File "/w/train.py", line 50, in forward
+    lin_sum = np.sum(linear[np.arange(d), Xb.T].T, axis=1)  # (batch,)
+                     ~~~~~~^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (14,) (14,64) 
+
