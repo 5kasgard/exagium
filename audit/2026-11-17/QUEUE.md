@@ -38,7 +38,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q44 | B5 | Q71 | B3 | loop/candidates |
 | Q44 | B5 | Q78 | B3 | loop/candidates |
 | Q44 | B5 | Q81 | B3 | loop/candidates |
-| Q54 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
 | Q54 | B1 | G19 | B3 | runner/candidates/label-knn/infer.c |
 | Q54 | B1 | Q67 | B3 | tasks/sat |
 | Q54 | B1 | Q70 | B3 | runner/candidates, tasks |
@@ -46,7 +45,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q54 | B1 | Q75 | B3 | runner/candidates |
 | Q54 | B1 | Q76 | B3 | runner/candidates |
 | Q54 | B1 | Q81 | B3 | runner/candidates |
-| P3 | B1 | G18 | B3 | runner/candidates/sat-walksat/infer.c |
 | P3 | B1 | G19 | B3 | runner/candidates/label-knn/infer.c |
 | P3 | B1 | Q67 | B3 | tasks/sat |
 | P3 | B1 | Q70 | B3 | runner/candidates, tasks |
@@ -152,7 +150,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K5 | B3 | K16 | B1 | runner/test_runner.py |
 | G1 | B3 | K16 | B1 | runner/test_runner.py |
 | G15 | B3 | K16 | B1 | runner/test_runner.py |
-| G18 | B3 | K16 | B1 | runner/test_runner.py |
 | G19 | B3 | K16 | B1 | runner/test_runner.py |
 | K14 | B3 | K16 | B1 | runner/test_runner.py |
 | K16 | B1 | Q70 | B3 | runner/candidates/label-knn/train.py, runner/test_runner.py |
@@ -275,12 +272,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| G18 | B3 |  | minor | medium | fix | F071: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n rea | Fix review finding glm-20261120:F071 (bug, low). Claim: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n reads uninitialized bytes of a[]. Evidence at runner/candidates/sat-walksat/infer.c lines [56, 57]:             for (int j = 0; j < 3; j++) { int l = L[3 * c + j]; nt[c] += (a[abs(l) - 1] == 1) == (l > 0); } Proposed fix: Reject literals with abs(l) > n in sat-walksat's infer.c (exit non-zero on malformed input), as the task-level check.py documents. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
-
 ## Escalated (a check failed; the next tier takes it) (11)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
@@ -367,7 +358,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (92)
+## Done (93)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -446,6 +437,7 @@ same artifact scores differently through the runner than through a direct run (t
     t0 = time.perf_counter_ns()
     r = subprocess.run([prog, w, x, str(n)], stdout=subprocess.DEVNULL,
                        preexec_fn=lambda: os.sched_setaffinity(0, {cpu})) Proposed fix: Add a timeout= to transfer/meter.py's subprocess.run calls (e.g. 1800s, matching run.py's jailed timed()). Add a test in transfer/test_fetch.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
+| G18 | B3 |  | minor | medium | fix | F071: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n rea | Fix review finding glm-20261120:F071 (bug, low). Claim: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n reads uninitialized bytes of a[]. Evidence at runner/candidates/sat-walksat/infer.c lines [56, 57]:             for (int j = 0; j < 3; j++) { int l = L[3 * c + j]; nt[c] += (a[abs(l) - 1] == 1) == (l > 0); } Proposed fix: Reject literals with abs(l) > n in sat-walksat's infer.c (exit non-zero on malformed input), as the task-level check.py documents. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | G23 | B3 |  | minor | medium | fix | Leaderboard counts distinct designs: hash each proposal's train.py and infer.c pair and report duplicates | GLM's analysis report (recommendation 5): the board counts identical designs more than once, so its diversity numbers overstate how many distinct designs the proposer makes. In judge.py board(), compute sha256 over the bytes of each proposal folder's train.py followed by infer.c when both exist, and add one summary line 'Distinct designs: N (of M valid)' and a 'dup of' column naming the first proposal with the same hash. Do not change validity or ranking. Add a test with three folders, two identical, that expects 'Distinct designs: 2'. | exagium-analysis-report (project files), Assessment and Recommendations, 5; runner/proposals/judge.py |
 | G3 | B3 |  | minor | medium | fix | F045: The decisions_* scripts write raw provider error bodies (e.read() decoded, truncated but unscrubbed by any red | Fix review finding glm-20261120:F045 (security, medium). Claim: The decisions_* scripts write raw provider error bodies (e.read() decoded, truncated but unscrubbed by any redaction) into their committed output JSON and print them to stdout (public CI logs), bypassing the engines._scrub redaction policy the repo adopted for exactly this leak class (audit Q52). Evidence at router/decisions_route.py lines [25, 27]:         except urllib.error.HTTPError as e:
             resp, st = {"error": e.read().decode(errors="replace")[:400]}, e.code
