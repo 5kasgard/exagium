@@ -1,0 +1,15 @@
+FAILED: prop-44737390585-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 186, in <module>
+    main()
+  File "/w/train.py", line 159, in main
+    bias, linear, V = train_fm(X_train_z, y_train, K, lr, L2, epochs, BATCH, rng)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 113, in train_fm
+    g_bias, g_linear, g_V = fm_backward(xb, g, linear, V, K, L2)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 87, in fm_backward
+    grad_Vc = X.T @ (gc[:, None] * S) - (X * X).T @ (gc[:, None] * Vc)
+                                                     ~~~~~~~~~~~~^~~~
+ValueError: operands could not be broadcast together with shapes (54,1) (64,4) 
+

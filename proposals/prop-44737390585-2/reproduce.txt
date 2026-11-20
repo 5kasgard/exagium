@@ -1,0 +1,15 @@
+FAILED: prop-44737390585-2 on text: train.py exited 1:
+Trying B=4096
+Traceback (most recent call last):
+  File "/w/train.py", line 142, in <module>
+    main()
+  File "/w/train.py", line 114, in main
+    train_indices = compute_indices(X_train, B)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 36, in compute_indices
+    indices[:, col] = np.array([fnv1a_32([X[row, i]]) % B for row in range(n)], dtype=np.uint32)
+                                ^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 25, in fnv1a_32
+    h ^= b
+OverflowError: Python integer 2166136261 out of bounds for uint8
+
