@@ -51,6 +51,12 @@ def probe(p):
         url = {"nim_listed": ("https://integrate.api.nvidia.com/v1/models", "NVIDIA_API_KEY"),
                "groq_listed": ("https://api.groq.com/openai/v1/models", "GROQ_API_KEY")}[k]
         return p["model"] in {m["id"] for m in json.loads(get(*url))["data"]}
+    if k == "anthropic_listed":   # Claude models on the owner's API key (CLAUDE_API_KEY, added 2026-11-20); the list call is free
+        req = urllib.request.Request("https://api.anthropic.com/v1/models?limit=100",
+                                     headers={"x-api-key": os.environ["CLAUDE_API_KEY"], "anthropic-version": "2023-06-01",
+                                              "User-Agent": "exagium-facts"})
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            return p["model"] in {m["id"] for m in json.loads(r.read())["data"]}
     if k == "cloudflare_listed":
         url = (f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/ai/models/search?"
                + urllib.parse.urlencode({"search": p["model"].split("/")[-1], "per_page": 100}))
