@@ -22,7 +22,8 @@ import generate as G
 import code_job as CJ
 
 MODEL = "claude-haiku-5-5"
-MAX_PARENTS = 2
+MAX_PARENTS = 6   # items asked per run (about $0.0007 each); an item judged not worker-sized is skipped for RETRY_DAYS
+RETRY_DAYS = 7
 MAX_SUB = 3
 DIRS = ("worker", "router", "runner", "facts", "transfer")
 
@@ -74,11 +75,34 @@ def check(sub, lines, tests):
     return {"title": " ".join(sub["title"].split()), "files": files, "test": test, "next": sub["next"][:1500]}, None
 
 
+def recently_tried(i):
+    import datetime as dt
+    t = i.get("split_tried")
+    if not t:
+        return False
+    return dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(t.replace("Z", "+00:00")) < dt.timedelta(days=RETRY_DAYS)
+
+
+def mark_tried(wt, ids):
+    """Record on each item that the splitter found nothing worker-sized in it (not a status change)."""
+    if not ids:
+        return
+    for _ in range(Q.TRIES):
+        Q.sync(wt)
+        q = Q.load(wt)
+        for i in q["items"]:
+            if i["id"] in ids:
+                i["split_tried"] = Q.iso(Q.now())
+        Q.save(wt, q)
+        if Q.commit_push(wt, f"splitter: nothing worker-sized in {', '.join(sorted(ids))} (retry after {RETRY_DAYS} days)"):
+            return
+
+
 def candidates(q):
     by = {i["id"]: i for i in q["items"]}
     used = {i.get("split_from") for i in q["items"] if i.get("split_from")}
     out = [i for i in q["items"] if i.get("status") == "open" and i.get("kind") in ("build", "fix") and not Q.job_type(i)
-           and i["id"] not in used and i.get("needs") != "the owner"
+           and i["id"] not in used and i.get("needs") != "the owner" and not recently_tried(i)
            and all(by.get(b, {}).get("status") == "done" for b in i.get("blocked_by", []))]
     return sorted(out, key=lambda i: ({"high": 0, "medium": 1, "low": 2}.get(i.get("value"), 3), i["id"]))
 
@@ -97,11 +121,11 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         Q.sync(wt)
         q = Q.load(wt)
         day = Q.iso(Q.now())[:10]
-        done_today = len({i.get("split_from") for i in q["items"] if i.get("split_from") and str(i.get("generated_at", "")).startswith(day)})
         lines, tests = repo_files(repo)
         listing = "\n".join(f"{p} ({n})" for p, n in sorted(lines.items()) if CJ.allowed(p))
         subs = []
-        for parent in candidates(q)[:max(0, MAX_PARENTS - done_today)]:
+        tried = set()
+        for parent in candidates(q)[:MAX_PARENTS]:
             reply = ask(PROMPT.format(id=parent["id"], title=parent["title"], next=parent.get("next", "")[:3000],
                                       files=listing, tests=", ".join(tests)))
             m = re.search(r"\{.*\}", reply or "", re.S)
@@ -114,11 +138,15 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                 d = {}
             elif not d["subitems"]:
                 log.append({"parent": parent["id"], "ok": False, "why": "model: nothing worker-sized", "raw": (reply or "")[:600]})
+            got = 0
             for s in (d.get("subitems") or [])[:MAX_SUB]:
                 ok, why = check(s, lines, tests)
                 log.append({"parent": parent["id"], "ok": bool(ok), "why": why, "sub": s})
                 if ok:
-                    subs.append((parent, ok))
+                    subs.append((parent, ok)); got += 1
+            if not got:
+                tried.add(parent["id"])
+        mark_tried(wt, tried)
         if not subs:
             print("split: nothing passed the script check;", json.dumps(log)[:4000])
             return 0
