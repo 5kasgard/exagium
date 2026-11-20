@@ -8,8 +8,8 @@ on:
         description: "path of the prompt file in the repo"
         required: true
       engines:
-        description: "space-separated ENGINE:MODEL list"
-        default: "cloudflare:@cf/openai/gpt-oss-120b cloudflare:@cf/meta/llama-4-scout-17b-16e-instruct"
+        description: "space-separated ENGINE:MODEL list, or auto (two qualified reviewers from the least-used pools, router/pick.py)"
+        default: "auto"
 permissions:
   contents: write   # pushes the replies, as received, to the router-runs branch
 defaults:
@@ -27,6 +27,8 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PROMPT: ${{ github.event.inputs.prompt }}
           ENGINES: ${{ github.event.inputs.engines }}
           # queue Q22: one line per call (time, engine, model, status, usage incl. Cloudflare neurons; no text). No
@@ -38,10 +40,23 @@ jobs:
           case "$PROMPT" in router/review/*) ;; *) echo "prompt must be under router/review/"; exit 1 ;; esac
           case "$PROMPT" in *..*) echo "prompt path must not contain .."; exit 1 ;; esac
           [ -f "$PROMPT" ] && [ ! -L "$PROMPT" ] && git ls-files --error-unmatch -- "$PROMPT" > /dev/null || { echo "prompt must be a tracked regular file"; exit 1; }
+          # spread the load (owner 2026-11-20): read today's shared ledger, pick or check engines by each pool's headroom
+          git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD || mkdir -p "$RUNNER_TEMP/led/ledger"
+          day="$RUNNER_TEMP/led/ledger/$(date -u +%F).json"
+          if [ "$ENGINES" = auto ]; then ENGINES=$(python3 -I router/pick.py "$day" 2); else
+            want="$ENGINES"; ENGINES=$(python3 -I router/pick.py "$day" check $want); [ "$ENGINES" = "$want" ] || echo "dropped for lack of headroom: $want -> $ENGINES"; fi
+          echo "engines: $ENGINES"; [ -n "$ENGINES" ] || { echo "no pool has headroom today"; exit 1; }
           rc=0; python3 -I router/review.py "$PROMPT" "$RUNNER_TEMP/rev" $ENGINES || rc=$?
           cp "$PROMPT" "$RUNNER_TEMP/rev/prompt.txt"; echo "$GITHUB_SHA $PROMPT" > "$RUNNER_TEMP/rev/source.txt"
           [ -f "$RUNNER_TEMP/usage.jsonl" ] && cp "$RUNNER_TEMP/usage.jsonl" "$RUNNER_TEMP/rev/usage.jsonl"
           echo "exit $rc"
+      - name: count these calls in the shared daily ledger (reviews used to be invisible to the worker's caps)
+        if: ${{ always() }}
+        run: |
+          [ -s "$RUNNER_TEMP/usage.jsonl" ] || exit 0
+          git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -d "$RUNNER_TEMP/led/.git" ] || [ -f "$RUNNER_TEMP/led/.git" ] || { echo "no ledger worktree"; exit 0; }
+          python3 -I worker/ledger.py record "$RUNNER_TEMP/led" "review-$GITHUB_RUN_ID" "$RUNNER_TEMP/usage.jsonl" || echo "ledger record failed (calls stay in reviews/$GITHUB_RUN_ID/usage.jsonl)"
       - name: save the replies on router-runs
         run: |
           git config user.name "github-actions[bot]"
