@@ -34,7 +34,8 @@ SEARCH LOG: {log}
 
 Choose one:
 - "redo": the sources did not fit the question (off-topic search results, or a question with several parts that the
-  sources answer only in part). Give a narrower question that published work can answer, and 3-5 new search queries.
+  sources answer only in part). Give a narrower question that published work can answer, and 3 to 5 new search
+  queries of 2 to 8 words each (like a search box, not sentences).
 - "escalate": the evidence needs something the job cannot reach (a paid or keyed source, full texts, data that is not
   published), or the question itself is wrong for a literature search. Say what is needed.
 
@@ -83,7 +84,9 @@ def decide(ctx, ask):
     if not isinstance(d, dict) or d.get("decision") not in ("redo", "escalate"):
         return None, "reply not the asked JSON"
     if d["decision"] == "redo":
-        ok, why = G.check({"question": d.get("question"), "queries": d.get("queries")})
+        qs = [" ".join(str(x).split()) for x in (d.get("queries") or []) if isinstance(x, str)]
+        qs = [x for x in qs if 3 <= len(x) <= 80][:5]   # first live run: both redo replies failed only on query count/length
+        ok, why = G.check({"question": d.get("question"), "queries": qs})
         if not ok:
             return None, f"redo question failed the script check: {why}"
         d.update(question=ok["question"], queries=ok["queries"])
