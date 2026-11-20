@@ -5365,7 +5365,8 @@
     "test": "worker/test_worker.py"
    },
    "touches": [
-    "worker/diagnose.py"
+    "worker/diagnose.py",
+    "worker/test_worker.py"
    ],
    "next": "Add a function classes() to worker/diagnose.py that returns the sorted list of every class name in RULES plus 'unknown'. Change nothing else. First end-to-end run of the code job (owner 2026-11-20: workers do code work): coder, reviewer, the no-secrets test job, and a PR.",
    "refs": [
@@ -5488,7 +5489,8 @@
    },
    "touches": [
     "router/bench4/measure.py",
-    "router/bench4/meter.py"
+    "router/bench4/meter.py",
+    "router/test_router.py"
    ],
    "next": "Add a loader that reads the bench-4 graded outcomes and the metered call logs and returns one record per (task, arm, attempt) with fields: task_id, task size and type, arm (model x pool x harness), accepted (bool, from the grader), tokens in and out, and cost. Records with a missing grade or missing cost are kept and flagged, not dropped. Done when the loader runs on the existing bench-4 data, the record count matches the number of graded attempts, and the test checks that every accepted attempt has a cost value.",
    "refs": [
@@ -5552,7 +5554,8 @@
    },
    "touches": [
     "router/bench5/decide.py",
-    "router/bench4/measure.py"
+    "router/bench4/measure.py",
+    "router/test_router.py"
    ],
    "next": "Using the P20a-1 table, simulate two policies on the same tasks with no new calls: (a) fixed assignment, using the arm the frozen bench-4 rule picked, and (b) routing that, for each task type and size bucket, sends the task to the cheapest arm whose measured acceptance in that bucket meets a threshold set before the replay, with a fallback to the strongest arm. Report cost per accepted item and acceptance rate for each policy, with a bootstrap interval. Write the verdict as a frozen rule: routing wins only if its acceptance is at least equal and its cost per accepted item is lower with the interval excluding zero. Done when the script prints both policies and the verdict, and the test checks that the verdict is 'no' when routing has equal cost by construction.",
    "refs": [
@@ -5589,7 +5592,8 @@
     "test": "worker/test_worker.py"
    },
    "touches": [
-    "worker/generate.py"
+    "worker/generate.py",
+    "worker/test_worker.py"
    ],
    "next": "Add a small card lookup in worker/generate.py that reads a dict keyed by (pool, model) with fields max_input_chars and max_output_tokens, each with a source string. Before the provider call, estimate the prompt size and refuse the call, returning a clear error, when it exceeds max_input_chars. Pass max_tokens from max_output_tokens instead of a hard-coded value. Seed the dict with the Nemotron entry (max_output_tokens 16000, source: the 2026-11-19 P5 evidence). Done when a unit test shows an oversized prompt is refused without calling the provider, an in-budget prompt passes through with the card's max_tokens, and the existing worker tests still pass.",
    "refs": [
@@ -5661,10 +5665,14 @@
     "files": [
      "runner/records.py"
     ],
-    "test": "runner/test_runner.py"
+    "test": "runner/test_runner.py",
+    "context": [
+     "runner/proposals/propose.py"
+    ]
    },
    "touches": [
-    "runner/records.py"
+    "runner/records.py",
+    "runner/test_runner.py"
    ],
    "next": "In runner/records.py, add a function that reads call records (the fields already written per call, such as model, pool, finish reason or stop reason, and output token count) and returns, per (pool, model), the count of calls, the count truncated at the output limit, and the max observed output tokens for non-truncated calls. Use only fields that exist in the current record format; if a field is missing, skip that record and count it separately. Done when a test with a fixture of mixed records returns the expected truncation count and max safe output tokens, and the existing runner tests pass.",
    "refs": [
@@ -5739,7 +5747,8 @@
     "test": "router/bench6/pilot/test_envcheck.py"
    },
    "touches": [
-    "router/bench6/pilot/envcheck.py"
+    "router/bench6/pilot/envcheck.py",
+    "router/bench6/pilot/test_envcheck.py"
    ],
    "next": "In envcheck.py, add a function that loads the SWE-rebench leaderboard tasks from the 2025_10..2026_03 splits (361 tasks), keeps only tasks with a docker image and harbor resource fields, and draws 12 candidates with a fixed seed recorded in the output. It must fail loudly if fewer than 12 eligible tasks are found and must not call any model. Done when test_envcheck.py passes and a new test shows the same seed gives the same 12 task IDs on two runs.",
    "refs": [
@@ -5776,7 +5785,8 @@
     "test": "router/bench6/illusion/test_illusion.py"
    },
    "touches": [
-    "router/bench6/illusion/illusion.py"
+    "router/bench6/illusion/illusion.py",
+    "router/bench6/illusion/test_illusion.py"
    ],
    "next": "In illusion.py, make the probe take the issue text with file paths removed, compare the model's named file against the gold patch's file list by exact path match, and write one record per task (task_id, named_file, gold_files, match) to a JSON results file, with the aggregate match rate. Keep the model call behind a stub so the test can run offline. Done when test_illusion.py passes and the aggregate is computed from the per-task records in a test.",
    "refs": [
@@ -5816,7 +5826,8 @@
     "test": "worker/test_worker.py"
    },
    "touches": [
-    "worker/generate.py"
+    "worker/generate.py",
+    "worker/test_worker.py"
    ],
    "next": "In the reviewer's accept path in worker/generate.py (grep for where the reviewer's approve/reject decision is made), add a mechanical check that compares each edited line with its original. If the original contains a guarantee marker ('never', 'cannot', 'by anyone', 'at all', 'whatever', 'under no circumstances') and the edited line does not contain the same marker, reject the edit. A rejected edit is restored and ends as no change. Test: the E3 pair ('Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' -> 'Results cannot be changed or deleted once recorded.') must be rejected, and a true same-strength rewrite that keeps every marker must still be accepted. Correct when both assertions pass and the existing worker tests still pass.",
    "refs": [
@@ -5853,7 +5864,8 @@
     "test": "worker/test_worker.py"
    },
    "touches": [
-    "worker/grade_canary3.py"
+    "worker/grade_canary3.py",
+    "worker/test_worker.py"
    ],
    "next": "In worker/grade_canary3.py, change the E3 outcome from a soft meaning check to an exact expected line: the output must contain the text 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' verbatim, and any edit that removes 'by anyone at all' or 'never' fails. Add a unit test in worker/test_worker.py with a known-answer control: the original line passes and the 'cannot ... once recorded' rewrite fails. Correct when the grader reports E3 FAIL on the rewrite and PASS on the unchanged line, and E1, E2 and E4 keep their existing results.",
    "refs": [
@@ -5890,7 +5902,8 @@
     "test": "runner/test_runner.py"
    },
    "touches": [
-    "runner/jail.py"
+    "runner/jail.py",
+    "runner/test_runner.py"
    ],
    "next": "In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass.",
    "refs": [
