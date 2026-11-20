@@ -9,9 +9,24 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7 | B7 | R20 | B10 | research/cards/R20.md |
 | P7 | B7 | R21 | B3 | research/cards/R21.md |
 | P7 | B7 | R22 | B9 | research/cards/R22.md |
+| P7 | B7 | D23 | B3 | .github/workflows/research.yml |
+| P7 | B7 | D24 | B3 | .github/workflows/research.yml |
+| P7 | B7 | D25 | B3 | .github/workflows/research.yml |
+| P10 | B8 | D23 | B3 | .github/workflows/whole-audit.yml |
+| P10 | B8 | D24 | B3 | .github/workflows/whole-audit.yml |
+| P10 | B8 | D25 | B3 | .github/workflows/whole-audit.yml |
 | P7b | B7 | Q59 | B3 | worker/research_job.py |
+| P7b | B7 | D23 | B3 | .github/workflows/worker.yml |
+| P7b | B7 | D24 | B3 | .github/workflows/worker.yml |
+| P7b | B7 | D25 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | Q59 | B3 | worker/research_job.py |
+| P7c | B7 | D23 | B3 | .github/workflows/worker.yml |
+| P7c | B7 | D24 | B3 | .github/workflows/worker.yml |
+| P7c | B7 | D25 | B3 | .github/workflows/worker.yml |
 | P7d | B7 | Q59 | B3 | worker/research_job.py |
+| P14 | B10 | D23 | B3 | .github/workflows/machines.yml |
+| P14 | B10 | D24 | B3 | .github/workflows/machines.yml |
+| P14 | B10 | D25 | B3 | .github/workflows/machines.yml |
 | P7f | B7 | Q59 | B3 | worker/research_job.py |
 
 ## Batches (related items done together)
@@ -100,13 +115,16 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | K1 | B3 |  | minor | medium | fix | Canary for the code job: worker/diagnose.py gains classes(), the sorted list of failure class names | Add a function classes() to worker/diagnose.py that returns the sorted list of every class name in RULES plus 'unknown'. Change nothing else. First end-to-end run of the code job (owner 2026-11-20: workers do code work): coder, reviewer, the no-secrets test job, and a PR. | worker/code_job.py on main |
 
-## Escalated (a check failed; the next tier takes it) (3)
+## Escalated (a check failed; the next tier takes it) (6)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R20 | B10 |  | minor | high | test | How accurately can simulated instruction and cache-access counts be calibrated to measured wall-clock time and energy across cache and memory levels on real x86 | Worker job (research): literature card for P15. Why: It directly informs P15's requirement to map simulated instruction/cache counts to real time and energy before ranking hardware settings at scale. | queue P15; queue P27 (generator) |
 | R21 | B3 |  | minor | high | test | What scheduling and routing policies maximize throughput across multiple rate-limited, equivalent LLM API pools while preserving output validity and acceptance  | Worker job (research): literature card for P20e. Why: It informs whether lanes plus capacity-aware routing can double completed work without lowering valid proposal or worker acceptance rates. | queue P20e; queue P27 (generator) |
 | R4 | B7 |  | minor | high | test | Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting? | Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P3 |
+| D23 | B3 |  | minor | medium | fix | Failed run, unknown: wiring:unknown | Filed by worker/diagnose.py from run 44725158522 (wiring). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44725158522 |
+| D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
+| D25 | B3 |  | minor | medium | fix | Failed run, unknown: router:unknown | Filed by worker/diagnose.py from run 44713342137 (router). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44713342137 |
 
 ## Needs the owner (5)
 
