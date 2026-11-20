@@ -1,0 +1,12 @@
+FAILED: prop-44680794581-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 165, in <module>
+    main()
+  File "/w/train.py", line 149, in main
+    bias, W_lin, V = train_fm(X_tr, y_tr, cfg["R"], cfg["lr"], cfg["l2"], cfg["epochs"], cfg["batch"], rng)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 89, in train_fm
+    np.add.at(g_W, i * 256 + vals, grad)
+                   ~~~~~~~~^~~~~~
+OverflowError: Python integer 256 out of bounds for uint8
+
