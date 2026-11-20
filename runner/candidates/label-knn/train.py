@@ -4,14 +4,14 @@ Distance: the sum over columns of an integer cost table, by the card's per-byte 
 column's training standard deviation (round(1000 * |a-b| / (sd + 1))), categorical 0 if equal else 1000. Integer
 costs make the tuning here and the C inference agree exactly. Neighbours: the k smallest distances, ties to the lower
 training index. Vote: the most frequent class; a tie goes to the tied class met first in neighbour order.
-Tuning: the last 20% of train.in (file order) is the tuning split; k in (1, 3, 5, 7, 9, 15) is chosen on it with the
-first 80% as the reference set (first best wins), then the weights hold all of train.
+Tuning: the last 20% of train.in (file order) is the tuning split; k in (1, 3, 5, 9, 15, 25, 41, 61) is chosen on it
+with the first 80% as the reference set (first best wins), then the weights hold all of train.
 Weights: int32 magic 0x314E4E4B, d, n, C, k; uint16 cost[d][256][256]; uint8 X[n][d]; uint8 y[n]."""
 import json, struct, sys
 
 import numpy as np
 
-KS = (1, 3, 5, 7, 9, 15)
+KS = (1, 3, 5, 9, 15, 25, 41, 61)
 TUNE = 0.2
 CHUNK = 64
 

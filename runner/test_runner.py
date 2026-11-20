@@ -163,6 +163,52 @@ class SatWalksatMalformedLiteral(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
 
 
+class KnnWiderGrid(unittest.TestCase):
+    """K16: the kNN grid goes past 15 and k selection uses the tuning split only."""
+    def test_grid_and_tuning_selection(self):
+        import importlib.util
+        import struct
+        import numpy as np
+
+        path = os.path.join(HERE, "candidates", "label-knn", "train.py")
+        spec = importlib.util.spec_from_file_location("label_knn_train", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertGreater(max(mod.KS), 15)
+
+        card = {"classes": 2, "input": {"bytes": 1, "types": ["categorical"]}}
+        ins = [bytes([i]) for i in range(10)]
+        keys = [b"\x00"] * 8 + [b"\x01"] * 2       # tuning split is the last 2 items
+        chosen = max(mod.KS)
+        calls = []
+
+        def fake_predict(cost, ref_X, ref_y, Q, k, C):
+            calls.append((len(ref_X), len(Q), k))
+            # only `chosen` is right, and only when scored on the 2-item tuning split
+            return np.ones(len(Q), dtype=np.int64) if k == chosen and len(Q) == 2 else np.zeros(len(Q), dtype=np.int64)
+
+        old_predict = mod.predict
+        with tempfile.TemporaryDirectory() as d:
+            p = lambda n: os.path.join(d, n)
+            open(p("card.json"), "w").write(json.dumps(card))
+            open(p("train.in"), "wb").write(records.pack(ins))
+            open(p("train.key"), "wb").write(records.pack(keys))
+            mod.predict = fake_predict
+            old_argv = sys.argv
+            try:
+                sys.argv = ["train.py", p("card.json"), p("train.in"), p("train.key"), p("weights.bin")]
+                mod.main()
+            finally:
+                mod.predict = old_predict
+                sys.argv = old_argv
+            out = open(p("weights.bin"), "rb").read()
+
+        magic, d, n, C, k = struct.unpack_from("<5i", out)
+        self.assertEqual(k, chosen)
+        self.assertTrue(calls)
+        self.assertTrue(all(r == 8 and q == 2 for r, q, _ in calls))
+
+
 def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
