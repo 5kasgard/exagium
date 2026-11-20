@@ -424,6 +424,12 @@ jobs:
         if: steps.facts.outputs.rc == '2'
         run: |
           echo "::error::a registered fact changed: see the facts step and worker-runs facts/status.json (queue P30)"; exit 1
+      - name: if any step above failed, start the worker anyway (an idle crash stopped the loop overnight 2026-11-20/21)
+        if: ${{ failure() }}
+        run: |
+          sleep 300
+          gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1 && { echo paused; exit 0; }
+          gh workflow run worker.yml -R "$R" --ref main && echo "worker started after an idle failure"
 
   chain:
     # Queue Q57: GitHub's free scheduler delayed or dropped the hourly cron (0 of ~8 fired on 2026-11-18/19), so a run that
