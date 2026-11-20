@@ -327,6 +327,12 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 | Q39 | B5 |  | minor | medium | doc | Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites. Worker release test (2026-11-18): line 58 only (16 -> 23 counter tests), through the PR-only path for agent-facing files; the rest of Q39 stays for a person. Line 58 merged 2026-11-18 (main 539a6c2, from the worker's branch, graded acceptable blind); the rest of Q39 remains, so targets removed. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The diff modifies many sections beyond line 58, exceeding the requested single change. Do the whole item, with a test. | E E-13, E-14; E ASD-STE100 table |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| K27 | B3 |  | minor | medium | fix | Give the timed run the counted run's cwd and HOME | In timed(), set the working directory and HOME to the same values count() uses for the same candidate and input (the jail's fixed sandbox cwd and a sandbox HOME, not the caller's). Add a test in runner/test_runner.py that stubs the subprocess call in both timed() and count(), records the cwd and HOME env each one receives, and asserts they are equal for the same input. | queue Q79; worker/split.py |
+
 ## Parked (28)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |

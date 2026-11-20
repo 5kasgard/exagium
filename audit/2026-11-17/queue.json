@@ -9597,6 +9597,38 @@
      "outcome": "guard_blocked"
     }
    ]
+  },
+  {
+   "id": "K27",
+   "title": "Give the timed run the counted run's cwd and HOME",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q79",
+   "generated_at": "2026-11-20T22:51:02Z",
+   "code": {
+    "files": [
+     "runner/run.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "runner/run.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In timed(), set the working directory and HOME to the same values count() uses for the same candidate and input (the jail's fixed sandbox cwd and a sandbox HOME, not the caller's). Add a test in runner/test_runner.py that stubs the subprocess call in both timed() and count(), records the cwd and HOME env each one receives, and asserts they are equal for the same input.",
+   "refs": [
+    "queue Q79",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
