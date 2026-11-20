@@ -58,14 +58,15 @@ SECRET_ENVS = ("CLAUDE_API_KEY", "OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "
                "CROWLLM_BASE_URL") + tuple(v[1] for v in OPENAI_COMPAT.values())
 
 
-# Queue P4: spend caps at the call site. These pools hold the owner's money (Cerebras $10, xAI $5, Gemini credit), so a
+# Queue P4: spend caps at the call site. These pools hold the owner's money (Cerebras $10, xAI $5, Gemini credit, Anthropic credit), so a
 # call to one is refused before any network traffic unless (1) the workflow lists the pool in ROUTER_PAID_POOLS, (2) the
 # call fits the per-call caps, and (3) ROUTER_USAGE_LOG names a log file and today's (UTC) calls to that pool in it are
 # under the daily cap. Worst case per pool per day is calls_per_day x (prompt_chars/4 + max_tokens) tokens; prices change,
 # so the caps are in calls and tokens and the log keeps each call's reported usage for the real figure.
 PAID = {"cerebras": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50),
         "xai": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=30),
-        "gemini": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50)}
+        "gemini": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50),
+        "anthropic": dict(max_tokens=2000, prompt_chars=40000, calls_per_day=50)}
 
 
 class Refused(ValueError):
@@ -170,8 +171,12 @@ def claude_cost(model, inp, out):
     return round((inp * pi + out * po) / 1e6, 6)
 
 
-def anthropic_call(model, prompt, max_tokens=2000, system=None):
-    """One Messages API call. Only models with a known price are allowed, so every call's cost can be recorded."""
+def anthropic_call(model, prompt, max_tokens=2000, system=None, allow_paid=False):
+    """One Messages API call. Only models with a known price are allowed, so every call's cost can be recorded.
+    Refused before any request if allow_paid is False or the spend cap is reached (F041)."""
+    if not allow_paid:
+        raise Refused("anthropic: paid call not allowed (allow_paid=False)")
+    paid_guard("anthropic", len(prompt) + len(system or ""), max_tokens)
     if model not in CLAUDE_PRICES:
         raise ValueError(f"no price recorded for {model}: add it to CLAUDE_PRICES with its source first")
     t0 = time.time()
@@ -236,6 +241,11 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
         if st == 200 and j.get("candidates"):
             parts = j["candidates"][0].get("content", {}).get("parts", [])
             text, usage = "".join(p.get("text", "") for p in parts if not p.get("thought")), j.get("usageMetadata")
+    elif engine == "anthropic":
+        paid_guard("anthropic", len(prompt) + len(system or ""), max_tokens)
+        if not allow_paid:
+            raise Refused("anthropic: paid call not allowed (allow_paid=False)")
+        return anthropic_call(model, prompt, max_tokens=max_tokens, system=system, allow_paid=allow_paid)
     else:
         raise ValueError(engine)
     if engine == "openrouter" and not model.endswith(":free"):
