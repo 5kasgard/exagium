@@ -1,0 +1,21 @@
+{
+ "baseline": "openrouter,particle-ai/particle-1:free",
+ "rule": "(queue P32, reader fallback): a reader qualifies if, over the bundles, it fails no call,\nits replies parse every time, and its decision-kept claims are at least 80% of the baseline's (the first POOL,MODEL\ngiven). Among those that qualify, the free one with the most kept claims is the fallback; ties go to the cheaper pool\n(the one with more headroom in the ledger).",
+ "readers": {
+  "openrouter,particle-ai/particle-1:free": {
+   "bundles": 6,
+   "reader_fail": 5,
+   "claims": 7,
+   "script_kept": 6,
+   "decider_kept": 6,
+   "model_fail": [
+    "R3-cite: quota: reader call failed",
+    "R5-cite: quota: reader call failed",
+    "R6-cite: quota: reader call failed",
+    "R8-cite: reader call failed",
+    "R9-cite: quota: reader call failed"
+   ],
+   "qualifies": false
+  }
+ }
+}
