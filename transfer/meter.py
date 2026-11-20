@@ -18,10 +18,13 @@ import argparse, base64, glob, json, os, platform, random, re, subprocess, sys, 
 
 import numpy as np
 
+TIMEOUT_S = 1800
+
 
 def ir(prog, w, x, n):
     r = subprocess.run(["valgrind", "--tool=cachegrind", "--cache-sim=no", "--cachegrind-out-file=/dev/null",
-                        prog, w, x, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+                        prog, w, x, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
+                       timeout=TIMEOUT_S)
     m = re.search(r"I\s+refs:\s+([\d,]+)", r.stderr)
     if r.returncode or not m:
         raise RuntimeError(f"valgrind failed on {w}: {r.stderr[-400:]}")
@@ -31,7 +34,7 @@ def ir(prog, w, x, n):
 def wall_ns(prog, w, x, n, cpu):
     t0 = time.perf_counter_ns()
     r = subprocess.run([prog, w, x, str(n)], stdout=subprocess.DEVNULL,
-                       preexec_fn=lambda: os.sched_setaffinity(0, {cpu}))
+                       preexec_fn=lambda: os.sched_setaffinity(0, {cpu}), timeout=TIMEOUT_S)
     t1 = time.perf_counter_ns()
     if r.returncode:
         raise RuntimeError(f"{prog} {w} exited {r.returncode}")
@@ -69,7 +72,7 @@ def main():
         name = os.path.basename(w)[:-4]
         fam = name.rsplit("-s", 1)[0]
         prog = os.path.join(a.wdir, "infer_lgn" if fam == "lgn" else "infer_table")
-        r = subprocess.run([prog, w, ex, str(n)], stdout=subprocess.PIPE)
+        r = subprocess.run([prog, w, ex, str(n)], stdout=subprocess.PIPE, timeout=TIMEOUT_S)
         pred = np.frombuffer(r.stdout, dtype=np.uint8)
         ref = np.fromfile(w + ".pred", dtype=np.uint8)
         if r.returncode or len(pred) != n or not np.array_equal(pred, ref):
