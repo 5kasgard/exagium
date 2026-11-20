@@ -48,6 +48,10 @@ int main(int argc, char **argv) {
         int n = r[0], m = r[1] | r[2] << 8;
         if ((long)k != 3 + 3L * m || n < 1) { fprintf(stderr, "bad instance\n"); return 3; }
         const signed char *L = (const signed char *)(r + 3);
+        for (int i = 0; i < 3 * m; i++) {
+            int l = L[i];
+            if (abs(l) > n) { fprintf(stderr, "bad instance\n"); return 3; }
+        }
         unsigned char a[256], best[256];
         int *nt = calloc(m, sizeof(int));  /* true literals per clause */
         rs = 0x9E3779B97F4A7C15ULL ^ (uint64_t)(it + 1) * 0xBF58476D1CE4E5B9ULL;
