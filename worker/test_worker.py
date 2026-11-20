@@ -240,3 +240,9 @@ class Rerank(unittest.TestCase):
             s, err = R.rerank_scores("q", self.pool[:2], calls)
         self.assertIsNone(s); self.assertIn("1 of 2", err)
         self.assertEqual(len(calls), 2)
+        one = lambda *a, **k: Resp(json.dumps({"results": [{"index": 0, "relevance_score": 0.5}]}).encode())
+        with m.patch.dict(os.environ, {"OPENROUTER_API_KEY": "test"}), m.patch.object(R, "RERANK_BATCH", 1), \
+                m.patch("urllib.request.urlopen", side_effect=one):
+            s, err = R.rerank_scores("q", self.pool[:3], calls)
+        self.assertEqual((s, err), ([0.5, 0.5, 0.5], None))
+        self.assertEqual(len(calls), 5)   # one request per batch

@@ -307,8 +307,22 @@ def pick(pool, kinds, scores=None):
 RERANKER = "nvidia/nemotron-3.5-rerank-8b:free"   # P32 arm only; not in the live pipeline until the arm test passes
 
 
+RERANK_BATCH = 50   # 90 documents in one request: HTTP 422; 75 (15,839 tokens) and 51 passed (arm run 44686045805)
+
+
 def rerank_scores(question, pool, calls):
-    """One OpenRouter rerank request over the whole pool. Returns a score per pool entry, or None on any failure."""
+    """OpenRouter rerank requests over the pool, RERANK_BATCH documents each (a cross-encoder scores each document
+    against the question alone, so scores from different batches compare). A score per pool entry, or None on failure."""
+    scores = []
+    for b in range(0, len(pool), RERANK_BATCH):
+        part, err = _rerank(question, pool[b:b + RERANK_BATCH], calls)
+        if part is None:
+            return None, f"batch {b // RERANK_BATCH + 1}: {err}"
+        scores += part
+    return scores, None
+
+
+def _rerank(question, pool, calls):
     docs = [f"{s['title']}. {s['abstract'][:1000]}" for s in pool]
     body = {"model": RERANKER, "query": question, "documents": docs, "top_n": len(docs)}
     req = urllib.request.Request("https://openrouter.ai/api/v1/rerank", data=json.dumps(body).encode(), method="POST",
@@ -400,11 +414,11 @@ def read(out):
     calls = []
 
     def ask(engine, model, prompt):
-        r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
+        r = (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
              else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
         if not r["ok"] and "timed out" in str(r.get("error")):   # one retry on a timeout
             calls.append(r)
-            r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
+            r = (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
                  else engines.compat_call(engine, model, prompt, max_tokens=16000))
         calls.append(r)
         return r

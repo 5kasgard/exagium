@@ -10,7 +10,7 @@ on:
         default: "R5 R6 R7"
       reader:
         description: "reader as POOL,MODEL (same weights as the live reader, on a pool with headroom)"
-        default: "nvidia,openai/gpt-oss-120b"
+        default: "openrouter,openai/gpt-oss-120b:free"   # NIM retired gpt-oss-120b on 2026-09-03 (HTTP 410, arm run 44686045805)
 permissions: {}
 concurrency:
   group: rerank-arm
@@ -23,15 +23,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - name: "reserve calls in the shared ledger (per item: 1 rerank, 2 reads, up to 12 checker calls, 2 decisions)"
+      - name: "reserve calls in the shared ledger (per item: up to 2 rerank, 2 reads, up to 12 checker calls, 2 decisions)"
         env:
           ITEMS: ${{ github.event.inputs.items }}
+          READER: ${{ github.event.inputs.reader }}
         run: |
           git config --global user.name "github-actions[bot]"; git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           n=$(echo $ITEMS | wc -w); [ "$n" -ge 1 ] && [ "$n" -le 6 ] || { echo "1 to 6 items"; exit 1; }
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/led" FETCH_HEAD
-          case "${{ github.event.inputs.reader }}" in nvidia,*) nv=$((n * 14));; *) echo "reader pool not ledgered here"; exit 1;; esac
-          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "arm-$GITHUB_RUN_ID" "nvidia:$nv,openrouter:$((n * 3))"
+          case "$READER" in openrouter,*:free) spec="nvidia:$((n * 12)),openrouter:$((n * 6))";; nvidia,*) spec="nvidia:$((n * 14)),openrouter:$((n * 4))";; *) echo "reader pool not ledgered here"; exit 1;; esac
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/led" "arm-$GITHUB_RUN_ID" "$spec"
           git fetch -q origin pilot/lgn-20261115 && git show FETCH_HEAD:audit/2026-11-17/queue.json > "$RUNNER_TEMP/queue.json"
       - name: both arms
         env:
