@@ -326,3 +326,29 @@ class FallbackReader(unittest.TestCase):
             r = json.load(open(os.path.join(d, "read.json")))
         self.assertEqual(seen, ["cloudflare", "nvidia"])
         self.assertEqual(r["model_fail"], [])
+
+
+class Slots(unittest.TestCase):
+    def test_paid_only_when_reserved(self):
+        import slots, unittest.mock as m
+        with m.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("PAID_FALLBACK", None)
+            self.assertTrue(all(p != "openrouter_paid" for p, _ in slots.chain("reader")))
+        with m.patch.dict(os.environ, {"PAID_FALLBACK": "1"}):
+            self.assertEqual([p for p, _ in slots.chain("reader")][-2:], ["openrouter_paid", "openrouter_paid"])
+        self.assertEqual(slots.chain("reader", ("nvidia", "x")), [("nvidia", "x")])
+
+    def test_moves_on_until_a_reply_parses(self):
+        import slots, unittest.mock as m
+        replies = iter([{"ok": False, "status": 429}, {"ok": True, "status": 200, "text": "not json"},
+                        {"ok": True, "status": 200, "text": '{"a": 1}'}])
+        with m.patch.dict(os.environ, {"PAID_FALLBACK": "1"}):
+            got, last, tries = slots.run("reader", "p", lambda *a: next(replies), lambda t: R.parse_json(t))
+        self.assertEqual(got, {"a": 1})
+        self.assertEqual([t["status"] for t in tries], [429, 200, 200])
+        self.assertEqual(tries[2]["pool"], "openrouter_paid")
+
+    def test_ledger_dollar_cap(self):
+        import ledger as LG
+        self.assertIsNone(LG.headroom({}, LG.parse("openrouter_paid:2:5")))
+        self.assertIsNotNone(LG.headroom({"openrouter_paid": {"calls": 1, "usd": 0.245}}, LG.parse("openrouter_paid:2:5")))

@@ -23,7 +23,10 @@ import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
-        "openrouter": {"calls": 500}}   # free models: the account has 1,000 a day (GET /api/v1/key, run or-key 2026-11-20:
+        "openrouter": {"calls": 500},
+        "openrouter_paid": {"calls": 100, "usd": 0.25}}   # owner 2026-11-20: paid fallbacks allowed, cost-effective, under a
+# daily dollar cap; the spec's third field is the estimate per call in thousandths of a dollar (openrouter_paid:2:5 = 2 calls
+# at $0.005); actual cost comes from OpenRouter's usage.cost, or the estimate when a reply carries none   # free models: the account has 1,000 a day (GET /api/v1/key, run or-key 2026-11-20:
 # is_free_tier false, free_model_daily_requests limit 1000; $10 credit, $0 spent). The old cap of 30 assumed 50 a day.
 # Half, as for the other pools, leaves the rest for the owner's chats and probes
 ROLLING_NEURONS = 9000   # Cloudflare enforces its 10,000 on a rolling 24 h window, not at 00:00 UTC as its docs say:
@@ -96,6 +99,8 @@ def headroom(led, want, rolling=0.0):
         used = e.get("calls", 0) + sum((e.get("pending_calls") or {}).values())
         if used + n > cap["calls"] or ("neurons" in cap and e.get("neurons", 0) + pending + n * est > cap["neurons"]):
             return f"{pool}: cap reached ({used} calls made or held, {e.get('neurons', 0):.0f} neurons used; cap {cap})"
+        if "usd" in cap and e.get("usd", 0) + sum((e.get("pending_usd") or {}).values()) + n * est / 1000 > cap["usd"]:
+            return f"{pool}: daily dollar cap reached (${e.get('usd', 0):.4f} spent; cap ${cap['usd']})"
         if pool == "cloudflare" and rolling + sum((e.get("pending") or {}).values()) + n * est > ROLLING_NEURONS:
             return f"cloudflare: {rolling:.0f} neurons in the last 24 h; the account's rolling allowance would be passed"
     return None
@@ -131,6 +136,8 @@ def reserve(wt, run, spec):
             if "neurons" in cap:
                 e["neurons_reserved"] += n * est
                 e.setdefault("pending", {})[run] = n * est   # replaced by the actual use when the run is recorded
+            if "usd" in cap:
+                e.setdefault("pending_usd", {})[run] = n * est / 1000
             e["runs"].append(run)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         if push(wt, [p], f"ledger: {run} reserves {spec}"):
@@ -152,11 +159,15 @@ def record(wt, run, calls_path):
             e["calls"] += 1
             e["tokens"] += int(u.get("total_tokens") or 0)
             e["neurons"] += float(u.get("neurons") or 0)
+            if c["engine"] in CAPS and "usd" in CAPS[c["engine"]]:
+                est = (e.get("pending_usd") or {}).get(run, 0) / max(1, (e.get("pending_calls") or {}).get(run, 1))
+                e["usd"] = round(e.get("usd", 0) + (float(u["cost"]) if isinstance(u.get("cost"), (int, float)) else est), 6)
             (e.get("pending") or {}).pop(run, None)   # the projection gives way to the actual (release test, R2)
         for e in led.values():   # a reserved pool the run never called (a fallback not needed) releases its projection
             if isinstance(e, dict):
                 (e.get("pending") or {}).pop(run, None)
                 (e.get("pending_calls") or {}).pop(run, None)   # its reserved calls likewise give way to the calls made
+                (e.get("pending_usd") or {}).pop(run, None)
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         with open(log, "a") as f:
             for c in calls:

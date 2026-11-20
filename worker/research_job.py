@@ -22,12 +22,13 @@ import json, os, re, sys, time, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
+import slots  # noqa: E402  fallback chains per step
 READER = ("cloudflare", "@cf/openai/gpt-oss-120b")
 if os.environ.get("READER_OVERRIDE"):   # arm tests only (P32): same weights on another pool, e.g. "nvidia,openai/gpt-oss-120b"
     READER = tuple(os.environ["READER_OVERRIDE"].split(",", 1))
 CHECKER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")
-FALLBACK_READER = ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b")   # reader bake 44720253829: 6/6 reads, 21 decision-kept claims;
-# the only free reader with no failed call (gpt-oss-120b: NIM 410, OpenRouter :free 404; free OpenRouter readers rate-limited upstream)
+# the reader's fallbacks live in router/slots.py (one chain per step)
 DECIDER = "perplexity/pplx-decider-v1.3:free"   # P31: decides keep/drop when OPENROUTER_API_KEY is set; 6/6 known answers twice, identical probabilities (router/review/checker-relevance)
 CHECK_CALLS = 3   # majority of 3 per chunk (see _read)
 CHUNK = 3         # claims per checker call: 8 per call ran out of tokens on 2 of 3 calls
@@ -415,13 +416,21 @@ def read(out):
     q = d["item"]["research"]["question"]
     calls = []
 
+    def one(engine, model, prompt):
+        if engine == "openrouter_paid":   # a paid fallback (router/slots.py): allowed only for this call, recorded as its own pool
+            os.environ["ROUTER_ALLOW_PAID"] = "1"
+            try:
+                return dict(engines.call("openrouter", model, prompt, max_tokens=8000), engine="openrouter_paid")
+            finally:
+                os.environ.pop("ROUTER_ALLOW_PAID", None)
+        return (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
+                else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
+
     def ask(engine, model, prompt):
-        r = (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
-             else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
+        r = one(engine, model, prompt)
         if not r["ok"] and "timed out" in str(r.get("error")):   # one retry on a timeout
             calls.append(r)
-            r = (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
-                 else engines.compat_call(engine, model, prompt, max_tokens=16000))
+            r = one(engine, model, prompt)
         calls.append(r)
         return r
 
@@ -437,14 +446,15 @@ def read(out):
 def _read(out, d, q, calls, ask):
     src = "\n\n".join(f"[{s['sid']}] ({s['kind']}, {s['via']}) {s['title']} ({s['year']}). {s['abstract'][:1500]}" for s in d["sources"])
     model_fail = []   # infrastructure, not evidence: "no claims" must mean the sources held none (review of Q60, 1)
-    r = ask(*READER, READ_PROMPT.format(question=q, sources=src))
-    if not r["ok"] and r.get("status") == 429 and READER != FALLBACK_READER:
-        # the pool's allowance is spent (Cloudflare's rolling 24 h): read on the fallback pool instead of waiting
-        r = ask(*FALLBACK_READER, READ_PROMPT.format(question=q, sources=src))
-    reading = parse_json(r["text"]) if r["ok"] else None
+    # the reader slot's fallback chain (router/slots.py): Cloudflare, then NIM, then paid fillers when the run reserved them
+    reading, r, tries = slots.run("reader", READ_PROMPT.format(question=q, sources=src), ask,
+                                  lambda t: (lambda j: j if isinstance(j, dict) else None)(parse_json(t)),
+                                  override=READER if os.environ.get("READER_OVERRIDE") else None)
     if reading is None:
-        model_fail.append(("quota: " if r.get("status") == 429 else "") + ("reader call failed" if not r["ok"] else "reader reply was not JSON"))   # 429 = the pool's allowance is spent: a budget wait, not a failure
+        quota = all(t["status"] == 429 for t in tries)   # every filler's allowance spent: a budget wait, not a failure
+        model_fail.append(("quota: " if quota else "") + ("reader call failed" if not (r or {}).get("ok") else "reader reply was not JSON"))
         reading = {"claims": [], "open_questions": [], "error": model_fail[-1]}
+    reading["reader_tries"] = tries
     kept, dropped = verified(reading.get("claims"), d["sources"])
     check = None
     if kept:

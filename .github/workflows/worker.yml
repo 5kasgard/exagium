@@ -27,6 +27,7 @@ jobs:
       item: ${{ steps.out.outputs.item }}
       type: ${{ steps.out.outputs.type }}
       stopped: ${{ steps.out.outputs.stopped }}
+      paid: ${{ steps.out.outputs.paid }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only claim.json from RUNNER_TEMP, never .git
       - name: pause switch
@@ -81,11 +82,15 @@ jobs:
             echo "ITEM=" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"
           fi
           echo "reserve exit $rc"
+          # paid fallbacks for the reader (router/slots.py), reserved separately so a spent dollar cap never blocks free work
+          if [ "$rc" = 0 ] && [ "$TYPE" = research ] && python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "openrouter_paid:2:5"; then
+            echo "PAID=1" >> "$GITHUB_ENV"; fi
       - id: out
         name: outputs, written once (a second write of a job output doesn't replace the first; release test, R2)
         if: always()
         run: |
           echo "item=${ITEM:-}" >> "$GITHUB_OUTPUT"; echo "type=${ITEM:+$TYPE}" >> "$GITHUB_OUTPUT"; echo "stopped=${STOPPED:-}" >> "$GITHUB_OUTPUT"
+          echo "paid=${PAID:-}" >> "$GITHUB_OUTPUT"
           echo "item=${ITEM:-none} stopped=${STOPPED:-no}"
       - name: lanes - more items ready, start more runs, up to LANES at once (P20e; owner 2026-11-20 "parallel within limits")
         # Each run still claims one item through the queue's compare-and-push (overlap tested in P8's race test) and still
@@ -158,6 +163,7 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # P31: the research checker's decision model (prompt text only)
           TYPE: ${{ needs.claim.outputs.type }}
+          PAID_FALLBACK: ${{ needs.claim.outputs.paid }}   # 1 when the claim reserved paid reader fallbacks (dollar-capped ledger pool)
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job; else python3 -I worker/research_job.py read job; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
