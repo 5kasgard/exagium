@@ -269,8 +269,11 @@ jobs:
     # Nothing ready while budget remained (owner 2026-11-20: workers always run; a stop with work possible is a fault): wait
     # 30 minutes on this runner, then start the worker again. Its own job, not the keeper: a keeper already waiting for the
     # budget reset would block an idle re-poll for hours (2026-11-19 20:34Z, E5 ready). An idle poll makes no model call.
-    needs: claim
-    if: ${{ always() && needs.claim.result == 'success' && needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '' }}
+    # Also after a run that released its item back to open (a failed or retried run): the chain only follows progress, and
+    # nothing else restarted the worker, so it sat 4 h with R18 and R19 ready (2026-11-20 01:53-06:00Z). Waiting 30 minutes
+    # first keeps a failing provider from being hammered; a repeat failure escalates the item through transitions.py.
+    needs: [claim, land]
+    if: ${{ always() && needs.claim.result == 'success' && ((needs.claim.outputs.item == '' && needs.claim.outputs.stopped == '') || (needs.claim.outputs.item != '' && needs.land.outputs.status == 'open')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     concurrency:   # one idle poll waiting at a time
