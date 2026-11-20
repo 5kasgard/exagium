@@ -112,12 +112,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| K1 | B3 |  | minor | medium | fix | Canary for the code job: worker/diagnose.py gains classes(), the sorted list of failure class names | Add a function classes() to worker/diagnose.py that returns the sorted list of every class name in RULES plus 'unknown'. Change nothing else. First end-to-end run of the code job (owner 2026-11-20: workers do code work): coder, reviewer, the no-secrets test job, and a PR. | worker/code_job.py on main |
-
 ## Escalated (a check failed; the next tier takes it) (3)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
@@ -126,7 +120,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
 | D25 | B3 |  | minor | medium | fix | Failed run, unknown: router:unknown | Filed by worker/diagnose.py from run 44713342137 (router). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44713342137 |
 
-## Needs the owner (5)
+## Needs the owner (6)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -134,6 +128,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R10 | B7 | 1 | minor | high | test | Research card: typed, time-varying graphs of many kinds of thing (heterogeneous, dynamic) and how to model, store and query them with provenance | Worker job (research) after release test 2, owner 2026-11-19: many queue items overlap conceptually (graphs and links, agent hierarchies, ordering, evidence); research before building. Feeds P21, P11, P6 and P24. | queue P21, P11, P6 |
 | P16 | B9 |  | none | high | build | Consume external outputs: published results as baselines, open-weight models as parts or tasks, published methods as patterns, all behind our checkers and meters | Owner, 2026-11-19: add to the queue only; the owner is working out how to frame part of this request, so do not start until they say. Scope as discussed: closed systems (AlphaEvolve) enter as published results a candidate must beat on our checker; open weights (AlphaFold2, open models) as parts or task domains; open re-implementations of evolve loops as the proposer pattern. Do not rebuild what others do better; adapt their outputs. The sandbox stays a safety boundary for generated code: hardened, never subverted. (blocked by P11) | chat 2026-11-19 (ten-ability map plus abilities 11 and 12); project doc claude/forge-next-item-2026-11-18.md |
 | R15 | B7 |  | minor | high | test | Research card: public agent benchmarks usable as held-out tasks: licences, contamination, fresh-task sources | Worker job (research), filed 2026-11-20 so the free workers have real work: P28 needs outside tasks that free models have not memorised and that may be redistributed; decides which suite P28 samples from. 2026-11-20: Claude's own search answered the core (see P28); the card stays as an independent cross-check, and its claims are compared with P28's note when it lands. | queue P28, P29 |
+| K1 | B3 |  | minor | medium | fix | Canary for the code job: worker/diagnose.py gains classes(), the sorted list of failure class names | Add a function classes() to worker/diagnose.py that returns the sorted list of every class name in RULES plus 'unknown'. Change nothing else. First end-to-end run of the code job (owner 2026-11-20: workers do code work): coder, reviewer, the no-secrets test job, and a PR. | worker/code_job.py on main |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
 ## Parked (18)
