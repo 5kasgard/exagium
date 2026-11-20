@@ -417,14 +417,7 @@ def read(out):
     calls = []
 
     def one(engine, model, prompt):
-        if engine == "openrouter_paid":   # a paid fallback (router/slots.py): allowed only for this call, recorded as its own pool
-            os.environ["ROUTER_ALLOW_PAID"] = "1"
-            try:
-                return dict(engines.call("openrouter", model, prompt, max_tokens=8000), engine="openrouter_paid")
-            finally:
-                os.environ.pop("ROUTER_ALLOW_PAID", None)
-        return (engines.call(engine, model, prompt, max_tokens=6000) if engine in ("cloudflare", "openrouter")
-                else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
+        return slots.call(engines, engine, model, prompt)
 
     def ask(engine, model, prompt):
         r = one(engine, model, prompt)

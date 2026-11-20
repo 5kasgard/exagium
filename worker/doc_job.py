@@ -186,13 +186,13 @@ def draft(out):
     b = json.load(open(os.path.join(out, "bundle.json")))
     item, files, calls = b["item"], b["files"], []
 
+    import slots
+
     def ask(engine, model, prompt):
-        r = (engines.call(engine, model, prompt, max_tokens=4000) if engine in ("cloudflare", "openrouter", "gemini")
-             else engines.compat_call(engine, model, prompt, max_tokens=16000))   # Nemotron reasons first: 4,000 left no answer (release test, R1)
+        r = slots.call(engines, engine, model, prompt)
         if not r["ok"] and "timed out" in str(r.get("error")):   # one retry on a timeout
             calls.append(r)
-            r = (engines.call(engine, model, prompt, max_tokens=6000) if engine == "cloudflare"
-                 else engines.compat_call(engine, model, prompt, max_tokens=16000))
+            r = slots.call(engines, engine, model, prompt)
         calls.append(r)
         return r
 
@@ -209,23 +209,25 @@ def write_calls(out, calls):
 
 
 def _draft(out, b, item, files, calls, ask):
-    d = ask(*DRAFTER, b["prompt"])
-    if not d["ok"]:
-        d = ask(*DRAFTER_FALLBACK, b["prompt"])
+    import slots
+    obj = lambda t: (lambda j: j if isinstance(j, dict) else None)(parse_json(t))
+    # the drafter slot's fallback chain (router/slots.py): Groq, Cloudflare, NIM, then paid when reserved
+    proposal, d, dtries = slots.run("drafter", b["prompt"], ask, obj)
     model_fail = []   # a failed model call is an infrastructure failure, never a judgement on the item (review of Q60, 1)
-    proposal = parse_json(d["text"]) if d["ok"] else None
     if proposal is None:
-        model_fail.append(("quota: " if d.get("status") == 429 else "") + ("drafter call failed" if not d["ok"] else "drafter reply was not JSON"))   # 429 = the pool's allowance is spent: a budget wait, not a failure
+        quota = all(t["status"] == 429 for t in dtries)   # every filler's allowance spent: a budget wait, not a failure
+        model_fail.append(("quota: " if quota else "") + ("drafter call failed" if not (d or {}).get("ok") else "drafter reply was not JSON"))
         proposal = {"edits": [], "note": model_fail[-1]}
+    d = d or {"ok": False}
     edits, reasons = check_edits(item, files, proposal.get("edits"))
     review = None
     if edits:
         dd = diff(files, apply_edits(files, edits))
-        r = ask(*REVIEWER, REVIEW_PROMPT.format(id=item["id"], title=item["title"], next=item["next"], diff=dd))
-        review = parse_json(r["text"]) if r["ok"] else None
+        review, r, _ = slots.run("reviewer", REVIEW_PROMPT.format(id=item["id"], title=item["title"], next=item["next"], diff=dd), ask, obj)
         if review is None:
+            r = r or {"ok": False, "error": "no reviewer"}
             model_fail.append("reviewer call failed" if not r["ok"] else "reviewer reply was not JSON")
-            review = {"verdict": "none", "reason": model_fail[-1] + ": " + str(r["error"])[:200]}
+            review = {"verdict": "none", "reason": model_fail[-1] + ": " + str(r.get("error"))[:200]}
     json.dump({"proposal": proposal, "review": review, "pre_check": reasons, "model_fail": model_fail},
               open(os.path.join(out, "draft.json"), "w"), indent=1)
     print(f"drafter ok={d['ok']} edits={len(edits)} rejected={len(reasons)} review={review and review.get('verdict')}")

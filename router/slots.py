@@ -18,10 +18,31 @@ Error policy (any of these moves to the next filler): HTTP 429 (allowance spent 
 import os
 
 SLOTS = {
+    # doc job: drafter on gpt-oss-120b (Groq, then Cloudflare), then NIM Nemotron, then paid GLM-5.3 Flash
+    "drafter": [("groq", "openai/gpt-oss-120b"), ("cloudflare", "@cf/openai/gpt-oss-120b"),
+                ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"), ("openrouter_paid", "z-ai/glm-5.3-flash")],
+    # doc job reviewer: another family than the drafter where possible; Nemotron 3.5 Super free passed P31's known-answer
+    # grading 29/30 twice; paid DeepSeek V4.1 Flash 1017 last
+    "reviewer": [("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"), ("openrouter", "nvidia/nemotron-3.5-super-vl:free"),
+                 ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017")],
     "reader": [("cloudflare", "@cf/openai/gpt-oss-120b"), ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"),
                ("openrouter_paid", "z-ai/glm-5.3-flash"), ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017")],
 }
 EST_MILLI_USD = {"reader": 5}   # reservation estimate per paid call, thousandths of a dollar (above both measured-price estimates)
+
+
+def call(engines, pool, model, prompt):
+    """One call to a filler, whatever its pool; paid OpenRouter calls are allowed for this call only and recorded as
+    their own pool. Reasoning models on NIM get 16,000 tokens (4,000 left Nemotron no answer, release test R1)."""
+    if pool == "openrouter_paid":
+        os.environ["ROUTER_ALLOW_PAID"] = "1"
+        try:
+            return dict(engines.call("openrouter", model, prompt, max_tokens=8000), engine="openrouter_paid")
+        finally:
+            os.environ.pop("ROUTER_ALLOW_PAID", None)
+    if pool in ("cloudflare", "openrouter"):
+        return engines.call(pool, model, prompt, max_tokens=8000 if pool == "openrouter" else 6000)
+    return engines.compat_call(pool, model, prompt, max_tokens=16000)
 
 
 def chain(slot, override=None):
