@@ -8564,6 +8564,333 @@
     "worker/research_job.py"
    ],
    "filed_at": "2026-11-20T22:01:46Z"
+  },
+  {
+   "id": "Q63",
+   "title": "Trust layer fixes a person merges (GLM F073, F074, F075, F076, F086, F088, F089)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings F073-F076, F086, F088, F089: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Order: F076 (test the monitor offline and run it in a workflow), F073 (check anchor times against Rekor), F075 (crash-atomic ingest), F074 (a lagging explorer is cant-check), then the rest. Each reproduced first with a test that fails on the old code.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "record/",
+    "ledger/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q64",
+   "title": "Counter: old records unreadable by the current schema, and untested jail modes (GLM F077, F084)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings F077, F084: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. F077: annotate or migrate runs/*.json (count/2 vs count/3; --check exits 2). F084: tests for --confine, --single-process, --stdout-record, --check --input-dir.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "counter/",
+    "runs/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q65",
+   "title": "Loop and sandbox: CPU contention, orphaned timed runs, self re-pin, untested jail paths (GLM F091-F095)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings F091-F095: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Also open since 2026-11-12 (HANDOFF-container-fallback): a candidate may still move itself off its pinned CPU (loop/seccomp_filter.h allows sched_setaffinity on itself); refuse it in the timed child and measure the filter's setup cost.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "loop/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q66",
+   "title": "Workflow findings a person merges (GLM F009, F013, F014, F070; F109 scheduler-workaround cost)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings F009, F013, F014, F070, F109: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. F070 first: transfer.yml proceeds when registered files were amended; F014: transfer/test_fetch.py and bench6 test_envcheck.py run in no workflow.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    ".github/workflows/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q67",
+   "title": "Code fixes on paths the tier does not merge (GLM F020, F022, F026, F028, F031, F032, F038, F040, F041, F044, F050, F078, F079, F082, F083, F087, F090, F108, F111)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings these: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Highest first: F041 (the anthropic engine has no engines-level paid guard), F083 (facts probe accepts unverified TLS), F020 (generate.py crash on a first-item cap break), F032 (number check by substring: 15 in 215). Worker drafts are welcome as PRs; a person merges.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "router/engines.py",
+    "worker/tier.py",
+    "worker/generate.py",
+    "worker/research_job.py",
+    "facts/",
+    "audit/periodic/",
+    "probe/",
+    "tasks/sat/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q68",
+   "title": "Documentation drift found by GLM (F080, F081, F096-F099)",
+   "kind": "doc",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM review findings F080, F081, F096-F099: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Regenerate numbers from the files rather than editing them by hand where possible.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "record/README.md",
+    "audit/periodic/README.md",
+    "loop/README.md",
+    "probe/README.md",
+    "VERIFY.md"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q69",
+   "title": "An outside attacker task against the jail, calibrated first on a known hole",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From HANDOFF-container-fallback (2026-11-12), never filed: an attack task on the existing OpenHands bench setup (sealed container, free models, rules as code). Calibrate first: give the agent the old filter with SysV IPC open; it passes only if its candidate scores as a cheat. Only then run it on current code. Needs its own pre-registration and OpenRouter budget.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "router/bench*/",
+    "loop/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q70",
+   "title": "A task big enough for native time to matter (or batched inference), so both meters inform",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From HANDOFF-item4-loop (2026-11-11) inbox, never filed: at optdigits' size startup dominates native time (about 1,000 ns per image, of which 80-440 ns is classification), so the time meter is a weak cross-check of counts. Data since: honest trivial baselines sit 20-46x the lowest ns per Ir (runner/results/2026-11-21-glm-guards), which is why the ratio band could not be enforced.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "runner/",
+    "tasks/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q71",
+   "title": "An absolute time-per-instruction band from a reference workload, to replace the relative band that fails on honest baselines",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From HANDOFF-item4-loop inbox (never filed), now with data: loop.py's band is relative to the lowest candidate, and in the runner honest trivial baselines reach 20-46x (startup-dominated), so it is reported, not enforced (GLM F053 fix). Test, rule fixed before running: calibrate ns per Ir on a fixed reference workload per host; enforce a band only if every honest candidate in the recorded runner results falls inside it and the ctl-cnt control falls outside.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "runner/",
+    "loop/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q72",
+   "title": "perf instructions:u cross-check of cachegrind counts where a hardware counter exists",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From HANDOFF-item4-loop inbox (never filed): closes the 'counted path is not the timed path' limit on real hardware. Needs a host with a readable PMU (GitHub runners usually have none: check first, as probe's meter-tier detection does).",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "counter/",
+    "probe/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q73",
+   "title": "Weight-space programming (Tracr, ALTA) as ground-truth baselines and hybrid parts",
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From HANDOFF-item4-loop open list item 7 (never filed): compile programs straight into transformer weights, as ground truth for distillation (P19) and as hybrid parts. Start as literature: what compiles today, at what size and cost.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "research/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q74",
+   "title": "Axiom: the audit hash joins fields with | and no escaping, so moving text across fields keeps the hash (found 2026-11-04, never reported)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "Found in the 4 Nov live tamper test across the owner's repos: Axiom src/lib/audit.js hashes fields joined with '|' without escaping; moving text containing '|' from one field into the next gives an identical hash that still verifies. Axiom is private and outside the Forge: the owner decides whether it is fixed there (canonical encoding, as the Forge's record uses).",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "Axiom (owner's private repo)"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q75",
+   "title": "Weights reproduce byte for byte on arm64 too (Q55's pin covers x86 only)",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "From runner/README.md limits, never filed: Q55 pinned OpenBLAS's kernel type so text weights match across two x86 CPU families. arm64 runners are free (ubuntu-24.04-arm). Test, rule fixed before running: retrain every runner candidate on arm64 twice; holds if every weights file matches the x86 bytes.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "runner/",
+    ".github/workflows/runner.yml"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
+  },
+  {
+   "id": "Q76",
+   "title": "Run one full test-split plan through the runner end to end (the gate has never fired)",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "GLM F110 and the analysis report's recommendation 4: the runner's test gate (a ledger plan freezing every digest) is enforced in code but never exercised. Use a baseline-only plan (no proposal: public test labels can be memorised, Q25) so the chain ledger plan -> frozen digests -> test score -> verdict runs once for real.",
+   "refs": [
+    "owner 2026-11-21: every item ever mentioned",
+    "claude/forge-tool-fit-register.md"
+   ],
+   "blocked_by": [],
+   "batch": "B3",
+   "touches": [
+    "runner/",
+    "ledger/"
+   ],
+   "filed_at": "2026-11-20T22:07:32Z"
   }
  ],
  "batches": [
