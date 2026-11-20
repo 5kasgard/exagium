@@ -9224,6 +9224,143 @@
      "result": "decision model p=0.310; controls 0.998/0.002"
     }
    ]
+  },
+  {
+   "id": "K23",
+   "title": "Measure the seccomp filter's setup cost",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q65",
+   "generated_at": "2026-11-20T22:34:18Z",
+   "code": {
+    "files": [
+     "experiments/measure_filter_setup.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "experiments/run_one.py",
+     "runner/run.py"
+    ],
+    "new": [
+     "experiments/measure_filter_setup.py"
+    ]
+   },
+   "touches": [
+    "experiments/measure_filter_setup.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/measure_filter_setup.py (under 80 lines) with PLAN text saying it times installing the loop seccomp filter in a child process over repeated trials and reports the median and spread in nanoseconds. run() returns that dict as JSON. rule(result) returns 'holds' if the median is under a stated bound (e.g. 1 ms) and 'fails' otherwise, with a 'why' string. Add a test in experiments/test_experiments.py that rule() gives 'invalid' when there are no trials and 'holds' or 'fails' for a synthetic result.",
+   "refs": [
+    "queue Q65",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K24",
+   "title": "F041: refuse paid Anthropic calls at the engines level",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q67",
+   "generated_at": "2026-11-20T22:34:18Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In anthropic_call (and in call() for engine 'anthropic'), run paid_guard(engine, prompt_chars, max_tokens) before any request is built, and raise Refused when allow_paid is false or the cap is reached. Test: with allow_paid=False, anthropic_call and call('anthropic', ...) raise Refused and the injected _send is never called.",
+   "refs": [
+    "queue Q67",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K25",
+   "title": "F083: verify TLS certificates in the facts probe",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q67",
+   "generated_at": "2026-11-20T22:34:18Z",
+   "code": {
+    "files": [
+     "facts/check.py"
+    ],
+    "test": "facts/test_check.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "facts/check.py",
+    "facts/test_check.py"
+   ],
+   "next": "Replace any unverified SSL context (ssl._create_unverified_context or verify_mode CERT_NONE) in the fetch path with ssl.create_default_context() so check_hostname and certificate verification stay on. Test: a fetch against a host whose certificate does not verify returns a failure, not a verified fact.",
+   "refs": [
+    "queue Q67",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K26",
+   "title": "F020: stop generate.py crashing on a first-item cap break",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q67",
+   "generated_at": "2026-11-20T22:34:18Z",
+   "code": {
+    "files": [
+     "worker/generate.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "worker/split.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "worker/generate.py",
+    "worker/test_worker.py"
+   ],
+   "next": "In run/_run, when the cap is hit before the first item is processed, return the early result (writing the calls via _write_calls) instead of indexing the empty list. Test in class Generate: with the daily cap already used by zero items, run() returns without raising and still writes the calls ledger.",
+   "refs": [
+    "queue Q67",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
