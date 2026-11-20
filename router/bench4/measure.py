@@ -115,6 +115,34 @@ def tsum(k):
     return sum(x for x in v if x is not None), sum(1 for x in v if x is None)
 
 
+def load(root):
+    """Join graded outcomes and metered call costs into one record per (task, arm, attempt).
+
+    Walks ROOT for attempt directories holding a result.json (the graded outcome written by
+    this module) and the attempt's own meter.jsonl. Returns one dict per graded attempt with
+    task_id, size, type, arm (model, pool, harness), accepted, tokens in/out and cost. An
+    attempt missing its grade or its cost is kept and flagged (missing_grade / missing_cost),
+    never dropped, so the record count always matches the number of graded attempts.
+    """
+    rows = []
+    for d, _, fs in sorted(os.walk(root)):
+        if "result.json" not in fs:
+            continue
+        r = json.load(open(os.path.join(d, "result.json")))
+        mp = os.path.join(d, "meter.jsonl")
+        calls = [json.loads(l) for l in open(mp)] if os.path.exists(mp) else []
+        usages = [(c.get("usage") or {}) for c in calls if c.get("status") == 200]
+        costs = [u["cost"] for u in usages if u.get("cost") is not None]
+        rows.append({"task_id": r.get("task"), "size": r.get("size"), "type": r.get("type"),
+                     "model": r.get("model"), "pool": r.get("pool"), "harness": r.get("harness"),
+                     "accepted": r.get("graded_pass"),
+                     "tokens_in": sum(u.get("prompt") or 0 for u in usages),
+                     "tokens_out": sum(u.get("completion") or 0 for u in usages),
+                     "cost": sum(costs) if costs else None,
+                     "missing_grade": r.get("graded_pass") is None, "missing_cost": not costs})
+    return rows
+
+
 prompt, p_missing = tsum("prompt")
 completion, c_missing = tsum("completion")
 cached, _ = tsum("cached")
