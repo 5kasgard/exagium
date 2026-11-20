@@ -81,6 +81,14 @@ class NoTaskCodeInRunner(unittest.TestCase):
 
 
 
+class ContractFloor(unittest.TestCase):
+    """GLM F065: the contract's floor is reported, not enforced; run.py only records above_floor."""
+    def test_floor_is_reported_not_enforced(self):
+        src = open(os.path.join(HERE, "CONTRACT.md")).read()
+        self.assertIn("reported, not enforced", src)
+        self.assertNotIn("must beat to count", src)
+
+
 class CounterExit(unittest.TestCase):
     """GLM F051: count.py exits 1 when reps differ, stdout differs between reps or counting could be switched off;
     the runner took that as a count. Only exit 0 counts now."""
