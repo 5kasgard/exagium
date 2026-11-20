@@ -1,5 +1,5 @@
 """fetch(): an expired TLS certificate falls back to an unverified fetch, and only the sha256 pin decides. Offline."""
-import hashlib, io, os, ssl, sys, tempfile, unittest, urllib.error
+import hashlib, io, os, ssl, subprocess, sys, tempfile, unittest, urllib.error
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -51,6 +51,13 @@ class Fetch(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, mock.patch.dict(tasks.SOURCES, src, clear=True), \
                 mock.patch.object(tasks.urllib.request, "urlopen", urlopen), self.assertRaises(urllib.error.URLError):
             tasks.fetch("x.data", d)
+
+
+class Decide(unittest.TestCase):
+    def test_failure_exits_3(self):
+        path = os.path.join(os.path.dirname(__file__), "decide.py")
+        p = subprocess.run([sys.executable, path, "/no/such/results.json"], capture_output=True)
+        self.assertEqual(p.returncode, 3)
 
 
 if __name__ == "__main__":
