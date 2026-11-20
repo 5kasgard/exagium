@@ -1,0 +1,264 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S3",
+    "claim": "The holdout method used in Kaggle competitions shows little evidence of substantial overfitting across diverse domains and model classes.",
+    "quote": "Our study shows, somewhat surprisingly, little evidence of substantial overfitting. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "The authors propose a stronger LLM-based decontamination method that reveals significant previously unknown test overlap in pretraining datasets.",
+    "quote": "To address this growing risk, we propose a stronger LLM-based decontamination method and apply it to widely used pre-training and fine-tuning datasets, revealing significant previously unknown test overlap.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   {
+    "source": "S4",
+    "claim": "The authors call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+    "quote": "Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+    "kind": "prior art",
+    "evidence": "opinion"
+   },
+   {
+    "source": "S5",
+    "claim": "The paper provides an algorithm for adaptively reusing a holdout set while provably avoiding overfitting.",
+    "quote": "We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   {
+    "source": "S8",
+    "claim": "The authors built new test sets for CIFAR-10 and ImageNet and found all models experience an accuracy drop, indicating susceptibility to data distribution variations.",
+    "quote": "We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "LiveBench is a contamination-free benchmark with frequently updated questions from recent sources, automatic scoring, and monthly updates.",
+    "quote": "We release LiveBench, the first benchmark that (1) contains frequently-updated questions from recent information sources, (2) scores answers automatically according to objective ground-truth values, and (3) contains a wide variety of challenging tasks",
+    "kind": "frontier",
+    "evidence": "reported"
+   },
+   {
+    "source": "S10",
+    "claim": "Multiclass prediction problems are significantly more robust to overfitting when reusing a test dataset compared to binary problems.",
+    "quote": "It also bears out the surprising fact that multiclass prediction problems are significantly more robust to overfitting when reusing a test (or holdout) dataset.",
+    "kind": "result",
+    "evidence": "reported"
+   },
+   {
+    "source": "S11",
+    "claim": "Overtraining with fresh data reduces the effects of test set contamination on generative evaluations.",
+    "quote": "We then study further training: overtraining with fresh data reduces the effects of contamination, whereas supervised finetuning on the training set can either increase or decrease performance on test data",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S16",
+    "claim": "Practitioners can limit holdout reuse to a single use or split the holdout into disjoint pieces for multiple uses, though splitting reduces statistical power.",
+    "quote": "one on hand, you can just insist that the holdout be used only once. That has clear drawbacks. On the other hand, if you want to be able to use the holdout $k$ times, you could chop it into $k$ disjoint pieces, and use each piece once.",
+    "kind": "prior art",
+    "evidence": "expert view"
+   },
+   {
+    "source": "S20",
+    "claim": "N-Day-Bench uses a monthly refresh of test cases from GitHub security advisories to keep the test set ahead of contamination.",
+    "quote": "Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest.",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   {
+    "source": "S25",
+    "claim": "Decontamination practices include n-gram matching to remove overlapping sentences and translating test sets to delete translations from training data.",
+    "quote": "By default this is just one level above string matching (\"n-gram matching\" - if sentences overlap in (say) a 13-token window, remove them from the training corpus). But you're actually trying, so you also translate the test sets and delete translations of test from train",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   {
+    "source": "S26",
+    "claim": "The unbox-audit-kit provides five factorable controls to test whether a benchmark measures corpus grounding or pretraining memorization.",
+    "quote": "Five factorable controls (no-corpus, wrong-corpus, pair-level precision, \u22652-LLM, multi-seed) that test whether a benchmark measures corpus grounding or pretraining memorization.",
+    "kind": "method",
+    "evidence": "reported"
+   },
+   {
+    "source": "S27",
+    "claim": "AGI Gauntlet uses obfuscated non-web prompt vectors to bypass dataset contamination and stress-test reasoning beyond memorization.",
+    "quote": "Using obfuscated, non-web prompt vectors, it bypasses dataset contamination to stress-test true executive reasoning\u2014pushing models past memorized training data to the precise point where their logic collapses.",
+    "kind": "method",
+    "evidence": "reported"
+   }
+  ],
+  "open_questions": [
+   "How effective are monthly refresh practices at preventing contamination when training data includes recent web crawls?",
+   "Do LLM-based decontamination methods generalize to all forms of semantic duplication?",
+   "What is the long-term robustness of holdout reuse limits under adaptive adversarial querying?",
+   "How can fresh one-time exams be created at scale without introducing new biases?",
+   "What are the trade-offs between multiclass robustness and the complexity of real-world tasks?"
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S3",
+   "claim": "The holdout method used in Kaggle competitions shows little evidence of substantial overfitting across diverse domains and model classes.",
+   "quote": "Our study shows, somewhat surprisingly, little evidence of substantial overfitting. These findings speak to the robustness of the holdout method across different data domains, loss functions, model classes, and human analysts.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S4",
+   "claim": "The authors propose a stronger LLM-based decontamination method that reveals significant previously unknown test overlap in pretraining datasets.",
+   "quote": "To address this growing risk, we propose a stronger LLM-based decontamination method and apply it to widely used pre-training and fine-tuning datasets, revealing significant previously unknown test overlap.",
+   "kind": "method",
+   "evidence": "reported"
+  },
+  {
+   "source": "S4",
+   "claim": "The authors call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+   "quote": "Moreover, we call for the community to actively develop fresh one-time exams to evaluate models accurately.",
+   "kind": "prior art",
+   "evidence": "opinion"
+  },
+  {
+   "source": "S5",
+   "claim": "The paper provides an algorithm for adaptively reusing a holdout set while provably avoiding overfitting.",
+   "quote": "We give an algorithm that enables the validation of a large number of adaptively chosen hypotheses, while provably avoiding overfitting.",
+   "kind": "method",
+   "evidence": "reported"
+  },
+  {
+   "source": "S9",
+   "claim": "LiveBench is a contamination-free benchmark with frequently updated questions from recent sources, automatic scoring, and monthly updates.",
+   "quote": "We release LiveBench, the first benchmark that (1) contains frequently-updated questions from recent information sources, (2) scores answers automatically according to objective ground-truth values, and (3) contains a wide variety of challenging tasks",
+   "kind": "frontier",
+   "evidence": "reported"
+  },
+  {
+   "source": "S10",
+   "claim": "Multiclass prediction problems are significantly more robust to overfitting when reusing a test dataset compared to binary problems.",
+   "quote": "It also bears out the surprising fact that multiclass prediction problems are significantly more robust to overfitting when reusing a test (or holdout) dataset.",
+   "kind": "result",
+   "evidence": "reported"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S8",
+    "claim": "The authors built new test sets for CIFAR-10 and ImageNet and found all models experience an accuracy drop, indicating susceptibility to data distribution variations.",
+    "quote": "We build new test sets for the CIFAR-10 and ImageNet datasets and evaluate a broad range of classification models on the new datasets. All models experience a drop in accuracy, which indicates that current accuracy numbers are susceptible to even minute natural variations in the data distribution.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S16",
+    "claim": "Practitioners can limit holdout reuse to a single use or split the holdout into disjoint pieces for multiple uses, though splitting reduces statistical power.",
+    "quote": "one on hand, you can just insist that the holdout be used only once. That has clear drawbacks. On the other hand, if you want to be able to use the holdout $k$ times, you could chop it into $k$ disjoint pieces, and use each piece once.",
+    "kind": "prior art",
+    "evidence": "expert view"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S20",
+    "claim": "N-Day-Bench uses a monthly refresh of test cases from GitHub security advisories to keep the test set ahead of contamination.",
+    "quote": "Each month it pulls fresh cases from GitHub security advisories, checks out the repo at the last commit before the patch, and gives models a sandboxed bash shell to explore the codebase. The monthly refresh keeps the test set ahead of contamination \u2014 or at least makes the contamination window honest.",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S25",
+    "claim": "Decontamination practices include n-gram matching to remove overlapping sentences and translating test sets to delete translations from training data.",
+    "quote": "By default this is just one level above string matching (\"n-gram matching\" - if sentences overlap in (say) a 13-token window, remove them from the training corpus). But you're actually trying, so you also translate the test sets and delete translations of test from train",
+    "kind": "method",
+    "evidence": "experience report"
+   },
+   "quote not found verbatim in the abstract"
+  ]
+ ],
+ "check": {
+  "keep": [
+   1,
+   2,
+   3
+  ],
+  "grades": {
+   "1": "reported",
+   "2": "opinion",
+   "3": "reported",
+   "5": "reported"
+  },
+  "decider": {
+   "keep": [
+    1,
+    2,
+    3
+   ],
+   "p_keep": [
+    0.3984,
+    0.9072,
+    0.9846,
+    0.5593,
+    0.0201,
+    0.0547
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    1,
+    2,
+    3,
+    5
+   ],
+   "grades": {
+    "1": "reported",
+    "2": "opinion",
+    "3": "reported",
+    "5": "reported"
+   },
+   "votes": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      2
+     ]
+    ]
+   ],
+   "notes": "Claim 0 is not supported by its quote which does not mention Kaggle competitions, while claims 1 and 2 are directly supported by their quotes and receive approp; Claim 0 adds 'Kaggle competitions' not in the quote; claim 1 is supported though narrows to pretraining; claim 2 matches exactly.; Claims 1 and 2 are directly supported by their quotes and address fresh-data and decontamination practices; claim 0 adds unsupported detail about Kaggle.; Claim 1 dropped because the quote does not mention 'contamination-free' or 'monthly updates'.; Claim 1 adds contamination-free and monthly updates not present in the quote; claims 0 and 2 are directly supported by their quotes.; Only claim 2 is fully supported by its quote; claims 0 and 1 add terminology (holdout set, contamination-free, monthly updates) not present in the quoted text."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}

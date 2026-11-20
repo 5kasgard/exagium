@@ -1,0 +1,247 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S1",
+    "claim": "Model performance is highest when relevant information is at the beginning or end of context and degrades significantly when information is in the middle, even for long-context models.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts, even for explicitly long-context models.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Despite claiming 32K-token context sizes, only half of evaluated long-context models maintain satisfactory performance at 32K tokens.",
+    "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S5",
+    "claim": "Most LLMs fail to capture long dependencies even when the entire document fits within their advertised context window.",
+    "quote": "The results indicate that most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "Only a few recent state-of-the-art LLMs maintain consistent RAG accuracy at context lengths above 64K tokens.",
+    "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "Models with longer advertised contexts (128K\u20131M tokens) show gentler degradation but not necessarily higher absolute performance than shorter-context models.",
+    "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher than those of LLMs with shorter context lengths.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S1",
+    "claim": "The Lost-in-the-Middle analysis uses multi-document QA and key-value retrieval tasks to measure position-dependent context utilization.",
+    "quote": "We analyze the performance of language models on two tasks that require identifying relevant information in their input contexts: multi-document question answering and key-value retrieval.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "RULER adds multi-hop tracing and aggregation tasks beyond simple retrieval to test deeper long-context understanding.",
+    "quote": "RULER expands upon the vanilla NIAH test to encompass variations with diverse types and quantities of needles. Moreover, RULER introduces new task categories multi-hop tracing and aggregation to test behaviors beyond searching from context.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S10",
+    "claim": "LV-Eval benchmarks both single-hop and multi-hop QA across five context lengths up to 256K tokens.",
+    "quote": "LV-Eval features two main tasks, single-hop QA and multi-hop QA, comprising 11 bilingual datasets.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "RAG performance was measured across three domain-specific datasets while varying context from 2K to 128K tokens.",
+    "quote": "We ran RAG workflows while varying the total context length from 2,000 to 128,000 tokens (and 2 million tokens when possible) on three domain-specific datasets",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "Current LLMs' reasoning is unnecessarily lengthy and can be compressed by prompting with a token budget, but budget choice critically affects compression.",
+    "quote": "We find that the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt, but the choice of token budget plays a crucial role in the actual compression effectiveness.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Reasoning models show stronger overthinking tendencies than non-reasoning models, and higher overthinking correlates with lower performance on agentic tasks.",
+    "quote": "We observe that higher overthinking scores correlate with decreased performance, with reasoning models exhibiting stronger tendencies toward overthinking compared to non-reasoning models.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "Adversarial inputs can cause reasoning models to generate 13\u00d7 to 46\u00d7 more reasoning tokens while still producing correct answers.",
+    "quote": "We evaluate Overthink on proprietary and open-source reasoning models across the FreshQA, SQuAD, and MuSR datasets, where we observe 13x, 46x, and 12x increases, respectively.",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S13",
+    "claim": "Models may have long advertised context lengths but suffer from context decay, making effective context length the true measure of usability.",
+    "quote": "A language model can have a long context length, but unable to use it effectively, a phenomenon sometimes called 'context decay'. Consequently, it is the effective context length that is of interest",
+    "kind": "prior art",
+    "evidence": "expert view"
+   }
+  ],
+  "open_questions": [
+   "No source directly measures how reasoning models' thinking tokens consume output budget and cause early termination before answer completion.",
+   "Task-dependent reliability curves (e.g., retrieval vs. reasoning vs. aggregation) are not quantitatively compared across a common set of models and context lengths.",
+   "The interaction between input context length and output token budget for reasoning models is not explicitly studied in these sources.",
+   "No source provides a systematic mapping of advertised vs. effective context length per model family across diverse task types.",
+   "Defense strategies against reasoning-token exhaustion (e.g., budget-aware decoding) are proposed but not benchmarked against standard context-utilization metrics."
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S1",
+   "claim": "Model performance is highest when relevant information is at the beginning or end of context and degrades significantly when information is in the middle, even for long-context models.",
+   "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle of long contexts, even for explicitly long-context models.",
+   "kind": "failure mode",
+   "evidence": "measured"
+  },
+  {
+   "source": "S2",
+   "claim": "Despite claiming 32K-token context sizes, only half of evaluated long-context models maintain satisfactory performance at 32K tokens.",
+   "quote": "While these models all claim context sizes of 32K tokens or greater, only half of them can maintain satisfactory performance at the length of 32K.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S5",
+   "claim": "Most LLMs fail to capture long dependencies even when the entire document fits within their advertised context window.",
+   "quote": "The results indicate that most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S9",
+   "claim": "Only a few recent state-of-the-art LLMs maintain consistent RAG accuracy at context lengths above 64K tokens.",
+   "quote": "only a handful of the most recent state of the art LLMs can maintain consistent accuracy at long context above 64k tokens.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S10",
+   "claim": "Models with longer advertised contexts (128K\u20131M tokens) show gentler degradation but not necessarily higher absolute performance than shorter-context models.",
+   "quote": "GLM-4-9B-128k, Yi-6B-200k, and Llama3-8B-1M exhibit a relatively gentle degradation of performance, but their absolute performances may not necessarily be higher than those of LLMs with shorter context lengths.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S1",
+   "claim": "The Lost-in-the-Middle analysis uses multi-document QA and key-value retrieval tasks to measure position-dependent context utilization.",
+   "quote": "We analyze the performance of language models on two tasks that require identifying relevant information in their input contexts: multi-document question answering and key-value retrieval.",
+   "kind": "method",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S10",
+    "claim": "LV-Eval benchmarks both single-hop and multi-hop QA across five context lengths up to 256K tokens.",
+    "quote": "LV-Eval features two main tasks, single-hop QA and multi-hop QA, comprising 11 bilingual datasets.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S4",
+    "claim": "Current LLMs' reasoning is unnecessarily lengthy and can be compressed by prompting with a token budget, but budget choice critically affects compression.",
+    "quote": "We find that the reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt, but the choice of token budget plays a crucial role in the actual compression effectiveness.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ],
+  [
+   {
+    "source": "S13",
+    "claim": "Models may have long advertised context lengths but suffer from context decay, making effective context length the true measure of usability.",
+    "quote": "A language model can have a long context length, but unable to use it effectively, a phenomenon sometimes called 'context decay'. Consequently, it is the effective context length that is of interest",
+    "kind": "prior art",
+    "evidence": "expert view"
+   },
+   "quote not found verbatim in the abstract"
+  ]
+ ],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2,
+   4
+  ],
+  "grades": {
+   "1": "reported",
+   "2": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2,
+    4
+   ],
+   "p_keep": [
+    0.7624,
+    0.9527,
+    0.87,
+    0.4954,
+    0.7477,
+    0.1321
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    1,
+    2,
+    4
+   ],
+   "grades": {
+    "1": "reported",
+    "2": "reported"
+   },
+   "votes": [
+    [
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      1,
+      2
+     ]
+    ],
+    [
+     [],
+     [
+      1
+     ],
+     [
+      1
+     ]
+    ]
+   ],
+   "notes": "Claims 1 and 2 are retained because they directly answer how far below advertised context windows models stay reliable, while claim 0 is dropped for not address; Claims 1 and 2 directly answer how far below advertised context windows models stay reliable with reported results; claim 0 discusses positional degradation, no; Claims 1 and 2 are directly supported by their quotes and answer the question about reliability relative to advertised context windows; claim 0 discusses positi; No claims are fully supported by their quotes; each claim adds details (RAG, generalization to all models, Lost-in-the-Middle framing) not present in the corres; Only claim 1 is directly supported by its quote and addresses the question; its grade corrected from measured to reported as the quote states a result without d; Only claim 1 is directly supported by its quote and answers the question; claim 0 adds 'RAG' not in quote, claim 2 adds interpretation not in quote."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}

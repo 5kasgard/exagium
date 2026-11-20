@@ -1,0 +1,158 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S1",
+    "claim": "The best-performing agent (OpenAI o1-preview with AIDE scaffolding) achieves at least a Kaggle bronze medal in 16.9% of MLE-bench competitions.",
+    "quote": "best-performing setup--OpenAI's o1-preview with AIDE scaffolding--achieves at least the level of a Kaggle bronze medal in 16.9% of competitions.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "A Claude v3 Opus agent achieves a 37.5% average success rate across MLAgentBench tasks.",
+    "quote": "It can build compelling ML models over many tasks in MLAgentBench with 37.5% average success rate.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "Success rates for LLM agents on MLAgentBench vary from 100% on older datasets to 0% on recent Kaggle challenges.",
+    "quote": "success rates vary considerably; they span from 100% on well-established older datasets to as low as 0% on recent Kaggle challenges created potentially after the underlying LM was trained.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "An optimized search strategy and operator set increases the Kaggle medal success rate on MLE-bench Lite from 39.6% to 47.7%.",
+    "quote": "Our best pairing of search strategy and operator set achieves a state-of-the-art result on MLE-bench lite, increasing the success rate of achieving a Kaggle medal from 39.6% to 47.7%.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "MLE-STAR achieves medals in 64% of Kaggle competitions on MLE-bench Lite.",
+    "quote": "MLE-STAR achieves medals in 64% of the Kaggle competitions on the MLE-bench Lite, significantly outperforming the best alternative.",
+    "kind": "result",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "How do success rates compare across different agent scaffolds and LLM backbones beyond those tested?",
+   "What are the failure modes for agents on recent Kaggle challenges that postdate LLM training data?",
+   "How well do these benchmarks predict performance on open-ended, novel ML research problems?",
+   "What is the success rate of smaller open-source models (e.g., 7B) on MLE-bench or MLAgentBench?",
+   "How do iterative debugging and long-horizon planning affect success rates in interactive environments like MLE-Dojo?"
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S1",
+   "claim": "The best-performing agent (OpenAI o1-preview with AIDE scaffolding) achieves at least a Kaggle bronze medal in 16.9% of MLE-bench competitions.",
+   "quote": "best-performing setup--OpenAI's o1-preview with AIDE scaffolding--achieves at least the level of a Kaggle bronze medal in 16.9% of competitions.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "A Claude v3 Opus agent achieves a 37.5% average success rate across MLAgentBench tasks.",
+   "quote": "It can build compelling ML models over many tasks in MLAgentBench with 37.5% average success rate.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "Success rates for LLM agents on MLAgentBench vary from 100% on older datasets to 0% on recent Kaggle challenges.",
+   "quote": "success rates vary considerably; they span from 100% on well-established older datasets to as low as 0% on recent Kaggle challenges created potentially after the underlying LM was trained.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S6",
+   "claim": "An optimized search strategy and operator set increases the Kaggle medal success rate on MLE-bench Lite from 39.6% to 47.7%.",
+   "quote": "Our best pairing of search strategy and operator set achieves a state-of-the-art result on MLE-bench lite, increasing the success rate of achieving a Kaggle medal from 39.6% to 47.7%.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S8",
+   "claim": "MLE-STAR achieves medals in 64% of Kaggle competitions on MLE-bench Lite.",
+   "quote": "MLE-STAR achieves medals in 64% of the Kaggle competitions on the MLE-bench Lite, significantly outperforming the best alternative.",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "grades": {
+   "0": "measured",
+   "2": "reported",
+   "3": "reported",
+   "4": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "p_keep": [
+    0.9348,
+    0.7623,
+    0.7609,
+    0.6836,
+    0.4396
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    2,
+    3,
+    4
+   ],
+   "grades": {
+    "0": "measured",
+    "2": "reported",
+    "3": "reported",
+    "4": "reported"
+   },
+   "votes": [
+    [
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     []
+    ],
+    [
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      1
+     ]
+    ]
+   ],
+   "notes": "Claim 1 dropped because quote does not identify the agent as Claude v3 Opus; claim 2 grade corrected to reported as quote states result range without measuremen; Claim 1 dropped because quote does not specify the agent as Claude v3 Opus; grades corrected to 'reported' as quotes lack methodological detail.; No claims kept because each claim adds information not present in its quote (benchmark names, agent identities, or agent types).; Both claims are supported by their quotes and report success rates on MLE-bench Lite, but the quotes do not describe measurement methods, so grades are correcte; Both quotes report success rates on MLE-bench Lite without describing the measurement methodology.; Claim 1 directly answers the question with a reported success rate for MLE-STAR on MLE-bench Lite, while claim 0 does not mention LLM agents."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}

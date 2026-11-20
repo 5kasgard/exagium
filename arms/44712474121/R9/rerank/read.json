@@ -1,0 +1,256 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S1",
+    "claim": "Models claiming 32K-token context windows only maintain satisfactory performance at 32K tokens in half of cases.",
+    "quote": "only half of them can maintain satisfactory performance at the length of 32K",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "At 32K context length, 10 of 12 models drop below 50% of their short-context baseline performance.",
+    "quote": "At 32K, for instance, 10 models drop below 50% of their strong short-length baselines",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "GPT-4o accuracy falls from 99.3% at short context to 69.7% at 32K tokens on NoLiMa.",
+    "quote": "Even GPT-4o, one of the top-performing exceptions, experiences a reduction from an almost-perfect baseline of 99.3% to 69.7%",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S4",
+    "claim": "Performance peaks when relevant information is at the beginning or end of context and degrades significantly when it is in the middle.",
+    "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S12",
+    "claim": "Most LLMs fail to capture long dependencies even when the entire document fits within their advertised context window.",
+    "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S1",
+    "claim": "Nearly all evaluated models show large performance drops as input context length increases across diverse tasks.",
+    "quote": "almost all models exhibit large performance drops as the context length increases",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Adversarial decoy problems increase reasoning token generation by 13x, 46x, and 12x on FreshQA, SQuAD, and MuSR respectively.",
+    "quote": "we observe 13x, 46x, and 12x increases, respectively",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "Newer reasoning model generations exhibit up to 2.3x more reasoning tokens than previous generations.",
+    "quote": "newer generations of RLMs, while showing a drastic increase in per-token cost, also exhibit up to a 2.3x increase in reasoning tokens",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Models overthink by generating verbose reasoning for simple queries, while fixed token budgets cause underthinking on harder problems.",
+    "quote": "overthinking, where models generate verbose and tangential reasoning traces even for simple queries... enforcing fixed token budgets... can lead to underthinking",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "Budget guidance achieves 26% accuracy gain under tight budgets using only 63% of the thinking tokens of full-thinking models.",
+    "quote": "achieves up to a 26% accuracy gain on the MATH-500 benchmark under tight budgets compared to baseline methods, while maintaining competitive accuracy with only 63% of the thinking tokens",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S11",
+    "claim": "Most large reasoning models overthink on easy questions, producing unnecessarily long chains, and several suffer low efficiency despite high chain-of-thought quality.",
+    "quote": "most LRMs exhibit overthinking in handling easy questions, generating unnecessarily lengthy reasoning chains. While many LRMs demonstrate high CoT quality, several suffer from low efficiency",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "Performance declines in longer contexts stem from attention mechanism difficulty when literal matches are absent.",
+    "quote": "these declines stem from the increased difficulty the attention mechanism faces in longer contexts when literal matches are absent, making it harder to retrieve relevant information",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S9",
+    "claim": "Michelangelo evaluations reveal significant room for improvement in models' ability to synthesize long-context information.",
+    "quote": "there is significant room for improvement in synthesizing long-context information",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "Current LLMs' reasoning processes are unnecessarily lengthy and can be compressed by including a token budget in the prompt.",
+    "quote": "reasoning process of current LLMs is unnecessarily lengthy and it can be compressed by including a reasonable token budget in the prompt",
+    "kind": "result",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "How far below advertised context windows do specific small models (1-7B parameters) stay reliable, as most sources evaluate larger models?",
+   "Which task types (retrieval, multi-hop reasoning, aggregation, latent structure queries) degrade fastest as context grows, beyond the aggregate results shown?",
+   "How do reasoning models' thinking tokens interact with fixed output token budgets \u2014 do they hit output limits before input context limits?",
+   "What is the effective context length for reasoning models when thinking tokens consume a large fraction of the context window?",
+   "Do budget-aware decoding methods (S6, S7, S8, S27) maintain reliability at longer input contexts while constraining thinking tokens?"
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S1",
+   "claim": "Models claiming 32K-token context windows only maintain satisfactory performance at 32K tokens in half of cases.",
+   "quote": "only half of them can maintain satisfactory performance at the length of 32K",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S4",
+   "claim": "Performance peaks when relevant information is at the beginning or end of context and degrades significantly when it is in the middle.",
+   "quote": "performance is often highest when relevant information occurs at the beginning or end of the input context, and significantly degrades when models must access relevant information in the middle",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S12",
+   "claim": "Most LLMs fail to capture long dependencies even when the entire document fits within their advertised context window.",
+   "quote": "most LLMs have shockingly bad long context ability and fail to capture long dependencies in the context, even when their context window size is enough to fit the entire document",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S1",
+   "claim": "Nearly all evaluated models show large performance drops as input context length increases across diverse tasks.",
+   "quote": "almost all models exhibit large performance drops as the context length increases",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S2",
+   "claim": "Adversarial decoy problems increase reasoning token generation by 13x, 46x, and 12x on FreshQA, SQuAD, and MuSR respectively.",
+   "quote": "we observe 13x, 46x, and 12x increases, respectively",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S2",
+   "claim": "Newer reasoning model generations exhibit up to 2.3x more reasoning tokens than previous generations.",
+   "quote": "newer generations of RLMs, while showing a drastic increase in per-token cost, also exhibit up to a 2.3x increase in reasoning tokens",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [
+  [
+   {
+    "source": "S3",
+    "claim": "At 32K context length, 10 of 12 models drop below 50% of their short-context baseline performance.",
+    "quote": "At 32K, for instance, 10 models drop below 50% of their strong short-length baselines",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S3",
+    "claim": "GPT-4o accuracy falls from 99.3% at short context to 69.7% at 32K tokens on NoLiMa.",
+    "quote": "Even GPT-4o, one of the top-performing exceptions, experiences a reduction from an almost-perfect baseline of 99.3% to 69.7%",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   "a number in the claim is not in the quote"
+  ],
+  [
+   {
+    "source": "S6",
+    "claim": "Models overthink by generating verbose reasoning for simple queries, while fixed token budgets cause underthinking on harder problems.",
+    "quote": "overthinking, where models generate verbose and tangential reasoning traces even for simple queries... enforcing fixed token budgets... can lead to underthinking",
+    "kind": "failure mode",
+    "evidence": "measured"
+   },
+   "quote not found verbatim in the abstract"
+  ]
+ ],
+ "check": {
+  "keep": [
+   0,
+   1,
+   2
+  ],
+  "grades": {
+   "0": "reported",
+   "1": "reported",
+   "2": "reported",
+   "5": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    1,
+    2
+   ],
+   "p_keep": [
+    0.8381,
+    0.7657,
+    0.9126,
+    0.4443,
+    0.3199,
+    0.4535
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    1,
+    2,
+    5
+   ],
+   "grades": {
+    "0": "reported",
+    "1": "reported",
+    "2": "reported",
+    "5": "reported"
+   },
+   "votes": [
+    [
+     [
+      0,
+      1,
+      2
+     ],
+     [],
+     [
+      0,
+      1,
+      2
+     ]
+    ],
+    [
+     [
+      2
+     ],
+     [],
+     [
+      2
+     ]
+    ]
+   ],
+   "notes": "All three claims are supported by their quotes but the quotes lack methodological detail, so grades are corrected from 'measured' to 'reported'.; None of the claims directly answer the question about how far below advertised context windows models stay reliable, task dependence, or reasoning models' think; All three claims are supported by their quotes but lack methodological detail, so grades corrected to reported.; Claim 2 is supported by its quote and addresses reasoning token increases; claims 0 and 1 add details not present in their quotes.; No claims are fully supported by their quotes and directly answer the question.; Only claim 2 is fully supported by its quote and directly addresses the question; claims 0 and 1 add unsupported details."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
