@@ -20,7 +20,7 @@ same artifact scores differently through the runner than through a direct run (s
 - **Checker.** `"label"` (the built-in: an output must equal its key byte for byte) or a task's own `check.py`:
   `python3 -I check.py IN KEY OUT` prints one JSON line per item `{"score": s}` with 0 ≤ s ≤ 1. The checker is task
   code, trusted, run outside the jail; it treats the candidate's output as untrusted bytes.
-- **Floor.** A named baseline whose dev score a candidate must beat to count (majority class; all-false assignment).
+- **Floor.** A named baseline whose dev score is reported, not enforced, as a gate: a candidate below it still counts (majority class; all-false assignment).
 - **Baselines.** Named candidates that every evaluation of the task must include.
 - **Test gate.** The test split is scored only under a ledger plan that freezes the runner, the card, the built data
   and the candidates' code, after the ledger verifies (as `loop.py` does).
