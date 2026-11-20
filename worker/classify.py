@@ -28,17 +28,20 @@ TYPES = {   # name: what an item of this type needs done next (the executor, if 
     "review": "checking work already done by someone else, or an audit (none yet)",
     "already_done": "the next step says the work is already built, live or finished, and nothing concrete remains to do (close or narrow it)",
     "held": "the owner has said to keep it in the queue only, with no work yet (wait)",
+    # added 2026-11-21 from the first misfits (P23, P24, P5c): answers computed from what is already recorded
+    "analysis": "computing an answer from data already recorded (results, logs, the queue, proposals) by script, with no new run (none yet: an experiment whose run() only reads)",
 }
 CONTROL = ("Fix a typo in worker/README.md line 12: 'recieve' -> 'receive'", "Typo in the worker card",
            "Change the one word on line 12 of worker/README.md; nothing else.")
 CONTROL_YES, CONTROL_NO = "doc_change", "experiment"
 ASK = ("Pair {k}: does the ITEM need, as its next piece of work, the kind of work its QUESTION describes? Answer for this "
        "item only; most items fit one or two kinds.")
-PER_CALL = 3   # items per call: 3 x 12 types + 2 controls = 38 pairs (the decision model judged up to 40 claims per call)
+PER_CALL = 3   # items per call: 3 x 13 types + 2 controls = 41 pairs (the decision model judged up to 40 claims per call)
 
 
 def key(i):
-    return hashlib.sha256((i["title"] + "\n" + i.get("next", "")).encode()).hexdigest()[:16]
+    """Changes when the item's text or the type list changes, so a new type re-judges every item once."""
+    return hashlib.sha256((i["title"] + "\n" + i.get("next", "") + "\n" + ",".join(TYPES)).encode()).hexdigest()[:16]
 
 
 def todo(q, n):
