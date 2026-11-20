@@ -68,8 +68,10 @@ class Claims(unittest.TestCase):
                            "lease_until": Q.iso(self.t + dt.timedelta(hours=1))})
         self.assertEqual(Q.ready(q, self.t), [])
 
-    def test_chat_claim_always_wins_and_never_expires(self):
-        q = {"items": [{"id": "D", "status": "in progress", "claimed_by": "chat-x", "touches": ["x.md"]}]}
+    def test_chat_claim_holds_for_its_ttl(self):
+        """A chat claim wins for CHAT_TTL_H hours, then expires (GLM review F017: it used to hold forever)."""
+        q = {"items": [{"id": "D", "status": "in progress", "claimed_by": "chat-x", "touches": ["x.md"],
+                        "claimed_at": Q.iso(self.t - dt.timedelta(hours=1))}]}
         self.assertEqual(Q.expire(q, self.t), [])
         self.assertTrue(Q.live_claim(q["items"][0], self.t))
 
@@ -581,3 +583,37 @@ class SandboxRefused(unittest.TestCase):
         import code_job as C
         for p in ("runner/jail.py", "runner/limits.c", "loop/seccomp_filter.h", "runner/count.py"):
             self.assertFalse(C.allowed(p), p)
+
+
+class GLMReview20261120(unittest.TestCase):
+    """Reproductions of the GLM review findings fixed on 2026-11-21 (F016, F017, F024, F036)."""
+    def test_f036_exception_moves_down_the_chain(self):
+        import slots
+        seen = []
+
+        def ask(pool, model, prompt):
+            seen.append(pool)
+            if pool == "groq":
+                raise KeyError("GROQ_API_KEY")
+            return {"ok": True, "status": 200, "text": '{"a": 1}'}
+        got, last, tries = slots.run("drafter", "p", ask, lambda t: R.parse_json(t))
+        self.assertEqual(got, {"a": 1})
+        self.assertEqual(seen[:2], ["groq", "cloudflare"])
+        self.assertIn("KeyError", tries and str(tries) or "")
+
+    def test_f024_no_files_never_merges(self):
+        import tier as TI
+        ok, why = TI.merge_decision({"code": {"files": ["a.py"], "test": "t.py"}}, [], "approve")
+        self.assertFalse(ok)
+        ok, _ = TI.merge_decision({"code": {"files": ["a.py"], "test": "t.py"}}, None, "approve")
+        self.assertFalse(ok)
+
+    def test_f016_f017_expire(self):
+        import queue_ops as QO
+        t = QO.parse("2026-11-21T00:00:00Z")
+        q = {"items": [{"id": "Q58", "status": "in progress"},
+                       {"id": "P3", "status": "in progress", "claimed_by": "chat-x", "claimed_at": "2026-11-19T07:40:53Z", "touches": ["tasks/"]},
+                       {"id": "P9", "status": "in progress", "claimed_by": "chat-y", "claimed_at": "2026-11-20T20:00:00Z", "touches": ["x/"]}]}
+        self.assertEqual(sorted(QO.expire(q, t)), ["P3", "Q58"])
+        self.assertEqual([i["status"] for i in q["items"]], ["open", "open", "in progress"])
+        self.assertTrue(QO.live_claim(q["items"][2], t))

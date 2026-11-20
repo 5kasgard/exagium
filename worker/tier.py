@@ -168,9 +168,17 @@ def code_verdict(ctx, ask):
 
 
 def pr_files(n):
-    out = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}/files", "-q", "[.[] | {filename, additions, deletions, patch}]"],
-                         capture_output=True, text=True).stdout
-    return json.loads(out or "[]")
+    """The PR's files, or None when they could not be fetched (GLM review F024: a failed fetch returned [], and an empty
+    diff passed every size and path check vacuously, so an 'approve' could merge files nobody saw)."""
+    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}/files", "-q", "[.[] | {filename, additions, deletions, patch}]"],
+                       capture_output=True, text=True)
+    if r.returncode:
+        return None
+    try:
+        files = json.loads(r.stdout)
+    except json.JSONDecodeError:
+        return None
+    return files if isinstance(files, list) and files else None
 
 
 def code_prs(q):
@@ -186,7 +194,9 @@ def code_prs(q):
 
 
 def merge_decision(item, files, verdict):
-    """Script gate around the model's verdict. Returns (merge?, reasons)."""
+    """Script gate around the model's verdict. Returns (merge?, reasons). Fails closed on no files (F024)."""
+    if not files:
+        return False, ["the PR's files could not be read: never merge what was not seen"]
     why = []
     lines = sum(f.get("additions", 0) + f.get("deletions", 0) for f in files)
     if lines > MERGE_MAX_LINES:
@@ -209,6 +219,10 @@ def drain_code(wt, ask, record):
     Q.sync(wt)
     for item, n in code_prs(Q.load(wt)):
         files = pr_files(n)
+        if files is None:
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
+            continue
         diff = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)[:20000]
         verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": diff}, ask)
         ok, why = merge_decision(item, files, verdict)

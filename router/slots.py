@@ -66,9 +66,13 @@ def run(slot, prompt, ask, parse, override=None):
     """Try each filler until one returns a reply that parses. Returns (parsed or None, last reply, tries list)."""
     tries, last = [], None
     for pool, model in chain(slot, override):
-        last = ask(pool, model, prompt)
+        try:
+            last = ask(pool, model, prompt)
+        except Exception as e:   # GLM review F036: a missing key or unknown pool aborted the whole chain; it is a failure like any other
+            last = {"ok": False, "status": None, "text": None, "error": f"{type(e).__name__}: {str(e)[:200]}"}
         got = parse(last.get("text")) if last.get("ok") else None
-        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": got is not None})
+        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": got is not None,
+                      **({"error": str(last.get("error"))[:200]} if last.get("error") and got is None else {})})
         if got is not None:
             return got, last, tries
     return None, last, tries

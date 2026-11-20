@@ -68,19 +68,36 @@ def save(wt, q):
 
 
 def live_claim(i, t):
-    """True if the item is held: by a chat (always), or by a worker whose lease has not expired."""
+    """True if the item is held: by a chat for CHAT_TTL_H hours from its claim, or by a worker whose lease has not expired."""
     if i.get("status") != "in progress" or not i.get("claimed_by"):
         return False
     if not i["claimed_by"].startswith("worker-"):
-        return True
+        return parse(i.get("claimed_at", "1970-01-01T00:00:00Z")) >= t - dt.timedelta(hours=CHAT_TTL_H)
     return parse(i.get("lease_until", "1970-01-01T00:00:00Z")) > t
 
 
+CHAT_TTL_H = 24   # GLM review F017: a chat's claim never expired; P3 and P5 (held since 2026-11-19) blocked 10 open items
+
+
 def expire(q, t):
-    """Reopen items whose worker lease has run out. Returns their ids."""
+    """Reopen items whose worker lease has run out, items 'in progress' with no claim at all (F016: Q58 sat there with no
+    exit), and chat claims older than CHAT_TTL_H hours (F017). Returns their ids."""
     out = []
     for i in q["items"]:
-        if i.get("status") == "in progress" and str(i.get("claimed_by", "")).startswith("worker-") and not live_claim(i, t):
+        if i.get("status") != "in progress":
+            continue
+        who = str(i.get("claimed_by") or "")
+        stale_chat = who and not who.startswith("worker-") and parse(i.get("claimed_at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=CHAT_TTL_H)
+        if not who or stale_chat:
+            i["status"] = T.next_status("in progress", "lease_expired")
+            i.setdefault("runs", []).append({"at": iso(t), "worker": who or "nobody",
+                                             "result": "no claim held" if not who else f"chat claim older than {CHAT_TTL_H} h",
+                                             "outcome": "lease_expired"})
+            for k in ("claimed_by", "claimed_at", "lease_until"):
+                i.pop(k, None)
+            out.append(i["id"])
+            continue
+        if who.startswith("worker-") and not live_claim(i, t):
             i["status"] = T.next_status("in progress", "lease_expired")
             i.setdefault("runs", []).append({"at": iso(t), "worker": i["claimed_by"], "result": "lease expired", "outcome": "lease_expired"})
             for k in ("claimed_by", "claimed_at", "lease_until"):
