@@ -22,6 +22,14 @@ UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, 
 
 
 class Workflows(unittest.TestCase):
+    def test_no_grep_count_or_echo(self):
+        """'grep -c' prints 0 and exits 1 when nothing matches, so '|| echo 0' yields two lines (killed the idle job, 2026-11-20)."""
+        import re
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
+        for f in sorted(glob.glob(os.path.join(root, "*.yml"))):
+            for n, line in enumerate(open(f).read().splitlines(), 1):
+                self.assertFalse(re.search(r"grep -c[^|]*\|\|\s*echo", line), f"{os.path.basename(f)}:{n}: {line.strip()}")
+
     def test_no_duplicate_keys(self):
         root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
         files = sorted(glob.glob(os.path.join(root, "*.yml")))
