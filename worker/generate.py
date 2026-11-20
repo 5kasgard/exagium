@@ -87,11 +87,13 @@ def next_rid(q):
     return max(n, default=0) + 1
 
 
-def decide(pairs, calls):
-    """One Decisions API request: one yes/no question per (question, item title, item next) pair. Returns p per pair."""
-    state = "\n\n".join(f"PAIR {k}:\nQUESTION: {qq}\nITEM: {t}\nNEXT STEP: {nx[:600]}" for k, (qq, t, nx) in enumerate(pairs))
-    ask = ("Pair {k}: would published research that answers its QUESTION directly inform or change its ITEM's NEXT STEP? "
-           "Off-topic, too vague to search, or about something the item does not need: no.")
+ASK_RESEARCH = ("Pair {k}: would published research that answers its QUESTION directly inform or change its ITEM's NEXT STEP? "
+                "Off-topic, too vague to search, or about something the item does not need: no.")
+
+
+def decide(pairs, calls, ask=ASK_RESEARCH, label="QUESTION"):
+    """One Decisions API request: one yes/no question per (candidate, item title, item next) pair. Returns p per pair."""
+    state = "\n\n".join(f"PAIR {k}:\n{label}: {qq}\nITEM: {t}\nNEXT STEP: {nx[:600]}" for k, (qq, t, nx) in enumerate(pairs))
     body = {"model": DECIDER, "state": state,
             "questions": {f"p{k}": {"type": "noul", "instructions": ask.format(k=k)} for k in range(len(pairs))}}
     req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",

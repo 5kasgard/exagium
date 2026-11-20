@@ -42,6 +42,10 @@ TEST FILES: {tests}
 Reply with JSON only: {{"subitems": [{{"title": "...", "files": ["path.py"], "test": "path/test_x.py",
 "next": "exactly what to change and how to tell it is right"}}]}}"""
 
+ASK = ("Pair {k}: is its SUBITEM a correct, self-contained small code change that moves its ITEM's NEXT STEP forward, sized "
+       "for one model call that edits the 1 or 2 files named? Vague, off-topic, too large, or not what the item needs: no.")
+# controls (2026-11-20): the first live gate used the research generator's question ("would published research ... inform"),
+# which does not fit code tasks: the good control scored 0.19 and every sub-item 0.07-0.26
 CONTROL_PARENT = ("Failure classes are listed in two places", "Expose the failure class names from worker/diagnose.py.")
 CONTROL_GOOD = "Add classes() to worker/diagnose.py returning the sorted rule names plus 'unknown'"
 CONTROL_BAD = "Rewrite the whole queue renderer in Rust and move the queue to a database"
@@ -107,6 +111,27 @@ def candidates(q):
     return sorted(out, key=lambda i: ({"high": 0, "medium": 1, "low": 2}.get(i.get("value"), 3), i["id"]))
 
 
+def gate_fn(calls):
+    return lambda pr: G.decide(pr, calls, ask=ASK, label="SUBITEM")
+
+
+def regate(wt, decide_fn, calls):
+    """Sub-items still 'proposed' (a withheld gate) are gated again."""
+    Q.sync(wt)
+    q = Q.load(wt)
+    by = {i["id"]: i for i in q["items"]}
+    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("split_from") in by][:6]
+    if not pend:
+        return []
+    pairs = [(CONTROL_GOOD, *CONTROL_PARENT), (CONTROL_BAD, *CONTROL_PARENT)]
+    pairs += [(f"{i['title']} (files: {', '.join(i['code']['files'])})", by[i["split_from"]]["title"], by[i["split_from"]].get("next", ""))
+              for i in pend]
+    ps, err = decide_fn(pairs)
+    outcomes = G.gate_outcomes(ps, len(pend))
+    print(f"split regate: {[i['id'] for i in pend]} p={ps} err={err}")
+    return G.move_all(wt, [i["id"] for i in pend], outcomes, ps) if outcomes else []
+
+
 def run(wt, repo, out, ask=None, decide_fn=None):
     os.makedirs(out, exist_ok=True)
     calls, log = [], []
@@ -118,9 +143,11 @@ def run(wt, repo, out, ask=None, decide_fn=None):
             calls.append({k: r.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")})
             return r.get("text")
     try:
+        regated = regate(wt, decide_fn or gate_fn(calls), calls)
+        if regated:
+            print(f"split: regated {regated}")
         Q.sync(wt)
         q = Q.load(wt)
-        day = Q.iso(Q.now())[:10]
         lines, tests = repo_files(repo)
         listing = "\n".join(f"{p} ({n})" for p, n in sorted(lines.items()) if CJ.allowed(p))
         subs = []
@@ -152,7 +179,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
             return 0
         pairs = [(CONTROL_GOOD, *CONTROL_PARENT), (CONTROL_BAD, *CONTROL_PARENT)]
         pairs += [(f"{s['title']} (files: {', '.join(s['files'])})", p["title"], p.get("next", "")) for p, s in subs]
-        ps, err = (decide_fn or (lambda pr: G.decide(pr, calls)))(pairs)
+        ps, err = (decide_fn or gate_fn(calls))(pairs)
         outcomes = G.gate_outcomes(ps, len(subs))
         made = []
         for _ in range(Q.TRIES):
