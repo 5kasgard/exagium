@@ -749,5 +749,37 @@ class NewFiles(unittest.TestCase):
             self.assertIsNone(SP.check(dict(base, files=files, new=new), lines, tests)[0], files)
 
 
+
+class CoderRepair(unittest.TestCase):
+    """2026-11-21: missing imports were the commonest code rejection; a static check and one repair round catch them."""
+    def test_static_problems(self):
+        import code_job as C
+        f = {"a.py": "x = 1\n"}
+        self.assertEqual(C.static_problems(f, {"a.py": "import json\ndef g(a):\n    return json.dumps([a for a in x])\nx = 1\n"}), [])
+        self.assertIn("name 're' is used", C.static_problems(f, {"a.py": "def g():\n    return re.sub('a', 'b', 'c')\n"})[0])
+        self.assertIn("syntax error", C.static_problems(f, {"a.py": "def g(:\n"})[0])
+
+    def test_repair_round(self):
+        import code_job as C, slots
+        from unittest import mock
+        bad = "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = json.dumps(1)\n>>>>>>> REPLACE\nNOTE: n"
+        good = "<<<<<<< SEARCH a.py\nx = 1\n=======\nimport json\nx = json.dumps(1)\n>>>>>>> REPLACE\nNOTE: n"
+        replies = iter([bad, good])
+        def fake_run(slot, prompt, ask, parse):
+            if slot == "coder":
+                t = next(replies)
+                return parse(t), {"text": t}, [{"pool": "p"}]
+            return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+        with tempfile.TemporaryDirectory() as d:
+            json.dump({"item": {"id": "K1", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n"}, "prompt": "P"},
+                      open(os.path.join(d, "bundle.json"), "w"))
+            with mock.patch.object(slots, "run", fake_run):
+                C.draft(d)
+            r = json.load(open(os.path.join(d, "draft.json")))
+        self.assertEqual(r["static"], [])
+        self.assertEqual(r["repair"]["after"], [])
+        self.assertIn("import json", r["proposal"]["edits"][0]["new"])
+
+
 if __name__ == "__main__":
     unittest.main()

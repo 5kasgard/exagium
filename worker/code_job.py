@@ -156,6 +156,55 @@ def apply_edits(files, edits):
     return new
 
 
+def static_problems(files, new):
+    """Problems a reviewer or the tests would find, found by reading the changed Python (nothing is run, so this is safe
+    in the job that holds keys): syntax errors, and names used that nothing in the file binds and are not builtins.
+    Missing imports were the commonest rejection on 2026-11-20/21 (K5 json, K7 re, G2 os/inspect/sys)."""
+    import ast, builtins
+    out = []
+    for p, s in (new or {}).items():
+        if not p.endswith(".py") or s == files.get(p):
+            continue
+        try:
+            tree = ast.parse(s)
+        except SyntaxError as e:
+            out.append(f"{p}: syntax error at line {e.lineno}: {e.msg}")
+            continue
+        bound, used = set(dir(builtins)) | {"__file__", "__name__", "__doc__"}, {}
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Name):
+                (bound.add(n.id) if isinstance(n.ctx, (ast.Store, ast.Del)) else used.setdefault(n.id, n.lineno))
+            elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                bound.add(n.name)
+            elif isinstance(n, ast.arg):
+                bound.add(n.arg)
+            elif isinstance(n, (ast.Import, ast.ImportFrom)):
+                if any(a.name == "*" for a in n.names):
+                    bound.add("*")
+                bound.update((a.asname or a.name).split(".")[0] for a in n.names)
+            elif isinstance(n, ast.ExceptHandler) and n.name:
+                bound.add(n.name)
+            elif isinstance(n, (ast.Global, ast.Nonlocal)):
+                bound.update(n.names)
+            elif isinstance(n, ast.MatchAs) and n.name:
+                bound.add(n.name)
+        if "*" not in bound:
+            out += [f"{p}: name '{k}' is used (line {ln}) but never imported or defined" for k, ln in sorted(used.items(), key=lambda kv: kv[1])
+                    if k not in bound]
+    return out
+
+
+REPAIR = """{prompt}
+
+YOUR PREVIOUS REPLY:
+{reply}
+
+IT HAS THESE PROBLEMS (found by reading the code; nothing was run):
+{problems}
+
+Reply again with the complete corrected set of edit blocks, in the same form, and the NOTE line."""
+
+
 def draft(out):
     import engines, slots
     engines.TIMEOUT = 600
@@ -173,18 +222,38 @@ def draft(out):
         if proposal is None:
             fail.append(("quota: " if all(t["status"] == 429 for t in tries) else "") + "coder gave no usable reply")
             proposal = {"edits": []}
-        edits, why = check_edits(b["files"], proposal.get("edits"))
+        def checked(prop):
+            e, w = check_edits(b["files"], prop.get("edits"))
+            try:
+                n = apply_edits(b["files"], e) if e else None
+            except ValueError as x:
+                n, e, w = None, [], w + [str(x)]
+            return e, w, n, (w if not e else []) + static_problems(b["files"], n)
+        edits, why, new, problems = checked(proposal)
+        repaired = None
+        if problems and proposal.get("edits"):   # one repair round with the problems written in (owner 2026-11-21: code lands least)
+            text = (d or {}).get("text") or ""
+            fixed, d2, t2 = slots.run("coder", REPAIR.format(prompt=b["prompt"], reply=text[-12000:], problems="\n".join(problems[:20])),
+                                      ask, parse_reply)
+            tries += t2
+            if fixed is not None:
+                e2, w2, n2, p2 = checked(fixed)
+                repaired = {"before": problems, "after": p2}
+                if e2 and len(p2) < len(problems):
+                    proposal, edits, why, new, problems = fixed, e2, w2, n2, p2
         review = None
-        try:
-            new = apply_edits(b["files"], edits) if edits else None
-        except ValueError as e:
-            new, edits, why = None, [], why + [str(e)]
+        if edits and problems:   # still broken after the repair: not worth a review call, and not a change to land
+            why = why + problems
+            edits = []
         if edits:
             dd = D.diff(b["files"], new)
             review, _, _ = slots.run("code_reviewer", REVIEW.format(id=item["id"], title=item["title"], next=item["next"][:1500], diff=dd[:20000]), ask, obj)
             if review is None:
                 fail.append("reviewer gave no usable reply")
-        json.dump({"proposal": proposal, "review": review, "pre_check": why, "model_fail": fail, "coder_tries": tries},
+        if not edits and proposal.get("edits") and problems:
+            proposal = dict(proposal, edits=[])   # nothing that fails the static check reaches the test or land jobs
+        json.dump({"proposal": proposal, "review": review, "pre_check": why, "model_fail": fail, "coder_tries": tries,
+                   "static": problems, "repair": repaired},
                   open(os.path.join(out, "draft.json"), "w"), indent=1)
         print(f"coder edits={len(edits)} refused={len(why)} review={(review or {}).get('verdict')}")
         return 0
