@@ -36,6 +36,11 @@ ACT = {"transient": "rerun (no action; repeats become unknown)", "auth": "escala
        "unknown": "escalated item"}
 
 
+def classes():
+    """Sorted list of every failure class name in RULES plus 'unknown'."""
+    return sorted([name for name, _ in RULES] + ["unknown"])
+
+
 def classify(log):
     tail = "\n".join(log.splitlines()[-400:])
     for name, rx in RULES:
