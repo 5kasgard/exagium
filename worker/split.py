@@ -109,13 +109,18 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                 d = json.loads(m.group(0)) if m else {}
             except json.JSONDecodeError:
                 d = {}
+            if not isinstance(d, dict) or not isinstance(d.get("subitems"), list):
+                log.append({"parent": parent["id"], "ok": False, "why": "reply not the asked JSON", "raw": (reply or "")[:2500]})
+                d = {}
+            elif not d["subitems"]:
+                log.append({"parent": parent["id"], "ok": False, "why": "model: nothing worker-sized", "raw": (reply or "")[:600]})
             for s in (d.get("subitems") or [])[:MAX_SUB]:
                 ok, why = check(s, lines, tests)
                 log.append({"parent": parent["id"], "ok": bool(ok), "why": why, "sub": s})
                 if ok:
                     subs.append((parent, ok))
         if not subs:
-            print("split: nothing passed the script check")
+            print("split: nothing passed the script check;", json.dumps(log)[:4000])
             return 0
         pairs = [(CONTROL_GOOD, *CONTROL_PARENT), (CONTROL_BAD, *CONTROL_PARENT)]
         pairs += [(f"{s['title']} (files: {', '.join(s['files'])})", p["title"], p.get("next", "")) for p, s in subs]
