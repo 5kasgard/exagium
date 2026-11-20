@@ -6,7 +6,7 @@ import json, os, sys, unittest
 from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import engines, probe  # noqa: E402
+import engines, probe, decisions_probe  # noqa: E402
 
 
 def rec(engine, model, exact=None, ok=True, **kw):

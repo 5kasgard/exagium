@@ -74,7 +74,7 @@ def main(model, md, out, mode="per-item"):
         ans = resp.get("answers", {}) if st == 200 else {}
         for iid, _ in its:
             a = ans.get(iid)
-            p = a.get("noul") if isinstance(a, dict) else None
+            p = p_yes(a) if isinstance(a, dict) else None
             res.append({"id": iid, "status": st, "latency_s": lat, "p_yes": p,
                         "verdict": None if p is None else ("ACCEPTABLE" if p >= 0.5 else "NOT"),
                         "raw": json.dumps(a)[:300]})
