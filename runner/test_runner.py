@@ -132,6 +132,21 @@ class Controls(unittest.TestCase):
                 R.prepare(a)
 
 
+class SatWalksatMalformedLiteral(unittest.TestCase):
+    """GLM F071: a literal naming a variable >= n is malformed input, not an uninitialized read."""
+    def test_literal_out_of_range_is_rejected(self):
+        src = os.path.join(HERE, "candidates", "sat-walksat", "infer.c")
+        with tempfile.TemporaryDirectory() as d:
+            exe = os.path.join(d, "infer")
+            subprocess.run([os.environ.get("CC", "cc"), "-O2", "-o", exe, src], check=True)
+            weights = os.path.join(d, "weights.bin")
+            inp = os.path.join(d, "in.rec")
+            open(weights, "wb").write(bytes(8))  # noise 0, max flips 0
+            open(inp, "wb").write(records.pack([bytes([1, 1, 0, 2, 1, 1])]))  # n=1, literal 2 > n
+            r = subprocess.run([exe, weights, inp, "1"], capture_output=True)
+        self.assertNotEqual(r.returncode, 0)
+
+
 def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
