@@ -3,7 +3,7 @@ The Decisions API returns probabilities for typed questions instead of text. Eac
 against the item's own text as state; ACCEPTABLE if p(yes) >= 0.5. Sends only the prompt text; runs no returned code.
 python3 -I router/decisions_probe.py MODEL PROMPT_MD OUT_JSON [per-item|batch]
 batch: one request per file, the whole file as state and one 'noul' question per item (the API takes up to 100 questions
-sharing one state), so a 35-item set costs 2 requests instead of 35 under the free tier's 50 a day."""
+sharing one state), so a 35-item set costs 2 requests instead of 35 (the account allows 1,000 free requests a day; 50 below $10 of credit)."""
 import json, os, re, sys, time, urllib.request
 
 URL = "https://openrouter.ai/api/alpha/decisions"
