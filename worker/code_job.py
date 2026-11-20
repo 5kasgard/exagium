@@ -35,9 +35,16 @@ FILES YOU MAY CHANGE (complete contents):
 TEST THAT MUST PASS AFTER YOUR CHANGE: {test}
 {test_src}
 
-Reply with JSON only: {{"edits": [{{"path": "...", "old": "exact text copied from the file, occurring once", "new": "replacement"}}],
-"note": "one sentence on what you changed and why"}}. To add a new function, use as "old" a line it should follow and
-repeat that line at the start of "new"."""
+Reply with one or more edit blocks in exactly this form, and nothing else:
+
+<<<<<<< SEARCH path/to/file.py
+exact lines copied from the file (they must occur once)
+=======
+the replacement lines
+>>>>>>> REPLACE
+
+To add a new function, SEARCH for a line it should follow and repeat that line at the start of the replacement.
+Finish with one line: NOTE: what you changed and why."""
 
 REVIEW = """You review a proposed code change. Approve only if it does what the item asks, changes nothing else, adds no
 network calls, secrets, file deletions or subprocess calls the item did not ask for, and keeps existing behaviour
@@ -81,6 +88,22 @@ def context(item_path, repo, out):
     return 0
 
 
+BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(.*?)\n=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)
+
+
+def parse_reply(text):
+    """Edits from a reply: search/replace blocks (code survives them; inside JSON strings it broke the JSON on 2 of 3
+    live code jobs, 2026-11-20), or the older JSON form. Returns {"edits": [...], "note": ...} or None."""
+    if not text:
+        return None
+    blocks = BLOCK.findall(text)
+    if blocks:
+        note = re.search(r"^NOTE:\s*(.+)$", text, re.M)
+        return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else ""}
+    j = D.parse_json(text)
+    return j if isinstance(j, dict) else None
+
+
 def check_edits(files, edits):
     ok, why = [], []
     if not isinstance(edits, list) or not edits:
@@ -122,7 +145,7 @@ def draft(out):
         return r
     obj = lambda t: (lambda j: j if isinstance(j, dict) else None)(D.parse_json(t))
     try:
-        proposal, d, tries = slots.run("coder", b["prompt"], ask, obj)
+        proposal, d, tries = slots.run("coder", b["prompt"], ask, parse_reply)
         fail = []
         if proposal is None:
             fail.append(("quota: " if all(t["status"] == 429 for t in tries) else "") + "coder gave no usable reply")

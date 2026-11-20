@@ -560,3 +560,16 @@ class GeminiReview20261120(unittest.TestCase):
                 LG.reserve(wt, "r1", "openrouter_paid:2:5")
                 led = LG.load(LG.day_path(wt))
         self.assertAlmostEqual(led["openrouter_paid"]["pending_usd"]["r1"], 0.02)
+
+
+class CodeReplyFormat(unittest.TestCase):
+    def test_blocks(self):
+        import code_job as C
+        t = ('Here you go\n<<<<<<< SEARCH worker/diagnose.py\ndef classify(log):\n=======\ndef classes():\n    return ["a{b}"]\n\n\ndef classify(log):\n'
+             '>>>>>>> REPLACE\nNOTE: added classes()')
+        r = C.parse_reply(t)
+        self.assertEqual(r["edits"], [{"path": "worker/diagnose.py", "old": "def classify(log):",
+                                       "new": 'def classes():\n    return ["a{b}"]\n\n\ndef classify(log):'}])
+        self.assertEqual(r["note"], "added classes()")
+        self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
+        self.assertIsNone(C.parse_reply("nothing here"))

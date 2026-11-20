@@ -43,7 +43,9 @@ def call(engines, pool, model, prompt):
     """One call to a filler, whatever its pool; paid OpenRouter calls are allowed for this call only and recorded as
     their own pool. Reasoning models on NIM get 16,000 tokens (4,000 left Nemotron no answer, release test R1)."""
     if pool == "openrouter_paid":   # permission passed per call, not through os.environ (Gemini review F011)
-        return dict(engines.call("openrouter", model, prompt, max_tokens=8000, allow_paid=True), engine="openrouter_paid")
+        # low reasoning effort and room to answer: on code jobs both paid models spent all 8,000 tokens reasoning (2026-11-20)
+        return dict(engines.call("openrouter", model, prompt, max_tokens=12000, allow_paid=True, reasoning={"effort": "low"}),
+                    engine="openrouter_paid")
     if pool in ("cloudflare", "openrouter"):
         return engines.call(pool, model, prompt, max_tokens=8000 if pool == "openrouter" else 6000)
     return engines.compat_call(pool, model, prompt, max_tokens=16000)
