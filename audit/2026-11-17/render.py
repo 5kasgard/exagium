@@ -66,7 +66,7 @@ def transition_check():
 for m in transition_check():
     (print(m, file=sys.stderr) if m.startswith('note:') else errs.append(m))
 for i in items:
-    if 'origin' in i and i['origin'] not in ('follow-up', 'new', 'generated'):   # generated: worker/generate.py (P27), born 'proposed'   # follow-up: from finishing or checking work; new: a new direction
+    if 'origin' in i and i['origin'] not in ('follow-up', 'new', 'generated', 'review'):   # generated: worker/generate.py (P27), born 'proposed'; review: worker/intake_review.py, an outside review's open findings   # follow-up: from finishing or checking work; new: a new direction
         errs.append(f"{i.get('id')}: origin must be follow-up or new")
     for f, allowed in (('kind', KIND), ('status', STATUS), ('needs', NEEDS), ('value', set(VALUE)), ('severity', SEV)):
         if i.get(f) not in allowed:
