@@ -420,3 +420,12 @@ class LoopMetrics(unittest.TestCase):
         self.assertIn("Claude API tier 1, free worker 1", out[1])
         self.assertIn("$0.0060 ($0.0060 per landed item)", out[3])
         self.assertIn("not measured", out[4])
+
+
+class GenerateControls(unittest.TestCase):
+    def test_frozen_controls(self):
+        import generate as G
+        c = G.controls()
+        self.assertEqual(len(c), 2)
+        self.assertEqual(c[0][1], c[1][1])   # same item, a useful and an off-topic question
+        self.assertNotIn("R5", repr(c))     # no live queue text in a control

@@ -28,7 +28,11 @@ PROPOSER = "particle-ai/particle-1:free"      # P31: 30/30 twice on the known-an
 DECIDER = "perplexity/pplx-decider-v1.3:free"  # P31: checker trial 6/6 twice; another family than the proposer
 MAX_PER_DAY = 3
 KINDS = ("build", "test", "fix")
-CONTROL_GOOD = ("R5", "P5")    # R5's question (trees vs MLPs) served P5's family ranking: a useful pair from the record
+# Known-answer controls, frozen text (first live gate, 2026-11-20 10:52Z: a control built from live queue text scored
+# 0.42 because P5's next step had moved on since R5 was filed; the drafts scored 0.96-0.99, the off-topic pair 0.005)
+CONTROL_ITEM = ("Rank model families on tabular data by accuracy and cost",
+                "Compare tuned gradient-boosted trees with small MLPs on tabular benchmarks before adding new families.")
+CONTROL_GOOD_Q = "How accurate are tuned gradient-boosted decision trees compared with small MLPs on tabular benchmarks?"
 CONTROL_BAD_Q = "What is the history of bagpipe making in the Scottish Highlands?"
 
 DRAFT = """You write one research question for a literature search. The search reads paper abstracts, Wikipedia, Stack
@@ -106,6 +110,45 @@ def decide(pairs, calls):
     return ps, None
 
 
+def controls():
+    return [(CONTROL_GOOD_Q, *CONTROL_ITEM), (CONTROL_BAD_Q, *CONTROL_ITEM)]
+
+
+def regate(wt, decide_fn, calls):
+    """Items still 'proposed' (a withheld gate) get the gate again, before any new draft."""
+    Q.sync(wt)
+    q = Q.load(wt)
+    by = {i["id"]: i for i in q["items"]}
+    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("origin") == "generated"][:MAX_PER_DAY]
+    if not pend:
+        return []
+    pairs = controls() + [(i["research"]["question"], by[i["generated_from"]]["title"], by[i["generated_from"]].get("next", ""))
+                          for i in pend if i.get("generated_from") in by]
+    ps, err = decide_fn(pairs)
+    outcomes = gate_outcomes(ps, len(pairs) - 2)
+    print(f"regate: {[i['id'] for i in pend]} p={ps} err={err}")
+    return move_all(wt, [i["id"] for i in pend], outcomes, ps) if outcomes else []
+
+
+def move_all(wt, ids, outcomes, ps):
+    moved = []
+    for k, rid in enumerate(ids):
+        for _ in range(Q.TRIES):
+            Q.sync(wt)
+            q = Q.load(wt)
+            i = next(x for x in q["items"] if x["id"] == rid)
+            if i["status"] != "proposed":
+                break
+            i["status"] = T.next_status(i["status"], outcomes[k])
+            i.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": "generator-gate", "outcome": outcomes[k],
+                                             "result": f"decision model p={ps[k + 2]:.3f}; controls {ps[0]:.3f}/{ps[1]:.3f}"})
+            Q.save(wt, q)
+            if Q.commit_push(wt, f"generator gate: {rid} {outcomes[k]} -> {i['status']}"):
+                moved.append((rid, outcomes[k]))
+                break
+    return moved
+
+
 def gate_outcomes(ps, n):
     """Controls first: the useful pair must pass and the off-topic pair must fail, or nothing is decided (None)."""
     if ps is None or len(ps) != n + 2 or not (ps[0] >= 0.5 and ps[1] < 0.5):
@@ -119,9 +162,15 @@ def run(wt, out, draft_fn=None, decide_fn=None):
     Q.sync(wt)
     q = Q.load(wt)
     day = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    regated = regate(wt, decide_fn or (lambda p: decide(p, calls)), calls)   # a withheld gate first, inside the cap
+    if regated:
+        print(f"generate: regated {regated}")
+    q = Q.load(wt)
     room = MAX_PER_DAY - today_count(q, day)
     if room <= 0:
         print(f"generate: cap reached ({MAX_PER_DAY} today)")
+        _write_calls(out, calls)
+        json.dump({"regated": regated}, open(os.path.join(out, "generate.json"), "w"))
         return 0
     if draft_fn is None:
         import engines
@@ -151,10 +200,7 @@ def run(wt, out, draft_fn=None, decide_fn=None):
         _write_calls(out, calls)
         print("generate: no draft passed the script check")
         return 0
-    by = {i["id"]: i for i in q["items"]}
-    good_q, good_i = by[CONTROL_GOOD[0]]["research"]["question"], by[CONTROL_GOOD[1]]
-    pairs = [(good_q, good_i["title"], good_i.get("next", "")), (CONTROL_BAD_Q, good_i["title"], good_i.get("next", ""))]
-    pairs += [(d["question"], s["title"], s.get("next", "")) for s, d in drafts]
+    pairs = controls() + [(d["question"], s["title"], s.get("next", "")) for s, d in drafts]
     ps, err = (decide_fn or (lambda p: decide(p, calls)))(pairs)
     outcomes = gate_outcomes(ps, len(drafts))
     controls_ok = outcomes is not None
@@ -181,23 +227,7 @@ def run(wt, out, draft_fn=None, decide_fn=None):
             break
     else:
         print("generate: could not push"); return 1
-    moved = []
-    if controls_ok:
-        for k, rid in enumerate(made):
-            outcome = outcomes[k]
-            for _ in range(Q.TRIES):
-                Q.sync(wt)
-                q = Q.load(wt)
-                i = next(x for x in q["items"] if x["id"] == rid)
-                if i["status"] != "proposed":
-                    break
-                i["status"] = T.next_status(i["status"], outcome)
-                i.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": "generator-gate", "outcome": outcome,
-                                                 "result": f"decision model p={ps[k + 2]:.3f}; controls {ps[0]:.3f}/{ps[1]:.3f}"})
-                Q.save(wt, q)
-                if Q.commit_push(wt, f"generator gate: {rid} {outcome} -> {i['status']}"):
-                    moved.append((rid, outcome))
-                    break
+    moved = move_all(wt, made, outcomes, ps) if controls_ok else []
     json.dump({"log": log, "gate": gate, "made": made, "moved": moved}, open(os.path.join(out, "generate.json"), "w"), indent=1)
     _write_calls(out, calls)
     print(f"generate: proposed {made}; gate {'ran' if controls_ok else 'withheld (controls: ' + str(ps) + ', ' + str(err) + ')'}; moved {moved}")
