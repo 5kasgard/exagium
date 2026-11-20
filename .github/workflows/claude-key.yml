@@ -1,0 +1,30 @@
+# Shape of the owner's CLAUDE_API_KEY secret, without printing it: which kind of credential it is, and whether
+# the models list answers with it as an API key or as a bearer token (both free calls). Owner added it 2026-11-20.
+name: claude-key
+on: workflow_dispatch
+permissions: {}
+jobs:
+  key:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: shape and auth
+        env:
+          K: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request
+          k = os.environ.get("K", "")
+          s = k.strip()
+          kind = ("api key (sk-ant-api)" if s.startswith("sk-ant-api") else "oauth token (sk-ant-oat)" if s.startswith("sk-ant-oat")
+                  else "admin key (sk-ant-admin)" if s.startswith("sk-ant-admin") else "other sk-ant-" if s.startswith("sk-ant-") else "not an Anthropic key format")
+          print("length", len(k), "| surrounding whitespace", k != s, "| kind", kind)
+          for name, h in (("x-api-key", {"x-api-key": s}), ("bearer", {"Authorization": "Bearer " + s, "anthropic-beta": "oauth-2025-04-20"})):
+              h.update({"anthropic-version": "2023-06-01"})
+              try:
+                  with urllib.request.urlopen(urllib.request.Request("https://api.anthropic.com/v1/models?limit=100", headers=h), timeout=30) as r:
+                      ids = [m["id"] for m in json.loads(r.read())["data"]]
+                      print(name, "-> 200,", len(ids), "models:", ", ".join(ids[:12]))
+              except Exception as e:
+                  print(name, "->", getattr(e, "code", type(e).__name__))
+          PY
