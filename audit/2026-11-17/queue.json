@@ -8364,7 +8364,7 @@
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/tether.py SourceLedger keeps per-source survival counts across contacts; trust is read off the record. Forge P7e wants per-source credibility from track record. Test, rule fixed before running: from worker-runs research runs, score each source domain by kept/offered claims (the ledger's rule) on runs before a cut date; predict kept claims after it. Adopt if it beats source kind alone (paper/forum/Q&A) by 0.05 AUC; else record as not carried.",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/tether.py SourceLedger keeps per-source survival counts across contacts; trust is read off the record. Forge P7e wants per-source credibility from track record. Test, rule fixed before running: from worker-runs research runs, score each source domain by kept/offered claims (the ledger's rule) on runs before a cut date; predict kept claims after it. Adopt if it beats source kind alone (paper/forum/Q&A) by 0.05 AUC; else record as not carried. Checked by a separate agent 2026-11-21: SourceLedger (tether.py:209-268) keys on the proposer of a grounding test, not a website or paper; it needs a new key (source domain) before it fits. The gap is real: research_job.py pick() ranks by citations within a kind; UNTRUSTED is fixed by kind.",
    "refs": [
     "queue P26",
     "https://github.com/5kasgard/Rabbithole/pull/1"
@@ -8415,7 +8415,7 @@
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/calibration.py records calibration events per verifier, extractor or route; routing.py routes by task shape and recorded authority. Forge P20c wants routing by measured results. Test, rule fixed before running: replay recorded worker outcomes (queue runs with pool and model) in time order; compare the fixed fallback chains against routing by calibrated success so far; adopt if accepted items per call rise by 10% on the second half.",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/calibration.py records calibration events per verifier, extractor or route; routing.py routes by task shape and recorded authority. Forge P20c wants routing by measured results. Test, rule fixed before running: replay recorded worker outcomes (queue runs with pool and model) in time order; compare the fixed fallback chains against routing by calibrated success so far; adopt if accepted items per call rise by 10% on the second half. Checked by a separate agent 2026-11-21: only calibration.py fits (events per actor and task family, Wilson lower bound as a cap, lines 58-94); routing.py routes by task shape and graph size, not by recorded authority. Port the calibration registry only; it can replace the hand-kept qualification comments in router/pick.py and slots.py, and tier.py's known-answer controls can feed it.",
    "refs": [
     "queue P26",
     "https://github.com/5kasgard/Rabbithole/pull/1"
@@ -8442,7 +8442,7 @@
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/provenance.py: a derivation-aware graph (entities, activities, agents); revocation propagates to dependants. Forge: facts/register.json changes (P30, K11) and research cards resting on claims later refuted have no dependants list. Test, rule fixed before running: plant one changed fact and one refuted card claim; adopt if the graph flags exactly their dependants (no misses, at most one extra).",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/provenance.py: a derivation-aware graph (entities, activities, agents); revocation propagates to dependants. Forge: facts/register.json changes (P30, K11) and research cards resting on claims later refuted have no dependants list. Test, rule fixed before running: plant one changed fact and one refuted card claim; adopt if the graph flags exactly their dependants (no misses, at most one extra). Checked by a separate agent 2026-11-21: invalidate_cascade (provenance.py:119-170) is real. The Forge already lists dependants one level deep (facts/check.py:89, cited_by, free text); research cards have none. The port turns cited_by into a graph that reaches cards and decisions.",
    "refs": [
     "queue P26",
     "https://github.com/5kasgard/Rabbithole/pull/1"
@@ -8469,7 +8469,7 @@
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/experiment.py: multiple working hypotheses; candidate tests ranked by how well they separate them. Forge now runs experiments (experiments/README.md) and has 17+ experiment items. Test, rule fixed before running: on 5 past Forge decisions with recorded hypotheses (P5b, Q54 weakening, transfer step 1, rerank arm, queue_drift), would the planner have ranked the test actually run first or second; adopt if 4 of 5.",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/experiment.py: multiple working hypotheses; candidate tests ranked by how well they separate them. Forge now runs experiments (experiments/README.md) and has 17+ experiment items. Test, rule fixed before running: on 5 past Forge decisions with recorded hypotheses (P5b, Q54 weakening, transfer step 1, rerank arm, queue_drift), would the planner have ranked the test actually run first or second; adopt if 4 of 5. Checked by a separate agent 2026-11-21: ExperimentPlanner ranks by expected information gain (experiment.py:47-89) and helps only once items state their hypotheses and likelihoods, which they do not today. Do after experiment items carry hypotheses.",
    "refs": [
     "queue P26",
     "https://github.com/5kasgard/Rabbithole/pull/1"
@@ -8509,6 +8509,34 @@
     "worker/test_worker.py"
    ],
    "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26g",
+   "title": "Research claims count independent supporting sources (RabbitHole provenance.roots/independent; Gnomon independent_groups)",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "Found by the separate check of P26 (2026-11-21): research cards keep claims with no count of independent supporting sources; research_job.py has no corroboration logic and deduplicates by title only (lines 286-290). RabbitHole provenance.py:97-117 (roots, independent) and Gnomon ledger.rs:2873 (independent_groups) compute independence from shared roots. Test, rule fixed before running: on the landed cards, count independent roots per claim; adopt as a card field if at least 20% of claims rest on a single root that a second source repeats (the count then changes what a reader trusts).",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1",
+    "https://github.com/5kasgard/gnomon"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P7",
+    "P7d"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/",
+    "worker/research_job.py"
+   ],
+   "filed_at": "2026-11-20T22:01:46Z"
   }
  ],
  "batches": [
