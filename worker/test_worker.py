@@ -853,5 +853,18 @@ class RepoIndex(unittest.TestCase):
             self.assertEqual(RI.rank(ms, "see worker/other.py", 1)[0]["path"], "worker/other.py")   # a named path first
 
 
+
+class Classify(unittest.TestCase):
+    def test_controls_gate_and_mapping(self):
+        import classify as CL
+        items = [{"id": "A1", "title": "t", "next": "n"}]
+        n = len(CL.TYPES)
+        good = lambda pairs: ([0.9, 0.1] + [0.8 if k == 0 else 0.1 for k in range(n)], None)
+        r = CL.judge(items, good)
+        self.assertEqual(r["A1"][list(CL.TYPES)[0]], 0.8)
+        self.assertIsNone(CL.judge(items, lambda pairs: ([0.2, 0.1] + [0.9] * n, None)))   # control failed: nothing used
+        self.assertEqual(CL.todo({"items": [dict(items[0], status="open", work_types_key=CL.key(items[0]))]}, 5), [])
+
+
 if __name__ == "__main__":
     unittest.main()
