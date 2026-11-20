@@ -3014,7 +3014,7 @@
    "title": "Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting?",
    "kind": "test",
    "severity": "minor",
-   "status": "escalated",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -3023,11 +3023,12 @@
    "blocked_by": [],
    "next": "Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.",
    "research": {
-    "question": "Can prior-fitted networks such as TabPFN run on a CPU within minutes on datasets of about 30,000 rows, and how do their accuracy and inference cost compare with tuned gradient-boosted trees?",
+    "question": "What CPU inference times do TabPFN variants report for classification datasets of about 30,000 rows?",
     "queries": [
-     "TabPFN large datasets CPU inference",
-     "prior-fitted networks tabular classification scaling",
-     "TabPFN versus gradient boosting benchmark"
+     "TabPFN CPU runtime benchmark",
+     "TabPFN 30k rows inference time",
+     "TabPFN versus XGBoost runtime comparison",
+     "tabular foundation model CPU latency"
     ]
    },
    "touches": [
@@ -3096,6 +3097,22 @@
      "at": "2026-11-20T00:08:28Z",
      "lost_lease": false,
      "outcome": "no_claims"
+    },
+    {
+     "at": "2026-11-20T11:18:57Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: The sources are mostly off-topic or describe TabPFN's architecture and accuracy without reporting CPU timings at around 30,000 rows, so the compound question needs narrowing to a single measurable runtime claim before the accuracy and gradient-boosting comparison can be checked."
+    }
+   ],
+   "research_history": [
+    {
+     "question": "Can prior-fitted networks such as TabPFN run on a CPU within minutes on datasets of about 30,000 rows, and how do their accuracy and inference cost compare with tuned gradient-boosted trees?",
+     "queries": [
+      "TabPFN large datasets CPU inference",
+      "prior-fitted networks tabular classification scaling",
+      "TabPFN versus gradient boosting benchmark"
+     ]
     }
    ]
   },
