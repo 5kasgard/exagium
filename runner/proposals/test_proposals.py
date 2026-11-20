@@ -5,6 +5,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
 
+
+class DecideSwitch(unittest.TestCase):
+    def test_keep_switch_thresholds(self):
+        # 16/26 -> KEEP (Wilson lower bound ~0.425 > 0.4)
+        self.assertEqual(judge.decide_switch(16, 26), "KEEP")
+        # 0/20 -> SWITCH (lower bound 0)
+        self.assertEqual(judge.decide_switch(0, 20), "SWITCH")
+        # 0/0 -> SWITCH without dividing by zero
+        self.assertEqual(judge.decide_switch(0, 0), "SWITCH")
+
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
 

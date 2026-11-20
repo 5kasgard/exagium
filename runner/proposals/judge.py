@@ -6,6 +6,16 @@ floor's items). Beats a baseline: above label-linear by more than 2 paired SE.""
 import glob, json, math, os, sys
 
 
+def decide_switch(valid, total):
+    """Return 'KEEP' or 'SWITCH' per PLAN.md's Wilson-interval rule on the valid rate.
+    KEEP if the lower bound of the 95% Wilson interval exceeds 0.4; else SWITCH.
+    total == 0 -> SWITCH (no division by zero)."""
+    if total == 0:
+        return "SWITCH"
+    lo, _ = wilson(valid, total)
+    return "KEEP" if lo > 0.4 else "SWITCH"
+
+
 def paired(a, b):
     """mean and SE of the per-item difference a - b; the two must cover the same items (review 44486820706, 2)."""
     if len(a) != len(b) or not a:
@@ -86,10 +96,8 @@ def board(d):
     if pending:
         lines += [f"Not scored (scoring job failed; pending a rescore, not counted): {', '.join(pending)}.", ""]
     if n >= 20:
-        first = rs[:20]
-        kv = sum(r["valid"] for r in first)
-        lines += [f"First 20: {kv} valid -> {'KEEP the one-call proposer' if kv >= 2 else 'SWITCH to an agent harness'} "
-                  "(rule fixed in PLAN.md).", ""]
+        decision = decide_switch(k, n)
+        lines += [f"Valid rate {k}/{n} -> {decision} the one-call proposer (rule fixed in PLAN.md).", ""]
     lines += ["| proposal | task | extracted | reproduced | valid | dev accuracy | vs linear | Ir/item | ns/item | front |",
               "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rs:
