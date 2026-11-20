@@ -24,7 +24,8 @@ import datetime as dt, json, os, subprocess, sys
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
         "openrouter": {"calls": 500},
-        "openrouter_paid": {"calls": 100, "usd": 0.25}}   # owner 2026-11-20: paid fallbacks allowed, cost-effective, under a
+        "openrouter_paid": {"calls": 100, "usd": 0.25},
+        "anthropic": {"calls": 200, "usd": 0.30}}   # the owner's Claude API credit ($9.16 on 2026-11-20): $0.30 a day lasts a month   # owner 2026-11-20: paid fallbacks allowed, cost-effective, under a
 # daily dollar cap; the spec's third field is the estimate per call in thousandths of a dollar (openrouter_paid:2:5 = 2 calls
 # at $0.005); actual cost comes from OpenRouter's usage.cost, or the estimate when a reply carries none   # free models: the account has 1,000 a day (GET /api/v1/key, run or-key 2026-11-20:
 # is_free_tier false, free_model_daily_requests limit 1000; $10 credit, $0 spent). The old cap of 30 assumed 50 a day.

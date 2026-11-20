@@ -352,3 +352,14 @@ class Slots(unittest.TestCase):
         import ledger as LG
         self.assertIsNone(LG.headroom({}, LG.parse("openrouter_paid:2:5")))
         self.assertIsNotNone(LG.headroom({"openrouter_paid": {"calls": 1, "usd": 0.245}}, LG.parse("openrouter_paid:2:5")))
+
+
+class ClaudeCost(unittest.TestCase):
+    def test_prices(self):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "router"))
+        import engines
+        self.assertAlmostEqual(engines.claude_cost("claude-haiku-5-5", 10_000, 2_000), 0.002)
+        self.assertAlmostEqual(engines.claude_cost("claude-haiku-5-5", 200_000, 0), 0.1)   # over 100,000: five times
+        self.assertAlmostEqual(engines.claude_cost("claude-sonnet-5-5", 1_000_000, 100_000), 3.0)
+        with self.assertRaises(ValueError):
+            engines.anthropic_call("claude-unpriced", "hi")

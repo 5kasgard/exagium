@@ -55,7 +55,7 @@ OPENAI_COMPAT = {
 }
 # Also scrubbed: values that are not keys but are secrets in Actions and could appear in error text that is
 # committed to the public router-runs branch (account ID in Cloudflare URLs, private base URLs; audit Q52).
-SECRET_ENVS = ("OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "GEMINI_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "NARA_BASE_URL",
+SECRET_ENVS = ("CLAUDE_API_KEY", "OPENROUTER_API_KEY", "CLOUDFLARE_API_TOKEN", "GEMINI_API_KEY", "CLOUDFLARE_ACCOUNT_ID", "NARA_BASE_URL",
                "CROWLLM_BASE_URL") + tuple(v[1] for v in OPENAI_COMPAT.values())
 
 
@@ -157,6 +157,38 @@ def compat_call(name, model, prompt, max_tokens=64):
             "ok": text is not None, "status": st, "latency_s": round(time.time() - t0, 2), "usage": j.get("usage"),
             "finish": finish,
             "text": text, "limits": h, "error": None if text is not None else _scrub(j.get("_error") or json.dumps(j)[:600])})
+
+
+# Claude API on the owner's credit (CLAUDE_API_KEY, added 2026-11-20). USD per million tokens, from Anthropic's pricing
+# (reported 2026-11-20): Haiku 5.5 $0.10/$0.50 for prompts up to 100,000 tokens, $0.50/$2.50 above; Sonnet 5.5 $2/$10.
+# The cost is computed here from the usage the API returns and recorded as usage.cost, so the ledger's dollar cap binds.
+CLAUDE_PRICES = {"claude-haiku-5-5": ((0.10, 0.50), (0.50, 2.50)), "claude-sonnet-5-5": ((2.0, 10.0), (2.0, 10.0))}
+
+
+def claude_cost(model, inp, out):
+    short, long_ = CLAUDE_PRICES[model]
+    pi, po = short if inp <= 100_000 else long_
+    return round((inp * pi + out * po) / 1e6, 6)
+
+
+def anthropic_call(model, prompt, max_tokens=2000, system=None):
+    """One Messages API call. Only models with a known price are allowed, so every call's cost can be recorded."""
+    if model not in CLAUDE_PRICES:
+        raise ValueError(f"no price recorded for {model}: add it to CLAUDE_PRICES with its source first")
+    t0 = time.time()
+    body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]}
+    if system:
+        body["system"] = system
+    st, j = _post("https://api.anthropic.com/v1/messages", body,
+                  {"x-api-key": os.environ["CLAUDE_API_KEY"], "anthropic-version": "2023-06-01"})
+    text = "".join(b.get("text", "") for b in (j.get("content") or []) if b.get("type") == "text") if st == 200 else None
+    u = j.get("usage") or {}
+    inp, out = int(u.get("input_tokens") or 0), int(u.get("output_tokens") or 0)
+    usage = {"prompt_tokens": inp, "completion_tokens": out, "total_tokens": inp + out,
+             "cost": claude_cost(model, inp, out)} if st == 200 else {}
+    return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": "anthropic", "model": model,
+                      "ok": bool(text), "status": st, "latency_s": round(time.time() - t0, 2), "usage": usage,
+                      "text": text, "error": None if text else _scrub(j.get("_error") or json.dumps(j)[:600])})
 
 
 def _scrub(s):
