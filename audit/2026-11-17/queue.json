@@ -4591,7 +4591,7 @@
   },
   {
    "id": "P26",
-   "title": "Parts audit of gnomon, polymechania, mycel and axiom against the Forge's queue: what is proven, what to carry, what to leave",
+   "title": "Parts audit of gnomon, rabbithole, polymechania, mycel and axiom against the Forge's queue: what is proven, what to carry, what to leave",
    "kind": "test",
    "batch": "B9",
    "blocked_by": [],
@@ -4610,7 +4610,7 @@
     "skill: earned-parts-audit",
     "memory: owner's consolidation plan (carry knowledge, not debt)"
    ],
-   "next": "First read (Claude, 2026-11-19, unverified): gnomon -> P11/P7f/P21 store and recheck; mycel -> a bitmask-nuclei family for Q54, a Horowitz 45 nm energy model for P14, bit-flip fault tests, a parallel jobs.json runner; axiom -> Cloudflare Durable Object alarms + 1-minute cron watchdog at $0 (a scheduler if keeper.yml fails); polymechania -> routing by price and record, cascades, 'copies of one model count as one witness' (its own audits: apparatus large, no task run end to end). Method: one part card per mechanism with its evidence; every claim checked by a separate agent or free model; blind grouping against the Forge's open items; output: carry (knowledge or code, with the test that would earn it), leave, or retest. Free models do the card drafting; Claude integrates. Blind review 44518590882 (gpt-oss-120b, sources stripped): KEEP.",
+   "next": "First read (Claude, 2026-11-19, unverified): gnomon -> P11/P7f/P21 store and recheck; mycel -> a bitmask-nuclei family for Q54, a Horowitz 45 nm energy model for P14, bit-flip fault tests, a parallel jobs.json runner; axiom -> Cloudflare Durable Object alarms + 1-minute cron watchdog at $0 (a scheduler if keeper.yml fails); polymechania -> routing by price and record, cascades, 'copies of one model count as one witness' (its own audits: apparatus large, no task run end to end). Method: one part card per mechanism with its evidence; every claim checked by a separate agent or free model; blind grouping against the Forge's open items; output: carry (knowledge or code, with the test that would earn it), leave, or retest. Free models do the card drafting; Claude integrates. Blind review 44518590882 (gpt-oss-120b, sources stripped): KEEP. Added 2026-11-21 (owner): RabbitHole (5kasgard/Rabbithole; source only in PR #1's product-upload.zip, about 30k lines of Python). First mapping by Claude, unverified: P26a-P26f filed (source ledger, drift, calibration and routing, provenance and revocation, test planner, provider failures); BM25 ported and under test (experiments/retrieval_bm25.py). Interval and dimensional propagation (core.py, field.py) is an analogy to Q54's constraint-propagation family, not a port: numeric intervals, not boolean classifiers.",
    "severity": "minor",
    "status": "open",
    "needs": "free",
@@ -8353,6 +8353,162 @@
      "result": "decision model p=0.653; controls 0.997/0.002"
     }
    ]
+  },
+  {
+   "id": "P26a",
+   "title": "Port RabbitHole's per-source survival ledger (tether.py SourceLedger) for research source credibility (P7e)",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/tether.py SourceLedger keeps per-source survival counts across contacts; trust is read off the record. Forge P7e wants per-source credibility from track record. Test, rule fixed before running: from worker-runs research runs, score each source domain by kept/offered claims (the ledger's rule) on runs before a cut date; predict kept claims after it. Adopt if it beats source kind alone (paper/forum/Q&A) by 0.05 AUC; else record as not carried.",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P7e"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/",
+    "worker/research_job.py"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26b",
+   "title": "Port RabbitHole's drift monitor (drift.py DriftMonitor) for per-model drift probes (P20f)",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/drift.py (53 lines): a baseline per numeric feature and a shift report. Forge P20f wants silent model changes detected. Test, rule fixed before running: on ledger/calls.jsonl, baseline each (pool, model)'s ok-rate and latency on days 1-2, report days 3+; adopt if it flags NIM's retirement of gpt-oss-120b (HTTP 410, known) and no more than 1 false flag on models with no known change.",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P20f"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26c",
+   "title": "Port RabbitHole's calibration registry and heterogeneous router (calibration.py, routing.py) for routing by results (P20a, P20c)",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/calibration.py records calibration events per verifier, extractor or route; routing.py routes by task shape and recorded authority. Forge P20c wants routing by measured results. Test, rule fixed before running: replay recorded worker outcomes (queue runs with pool and model) in time order; compare the fixed fallback chains against routing by calibrated success so far; adopt if accepted items per call rise by 10% on the second half.",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P20a",
+    "P20c"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/",
+    "router/slots.py"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26d",
+   "title": "Port RabbitHole's provenance graph with revocation (provenance.py) so a changed fact or refuted claim flags what rests on it",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/provenance.py: a derivation-aware graph (entities, activities, agents); revocation propagates to dependants. Forge: facts/register.json changes (P30, K11) and research cards resting on claims later refuted have no dependants list. Test, rule fixed before running: plant one changed fact and one refuted card claim; adopt if the graph flags exactly their dependants (no misses, at most one extra).",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P30",
+    "P21"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/",
+    "facts/"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26e",
+   "title": "Port RabbitHole's discriminating-test planner (experiment.py) to choose which experiment to run first",
+   "kind": "test",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/experiment.py: multiple working hypotheses; candidate tests ranked by how well they separate them. Forge now runs experiments (experiments/README.md) and has 17+ experiment items. Test, rule fixed before running: on 5 past Forge decisions with recorded hypotheses (P5b, Q54 weakening, transfer step 1, rerank arm, queue_drift), would the planner have ranked the test actually run first or second; adopt if 4 of 5.",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P22"
+   ],
+   "batch": "B3",
+   "touches": [
+    "experiments/"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
+  },
+  {
+   "id": "P26f",
+   "title": "Research search keeps each provider's failure explicitly (RabbitHole search.py CompositeProvider)",
+   "kind": "fix",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "next": "RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/search.py CompositeProvider runs independent providers and keeps provider failures as records, not silence. Forge worker/research_job.py queries OpenAlex, arXiv, Semantic Scholar and others; check whether a provider's failure is recorded in the run, and if not, record it (provider, status, error) in the run's search.json, with a test.",
+   "refs": [
+    "queue P26",
+    "https://github.com/5kasgard/Rabbithole/pull/1"
+   ],
+   "blocked_by": [],
+   "informs": [
+    "P7"
+   ],
+   "batch": "B3",
+   "touches": [
+    "worker/research_job.py",
+    "worker/test_worker.py"
+   ],
+   "filed_at": "2026-11-20T21:59:53Z"
   }
  ],
  "batches": [
