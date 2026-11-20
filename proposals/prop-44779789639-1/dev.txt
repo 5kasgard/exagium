@@ -1,0 +1,18 @@
+FAILED: prop-44779789639-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 150, in <module>
+    main()
+  File "/w/train.py", line 125, in main
+    params = train_model(X_train, y_train, d, C, E, H, epochs, rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 78, in train_model
+    grads = loss_and_grad(X_batch, y_batch)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 49, in loss_and_grad
+    x_emb, h, h_relu, logits = forward(X_batch)
+                               ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 41, in forward
+    x_emb = emb[np.arange(d), X_batch.T].transpose(1, 0, 2).reshape(batch, d * E)
+            ~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (64,) (64,53) 
+
