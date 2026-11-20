@@ -6700,7 +6700,7 @@
    "id": "G2",
    "title": "F015: The Gemini-20261120b response claims all five fixes were 'each reproduced first with a test', but the GeminiRe",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "review",
    "review": "glm-20261120:F015",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -6713,7 +6713,7 @@
    "touches": [
     "worker/test_worker.py"
    ],
-   "next": "Fix review finding glm-20261120:F015 (test-gap, medium). Claim: The Gemini-20261120b response claims all five fixes were 'each reproduced first with a test', but the GeminiReview20261120 class contains only test_f010, test_f009 and test_f002 - the F011 (per-call paid argument) and F012 (EST_MILLI_USD removal) fixes have no reproduction test. Evidence at worker/test_worker.py lines [541, 543]: class GeminiReview20261120(unittest.TestCase):\n    \"\"\"Reproductions of the Gemini review findings fixed on 2026-11-20 (F009-F012, F002).\"\"\"\n    def test_f010_paths_and_overlap(self): Proposed fix: Add the two missing reproduction tests (paid refusal without allow_paid; no EST_MILLI_USD reference remains) to GeminiReview20261120. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else.",
+   "next": "Fix review finding glm-20261120:F015 (test-gap, medium). Claim: The Gemini-20261120b response claims all five fixes were 'each reproduced first with a test', but the GeminiReview20261120 class contains only test_f010, test_f009 and test_f002 - the F011 (per-call paid argument) and F012 (EST_MILLI_USD removal) fixes have no reproduction test. Evidence at worker/test_worker.py lines [541, 543]: class GeminiReview20261120(unittest.TestCase):\n    \"\"\"Reproductions of the Gemini review findings fixed on 2026-11-20 (F009-F012, F002).\"\"\"\n    def test_f010_paths_and_overlap(self): Proposed fix: Add the two missing reproduction tests (paid refusal without allow_paid; no EST_MILLI_USD reference remains) to GeminiReview20261120. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change breaks the existing test_f010 implementation, adds undefined imports (os, inspect, sys), and inserts code at class scope that will execute unintentionally, violating the request to keep existing behaviour unchanged.. Do the whole item, with a test.",
    "refs": [
     "audit/reviews/glm-20261120/findings.jsonl",
     "worker/intake_review.py"
@@ -6750,6 +6750,12 @@
      "at": "2026-11-20T21:03:19Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-20T21:47:44Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change breaks the existing test_f010 implementation, adds undefined imports (os, inspect, sys), and inserts code at class scope that will execute unintentionally, violating the request to keep existing behaviour unchanged."
     }
    ]
   },
