@@ -28,6 +28,51 @@ PROPOSER = "particle-ai/particle-1:free"      # P31: 30/30 twice on the known-an
 DECIDER = "perplexity/pplx-decider-v1.3:free"  # P31: checker trial 6/6 twice; another family than the proposer
 MAX_PER_DAY = 3
 KINDS = ("build", "test", "fix")
+
+# Per-(pool, model) worker card limits. Each entry has max_input_chars, max_output_tokens, and source.
+# Pool is the engine name (e.g., "openrouter"). Source cites the evidence for the limits.
+WORKER_CARDS = {
+    ("openrouter", "nvidia/nemotron-3-ultra"): {
+        "max_input_chars": 128000,
+        "max_output_tokens": 16000,
+        "source": "2026-11-19 P5 evidence",
+    },
+    ("openrouter", "particle-ai/particle-1:free"): {
+        "max_input_chars": 8000,
+        "max_output_tokens": 1500,
+        "source": "default free tier",
+    },
+    ("openrouter", "perplexity/pplx-decider-v1.3:free"): {
+        "max_input_chars": 8000,
+        "max_output_tokens": 500,
+        "source": "default free tier",
+    },
+}
+
+
+def _card_limits(pool, model):
+    """Return (max_input_chars, max_output_tokens, source) for the given pool/model, or defaults."""
+    return WORKER_CARDS.get((pool, model), {"max_input_chars": 8000, "max_output_tokens": 1500, "source": "default"})
+
+
+def _check_prompt_size(prompt, pool, model):
+    """Estimate prompt size and refuse if it exceeds the card's max_input_chars.
+    Returns (ok, error_dict_or_None). error_dict has keys: error, max_input_chars, actual_chars, source."""
+    max_in, max_out, src = _card_limits(pool, model).values()
+    # Rough char count of the full prompt (all messages concatenated)
+    if isinstance(prompt, list):
+        text = " ".join(m.get("content", "") for m in prompt if isinstance(m, dict))
+    else:
+        text = str(prompt)
+    actual = len(text)
+    if actual > max_in:
+        return False, {
+            "error": f"prompt exceeds max_input_chars for {pool}/{model}",
+            "max_input_chars": max_in,
+            "actual_chars": actual,
+            "source": src,
+        }
+    return True, None
 # Known-answer controls, frozen text (first live gate, 2026-11-20 10:52Z: a control built from live queue text scored
 # 0.42 because P5's next step had moved on since R5 was filed; the drafts scored 0.96-0.99, the off-topic pair 0.005)
 CONTROL_ITEM = ("Rank model families on tabular data by accuracy and cost",
@@ -94,6 +139,12 @@ ASK_RESEARCH = ("Pair {k}: would published research that answers its QUESTION di
 def decide(pairs, calls, ask=ASK_RESEARCH, label="QUESTION"):
     """One Decisions API request: one yes/no question per (candidate, item title, item next) pair. Returns p per pair."""
     state = "\n\n".join(f"PAIR {k}:\n{label}: {qq}\nITEM: {t}\nNEXT STEP: {nx[:600]}" for k, (qq, t, nx) in enumerate(pairs))
+    # Pre-call size check for the Decider model
+    ok, err = _check_prompt_size(state, "openrouter", DECIDER)
+    if not ok:
+        calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": DECIDER,
+                      "ok": False, "status": 413, "latency_s": 0.0, "usage": {}, "error": err["error"]})
+        return None, err["error"]
     body = {"model": DECIDER, "state": state,
             "questions": {f"p{k}": {"type": "noul", "instructions": ask.format(k=k)} for k in range(len(pairs))}}
     req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",
@@ -179,7 +230,15 @@ def run(wt, out, draft_fn=None, decide_fn=None):
         engines.TIMEOUT = 300
 
         def draft_fn(prompt):
-            r = engines.call("openrouter", PROPOSER, prompt, max_tokens=1500)
+            # Pre-call size check for the Proposer model
+            ok, err = _check_prompt_size(prompt, "openrouter", PROPOSER)
+            if not ok:
+                calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": PROPOSER,
+                              "ok": False, "status": 413, "latency_s": 0.0, "usage": {}, "error": err["error"]})
+                return None
+            # Use the card's max_output_tokens instead of hard-coded value
+            _, max_out, _ = _card_limits("openrouter", PROPOSER).values()
+            r = engines.call("openrouter", PROPOSER, prompt, max_tokens=max_out)
             calls.append({k: r.get(k) for k in ("t", "engine", "model", "ok", "status", "latency_s", "usage", "error")})
             m = re.search(r"\{.*\}", r.get("text") or "", re.S)
             try:
