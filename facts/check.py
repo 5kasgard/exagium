@@ -25,14 +25,7 @@ def field(d, path):
 def probe(p):
     k = p["kind"]
     if k == "sha256_url":
-        try:
-            data = get(p["url"])
-        except Exception as e:   # the hash is the fact; transport trust is a separate fact (tls_valid)
-            if not isinstance(getattr(e, "reason", None), ssl.SSLCertVerificationError):
-                raise
-            with urllib.request.urlopen(p["url"], timeout=TIMEOUT, context=ssl._create_unverified_context()) as r:
-                data = r.read()
-        return hashlib.sha256(data).hexdigest()
+        return hashlib.sha256(get(p["url"])).hexdigest()
     if k == "tls_valid":
         try:
             with socket.create_connection((p["host"], 443), timeout=TIMEOUT) as s, \
