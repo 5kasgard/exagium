@@ -131,7 +131,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | D26 | B3 |  | minor | medium | fix | Failed run, unknown: .github/workflows/tier.yml:unknown | Filed by worker/diagnose.py from run 44739347561 (.github/workflows/tier.yml). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44739347561 |
 | D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
 
-## Needs the owner (9)
+## Needs the owner (8)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -143,9 +143,8 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R22 | B9 |  | minor | high | test | How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve depen | Worker job (research): literature card for P21. Why: It directly informs the next step's need for typed link semantics, cycle resolution, and downstream recheck behavior in a manipulable dependency web. | queue P21; queue P27 (generator) |
 | R4 | B7 |  | minor | high | test | Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting? | Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P3 |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
-| K10 | B3 |  | minor | low | fix | Run valgrind under limits.c in confine mode | In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass. | queue Q62; worker/split.py |
 
-## Parked (23)
+## Parked (24)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -164,6 +163,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q21 |  |  | minor | medium | fix | OpenRouter allowance guard fails open when the allowance cannot be read | Parked 2026-11-18: the allowance guard lives only in bench3/4/5.yml (grep on main), and those benches are complete and run only by hand, so it has no live effect. Fix with Q01-Q03 before any new bench run; P4 (spend caps in router/engines.py) covers live calls. Fail closed (skip the batch) when the allowance read fails | E E-10 |
 | Q26 |  |  | minor | medium | decision | Copy-by-directory duplication: 5.6% of function lines on main, 29% on the pilot branch (controls ~0%) | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Hypothesis for the next plan: new candidates as one train.py + config; registered plans keep frozen copies (C F1, F16). Test it in that plan. | C F1, F16; S2 confirmed |
 | Q31 |  |  | minor | medium | decision | Frozen digests fork history: a fix to record.py/count.py forces old-commit re-measurement | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided for the next plan: version frozen tools separately, a tools tag per plan (C F12). | C F12 |
+| K10 | B3 |  | minor | low | fix | Run valgrind under limits.c in confine mode | In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass. | queue Q62; worker/split.py |
 | Q17 |  |  | minor | low | fix | bench3/4 MODE free text: a typo falls through to a counted run | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry MODE validation into the next bench design. | B F6 |
 | Q23 |  |  | minor | low | fix | Stalled bench4 attempts run to the 35-min cap with <=25 calls | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry an idle timeout into the next bench design. | E E-09 |
 | Q27 |  |  | none | low | decision | Three decide.py copies (deliberate: frozen per registration; known 11-13) | Revisit only with a shared, versioned rules module | C F2; repo-audit-2026-11-13 (known) |
