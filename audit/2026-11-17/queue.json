@@ -7491,6 +7491,41 @@
      "result": "decision model p=0.834; controls 0.996/0.003"
     }
    ]
+  },
+  {
+   "id": "K16",
+   "title": "Wider k grid for kNN and tree candidates",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P3",
+   "generated_at": "2026-11-20T21:34:54Z",
+   "code": {
+    "files": [
+     "runner/candidates/label-knn/train.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [
+     "runner/candidates/label-gbdt/train.py",
+     "runner/results/2026-11-19-p3-step1/decide.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/candidates/label-knn/train.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In runner/candidates/label-knn/train.py widen the k grid beyond its current upper edge of 15 (for example to 1, 3, 5, 9, 15, 25, 41, 61) so the best k selected on the tuning split is no longer pinned at the grid edge on text and adult. Keep selection on the tuning split only. In runner/test_runner.py add a test that the grid contains values above 15 and that the selected k is taken from the tuning split, not the test split.",
+   "refs": [
+    "queue P3",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B1"
   }
  ],
  "batches": [

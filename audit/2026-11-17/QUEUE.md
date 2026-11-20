@@ -205,6 +205,12 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
                  "log_tokens": math.log10(tok) if tok else None, "calls": float(calls) if calls else None}) Proposed fix: Keep calls == 0 as 0.0 (only None excludes a row): change 'float(calls) if calls is not None else None'. Add a test in router/test_router.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| K16 | B1 |  | minor | high | fix | Wider k grid for kNN and tree candidates | In runner/candidates/label-knn/train.py widen the k grid beyond its current upper edge of 15 (for example to 1, 3, 5, 9, 15, 25, 41, 61) so the best k selected on the tuning split is no longer pinned at the grid edge on text and adult. Keep selection on the tuning split only. In runner/test_runner.py add a test that the grid contains values above 15 and that the selected k is taken from the tuning split, not the test split. | queue P3; worker/split.py |
+
 ## Parked (25)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
