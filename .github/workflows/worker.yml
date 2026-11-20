@@ -333,6 +333,7 @@ jobs:
           [ -s "$RUNNER_TEMP/gen/calls.jsonl" ] && python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "gen-$GITHUB_RUN_ID" "$RUNNER_TEMP/gen/calls.jsonl" || true
           n=$(python3 -c "import json;print(sum(o=='accept' for _,o in json.load(open('$RUNNER_TEMP/gen/generate.json')).get('moved',[])))" 2>/dev/null || echo 0)
           echo "accepted=$n" >> "$GITHUB_OUTPUT"; echo "generator exit $rc, accepted $n"
+          cat "$RUNNER_TEMP/gen/generate.json" 2>/dev/null | head -c 6000   # drafts, gate probabilities and controls, for the record
       - name: wait 30 minutes, then start the worker unless paused or already started
         run: |
           [ "${{ steps.gen.outputs.accepted }}" -gt 0 ] 2>/dev/null && echo "new items accepted: starting the worker now" || sleep 1800
