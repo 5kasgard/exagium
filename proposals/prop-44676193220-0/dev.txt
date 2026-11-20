@@ -1,0 +1,16 @@
+FAILED: prop-44676193220-0 on adult: train.py exited 1:
+/w/train.py:66: RuntimeWarning: invalid value encountered in divide
+  left_gini = 1.0 - np.sum((total_left / left_sum[:, None]) ** 2, axis=1)
+/w/train.py:67: RuntimeWarning: invalid value encountered in divide
+  right_gini = 1.0 - np.sum((total_right / right_sum[:, None]) ** 2, axis=1)
+Traceback (most recent call last):
+  File "/w/train.py", line 180, in <module>
+    main()
+  File "/w/train.py", line 175, in main
+    weights = serialize_tree(final_tree, d)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 115, in serialize_tree
+    node._idx = idx
+    ^^^^^^^^^
+AttributeError: 'Node' object has no attribute '_idx'
+
