@@ -1252,8 +1252,7 @@
     "project doc claude/HANDOFF-transfer-step1.md (P1 verdict: rankings differ; LGN lead did not carry over)",
     "Q37 (citation error found by audit)",
     "skills: paper-research, tiered-source-research, adversarial-review D2/D3"
-   ],
-   "split_tried": "2026-11-20T12:43:31Z"
+   ]
   },
   {
    "id": "P8",
@@ -1281,8 +1280,7 @@
     "skills: agent-orchestration (claims), one-queue",
     "bench2-results, HANDOFF-bench5-nim (free-model pass rates)",
     "P5 design in project doc claude/forge-next-item-2026-11-18.md"
-   ],
-   "split_tried": "2026-11-20T12:43:31Z"
+   ]
   },
   {
    "id": "P9",
@@ -1330,8 +1328,7 @@
     "audit/2026-11-17/README.md, S2-verification.md, S4-final-review.md (this branch)",
     "README.md 'What this is for' on main",
     "skills: adversarial-review, one-queue"
-   ],
-   "split_tried": "2026-11-20T12:41:07Z"
+   ]
   },
   {
    "id": "Q56",
@@ -1801,8 +1798,7 @@
    "origin": "new",
    "informs": [
     "P21"
-   ],
-   "split_tried": "2026-11-20T12:41:07Z"
+   ]
   },
   {
    "kind": "build",
@@ -3595,8 +3591,7 @@
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "origin": "new",
-   "split_tried": "2026-11-20T12:41:07Z"
+   "origin": "new"
   },
   {
    "id": "P22",
@@ -4992,8 +4987,7 @@
     "owner 2026-11-20: stale answers to facts that change waste compute; start from a better point; we won't know if it pays till we try",
     "2026-11-19/20 record: UCI TLS certificate expired (3 proposals unscored); Gemini models 404/503 and Gemma 429 in review.yml; Ubuntu mirror 503; OpenRouter free list and benchmark licences re-looked-up by hand"
    ],
-   "next": "Hypothesis: facts that change (a model's availability on a free pool, a free-tier limit, a dataset's certificate and hash, a licence, a benchmark's contamination status) are re-derived by hand or break runs; a register checked by script catches the change first. Build: facts/register.json, one entry per fact (value, source, checked_at, recheck_after, probe: a script command, mechanical only); facts.yml runs the due probes daily on free Actions with no model call; same value -> pass, ends; changed value -> a failure outcome that escalates through worker/transitions.py and lists the items, workflows and cards that cite the fact (links with P21/R18). Facts with no API go to P7f's scan-then-drill instead. TEST, rule fixed now: register the 10 facts that broke or cost work on 2026-11-19/20; probe daily for 14 days; count changes caught before they broke a run versus breaks the register missed. Keep and widen if it catches at least 2 changes before a break, or any break it would have prevented that cost a rescore or a diagnosis; otherwise stop at the probes that already exist (router pool probes, search-probe). Blind review 44619592473 (gpt-oss-120b; ERNIE 5.5 Flash; sources stripped): KEEP and MERGE; both said data called for it. ACCEPTED, MERGE: no new job; the register (facts/register.json with each fact's dependants) is checked by the existing daily probe jobs (router pool probes, search-probe), extended. ACCEPTED: scan-then-drill for facts with no API is out of the first version. ACCEPTED (ERNIE's fix to the test): count only changes to facts that a run, workflow or card in the register's dependency list cites; keep if at least 2 such changes are caught before they break anything; log changes to uncited facts separately as noise. REJECTED: gpt-oss's 'keep at 1 prevented break' (one event over 14 days cannot separate a working register from luck). v1 LIVE 2026-11-19 21:40Z (main 94cc910): facts/register.json (8 cited facts: UCI hashes and TLS, 3 OpenRouter free models, 2 benchmark licences), facts/check.py (script probes, no model; offline tests in CI), run by the worker's idle job; status on worker-runs facts/status.json; first Actions check: 8 same. Test window: 14 days from 2026-11-20. Keyed facts (Groq, NIM, Cloudflare model availability) are not yet registered: they need the probe job's keys.",
-   "split_tried": "2026-11-20T12:43:31Z"
+   "next": "Hypothesis: facts that change (a model's availability on a free pool, a free-tier limit, a dataset's certificate and hash, a licence, a benchmark's contamination status) are re-derived by hand or break runs; a register checked by script catches the change first. Build: facts/register.json, one entry per fact (value, source, checked_at, recheck_after, probe: a script command, mechanical only); facts.yml runs the due probes daily on free Actions with no model call; same value -> pass, ends; changed value -> a failure outcome that escalates through worker/transitions.py and lists the items, workflows and cards that cite the fact (links with P21/R18). Facts with no API go to P7f's scan-then-drill instead. TEST, rule fixed now: register the 10 facts that broke or cost work on 2026-11-19/20; probe daily for 14 days; count changes caught before they broke a run versus breaks the register missed. Keep and widen if it catches at least 2 changes before a break, or any break it would have prevented that cost a rescore or a diagnosis; otherwise stop at the probes that already exist (router pool probes, search-probe). Blind review 44619592473 (gpt-oss-120b; ERNIE 5.5 Flash; sources stripped): KEEP and MERGE; both said data called for it. ACCEPTED, MERGE: no new job; the register (facts/register.json with each fact's dependants) is checked by the existing daily probe jobs (router pool probes, search-probe), extended. ACCEPTED: scan-then-drill for facts with no API is out of the first version. ACCEPTED (ERNIE's fix to the test): count only changes to facts that a run, workflow or card in the register's dependency list cites; keep if at least 2 such changes are caught before they break anything; log changes to uncited facts separately as noise. REJECTED: gpt-oss's 'keep at 1 prevented break' (one event over 14 days cannot separate a working register from luck). v1 LIVE 2026-11-19 21:40Z (main 94cc910): facts/register.json (8 cited facts: UCI hashes and TLS, 3 OpenRouter free models, 2 benchmark licences), facts/check.py (script probes, no model; offline tests in CI), run by the worker's idle job; status on worker-runs facts/status.json; first Actions check: 8 same. Test window: 14 days from 2026-11-20. Keyed facts (Groq, NIM, Cloudflare model availability) are not yet registered: they need the probe job's keys."
   },
   {
    "severity": "minor",
@@ -6794,6 +6788,36 @@
    "refs": [
     "audit/reviews/glm-20261120/findings.jsonl",
     "worker/intake_review.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "G23",
+   "title": "Leaderboard counts distinct designs: hash each proposal's train.py and infer.c pair and report duplicates",
+   "kind": "fix",
+   "status": "open",
+   "origin": "review",
+   "review": "analysis-20261120:R5",
+   "filed_at": "2026-11-20T20:49:40Z",
+   "code": {
+    "files": [
+     "runner/proposals/judge.py"
+    ],
+    "test": "runner/proposals/test_proposals.py"
+   },
+   "touches": [
+    "runner/proposals/judge.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "next": "GLM's analysis report (recommendation 5): the board counts identical designs more than once, so its diversity numbers overstate how many distinct designs the proposer makes. In judge.py board(), compute sha256 over the bytes of each proposal folder's train.py followed by infer.c when both exist, and add one summary line 'Distinct designs: N (of M valid)' and a 'dup of' column naming the first proposal with the same hash. Do not change validity or ranking. Add a test with three folders, two identical, that expects 'Distinct designs: 2'.",
+   "refs": [
+    "exagium-analysis-report (project files), Assessment and Recommendations, 5",
+    "runner/proposals/judge.py"
    ],
    "severity": "minor",
    "needs": "free",
