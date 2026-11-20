@@ -136,7 +136,9 @@ def timed(c, inp, n, timer, cpu):
 
 
 def count(c, inp, n, outdir):
-    """Counter record for one jailed run (loop.count's pattern with record files): returns Ir."""
+    """Counter record for one jailed run (loop.count's pattern with record files): returns (Ir, stdout sha256).
+    Only exit 0 is a clean count: count.py exits 1 when reps differ, stdout differs between reps, or the program
+    issued client requests that could switch counting off (GLM F051)."""
     os.makedirs(outdir, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="exagium-rcnt-") as tool:
         for src, name in ((c["exe"], "infer"), (c["weights_path"], "weights.bin"), (L.COUNT, "count.py"), (inp, "in.rec")):
@@ -154,7 +156,7 @@ def count(c, inp, n, outdir):
             r = J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process",
                         *J.counter_confine("/tool"), *tail],
                        [(tool, "/tool", False)], 3600, cwd="/tmp", seccomp=False)
-    if r.returncode not in (0, 1) or r.stdout.count(b"\n") != 1:
+    if r.returncode != 0 or r.stdout.count(b"\n") != 1:
         raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")
     rec = json.loads(r.stdout)
     body = {k: v for k, v in rec.items() if k != "digest_sha256"}
@@ -162,12 +164,14 @@ def count(c, inp, n, outdir):
         raise Failed(f"{c['name']}: counter record digest does not match")
     with open(os.path.join(outdir, f"{c['name']}-n{n}-{rec['digest_sha256'][:16]}.json"), "wb") as f:
         f.write(r.stdout)
-    return rec["reps"][0]["counts"]["Ir"], r.returncode
+    return rec["reps"][0]["counts"]["Ir"], rec["reps"][0]["stdout_sha256"]
 
 
-def check(t, split, out):
-    """Score the candidate's output bytes with the task's checker: per-item dicts."""
+def check(t, split, out, inp=None, key=None):
+    """Score the candidate's output bytes with the task's checker: per-item dicts. inp/key override the split's files."""
     n = t["card"]["items"][split]
+    inp = inp or os.path.join(t["dir"], f"{split}.in")
+    key = key or os.path.join(t["dir"], f"{split}.key")
     try:
         records.unpack(out, max_len=t["card"]["output"]["max_len"], count=n)
     except ValueError as e:
@@ -175,8 +179,7 @@ def check(t, split, out):
     with tempfile.NamedTemporaryFile(prefix="exagium-out-", delete=False) as f:
         f.write(out)
     try:
-        r = subprocess.run([sys.executable, "-I", t["checker"], os.path.join(t["dir"], f"{split}.in"),
-                            os.path.join(t["dir"], f"{split}.key"), f.name], capture_output=True, text=True, timeout=3600)
+        r = subprocess.run([sys.executable, "-I", t["checker"], inp, key, f.name], capture_output=True, text=True, timeout=3600)
     finally:
         os.unlink(f.name)
     if r.returncode:
@@ -194,6 +197,8 @@ def mean_se(xs):
 
 def prepare(a):
     t = task(a.task, a.data)
+    if len(set(a.cand)) != len(a.cand):   # F057: a repeated name would silently overwrite its result
+        raise Failed("candidate names must be unique")
     cs = [cand(x) for x in a.cand]
     return t, cs
 
@@ -230,52 +235,86 @@ def cmd_evaluate(a):
     elif a.split != "dev":
         raise Failed("--split must be dev or test")
     work = tempfile.mkdtemp(prefix="exagium-runner-")
-    timer = os.path.join(work, "timer")
-    L.build(L.TIMER, timer)
-    cpu = sorted(os.sched_getaffinity(0))[-1]
-    inp = os.path.join(t["dir"], f"{a.split}.in")
-    empty = os.path.join(work, "empty.rec")
-    open(empty, "wb").close()
-    n = card["items"][a.split]
-    res = {}
-    for c in cs:
-        w = train(c, t)
-        if plan and train(c, t) != w:
-            raise Failed(f"{c['name']}: training does not reproduce byte for byte; the test gate refuses")
-        c["weights_path"] = os.path.join(work, f"{c['name']}.weights")
-        open(c["weights_path"], "wb").write(w)
-        c["exe"] = os.path.join(work, f"{c['name']}.infer")
-        J.compile_candidate(os.path.join(c["dir"], "infer.c"), c["exe"])   # Q56: never compile candidate code on the host
-        out, _ = timed(c, inp, n, timer, cpu)
-        items = check(t, a.split, out)
-        rec_dir = a.records or os.path.join(work, "records")
-        ir_n, rc_n = count(c, inp, n, rec_dir)
-        ir_0, rc_0 = count(c, empty, 0, rec_dir)
-        res[c["name"]] = dict(weights_sha256=hashlib.sha256(w).hexdigest(), weights_bytes=len(w),
-                              code={f: sha_file(os.path.join(c["dir"], f)) for f in CODE},
-                              items=items, output_b64=base64.b64encode(out).decode(),
-                              ir_n=ir_n, ir_0=ir_0, ir_per_item=(ir_n - ir_0) / n,
-                              counter_exit=[rc_n, rc_0], ns_n=[], ns_0=[])
-    rng = random.Random(a.seed)
-    order = list(cs)
-    for _ in range(a.rounds):
-        rng.shuffle(order)
-        for c in order:
-            o, ns = timed(c, inp, n, timer, cpu)
-            if o != base64.b64decode(res[c["name"]]["output_b64"]):
-                raise Failed(f"{c['name']}: output differs between runs")
-            res[c["name"]]["ns_n"].append(ns)
-            res[c["name"]]["ns_0"].append(timed(c, empty, 0, timer, cpu)[1])
-    floor = statistics.fmean(x["score"] for x in res[card["floor"]]["items"])
-    for name, r in res.items():
-        r["mean"], r["se"] = mean_se([x["score"] for x in r["items"]])
-        r["above_floor"] = r["mean"] > floor if name != card["floor"] else None
-        r["ns_per_item"] = statistics.fmean((x - y) / n for x, y in zip(r["ns_n"], r["ns_0"]))
-    out = dict(task=t["name"], split=a.split, n=n, metric=card["metric"], floor=dict(baseline=card["floor"], mean=floor),
-               plan=plan, jail=jail, host=L.versions(), rounds=a.rounds, seed=a.seed,
-               run_id=os.environ.get("GITHUB_RUN_ID", ""), digests=digests(t, cs), candidates=res)
-    json.dump(out, open(a.out, "w"), indent=1, sort_keys=True)
-    shutil.rmtree(work, ignore_errors=True)
+    try:
+        timer = os.path.join(work, "timer")
+        L.build(L.TIMER, timer)
+        cpu = sorted(os.sched_getaffinity(0))[-1]
+        inp = os.path.join(t["dir"], f"{a.split}.in")
+        empty = os.path.join(work, "empty.rec")
+        open(empty, "wb").close()
+        n = card["items"][a.split]
+        res = {}
+        for c in cs:
+            w = train(c, t)
+            if plan and train(c, t) != w:
+                raise Failed(f"{c['name']}: training does not reproduce byte for byte; the test gate refuses")
+            c["weights_path"] = os.path.join(work, f"{c['name']}.weights")
+            open(c["weights_path"], "wb").write(w)
+            c["exe"] = os.path.join(work, f"{c['name']}.infer")
+            J.compile_candidate(os.path.join(c["dir"], "infer.c"), c["exe"])   # Q56: never compile candidate code on the host
+            out, _ = timed(c, inp, n, timer, cpu)
+            items = check(t, a.split, out)
+            out0, _ = timed(c, empty, 0, timer, cpu)
+            if out0 != b"":   # F053: with no items there is nothing to answer
+                raise Failed(f"{c['name']}: with N = 0 it must write no records (wrote {len(out0)} bytes)")
+            rec_dir = a.records or os.path.join(work, "records")
+            ir_n, sha_n = count(c, inp, n, rec_dir)
+            ir_0, sha_0 = count(c, empty, 0, rec_dir)
+            # F052: the counted run must be the run that was scored, else the instruction count measures another program
+            if sha_n != hashlib.sha256(out).hexdigest() or sha_0 != hashlib.sha256(out0).hexdigest():
+                raise Failed(f"{c['name']}: output under the counter differs from the native output")
+            res[c["name"]] = dict(weights_sha256=hashlib.sha256(w).hexdigest(), weights_bytes=len(w),
+                                  code={f: sha_file(os.path.join(c["dir"], f)) for f in CODE},
+                                  items=items, output_b64=base64.b64encode(out).decode(),
+                                  ir_n=ir_n, ir_0=ir_0, ir_per_item=(ir_n - ir_0) / n,
+                                  counter_exit=[0, 0], ns_n=[], ns_0=[])
+        rng = random.Random(a.seed)
+        order = list(cs)
+        rows = records.read(inp)
+        keys = records.read(os.path.join(t["dir"], f"{a.split}.key"))
+        perm_in, perm_key = os.path.join(work, "perm.rec"), os.path.join(work, "perm.key")
+        base = {c["name"]: records.unpack(base64.b64decode(res[c["name"]]["output_b64"])) for c in cs}
+        for _ in range(a.rounds):
+            rng.shuffle(order)
+            # F053: every timed run sees the items in a fresh order, and each item's answer must not change, so a
+            # candidate can't recognise the fixed input file and replay stored answers (loop.py's permuted rows)
+            perm = rng.sample(range(n), n)
+            records.write(perm_in, [rows[i] for i in perm])
+            records.write(perm_key, [keys[i] for i in perm])
+            for c in order:
+                o, ns = timed(c, perm_in, n, timer, cpu)
+                try:
+                    got = records.unpack(o, count=n)
+                except ValueError as e:
+                    raise Failed(f"{c['name']}: a timing run's output is malformed: {e}")
+                if got != [base[c["name"]][i] for i in perm]:
+                    # A verifier-scored task may take a different valid answer (walksat seeds by position); what
+                    # must not change is each item's score. A label task's answer is its score, so this covers both.
+                    sc = [x["score"] for x in check(t, a.split, o, perm_in, perm_key)]
+                    if sc != [res[c["name"]]["items"][i]["score"] for i in perm]:
+                        raise Failed(f"{c['name']}: with the items reordered its per-item scores change")
+                    res[c["name"]]["reordered_answers_differ"] = True
+                res[c["name"]]["ns_n"].append(ns)
+                res[c["name"]]["ns_0"].append(timed(c, empty, 0, timer, cpu)[1])
+        floor = statistics.fmean(x["score"] for x in res[card["floor"]]["items"])
+        for name, r in res.items():
+            r["mean"], r["se"] = mean_se([x["score"] for x in r["items"]])
+            r["above_floor"] = r["mean"] > floor if name != card["floor"] else None
+            r["ns_per_item"] = statistics.fmean((x - y) / n for x, y in zip(r["ns_n"], r["ns_0"]))
+            r["ns_per_ir"] = statistics.fmean(r["ns_n"]) / r["ir_n"]
+        # F053, reported not enforced: in runner results so far honest trivial baselines (majority, sat-zeros) reach
+        # 20-46x the lowest candidate's native ns per counted instruction (startup dominates), so loop.py's band of 30
+        # would refuse honest runs. Flag it for a reader; decide on a gate once flagged runs exist.
+        low = min(r["ns_per_ir"] for r in res.values())
+        for r in res.values():
+            r["ns_per_ir_vs_lowest"] = r["ns_per_ir"] / low
+            r["ratio_flag"] = r["ns_per_ir_vs_lowest"] > L.RATIO_BAND
+        out = dict(task=t["name"], split=a.split, n=n, metric=card["metric"], floor=dict(baseline=card["floor"], mean=floor),
+                   plan=plan, jail=jail, host=L.versions(), rounds=a.rounds, seed=a.seed,
+                   run_id=os.environ.get("GITHUB_RUN_ID", ""), digests=digests(t, cs), candidates=res)
+        json.dump(out, open(a.out, "w"), indent=1, sort_keys=True)
+    finally:   # F056: a failed check must not leave candidate binaries and data in /tmp
+        shutil.rmtree(work, ignore_errors=True)
     print(f"{t['name']} / {a.split} ({n} items, {card['metric']}; floor {card['floor']} = {floor:.4f}; jail {L.JAIL['mode']})")
     for name, r in sorted(res.items(), key=lambda kv: -kv[1]["mean"]):
         print(f"  {name:14s} {r['mean']:.4f} ± {r['se'] or 0:.4f}  Ir/item {r['ir_per_item']:10.1f}  "
@@ -305,6 +344,10 @@ def main(argv=None):
     except Failed as e:
         print(f"FAILED: {e}", file=sys.stderr)
         return 1
+    except Exception:   # F059: the documented 3, not a bare traceback's 1, so callers can tell a fault from a check
+        import traceback
+        traceback.print_exc()
+        return 3
     return 0
 
 

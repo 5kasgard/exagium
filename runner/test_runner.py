@@ -81,3 +81,40 @@ class NoTaskCodeInRunner(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CounterExit(unittest.TestCase):
+    """GLM F051: count.py exits 1 when reps differ, stdout differs between reps or counting could be switched off;
+    the runner took that as a count. Only exit 0 counts now."""
+    def test_exit_1_is_not_a_count(self):
+        import types
+        from unittest import mock
+        import run as R
+        line = b'{"reps": [{"counts": {"Ir": 5}, "stdout_sha256": "x"}], "digest_sha256": "y"}\n'
+        fake = types.SimpleNamespace(returncode=1, stdout=line, stderr=b"reps differ")
+        c = {"name": "c", "exe": __file__, "weights_path": __file__}
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(R.subprocess, "run", return_value=fake), \
+                mock.patch.object(R.J, "jail", return_value=fake):
+            inp = os.path.join(d, "in.rec"); open(inp, "wb").close()
+            with self.assertRaisesRegex(R.Failed, "counter failed \\(exit 1\\)"):
+                R.count(c, inp, 0, d)
+
+
+class Controls(unittest.TestCase):
+    """GLM F052/F053: known-bad candidates kept in runner/controls/, each caught by an end-to-end run on 2026-11-21
+    (runner/results/2026-11-21-glm-guards/). They need valgrind and the jail, so CI checks only that they exist."""
+    def test_controls_present(self):
+        for c in ("ctl-pos", "ctl-n0", "ctl-cnt"):
+            self.assertTrue(os.path.exists(os.path.join(HERE, "controls", c, "infer.c")), c)
+
+    def test_duplicate_names_refused(self):
+        import run as R
+        a = type("A", (), {"task": "optdigits", "data": "/nonexistent", "cand": ["majority", "majority"]})
+        with mock_task(R):
+            with self.assertRaisesRegex(R.Failed, "unique"):
+                R.prepare(a)
+
+
+def mock_task(R):
+    from unittest import mock
+    return mock.patch.object(R, "task", return_value={"name": "t"})

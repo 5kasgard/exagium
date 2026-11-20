@@ -42,3 +42,12 @@ rounds in random order, pinned to one CPU.
 - Whether a fixed per-task output bound is enough, or proofs and programs need a resource budget per item.
 - Tuning budgets: transfer step 1 showed capacity effects can pass for structural ones. A candidate may split
   `train.in` itself; whether the card should fix a tuning split for everyone is open.
+
+## Checks on every evaluation (added 2026-11-21, GLM review F051-F053; `results/2026-11-21-glm-guards/`)
+- **Items independent.** Each timed round feeds the items in a fresh order. Each item's answer, or failing that its
+  checker score, must not change: a candidate answers from the item, not from its position or the input file.
+- **No items, no output.** At N = 0 a candidate writes nothing.
+- **Counted run is the scored run.** The counter's recorded output must equal the native output at N and at 0, and
+  only a clean count (count.py exit 0) is accepted.
+- **Time per instruction** relative to the lowest candidate is reported (`ratio_flag` above 30x), not enforced.
+
