@@ -23,7 +23,9 @@ import datetime as dt, json, os, subprocess, sys
 
 BRANCH = "worker-runs"
 CAPS = {"cloudflare": {"calls": 500, "neurons": 5000}, "nvidia": {"calls": 400}, "groq": {"calls": 500},
-        "openrouter": {"calls": 30}}   # free models: 50 requests/day under $10 of credits ever bought (OpenRouter docs, 2026-11); 20 left for reviews and probes, which are not ledgered
+        "openrouter": {"calls": 500}}   # free models: the account has 1,000 a day (GET /api/v1/key, run or-key 2026-11-20:
+# is_free_tier false, free_model_daily_requests limit 1000; $10 credit, $0 spent). The old cap of 30 assumed 50 a day.
+# Half, as for the other pools, leaves the rest for the owner's chats and probes
 ROLLING_NEURONS = 9000   # Cloudflare enforces its 10,000 on a rolling 24 h window, not at 00:00 UTC as its docs say:
 # refused at 06:09Z on 2026-11-20 with 2,405 neurons used that UTC day (10,528 in the 24 h before), served again at
 # 07:26Z (about 9,725 in the 24 h before) and at 09:16Z (account analytics, aiInferenceAdaptiveGroups); 1,000 left for
