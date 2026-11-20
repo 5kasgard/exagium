@@ -3014,7 +3014,7 @@
    "title": "Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting?",
    "kind": "test",
    "severity": "minor",
-   "status": "escalated",
+   "status": "open",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -3023,12 +3023,13 @@
    "blocked_by": [],
    "next": "Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md.",
    "research": {
-    "question": "What CPU inference times do TabPFN variants report for classification datasets of about 30,000 rows?",
+    "question": "What CPU training or inference times does the original TabPFN paper report for its largest classification benchmark datasets?",
     "queries": [
-     "TabPFN CPU runtime benchmark",
-     "TabPFN 30k rows inference time",
-     "TabPFN versus XGBoost runtime comparison",
-     "tabular foundation model CPU latency"
+     "TabPFN v2 runtime large datasets",
+     "TabPFN inference time CPU GPU",
+     "TabPFN scaling number of samples runtime",
+     "TabICL runtime comparison TabPFN",
+     "TabPFN wall-clock time benchmark"
     ]
    },
    "touches": [
@@ -3116,6 +3117,12 @@
      "at": "2026-11-20T11:25:38Z",
      "lost_lease": false,
      "outcome": "no_claims"
+    },
+    {
+     "at": "2026-11-20T11:37:31Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: The retrieved sources are mostly off-topic or describe TabPFN variants without reporting CPU timings at roughly 30k rows, so a narrower question about the original TabPFN paper's published runtimes on large datasets is more answerable."
     }
    ],
    "research_history": [
@@ -3125,6 +3132,15 @@
       "TabPFN large datasets CPU inference",
       "prior-fitted networks tabular classification scaling",
       "TabPFN versus gradient boosting benchmark"
+     ]
+    },
+    {
+     "question": "What CPU inference times do TabPFN variants report for classification datasets of about 30,000 rows?",
+     "queries": [
+      "TabPFN CPU runtime benchmark",
+      "TabPFN 30k rows inference time",
+      "TabPFN versus XGBoost runtime comparison",
+      "tabular foundation model CPU latency"
      ]
     }
    ]
