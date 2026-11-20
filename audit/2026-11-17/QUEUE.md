@@ -121,7 +121,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P18 | B1 | Q81 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | R4 | B7 | Q73 | B3 | research/cards/R4.md |
 | R4 | B7 | Q77 | B3 | research/cards/R4.md |
-| P23 | B1 | G14 | B3 | runner/CONTRACT.md |
 | P23 | B1 | Q70 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | Q71 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | Q75 | B3 | runner/CONTRACT.md, runner/run.py |
@@ -152,7 +151,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R22 | B9 | Q77 | B3 | research/cards/R22.md |
 | K5 | B3 | K16 | B1 | runner/test_runner.py |
 | G1 | B3 | K16 | B1 | runner/test_runner.py |
-| G14 | B3 | K16 | B1 | runner/test_runner.py |
 | G15 | B3 | K16 | B1 | runner/test_runner.py |
 | G18 | B3 | K16 | B1 | runner/test_runner.py |
 | G19 | B3 | K16 | B1 | runner/test_runner.py |
@@ -277,11 +275,10 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (2)
+## Review by the next tier (a worker result to confirm: no change, or a PR) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
-| G14 | B3 |  | minor | medium | fix | F065: The contract says the floor is a baseline 'whose dev score a candidate must beat to count', but run.py never g | Fix review finding glm-20261120:F065 (doc-drift, low). Claim: The contract says the floor is a baseline 'whose dev score a candidate must beat to count', but run.py never gates anything on it - it records an informational above_floor flag that no code consumes. Evidence at runner/CONTRACT.md lines [23, 23]: - **Floor.** A named baseline whose dev score a candidate must beat to count (majority class; all-false assignment). Proposed fix: Either enforce the floor in run.py (refuse/flag below-floor candidates as not counting) or reword the contract to 'reported, not enforced'. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | G18 | B3 |  | minor | medium | fix | F071: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n rea | Fix review finding glm-20261120:F071 (bug, low). Claim: Literal variable indices are never checked against the instance's n, so an instance naming a variable >= n reads uninitialized bytes of a[]. Evidence at runner/candidates/sat-walksat/infer.c lines [56, 57]:             for (int j = 0; j < 3; j++) { int l = L[3 * c + j]; nt[c] += (a[abs(l) - 1] == 1) == (l > 0); } Proposed fix: Reject literals with abs(l) > n in sat-walksat's infer.c (exit non-zero on malformed input), as the task-level check.py documents. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 
 ## Escalated (a check failed; the next tier takes it) (11)
@@ -370,7 +367,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (91)
+## Done (92)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -442,6 +439,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 Costs: 1 OpenRouter request (of 1,000/day for this account), ~2 Cloudflare neurons, 1 Gemini request plus a model list. Proposed fix: Update the probe docstring's cost statement to include probe_compat()'s per-pool list + up-to-4 candidate calls. Add a test in router/test_router.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | G13 | B3 |  | minor | medium | fix | F064: The contract's failure criterion points to 'the equivalence check below', but no equivalence check is describe | Fix review finding glm-20261120:F064 (doc-drift, low). Claim: The contract's failure criterion points to 'the equivalence check below', but no equivalence check is described anywhere below in the document, nor implemented in run.py. Evidence at runner/CONTRACT.md lines [12, 13]: **It fails for a kind of task if** adding that kind needs a change to `runner/run.py` beyond the contract, or if the
 same artifact scores differently through the runner than through a direct run (the equivalence check below). Proposed fix: Describe the equivalence check in CONTRACT.md (pointing at the local/*.pred comparisons and out-of-band procedure) or implement it in run.py. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
+| G14 | B3 |  | minor | medium | fix | F065: The contract says the floor is a baseline 'whose dev score a candidate must beat to count', but run.py never g | Fix review finding glm-20261120:F065 (doc-drift, low). Claim: The contract says the floor is a baseline 'whose dev score a candidate must beat to count', but run.py never gates anything on it - it records an informational above_floor flag that no code consumes. Evidence at runner/CONTRACT.md lines [23, 23]: - **Floor.** A named baseline whose dev score a candidate must beat to count (majority class; all-false assignment). Proposed fix: Either enforce the floor in run.py (refuse/flag below-floor candidates as not counting) or reword the contract to 'reported, not enforced'. Add a test in runner/test_runner.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | G16 | B3 |  | minor | medium | fix | F067: The plan says extract 'takes exactly the three fenced blocks', but extract.py takes the first block of each ki | Fix review finding glm-20261120:F067 (doc-drift, low). Claim: The plan says extract 'takes exactly the three fenced blocks', but extract.py takes the first block of each kind and silently ignores any further same-kind blocks. Evidence at runner/proposals/PLAN.md lines [16, 17]: 3. **score** (no secrets; read-only token): `runner/proposals/extract.py` takes exactly the three fenced blocks
    (hypothesis, `train.py`, `infer.c`), with size limits, into `runner/candidates/prop-<run>-<k>/` on the runner only. Proposed fix: Either make extract.py refuse replies with extra same-kind blocks, or reword PLAN.md to 'the first of each kind' as extract.py's docstring and test already say. Add a test in runner/proposals/test_proposals.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | G17 | B3 |  | minor | medium | fix | F069: The measured subprocesses have no timeout, so one hanging C program stalls the meter (and the CI job) indefini | Fix review finding glm-20261120:F069 (design, low). Claim: The measured subprocesses have no timeout, so one hanging C program stalls the meter (and the CI job) indefinitely. Evidence at transfer/meter.py lines [31, 34]: def wall_ns(prog, w, x, n, cpu):
