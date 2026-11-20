@@ -1,0 +1,197 @@
+{
+ "reading": {
+  "claims": [
+   {
+    "source": "S2",
+    "claim": "Tree-based models remain state-of-the-art on medium-sized tabular data (~10K samples) even without accounting for their speed advantage.",
+    "quote": "Results show that tree-based models remain state-of-the-art on medium-sized data ($\\sim$10K samples) even without accounting for their superior speed.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S2",
+    "claim": "The benchmark relied on 20,000 compute hours of hyperparameter search for each learner to ensure thorough tuning.",
+    "quote": "We contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+    "kind": "method",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "For many datasets, the performance difference between GBDTs and neural networks is negligible, and light hyperparameter tuning on a GBDT is more important than choosing between the two model families.",
+    "quote": "for a surprisingly high number of datasets, either the performance difference between GBDTs and NNs is negligible, or light hyperparameter tuning on a GBDT is more important than choosing between NNs and GBDTs.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S3",
+    "claim": "GBDTs are much better than neural networks at handling skewed or heavy-tailed feature distributions and other dataset irregularities.",
+    "quote": "GBDTs are much better than NNs at handling skewed or heavy-tailed feature distributions and other forms of dataset irregularities.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S6",
+    "claim": "Well-regularized plain MLPs significantly outperform specialized neural architectures and even outperform strong traditional methods such as XGBoost on tabular data.",
+    "quote": "well-regularized plain MLPs significantly outperform recent state-of-the-art specialized neural network architectures, and (ii) they even outperform strong traditional ML methods, such as XGBoost.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "XGBoost generally achieves the best predictive performance among gradient boosting variants, but hyperparameter relevance varies greatly across datasets, making it crucial to optimize as many hyperparameters as possible.",
+    "quote": "Our results show that XGBoost generally achieves the best predictive performance, while LightGBM requires the least training time, especially for larger datasets.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S7",
+    "claim": "The relevance of each hyperparameter varies greatly across datasets, and optimizing as many hyperparameters as possible is crucial to maximize predictive performance.",
+    "quote": "the relevance of each hyperparameter varies greatly across datasets and that it is crucial to optimize as many hyperparameters as possible to maximize the predictive performance.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "An improved MLP (RealMLP) is competitive with GBDTs on tabular benchmarks, and a combination of RealMLP and GBDTs with meta-tuned default parameters achieves excellent results without hyperparameter tuning.",
+    "quote": "RealMLP offers a favorable time-accuracy tradeoff compared to other neural baselines and is competitive with GBDTs in terms of benchmark scores.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "A combination of RealMLP and GBDTs with improved default parameters can achieve excellent results without hyperparameter tuning.",
+    "quote": "a combination of RealMLP and GBDTs with improved default parameters can achieve excellent results without hyperparameter tuning.",
+    "kind": "result",
+    "evidence": "measured"
+   },
+   {
+    "source": "S8",
+    "claim": "Strong default parameters for GBDTs and RealMLP were meta-tuned on 118 datasets and validated on 90 held-out datasets.",
+    "quote": "We tune RealMLP and the default parameters on a meta-train benchmark with 118 datasets and compare them to hyperparameter-optimized versions on a disjoint meta-test benchmark with 90 datasets",
+    "kind": "method",
+    "evidence": "measured"
+   }
+  ],
+  "open_questions": [
+   "How do tuned GBDTs compare specifically to linear models (e.g., logistic/linear regression) on tabular benchmarks, as most sources compare only to neural networks?",
+   "What is the minimal tuning budget (e.g., number of hyperparameter configurations, compute time) for GBDTs to match or exceed well-tuned MLPs across diverse tabular datasets?",
+   "How does the required tuning intensity for GBDTs change with dataset size, feature heterogeneity, target irregularity, and the presence of uninformative features?",
+   "Do the meta-tuned default parameters from S8 generalize to domains not represented in the meta-train set, such as molecular property prediction or time-series tabular data?",
+   "How much does the choice of GBDT implementation (XGBoost vs LightGBM vs CatBoost) affect the tuning needed and final performance relative to MLPs?"
+  ],
+  "reader_tries": [
+   {
+    "pool": "nvidia",
+    "model": "nvidia/nemotron-3-ultra-550b-a55b",
+    "status": 200,
+    "ok": true
+   }
+  ]
+ },
+ "script_kept": [
+  {
+   "source": "S2",
+   "claim": "Tree-based models remain state-of-the-art on medium-sized tabular data (~10K samples) even without accounting for their speed advantage.",
+   "quote": "Results show that tree-based models remain state-of-the-art on medium-sized data ($\\sim$10K samples) even without accounting for their superior speed.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S2",
+   "claim": "The benchmark relied on 20,000 compute hours of hyperparameter search for each learner to ensure thorough tuning.",
+   "quote": "We contribute a standard benchmark and raw data for baselines: every point of a 20 000 compute hours hyperparameter search for each learner.",
+   "kind": "method",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "For many datasets, the performance difference between GBDTs and neural networks is negligible, and light hyperparameter tuning on a GBDT is more important than choosing between the two model families.",
+   "quote": "for a surprisingly high number of datasets, either the performance difference between GBDTs and NNs is negligible, or light hyperparameter tuning on a GBDT is more important than choosing between NNs and GBDTs.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S3",
+   "claim": "GBDTs are much better than neural networks at handling skewed or heavy-tailed feature distributions and other dataset irregularities.",
+   "quote": "GBDTs are much better than NNs at handling skewed or heavy-tailed feature distributions and other forms of dataset irregularities.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S6",
+   "claim": "Well-regularized plain MLPs significantly outperform specialized neural architectures and even outperform strong traditional methods such as XGBoost on tabular data.",
+   "quote": "well-regularized plain MLPs significantly outperform recent state-of-the-art specialized neural network architectures, and (ii) they even outperform strong traditional ML methods, such as XGBoost.",
+   "kind": "result",
+   "evidence": "measured"
+  },
+  {
+   "source": "S7",
+   "claim": "XGBoost generally achieves the best predictive performance among gradient boosting variants, but hyperparameter relevance varies greatly across datasets, making it crucial to optimize as many hyperparameters as possible.",
+   "quote": "Our results show that XGBoost generally achieves the best predictive performance, while LightGBM requires the least training time, especially for larger datasets.",
+   "kind": "result",
+   "evidence": "measured"
+  }
+ ],
+ "script_dropped": [],
+ "check": {
+  "keep": [
+   0,
+   2,
+   3,
+   4
+  ],
+  "grades": {
+   "2": "reported"
+  },
+  "decider": {
+   "keep": [
+    0,
+    2,
+    3,
+    4
+   ],
+   "p_keep": [
+    0.9373,
+    0.2143,
+    0.9395,
+    0.8193,
+    0.8656,
+    0.0092
+   ]
+  },
+  "shadow_nemotron": {
+   "keep": [
+    0,
+    2
+   ],
+   "grades": {
+    "2": "reported"
+   },
+   "votes": [
+    [
+     [
+      2
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      2
+     ]
+    ],
+    [
+     [],
+     [],
+     [
+      1
+     ]
+    ]
+   ],
+   "notes": "Claim 2 matches its quote; claims 0 and 1 add unsupported specifics (tabular, tuning purpose).; Claim 0 and 2 are directly supported by their quotes and address the question; claim 1 adds unsupported purpose and does not directly answer.; Claims 0 and 2 are verbatim supported by their quotes; claim 1 adds an unsupported purpose ('to ensure thorough tuning').; No claims are fully supported by their quotes and directly answer the question about tuned GBDTs versus MLPs and linear models on tabular benchmarks and tuning ; None of the claims are fully supported by their quotes without addition, and they do not directly answer the question about tuned GBDT strength and tuning needs; Only claim 1 is fully supported by its quote and directly addresses the relative performance of MLPs versus XGBoost on tabular data."
+  },
+  "notes": "decided by perplexity/pplx-decider-v1.3:free"
+ },
+ "model_fail": []
+}
