@@ -34,7 +34,11 @@ be done this way (it needs a person, money, new infrastructure or data that does
 ITEM {id}: {title}
 NEXT STEP: {next}
 
-CODE FILES (path, lines):
+THE PARTS MOST RELATED TO THIS ITEM (module purpose, functions with their first docstring line, and the tests that
+cover them; from worker/repo_index.py):
+{parts}
+
+ALL CODE FILES (path, lines):
 {files}
 
 TEST FILES: {tests}
@@ -164,12 +168,15 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         Q.sync(wt)
         q = Q.load(wt)
         lines, tests = repo_files(repo)
+        import repo_index as RI
+        mods = RI.build(repo)
         listing = "\n".join(f"{p} ({n})" for p, n in sorted(lines.items()) if CJ.allowed(p))
         subs = []
         tried = set()
         for parent in candidates(q)[:MAX_PARENTS]:
+            parts = RI.show(RI.rank(mods, parent["title"] + " " + parent.get("next", ""), 8))
             reply = ask(PROMPT.format(id=parent["id"], title=parent["title"], next=parent.get("next", "")[:3000],
-                                      files=listing, tests=", ".join(tests)))
+                                      files=listing, tests=", ".join(tests), parts=parts or "(none matched)"))
             m = re.search(r"\{.*\}", reply or "", re.S)
             try:
                 d = json.loads(m.group(0)) if m else {}

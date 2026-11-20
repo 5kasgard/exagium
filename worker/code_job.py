@@ -44,6 +44,9 @@ FILES YOU MAY CHANGE (complete contents; an empty one is a new file you create):
 FILES TO READ FOR CONTEXT (do not edit):
 {context}
 
+OTHER RELATED PARTS OF THE REPOSITORY (signatures only; from worker/repo_index.py):
+{index}
+
 TEST FILE (you may add tests to it; existing tests must keep passing): {test}
 {test_src}
 
@@ -104,9 +107,21 @@ def context(item_path, repo, out):
                "prompt": PROMPT.format(id=item["id"], title=item["title"], next=item["next"][:2000], test=test,
                                        files="\n\n".join(f"--- {p} ---\n{s}" for p, s in src.items() if p != test),
                                        test_src=tsrc[-12000:],
-                                       context="\n\n".join(f"--- {p} (read only) ---\n{s}" for p, s in ctx_src.items()) or "(none)")},
+                                       context="\n\n".join(f"--- {p} (read only) ---\n{s}" for p, s in ctx_src.items()) or "(none)",
+                                       index=related(repo, item, set(files) | set(ctx)))},
               open(os.path.join(out, "bundle.json"), "w"), indent=1)
     return 0
+
+
+def related(repo, item, skip, k=5):
+    """Signatures of the modules most related to the item, beyond the files it already shows (owner 2026-11-21: give each
+    job the slice it needs). Never fails the job: no index is better than no draft."""
+    try:
+        import repo_index as RI
+        ms = [m for m in RI.rank(RI.build(repo), item["title"] + " " + item.get("next", ""), k + len(skip)) if m["path"] not in skip][:k]
+        return RI.show(ms, max_parts=15) or "(none)"
+    except Exception as e:
+        return f"(index unavailable: {type(e).__name__})"
 
 
 BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(?:(.*?)\n)?=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)

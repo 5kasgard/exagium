@@ -836,5 +836,22 @@ class SecondDraft(unittest.TestCase):
             self.assertEqual(open(os.path.join(repo, "pkg", "m.py")).read(), "X = 2\n")
 
 
+
+class RepoIndex(unittest.TestCase):
+    def test_parts_and_rank(self):
+        import repo_index as RI
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "worker"))
+            open(os.path.join(d, "worker", "ledger.py"), "w").write('"""Budget ledger."""\ndef reserve(wt, run, spec):\n    """Hold calls."""\n')
+            open(os.path.join(d, "worker", "other.py"), "w").write('"""Unrelated."""\ndef paint():\n    pass\n')
+            open(os.path.join(d, "worker", "test_x.py"), "w").write("import ledger\n")
+            ms = RI.build(d)
+            led = next(m for m in ms if m["path"] == "worker/ledger.py")
+            self.assertEqual(led["parts"][0]["sig"], "def reserve(wt, run, spec)")
+            self.assertEqual(led["tested_by"], ["worker/test_x.py"])
+            self.assertEqual(RI.rank(ms, "reserve budget in the ledger", 1)[0]["path"], "worker/ledger.py")
+            self.assertEqual(RI.rank(ms, "see worker/other.py", 1)[0]["path"], "worker/other.py")   # a named path first
+
+
 if __name__ == "__main__":
     unittest.main()
