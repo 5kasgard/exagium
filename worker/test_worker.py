@@ -893,5 +893,16 @@ class SplitParse(unittest.TestCase):
         self.assertEqual(SP.first_json("no json"), {})
 
 
+
+class MergeAgentTexts(unittest.TestCase):
+    def test_agent_facing_md_never_auto_merged(self):
+        import tier as TI
+        item = {"code": {"files": ["AGENTS.md", "README.md"], "test": "worker/test_worker.py"}}
+        ok, why = TI.merge_decision(item, [{"filename": "AGENTS.md", "additions": 1, "deletions": 0}], "approve")
+        self.assertFalse(ok)
+        ok, _ = TI.merge_decision(item, [{"filename": "README.md", "additions": 1, "deletions": 0}], "approve")
+        self.assertTrue(ok)
+
+
 if __name__ == "__main__":
     unittest.main()

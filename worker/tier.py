@@ -202,7 +202,9 @@ def merge_decision(item, files, verdict):
     if lines > MERGE_MAX_LINES:
         why.append(f"{lines} changed lines (over {MERGE_MAX_LINES})")
     own = (item.get("code") or {}).get("files", []) + [(item.get("code") or {}).get("test")]
-    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in own]
+    import doc_job
+    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in own
+           or (f["filename"].endswith(".md") and not doc_job.merge_ok(f["filename"]))]   # agent-facing texts: a person merges
     if bad:
         why.append(f"files a person merges, or not the item's own: {', '.join(bad)}")
     if verdict != "approve":

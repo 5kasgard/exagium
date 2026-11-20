@@ -183,7 +183,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         q = Q.load(wt)
         lines, tests = repo_files(repo)
         import repo_index as RI
-        mods = RI.build(repo)
+        mods = [m for m in RI.build(repo) if CJ.allowed(m["path"])]   # it proposed audit/ files the code job refuses (6 of 7 refusals, run 44821449448)
         listing = "\n".join(f"{p} ({n})" for p, n in sorted(lines.items()) if CJ.allowed(p))
         subs = []
         tried = set()

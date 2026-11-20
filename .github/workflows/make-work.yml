@@ -39,8 +39,8 @@ jobs:
             acc=$((acc + $(grep -c "'accept')" "$RUNNER_TEMP/gen.log" || true)))
           fi
           # work types for live items (worker/classify.py; free decision model, known-answer controls; 12 items, 4 calls)
-          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "classify-$GITHUB_RUN_ID" "openrouter:4"; then
-            python3 -I worker/classify.py "$RUNNER_TEMP/gq" "$RUNNER_TEMP/cls" 12 || true
+          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "classify-$GITHUB_RUN_ID" "openrouter:8"; then
+            python3 -I worker/classify.py "$RUNNER_TEMP/gq" "$RUNNER_TEMP/cls" 24 || true
             python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "classify-$GITHUB_RUN_ID" "$RUNNER_TEMP/cls/calls.jsonl" || echo "ledger record exit $?"
           fi
           echo "accepted $acc"
