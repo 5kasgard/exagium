@@ -10,7 +10,7 @@ labels (vision, language, tabular) and tasks scored by a verifier with no answer
 emitted programs later).
 
 **It fails for a kind of task if** adding that kind needs a change to `runner/run.py` beyond the contract, or if the
-same artifact scores differently through the runner than through a direct run (the equivalence check below).
+same artifact scores differently through the runner than through a direct run (see **Equivalence check** below).
 
 ## A task (`tasks/<name>/card.json`, data built by `tasks/build.py`, every download pinned by sha256)
 - **Records.** Every input and output is a file of records: a 4-byte little-endian length, then that many bytes.
@@ -36,6 +36,14 @@ same artifact scores differently through the runner than through a direct run (t
 Per candidate and task, on one host: every item's output and score (kept), the mean score with its SE, simulated
 instructions (cachegrind via `counter/count.py`) at N items and at N = 0, and native time at N and at 0 over R
 rounds in random order, pinned to one CPU.
+
+## Equivalence check
+The runner records each candidate's per-item outputs for a scored run in `local/*.pred` (one file per candidate,
+task and split). The equivalence check is the out-of-band procedure of training and running the same candidate
+directly, outside the runner's scored path, on the same card and record files, then comparing the resulting
+`local/*.pred` files byte for byte and the checker's per-item scores. A kind of task fails this check if the
+direct run and the runner produce different output bytes or scores; the procedure and comparison are kept with the
+run's results.
 
 ## Open questions, to settle with data, not here
 - Whether one checker call per split is fast enough for slow verifiers (Lean): per-item calls may be needed.
