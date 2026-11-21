@@ -1031,5 +1031,17 @@ class NewFileSearchIgnored(unittest.TestCase):
         self.assertEqual(C.apply_edits(files, ok)["experiments/x.py"], "PLAN = 1\n")
 
 
+class WorkerSpecCard(unittest.TestCase):
+    """G8/F035: the worker spec card matches the running subsystem."""
+    def test_f035_spec_card_current(self):
+        text = open(os.path.join(os.path.dirname(__file__), "README.md")).read()
+        self.assertIn("2026-11-20", text)
+        self.assertNotIn("Paid pools can't be reserved", text)
+        self.assertIn("Paid pools are reserved", text)
+        for name in ("code_job.py", "transitions.py", "tier.py", "generate.py", "split.py", "diagnose.py", "note.py"):
+            self.assertIn(name, text)
+        self.assertNotIn("**Not yet:** code items", text)
+
+
 if __name__ == "__main__":
     unittest.main()

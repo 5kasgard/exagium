@@ -1,8 +1,9 @@
 # worker — spec card (queue P8, first version; P7 and P9 wired in)
 
-**Status (2026-11-18): paused.** Release test 1 passed on claims, targets, injection, budget and leases, and failed on
-acceptance: 6 of 8 outputs acceptable as is, below 4 of 5 ([`RESULTS-release-test-1.md`](RESULTS-release-test-1.md)).
-Fixes are applied; a re-test decides.
+**Status (2026-11-21): running.** Workers run hourly since 2026-11-20. Release test 1 passed on claims, targets,
+injection, budget and leases, and failed on acceptance: 6 of 8 outputs acceptable as is, below 4 of 5
+([`RESULTS-release-test-1.md`](RESULTS-release-test-1.md)). Fixes are applied; a re-test decides. Code items have run
+(K1, PR #9).
 
 **What it is.** Free models working the queue without a chat. A scheduled job claims the top ready item, a free model
 does it, another family checks it, a script checks both, and the result lands on main or as a PR. A daily digest
@@ -34,7 +35,8 @@ writes the handoff. Claude designs and spot-checks; it is not in the loop.
   back to a PR.
 - **Budget:** a run checks headroom before it claims, then `ledger.py` reserves its calls by commit, against caps of
   half each free pool's daily allowance. Calls are counted exactly; Cloudflare neurons are projected (1,000 per call)
-  and checked against recorded use, so one run can overshoot by the difference. Paid pools can't be reserved.
+  and checked against recorded use, so one run can overshoot by the difference. Paid pools are reserved too
+  (`openrouter_paid:3:8` per research or code run).
 - **Jobs:** the key and the write token are never in one job: claim (write, no keys), prepare (read-only, no keys;
   the literature search parses untrusted API text here), draft (keys, read-only, runs nothing a model writes), land
   (write, no keys).
@@ -43,12 +45,12 @@ writes the handoff. Claude designs and spot-checks; it is not in the loop.
 **Measured** (`digest.py`, P9's first measures): claims, double claims (target 0), releases, expired leases, results
 by kind, budget used per pool. Spot-check acceptance is recorded per item by Claude or the owner.
 
-**Files.** `queue_ops.py` (claims), `ledger.py` (budget), `doc_job.py`, `research_job.py`, `digest.py`,
-`test_worker.py`; workflows `worker.yml` (hourly) and `digest.yml` (daily, 06:23 Brisbane). Records: the queue's
-items (`runs`), and the `worker-runs` branch (`ledger/`, `digest/`).
+**Files.** `queue_ops.py` (claims), `ledger.py` (budget), `doc_job.py`, `research_job.py`, `code_job.py`,
+`transitions.py`, `tier.py`, `generate.py`, `split.py`, `diagnose.py`, `note.py`, `digest.py`, `test_worker.py`;
+workflows `worker.yml` (hourly) and `digest.yml` (daily, 06:23 Brisbane). Records: the queue's items (`runs`), and
+the `worker-runs` branch (`ledger/`, `digest/`).
 
-**Not yet:** code items (they need P5's jailed proposer and Q56), the P10 auditor, process proposals (P9's weekly
-free-model step).
+**Not yet:** the P10 auditor, process proposals (P9's weekly free-model step).
 
 **Reviews before the first run (2026-11-18):** a separate agent found 4 major issues (a research merge broke the release;
 a failed push counted as done; unchecked model text could land on main; a failing item burnt budget hourly), all fixed;
