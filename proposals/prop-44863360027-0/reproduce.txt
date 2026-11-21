@@ -1,0 +1,15 @@
+FAILED: prop-44863360027-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 145, in <module>
+    main()
+  File "/w/train.py", line 128, in main
+    w0, w, V = train_fm(Z_tr, y_tr, k, C, MAX_EPOCHS // 2, np.random.default_rng(SEED))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 93, in train_fm
+    gw0, gw, gV = fm_backward(z, g, w, V, k, C, L2)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 74, in fm_backward
+    gV[:, f, c] = (Z * vx).sum(axis=0) * gc.ravel() + L2 * V[:, f, c]
+                  ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (108,) (64,) 
+
