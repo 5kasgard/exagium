@@ -961,5 +961,36 @@ class Resplit(unittest.TestCase):
         self.assertEqual([i["id"] for i in SP.candidates(q)], ["P1"])   # its only child parked: the parent is cut again
 
 
+
+class Relevance(unittest.TestCase):
+    """R23-R25 (2026-11-21) read off-topic pools; the decision model now picks on-topic sources first, with controls."""
+    def _fake(self, ps):
+        import io
+        class R(io.BytesIO):
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        return lambda req, timeout=None: R(json.dumps({"answers": {f"s{i}": {"noul": p} for i, p in enumerate(ps)}}).encode())
+
+    def test_relevance_and_controls(self):
+        import research_job as RJ
+        from unittest import mock
+        pool = [{"title": "a", "abstract": "x"}, {"title": "b", "abstract": "y"}]
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8, 0.2])):
+            self.assertEqual(RJ.relevance("q", pool, []), [0.8, 0.2])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.2, 0.1, 0.8, 0.2])):
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the question itself judged off-topic: not used
+
+    def test_nothing_on_topic_means_no_reader_call(self):
+        import research_job as RJ
+        from unittest import mock
+        d = {"item": {"research": {"question": "q"}}, "sources": [], "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        with tempfile.TemporaryDirectory() as out, mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                mock.patch.object(RJ, "relevance", lambda q, pool, calls: [0.1]), \
+                mock.patch.object(RJ.slots, "run", side_effect=AssertionError("reader called")):
+            RJ._read(out, d, "q", [], None)
+            self.assertIn("no relevant sources", json.load(open(os.path.join(out, "read.json")))["error"])
+
+
 if __name__ == "__main__":
     unittest.main()

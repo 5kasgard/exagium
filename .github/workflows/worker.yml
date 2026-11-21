@@ -52,8 +52,8 @@ jobs:
             # research reads on Cloudflare (gpt-oss-120b) or, when Cloudflare's rolling window is full, on NIM (Nemotron 3 Ultra):
             # the only free reader that failed no call in the reader bake (run 44720253829: 6 of 6 reads, 21 decision-kept claims;
             # the free OpenRouter readers were rate-limited upstream on 5-6 of 6 reads)
-            if python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:600,nvidia:1,openrouter:1; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=cloudflare:1:600,nvidia:1,openrouter:1" >> "$GITHUB_ENV"
-            elif python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" nvidia:2,openrouter:1; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=nvidia:2,openrouter:1" >> "$GITHUB_ENV"; fi
+            if python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" cloudflare:1:600,nvidia:1,openrouter:4; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=cloudflare:1:600,nvidia:1,openrouter:4" >> "$GITHUB_ENV"
+            elif python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" nvidia:2,openrouter:4; then types="${types:+$types,}research"; echo "RESEARCH_SPEC=nvidia:2,openrouter:4" >> "$GITHUB_ENV"; fi
             python3 -I worker/ledger.py check "$RUNNER_TEMP/r0" nvidia:2,groq:1 && types="${types:+$types,}code"   # coder and its reviewer
             echo "TYPES=$types" >> "$GITHUB_ENV"; echo "job types with budget today: ${types:-none}"
             if [ -z "$types" ]; then echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=budget" >> "$GITHUB_ENV"; echo "no budget headroom today: nothing claimed"; fi
@@ -81,7 +81,7 @@ jobs:
             git worktree add -q --orphan -b worker-runs "$RUNNER_TEMP/r" && git -C "$RUNNER_TEMP/r" commit -q --allow-empty -m "worker-runs: ledger and digests" \
               && git -C "$RUNNER_TEMP/r" push -q origin worker-runs
           fi
-          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; elif [ "$TYPE" = code ]; then spec=nvidia:2,groq:1; else spec=${RESEARCH_SPEC:-cloudflare:1:600,nvidia:1,openrouter:1}; fi
+          if [ "$TYPE" = doc ]; then spec=groq:1,cloudflare:1:500,nvidia:1; elif [ "$TYPE" = code ]; then spec=nvidia:2,groq:1; else spec=${RESEARCH_SPEC:-cloudflare:1:600,nvidia:1,openrouter:4}; fi
           rc=0; python3 -I worker/ledger.py reserve "$RUNNER_TEMP/r" "$WORKER" "$spec" || rc=$?
           if [ "$rc" != 0 ]; then
             echo '{"result": "not started: budget cap or ledger push failed", "where": ""}' > "$RUNNER_TEMP/note.json"

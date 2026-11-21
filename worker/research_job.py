@@ -409,6 +409,41 @@ def decide_claims(q, kept, calls):
     return {"keep": [i for i, p in enumerate(ps) if p >= 0.5], "p_keep": [round(p, 4) for p in ps]}
 
 
+REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
+REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
+REL_CONTROL_NO = ("Ridge regression with Tikhonov regularisation: closed-form estimator and its bias-variance trade-off.",)
+
+
+def relevance(q, pool, calls):
+    """Is each candidate source about the QUESTION? One Decisions request per REL_BATCH sources (free decision model).
+    Data, 2026-11-21: R23, R24, R25 read pools of Bloom filters, WHOIS, ridge regression, chromatin and music copyright,
+    and returned no claims twice each. Two controls per request: the question's own text must come out relevant and an
+    unrelated abstract must not, or the request is not used. Returns a p per pool entry, or None."""
+    import time, urllib.request, urllib.error
+    out = []
+    for b in range(0, len(pool), REL_BATCH):
+        part = pool[b:b + REL_BATCH]
+        docs = [f"{q}"] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
+        ask = "Is source {i} about the QUESTION itself (not merely the same broad field), so that it could answer part of it?"
+        body = {"model": DECIDER, "state": f"QUESTION: {q}\n\nSOURCES:\n" + "\n".join(f"{i}. {t}" for i, t in enumerate(docs)),
+                "questions": {f"s{i}": {"type": "noul", "instructions": ask.format(i=i)} for i in range(len(docs))}}
+        req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",
+                                     headers={"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"], "Content-Type": "application/json"})
+        t0 = time.time()
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                resp, st = json.loads(r.read()), r.status
+        except (urllib.error.URLError, TimeoutError, ValueError) as e:
+            resp, st = {"error": str(e)[:200]}, getattr(e, "code", 0)
+        calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": DECIDER,
+                      "ok": st == 200, "status": st, "latency_s": round(time.time() - t0, 2), "usage": resp.get("usage") or {}})
+        ps = [((resp.get("answers") or {}).get(f"s{i}") or {}).get("noul") for i in range(len(docs))] if st == 200 else []
+        if st != 200 or any(not isinstance(p, (int, float)) for p in ps) or not (ps[0] >= 0.5 and ps[1] < 0.5):
+            return None
+        out += ps[2:]
+    return out
+
+
 def read(out):
     sys.path.insert(0, os.path.join(os.path.dirname(HERE), "router"))
     import engines
@@ -438,6 +473,21 @@ def read(out):
 
 
 def _read(out, d, q, calls, ask):
+    rel = None
+    if d.get("pool") and os.environ.get("OPENROUTER_API_KEY"):   # read the relevant sources, not the most cited
+        ps = relevance(q, d["pool"], calls)
+        if ps is not None:
+            kinds = list(dict.fromkeys(x["group"] for x in d["pool"]))
+            keep = [i for i, p in enumerate(ps) if p >= REL_KEEP]
+            pool = [dict(d["pool"][i], relevance=round(ps[i], 3)) for i in keep]
+            d["sources"] = pick(pool, kinds, scores=[x["relevance"] * 1e6 + (x.get("cited_by") or 0) for x in pool])
+            rel = {"pool": len(ps), "relevant": len(keep), "read": len(d["sources"])}
+            if not d["sources"]:   # nothing on topic: no reader call; the tier narrows the question (its redo path)
+                json.dump({"claims": [], "open_questions": [], "relevance": rel, "error": "no relevant sources in the pool (relevance filter)"},
+                          open(os.path.join(out, "read.json"), "w"), indent=1)
+                print(f"relevance: 0 of {len(ps)} sources on topic; not reading")
+                return
+            print(f"relevance: {len(keep)} of {len(ps)} on topic; reading {len(d['sources'])}")
     src = "\n\n".join(f"[{s['sid']}] ({s['kind']}, {s['via']}) {s['title']} ({s['year']}). {s['abstract'][:1500]}" for s in d["sources"])
     model_fail = []   # infrastructure, not evidence: "no claims" must mean the sources held none (review of Q60, 1)
     # the reader slot's fallback chain (router/slots.py): Cloudflare, then NIM, then paid fillers when the run reserved them
@@ -449,6 +499,7 @@ def _read(out, d, q, calls, ask):
         model_fail.append(("quota: " if quota else "") + ("reader call failed" if not (r or {}).get("ok") else "reader reply was not JSON"))
         reading = {"claims": [], "open_questions": [], "error": model_fail[-1]}
     reading["reader_tries"] = tries
+    reading["relevance"] = rel
     kept, dropped = verified(reading.get("claims"), d["sources"])
     check = None
     if kept:
