@@ -3933,11 +3933,13 @@
    "origin": "new",
    "split_tried": "2026-11-20T21:34:53Z",
    "work_types": {
-    "code_change": 0.858,
-    "build": 0.71
+    "build": 0.886,
+    "code_change": 0.788,
+    "analysis": 0.29,
+    "owner_action": 0.204
    },
-   "work_types_key": "a04e0e7acf9587b2",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "3ded121d17072566",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P22",
@@ -3962,11 +3964,13 @@
    "value": "high",
    "origin": "new",
    "work_types": {
-    "experiment": 0.896,
-    "held": 0.63
+    "experiment": 0.744,
+    "held": 0.679,
+    "analysis": 0.538,
+    "build": 0.217
    },
-   "work_types_key": "32b25e7bf4a6f329",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "211cf56a23e7e042",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P23",
@@ -3995,11 +3999,13 @@
     "P11"
    ],
    "work_types": {
-    "build": 0.493,
-    "code_change": 0.36
+    "build": 0.816,
+    "code_change": 0.645,
+    "review": 0.294,
+    "experiment": 0.278
    },
-   "work_types_key": "4b7ef458fb3b1223",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "bd2816122158d950",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "R10",
@@ -4103,10 +4109,11 @@
     }
    ],
    "work_types": {
-    "literature": 0.993
+    "literature": 0.99,
+    "held": 0.21
    },
-   "work_types_key": "23a358fa5f00818d",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "2dd368deec1b0259",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "R11",
@@ -4431,9 +4438,12 @@
     "owner 2026-11-19 (static and dynamic heterogeneous)"
    ],
    "next": "Owner 2026-11-19: the whole thing is a static and dynamic heterogeneous system and much of the queue overlaps. Measured 2026-11-19 (TF-IDF over 49 live non-canary items): word overlap between substantive items is low (highest P20c-P20d 0.60; the 0.5-0.76 scores among R3-R8 come from shared boilerplate), so the overlap is conceptual, not in wording, and a word measure cannot see it. Hypothesis: compartments (P6), the store (P11), worker orchestration (P20), graphs on demand (P21), ordering (P22) and claims at volume (P23) are one engine seen from different sides: typed nodes and links over time; abilities fitted from outcomes (item response theory for parts, tasks and workers alike); allocation by value of information. Test after R10-R14: write the shared model in docs/system-model.md, map every live item to it, and count items whose design shrinks or merges (target: a separate agent confirms at least 3 merges or removed duplicate designs); if none, keep them separate.",
-   "work_types": {},
-   "work_types_key": "38ddd15fe7725173",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types": {
+    "literature": 0.244,
+    "build": 0.216
+   },
+   "work_types_key": "95f474eea519d2dd",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "Q58",
@@ -4465,14 +4475,12 @@
    ],
    "split_tried": "2026-11-20T21:34:53Z",
    "work_types": {
-    "experiment": 0.818,
-    "code_change": 0.433,
-    "sandbox_or_workflow": 0.349,
-    "decision": 0.338,
-    "build": 0.225
+    "experiment": 0.823,
+    "sandbox_or_workflow": 0.438,
+    "code_change": 0.229
    },
-   "work_types_key": "2a61efa4f826d975",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "27b2ea173c1f3159",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P5a",
@@ -4495,11 +4503,12 @@
    ],
    "next": "0.9864 on optdigits dev (CI, jail), above gbdt 0.979 and mlp16 0.977. PLAN.md: no proposal enters runner/candidates on main without a separate check by Claude or the owner. Check (2026-11-19, Claude, first read): a deeper MLP, reads only train data, own falsifier stated; likely a capacity effect (P1's lesson) rather than a new structure. Next: copy as label-mlp2l, run on text and adult with paired SE against mlp16 and gbdt, report whether depth helps beyond digits. 2026-11-20 08:30 Brisbane: checked and admitted as runner/candidates/label-mlp2l (main 4d285cc7, code unchanged); runner run 44626963486 on digits, text, adult. RULE, fixed before results: depth helps on a task if label-mlp2l beats label-mlp16 by more than 2 paired SE there; it is an advance on the task if no other candidate is as accurate within 1 SE and cheaper in Ir/item. Forecast (Claude): helps on text (p 0.5), on adult (p 0.3); on digits this dev split cannot settle it (P5b does). RESULT (main 01737acc, runner/results/2026-11-20-p5a/): depth helps on digits only (+0.0094 ± 0.0040 vs mlp16; held-out P5b +0.0175); adult -0.0060 ± 0.0031, text -0.0500 ± 0.0062 (below linear); dominated on both. Reproduces on all three. Forecast Brier 0.17. Next for P5: proposals per task, and the accuracy-cost front as the board's winner rule (P5b).",
    "work_types": {
-    "experiment": 0.747,
-    "review": 0.591
+    "review": 0.758,
+    "experiment": 0.719,
+    "decision": 0.202
    },
-   "work_types_key": "2e649980696b1d8c",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "4df29572fe03426a",
+   "work_types_at": "2026-11-21T04:31:36Z",
    "split_tried": "2026-11-20T22:24:27Z"
   },
   {
@@ -4525,10 +4534,12 @@
    ],
    "next": "Found by script over proposals/LEADERBOARD.md (203 proposals, 129 valid) on 2026-11-20 by the scheduled Claude shift, following P5a's 'next for P5: the accuracy-cost front'. Adult: prop-44642441286-0 dev 0.8663 +/- 0.0042 at 658 Ir/item (result.json on the proposals branch); label-gbdt 0.8664 at 7,570 Ir/item, label-linear 0.8524 at 719 (runner/results/2026-11-20-p5a/decision.txt). Claude's first read of its reply.md: per-feature learned embeddings (D chosen on the last 20% of train) concatenated into one linear layer; a linear map of embeddings folds to a per-feature, per-value table of class scores, i.e. an additive lookup model (one-hot linear), which fits 658 Ir/item. Caveat: it is the best of 31 valid adult proposals on dev, so its dev number carries selection (winner's curse); only a held-out run counts. Text and digits: no new front point (text best 0.3858 at 318,474 Ir is dominated by gbdt 0.3923 at 131,154; digits best ties the admitted label-mlp2l at higher cost). NEXT: Claude reads train.py and infer.c in full (P5a's check: reads only train data, deterministic, no test access), admits as runner/candidates/label-emblin unchanged, runs dev and held-out (P5b's method) with paired SE against label-gbdt and label-linear. RULE, fixed now: an advance on adult if on held-out its accuracy minus gbdt's is above -2 paired SE and its Ir/item is below gbdt's; it beats linear if its held-out margin over label-linear exceeds 2 paired SE. Forecast (Claude): advance p 0.55, beats linear p 0.8.",
    "work_types": {
-    "experiment": 0.339
+    "review": 0.578,
+    "experiment": 0.559,
+    "analysis": 0.495
    },
-   "work_types_key": "c550c08d7c1aae59",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "6fa3bc93fca2feb1",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P7f",
@@ -4561,13 +4572,13 @@
     "P7e"
    ],
    "work_types": {
-    "literature": 0.742,
-    "experiment": 0.644,
-    "build": 0.374,
-    "code_change": 0.218
+    "literature": 0.788,
+    "experiment": 0.703,
+    "build": 0.415,
+    "data": 0.292
    },
-   "work_types_key": "764cc4c14df8841c",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "945912172877626d",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P25",
@@ -4596,10 +4607,11 @@
    "value": "high",
    "origin": "new",
    "work_types": {
-    "experiment": 0.939
+    "experiment": 0.984,
+    "analysis": 0.267
    },
-   "work_types_key": "005d28783108403e",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "27f1cb41e607a40f",
+   "work_types_at": "2026-11-21T04:31:36Z",
    "split_tried": "2026-11-20T22:24:27Z"
   },
   {
@@ -4631,11 +4643,11 @@
    "value": "high",
    "origin": "new",
    "work_types": {
-    "review": 0.947,
-    "literature": 0.216
+    "review": 0.932,
+    "analysis": 0.216
    },
-   "work_types_key": "f9f93e60600c8f5b",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "30ea7420d3a37c6c",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "id": "P27",
@@ -4664,10 +4676,10 @@
    "value": "high",
    "origin": "new",
    "work_types": {
-    "already_done": 0.932
+    "already_done": 0.89
    },
-   "work_types_key": "12a68314b43c0498",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "aef8cfbb0656b696",
+   "work_types_at": "2026-11-21T04:31:36Z"
   },
   {
    "kind": "build",
