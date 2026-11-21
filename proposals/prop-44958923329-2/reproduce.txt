@@ -1,0 +1,15 @@
+FAILED: prop-44958923329-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 212, in <module>
+    main()
+  File "/w/train.py", line 191, in main
+    val_acc = train_model(emb, W_out, bias, X_tr, y_tr, X_val, y_val, vals_per_pos, lr, tune_epochs, rng)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 134, in train_model
+    grad_emb, grad_W_out, grad_bias = backward(emb, W_out, xb, vals_per_pos, grad_scores)
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 97, in backward
+    hidden = np.concatenate([z, z2 * 0 + pairwise], axis=1)  # recompute or pass? pairwise = (z^2-z2)/2
+                                         ^^^^^^^^
+UnboundLocalError: cannot access local variable 'pairwise' where it is not associated with a value
+
