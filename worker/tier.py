@@ -116,6 +116,7 @@ def artifact(run_url, dest):
     return True
 
 
+MAX_DEFERS = 6      # tier runs every 3 h: about 18 h of no verdict or refused merges, then the owner
 DIFF_SEEN = 20000   # characters of the diff the reviewing model is shown; a longer change goes to a person
 MAX_REDOS = 1   # 2026-11-20: R4 was narrowed twice in a row; a second "no claims" after this tier's redo goes to the owner
 
@@ -216,7 +217,7 @@ def code_prs(q):
     """Review-state items whose last run opened a PR for a code change."""
     out = []
     for i in q["items"]:
-        r = (i.get("runs") or [{}])[-1]
+        r = next((x for x in reversed(i.get("runs") or []) if x.get("outcome") != "defer"), {})   # past this tier's deferrals
         if i.get("status") == "review" and i.get("code") and r.get("outcome") == "pr":
             m = re.search(r"/pull/(\d+)", str(r.get("where", "")))
             if m:
@@ -260,13 +261,13 @@ def drain_code(wt, ask, record):
         full = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)
         verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": full[:DIFF_SEEN]}, ask)
         if verdict is None:   # no answer (outage, empty or unparsable reply) is not a judgement: leave it for the next run
-            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["no verdict: left for the next tier run"],
-                                       "rc": None})   # audit 2026-11-21 (A F3, GLM F115): this closed good PRs and spent the redo
+            # audit 2026-11-21 (A F3, GLM F115): this closed good PRs and spent the redo
+            record["code_prs"].append(_defer(wt, item, n, "no verdict from the reviewing model"))
             continue
         ok, why = merge_decision(item, files, verdict)
         unseen = len(full) > DIFF_SEEN or any(not f.get("patch") for f in files)
-        if unseen:   # the reviewer could not see the whole change (audit R2 F3: a payload after 20,000 characters merged unseen)
-            ok = False
+        if unseen and verdict == "approve":   # the reviewer could not see it whole (audit R2 F3: a payload after 20,000 characters)
+            ok = False   # (a rejection stands as it is: what was seen was enough to reject, and its reason goes to the coder)
             why.append("files a person merges: the change is too long, or has a file with no diff, for the reviewer to see whole")
         conflict = False
         if ok:
@@ -275,9 +276,7 @@ def drain_code(wt, ask, record):
             if m.returncode:
                 st = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", ".mergeable_state"], capture_output=True, text=True)
                 if st.stdout.strip() != "dirty":   # refused for another reason (checks pending, head moved, GitHub down): retry later
-                    record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "rc": None,
-                                               "why": ["merge refused by GitHub, not a conflict: left for the next tier run: "
-                                                       + (m.stderr or m.stdout)[-200:]]})
+                    record["code_prs"].append(_defer(wt, item, n, "merge refused by GitHub, not a conflict: " + (m.stderr or m.stdout)[-160:]))
                     continue
                 why.append("merge conflicts with today's main: " + (m.stderr or m.stdout)[-160:])
                 ok, conflict = False, True
@@ -295,6 +294,27 @@ def drain_code(wt, ask, record):
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
                         note + ("; closed for a redo on today's main" if conflict else ""))
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
+
+
+def defers(item):
+    """Tier runs that could not judge this item's current PR (no verdict, merge refused), since the run that opened it."""
+    n = 0
+    for r in reversed(item.get("runs") or []):
+        if r.get("outcome") == "pr":
+            break
+        n += r.get("outcome") == "defer"
+    return n
+
+
+def _defer(wt, item, n, why):
+    """Keep the PR open for the next tier run, counted on the item; after MAX_DEFERS it goes to the owner, PR still open
+    (review 2026-11-22: uncounted, a PR the tier can never judge sat in review for ever and held one of MAX_PRS slots)."""
+    note = f"tier ({MODEL}): PR #{n} not judged: {why}"[:400]
+    if defers(item) + 1 >= MAX_DEFERS:
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note + f"; {MAX_DEFERS} tier runs could not judge it: to the owner, PR open")
+    else:
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "defer", note + "; left for the next tier run")
+    return {"id": item["id"], "pr": n, "merged": False, "why": [why], "deferred": True, "rc": rc}
 
 
 def _redo_with_reason(wt, item_id, why, note):

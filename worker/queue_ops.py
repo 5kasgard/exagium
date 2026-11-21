@@ -162,7 +162,7 @@ def failures(i):
         res = str(r.get("result", ""))
         # a dispatch only starts the experiment run: it is neither a success nor a failure, so it must not end the count
         # (audit 2026-11-21, A F4 / R2 F5: dispatch reset it, and a run that never gave a verdict looped forever)
-        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result"):
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result", "defer"):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue
@@ -247,7 +247,7 @@ def held(wt, worker, item_id):
     return 0 if i and i.get("claimed_by") == worker and live_claim(i, now()) else 1
 
 
-TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
+TIER_OUTCOMES = {"confirm", "redo", "escalate", "defer", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
                  "decide_scheduled", "decide_owner", "dispatch", "verdict", "invalid", "resplit"}
 EXPERIMENT_FAILED = "lost"   # only the experiment record job moves scheduled -> open with it (move(..., allow_failed=True))
 
