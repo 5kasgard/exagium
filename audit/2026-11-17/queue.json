@@ -11172,7 +11172,7 @@
    "id": "K30",
    "title": "Refuse oversize paid calls in the router",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-21T03:36:56Z",
@@ -11188,7 +11188,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "In router/engines.py add size_guard(engine, model, prompt_chars, max_tokens): read the card file named by the ROUTER_CARDS environment variable (JSON mapping \"engine/model\" to a card dict as in worker/cards.py); if the variable is unset, do nothing. Otherwise raise Refused when check_size(card, prompt_chars, max_tokens) returns anything other than \"ok\", with its reason. Call size_guard from paid_guard before any request is sent. Test in router/test_router.py: with ROUTER_CARDS set to a temp file, an oversize prompt raises Refused before any network call is attempted, and with the variable unset the existing tests still pass.",
+   "next": "In router/engines.py add size_guard(engine, model, prompt_chars, max_tokens): read the card file named by the ROUTER_CARDS environment variable (JSON mapping \"engine/model\" to a card dict as in worker/cards.py); if the variable is unset, do nothing. Otherwise raise Refused when check_size(card, prompt_chars, max_tokens) returns anything other than \"ok\", with its reason. Call size_guard from paid_guard before any request is sent. Test in router/test_router.py: with ROUTER_CARDS set to a temp file, an oversize prompt raises Refused before any network call is attempted, and with the variable unset the existing tests still pass. PREVIOUS ATTEMPT REJECTED: reviewer: reject: size_guard uses json without ensuring it is imported, so the code will raise NameError and not meet the test requirements. Do the whole item, with a test.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -11231,6 +11231,12 @@
      "at": "2026-11-21T04:30:46Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T14:09:12Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: size_guard uses json without ensuring it is imported, so the code will raise NameError and not meet the test requirements"
     }
    ],
    "work_types": {
