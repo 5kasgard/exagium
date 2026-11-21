@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import code_job as CJ  # noqa: E402
 import queue_ops as Q  # noqa: E402
+import tier  # noqa: E402  merge_allowed: file only what the tier may merge (audit 2026-11-21)
 
 OWNER = {"F101"}   # changes what counts as a valid proposal on the board: decided with F054 by the owner, not merged by a tier
 PERSON = re.compile(r"^(record|counter|ledger|probe)/|^tasks/[^/]+/check\.py$|^worker/(tier|generate|research_job|doc_job)\.py$"
@@ -31,6 +32,7 @@ TESTS = [  # first match wins: (path prefix, test file)
     ("router/", "router/test_router.py"),
     ("worker/", "worker/test_worker.py"),
     ("transfer/", "transfer/test_fetch.py"),
+    ("experiments/", "experiments/test_experiments.py"),
     ("README.md", "worker/test_worker.py"),
 ]
 ROOT = os.path.dirname(HERE)
@@ -62,9 +64,10 @@ def candidates(review_dir):
         path, b = f["file"], f["body"]
         rk = R.get(fid, {}).get("body", {})
         why = ("closed" if fid in closed else "owner decision" if fid in OWNER else "workflow or refused path" if path.startswith("wf:") or not CJ.allowed(path)
-               else "a person merges this path" if PERSON.search(path)
+               else "a person merges this path" if PERSON.search(path) or not tier.merge_allowed(path)
                else "design decision" if b.get("kind") == "design" and rk.get("effort") != "small"
-               else "no test file for this path" if not test_for(path) else None)
+               else "no test file for this path" if not test_for(path)
+               else "a person merges its test file" if not tier.merge_allowed(test_for(path)) else None)
         if why:
             skipped[fid] = why
             continue
