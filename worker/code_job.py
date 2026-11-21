@@ -166,7 +166,7 @@ def parse_reply(text):
     if not text:
         return None
     blocks, cut = blocks_in(text)
-    if blocks or cut:
+    if blocks:   # a reply with no whole block (cut off by an output limit) falls through, so the slot tries the next model
         note = re.search(r"^NOTE:\s*(.+)$", text, re.M)
         return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else "",
                 "cut": cut}

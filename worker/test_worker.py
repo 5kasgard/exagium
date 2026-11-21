@@ -721,7 +721,9 @@ class CodeReplyFormat(unittest.TestCase):
         # review 2026-11-22: text holding a line that looks like a block start is reported as cut (the caller then repairs
         # or refuses the whole set), never silently dropped while the other blocks land
         r = C.parse_reply("<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
-        self.assertEqual((r["edits"], r["cut"]), ([], ["d.md", "path"]))
+        self.assertIsNone(r)   # no whole block: the slot chain moves on to the next model (review 2026-11-22)
+        r = C.parse_reply(test + "<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertEqual((r["edits"], r["cut"]), (want[1:], ["d.md", "path"]))
         self.assertEqual(C.parse_reply((new + test).replace("\n", "\r\n"))["edits"], want)
         # a replacement that ends on the marker's line keeps its text
         self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny>>>>>>> REPLACE")["edits"][0]["new"], "y")
