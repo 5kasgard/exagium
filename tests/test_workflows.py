@@ -50,6 +50,9 @@ class TestArtifactApart(unittest.TestCase):
         down = [s for s in w["jobs"]["land"]["steps"] if "download-artifact" in str(s.get("uses")) and s["with"]["name"] == "test"]
         self.assertEqual([s["with"]["path"] for s in down], ["tested"])
         self.assertIn("cp tested/test.json job/test.json", yaml.dump(w["jobs"]["land"]))
+        self.assertIn("sums", w["jobs"]["draft"]["outputs"])                       # land checks the draft job's own hashes
+        self.assertEqual(w["jobs"]["land"]["env"]["DRAFT_SUMS"], "${{ needs.draft.outputs.sums }}")
+        self.assertIn('[ "$got" != "$DRAFT_SUMS" ]', open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "worker.yml")).read())
 
 if __name__ == "__main__":
     unittest.main()
