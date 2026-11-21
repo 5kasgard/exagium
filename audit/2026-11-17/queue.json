@@ -8466,7 +8466,7 @@
    "id": "K17",
    "title": "Add a constraint-propagation family (threshold bits plus unit propagation) to transfer/families.py, with tests",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q54",
    "generated_at": "2026-11-20T21:42:23Z",
@@ -8486,7 +8486,7 @@
     "transfer/families.py",
     "transfer/test_families.py"
    ],
-   "next": "In transfer/families.py, add train_cp(card, X, y, seed), cp_predict(m, X) and cp_bytes(m, d), mirroring the signatures and return conventions of train_lgn, lgn_predict and lgn_bytes. The family binarises each feature with the threshold bits from lgn_bits. For each class it learns a small set of Horn-style clauses over those bits (greedy: add a clause only if it raises training accuracy). Prediction is forward chaining with integer operations only (unit propagation to a fixed point, then the class whose clauses fire). Leave the existing families unchanged. In transfer/test_families.py (new, under 80 lines) add unittest cases: (a) on a toy 2-feature XOR-free AND/OR dataset, cp_predict reproduces the labels that the greedy learner fits; (b) cp_predict returns the same output for a row whether or not the unused feature columns change; (c) cp_bytes returns a positive integer and grows when H grows. The test passes with python3 -m unittest transfer/test_families.py.",
+   "next": "In transfer/families.py, add train_cp(card, X, y, seed), cp_predict(m, X) and cp_bytes(m, d), mirroring the signatures and return conventions of train_lgn, lgn_predict and lgn_bytes. The family binarises each feature with the threshold bits from lgn_bits. For each class it learns a small set of Horn-style clauses over those bits (greedy: add a clause only if it raises training accuracy). Prediction is forward chaining with integer operations only (unit propagation to a fixed point, then the class whose clauses fire). Leave the existing families unchanged. In transfer/test_families.py (new, under 80 lines) add unittest cases: (a) on a toy 2-feature XOR-free AND/OR dataset, cp_predict reproduces the labels that the greedy learner fits; (b) cp_predict returns the same output for a row whether or not the unused feature columns change; (c) cp_bytes returns a positive integer and grows when H grows. The test passes with python3 -m unittest transfer/test_families.py. PREVIOUS ATTEMPT REJECTED: . Do the whole item, with a test.",
    "refs": [
     "queue Q54",
     "worker/split.py"
@@ -8526,6 +8526,12 @@
      "lost_lease": false,
      "outcome": "failed",
      "escalated": "failed 2 times in a row"
+    },
+    {
+     "at": "2026-11-21T02:30:17Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: "
     }
    ]
   },
