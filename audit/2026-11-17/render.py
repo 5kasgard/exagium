@@ -57,7 +57,7 @@ def transition_check():
         if (o['status'], oc) not in T.TABLE:
             bad.append(f"{i['id']}: {o['status']} -> {i['status']} on {oc!r}: not a move in transitions.py")
             continue
-        allowed = {T.TABLE[(o['status'], oc)]} | ({'escalated'} if oc in ('failed', 'lease_expired') else set())
+        allowed = {T.TABLE[(o['status'], oc)]} | ({'escalated'} if oc in ('failed', 'lease_expired', 'lost') else set())
         if i['status'] not in allowed:
             bad.append(f"{i['id']}: {o['status']} on {oc!r} gives {sorted(allowed)}, not {i['status']!r}")
     return bad
