@@ -1,0 +1,15 @@
+FAILED: prop-44914895199-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 158, in <module>
+    main()
+  File "/w/train.py", line 129, in main
+    acc, params = train_eval(X_train_full, y_train_full, X_tune, y_tune, d, C, E, H, rng_split, TUNE_EPOCHS)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 71, in train_eval
+    logits, h, x_flat = forward(Xb, emb, W1, b1, W2, b2)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 51, in forward
+    x_emb = emb[X]  # uses advanced indexing
+            ~~~^^^
+IndexError: index 32 is out of bounds for axis 0 with size 16
+
