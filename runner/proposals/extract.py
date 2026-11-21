@@ -2,7 +2,7 @@
 python3 -I extract.py REPLY.md CAND_DIR   -> writes CAND_DIR/{train.py, infer.c, README.md}; exit 1 with a reason if
 the reply does not hold exactly what is asked: a ```hypothesis block, one ```python block for train.py and one ```c
 block for infer.c (the first of each kind is taken), each within its size limit. Nothing in the reply is executed here."""
-import os, re, sys
+import json, os, re, sys
 
 LIMITS = {"hypothesis": 3000, "python": 40000, "c": 40000}
 FENCE = re.compile(r"^```[ \t]*([A-Za-z0-9_+-]*)[^\n]*\n(.*?)^```[ \t]*$", re.S | re.M)
@@ -36,6 +36,21 @@ def extract(reply, dst):
         with open(os.path.join(dst, f), "w") as fh:
             fh.write(text)
     return None
+
+
+def write_proposal_record(reply_text, proposal_id, family, finish_reason, valid, path, **ignored):
+    """Write a proposal record with only allowed fields (no headers, keys, or env values)."""
+    record = {
+        "id": proposal_id,
+        "family": family,
+        "finish_reason": finish_reason,
+        "valid": valid,
+        "reply": reply_text,
+    }
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(record, f)
+    return record
 
 
 if __name__ == "__main__":
