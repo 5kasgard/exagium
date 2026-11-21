@@ -9056,7 +9056,7 @@
    "id": "K19",
    "title": "Q59: known-answer controls inside the canary grader",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q59",
    "generated_at": "2026-11-20T21:42:23Z",
@@ -9074,7 +9074,7 @@
     "worker/grade_canary3.py",
     "worker/test_worker.py"
    ],
-   "next": "In worker/grade_canary3.py, add a control step to ok(item, before, after, result) and main(): before grading the four live targets, run the same ok() check on built-in known-answer cases with fixed expected verdicts: one where the 'after' line equals 'before' with a check-only result (must pass), one where the reworded guarantee from E3 is returned as a change (must fail), and one where a false number is corrected exactly (must pass). If any control gets the wrong verdict, main() exits nonzero and grades nothing. Add a test in worker/test_worker.py that imports the grader, checks that the three controls return the expected verdicts, and checks that a grader with a broken ok() (for example one that always returns True) is caught by the controls.",
+   "next": "In worker/grade_canary3.py, add a control step to ok(item, before, after, result) and main(): before grading the four live targets, run the same ok() check on built-in known-answer cases with fixed expected verdicts: one where the 'after' line equals 'before' with a check-only result (must pass), one where the reworded guarantee from E3 is returned as a change (must fail), and one where a false number is corrected exactly (must pass). If any control gets the wrong verdict, main() exits nonzero and grades nothing. Add a test in worker/test_worker.py that imports the grader, checks that the three controls return the expected verdicts, and checks that a grader with a broken ok() (for example one that always returns True) is caught by the controls. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The patch introduces an unintended duplicate file-read line in main(), altering the original code beyond the requested changes.. Do the whole item, with a test.",
    "refs": [
     "queue Q59",
     "worker/split.py"
@@ -9129,6 +9129,12 @@
      "at": "2026-11-21T03:40:16Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T06:23:50Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The patch introduces an unintended duplicate file-read line in main(), altering the original code beyond the requested changes."
     }
    ],
    "work_types": {
