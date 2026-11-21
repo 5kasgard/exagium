@@ -162,7 +162,7 @@ def failures(i):
         res = str(r.get("result", ""))
         # a dispatch only starts the experiment run: it is neither a success nor a failure, so it must not end the count
         # (audit 2026-11-21, A F4 / R2 F5: dispatch reset it, and a run that never gave a verdict looped forever)
-        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch"):
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result"):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue

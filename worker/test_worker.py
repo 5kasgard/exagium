@@ -761,6 +761,8 @@ class ExperimentLoop(unittest.TestCase):
                 mock.patch.object(QO, "commit_push", return_value=True):
             self.assertEqual(QO.move("wt", "experiment", "X7", "verdict", "holds"), 0)
         self.assertEqual((q["items"][0]["status"], q["items"][0]["runs"][-1]["outcome"]), ("open", "late_result"))
+        # and it does not reset the failure count (review 2026-11-21: it did, so the loop came back, slower)
+        self.assertEqual(QO.failures({"runs": [{"outcome": "lost"}, {"outcome": "late_result"}, {"outcome": "dispatch"}, {"outcome": "lost"}]}), 2)
 
     def test_in_progress_with_no_claim_counts_toward_escalation(self):
         import queue_ops as QO, transitions as T, datetime as dt
