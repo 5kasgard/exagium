@@ -717,6 +717,41 @@ class IntakeReview(unittest.TestCase):
 
 
 
+class ExperimentLoop(unittest.TestCase):
+    """Audit 2026-11-21 (A F4, R2 F5, GLM F117, F123): an experiment that never yields a verdict must climb a tier, not
+    bounce open -> scheduled -> open forever; and a 'scheduled' item whose run was cancelled must not sit there forever."""
+
+    def test_lost_runs_escalate_through_dispatches(self):
+        import queue_ops as QO, transitions as T
+        i = {"id": "X1", "status": "open", "experiment": {"name": "x"}, "runs": []}
+        seen = []
+        for n in range(8):
+            i["status"] = T.next_status(i["status"], "dispatch")
+            i["runs"].append({"outcome": "dispatch", "result": "started"})
+            i["runs"].append({"outcome": "lost", "result": "no result"})
+            i["status"] = T.next_status("scheduled", "lost", QO.failures(i))
+            seen.append(i["status"])
+            if i["status"] != "open":
+                break
+        self.assertEqual(seen[-1], "escalated")
+        self.assertLessEqual(len(seen), T.MAX_FAILURES)
+
+    def test_scheduled_with_no_run_expires_as_lost(self):
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        old = {"id": "X2", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(hours=QO.SCHEDULED_TTL_H + 1)), "outcome": "dispatch"}]}
+        new = {"id": "X3", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(hours=1)), "outcome": "dispatch"}]}
+        self.assertEqual(QO.expire({"items": [old, new]}, t), ["X2"])
+        self.assertEqual((old["status"], old["runs"][-1]["outcome"], new["status"]), ("open", "lost", "scheduled"))
+
+    def test_in_progress_with_no_claim_counts_toward_escalation(self):
+        import queue_ops as QO, transitions as T, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X4", "status": "in progress", "runs": [{"outcome": "lease_expired", "result": "no claim held"}] * (T.MAX_FAILURES - 1)}
+        QO.expire({"items": [i]}, t)
+        self.assertEqual(i["status"], "escalated")
+
+
 class NewFiles(unittest.TestCase):
     """Owner 2026-11-21: the worker builds as well as edits; an item may create one small file in an existing folder."""
     def test_code_job_creates_a_file(self):

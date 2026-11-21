@@ -26,6 +26,7 @@ QUEUE_MD = "audit/2026-11-17/QUEUE.md"
 BRANCH = "pilot/lgn-20261115"
 LEASE_HOURS = 2
 TRIES = 5
+SCHEDULED_TTL_H = 3   # experiment.yml: run job 60 min + record job 10 min, plus queueing
 MAX_FAILURES = T.MAX_FAILURES   # kept for readers; the rule lives in transitions.py
 ID = re.compile(r"[A-Za-z0-9._-]+")
 
@@ -84,15 +85,23 @@ def expire(q, t):
     exit), and chat claims older than CHAT_TTL_H hours (F017). Returns their ids."""
     out = []
     for i in q["items"]:
+        if i.get("status") == "scheduled" and i.get("runs") and \
+                parse(i["runs"][-1].get("at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=SCHEDULED_TTL_H):
+            # the experiment run was cancelled or never recorded: nothing else moves it (audit 2026-11-21, GLM F123)
+            i.setdefault("runs", []).append({"at": iso(t), "worker": "expiry", "result": f"no experiment result within {SCHEDULED_TTL_H} h",
+                                             "outcome": "lost"})
+            i["status"] = T.next_status("scheduled", "lost", failures(i))
+            out.append(i["id"])
+            continue
         if i.get("status") != "in progress":
             continue
         who = str(i.get("claimed_by") or "")
         stale_chat = who and not who.startswith("worker-") and parse(i.get("claimed_at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=CHAT_TTL_H)
         if not who or stale_chat:
-            i["status"] = T.next_status("in progress", "lease_expired")
             i.setdefault("runs", []).append({"at": iso(t), "worker": who or "nobody",
                                              "result": "no claim held" if not who else f"chat claim older than {CHAT_TTL_H} h",
                                              "outcome": "lease_expired"})
+            i["status"] = T.next_status("in progress", "lease_expired", failures(i))   # counted, like a worker lease (GLM F117)
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])
@@ -150,11 +159,13 @@ def failures(i):
     n = 0
     for r in reversed(i.get("runs", [])):
         res = str(r.get("result", ""))
-        if res.startswith("not started") or r.get("outcome") in ("budget", "retry"):
+        # a dispatch only starts the experiment run: it is neither a success nor a failure, so it must not end the count
+        # (audit 2026-11-21, A F4 / R2 F5: dispatch reset it, and a run that never gave a verdict looped forever)
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch"):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue
-        if r.get("outcome") in ("failed", "lost") or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
+        if r.get("outcome") in ("failed", "lost", "lease_expired") or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
             n += 1; continue
         break
     return n
