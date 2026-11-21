@@ -120,9 +120,18 @@ class TestFrontWholeRun(unittest.TestCase):
         self.assertEqual(judge.front(rs), {"a", "c"})
         self.assertEqual(judge.recount(rs), set())
 
+    def test_old_results_compete_by_a_lower_bound(self):
+        # review 2026-11-22: leaving old results out put points on the front that they beat. Startup here is 100/item,
+        # so old's bound is 200 and old2's 150: both beat new (600); new is provisional, not front.
+        rs = [self.r("new", 0.90, 500, 600), self.r("old", 0.90, 100), self.r("old2", 0.95, 50)]
+        self.assertEqual(judge.fronts(rs), (set(), {"new"}, {"old2"}))
+        # a new result beaten by a measured one is neither front nor provisional
+        rs.append(self.r("best", 0.99, 10, 40))
+        self.assertEqual(judge.fronts(rs), ({"best"}, set(), set()))
+
     def test_old_front_point_listed_for_rescore(self):
         rs = [self.r("a", 0.90, 500, 600), self.r("old", 0.95, 400), self.r("old2", 0.80, 900)]
-        self.assertEqual((judge.front(rs), judge.recount(rs)), ({"a"}, {"old"}))
+        self.assertEqual(judge.fronts(rs), (set(), {"a"}, {"old"}))   # old's bound 500 beats a's 600
         with tempfile.TemporaryDirectory() as d:
             for x in rs:
                 os.makedirs(os.path.join(d, x["name"]))
@@ -130,7 +139,9 @@ class TestFrontWholeRun(unittest.TestCase):
                           open(os.path.join(d, x["name"], "result.json"), "w"))
             judge.board(d)
             text = open(os.path.join(d, "LEADERBOARD.md")).read()
-        self.assertIn("whole-run count was recorded (front column 'rescore'): old.", text)
+        self.assertIn("front column 'rescore'): 1 (old). Beaten only by those, so decided by their rescore (front column "
+                      "'provisional'): 1.", text)
+        self.assertIn("| 600 | 500 |  | provisional |", text)
         self.assertIn("| old | t | True | True | True | 0.9500 ± 0.0100 |  |  | 400 |  | rescore |", text)
 
 

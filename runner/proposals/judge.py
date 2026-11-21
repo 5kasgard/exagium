@@ -60,29 +60,47 @@ def one(name, extract_status, rep_path, dev_path, task=""):
 
 
 COST = "ir_per_item_with_startup"   # whole-run Ir/item ranks the front (decided by data 2026-11-22, audit F054 / R4):
-# on all 165 valid proposals with both counts the front was the same under either and the order unchanged (Spearman 1.0
-# per task; startup adds about 140 Ir/item on optdigits, 22 on text and adult), and the marginal count can be gamed by
-# moving work into the N=0 run (loop.py's schema: informational only). The marginal count stays on the board, unranked.
+# on all 165 valid proposals with both counts the front was the same under either and the order almost unchanged
+# (Spearman 0.9996 optdigits, 0.99996 text, 1.0 adult; startup adds 143-177 Ir/item on optdigits, 21-28 on text and
+# adult), and the marginal count can be gamed by moving work into the N=0 run (loop.py's schema: informational only).
+# The marginal count stays on the board, unranked.
 
 
-def _front(v, key):
-    return {p["name"] for p in v if not any(b is not p and b["task"] == p["task"] and b["mean"] >= p["mean"] - p["se"]
-                                            and b[key] < p[key] for b in v)}
+def _beaten(p, b, key):
+    return b is not p and b["task"] == p["task"] and b["mean"] >= p["mean"] - p["se"] and b[key] < p[key]
+
+
+def fronts(rs):
+    """(front, provisional, rescore) over valid proposals, on their task's accuracy-cost front: no other valid proposal on
+    the same task at least as accurate (within the candidate's 1 SE) and cheaper in whole-run Ir/item. confirm/PLAN.md
+    rule 2, applied among proposals; beats-linear alone rewarded 30-266x instruction blowups (GLM F101).
+    A result scored before the whole-run count was recorded competes with a lower bound: its marginal cost plus the
+    smallest startup cost measured on its task (review 2026-11-22: leaving such results out put 5 points on the front
+    that they beat by more than any startup spread). Then:
+      front: has the whole-run count and nothing beats it;
+      provisional: has it, and only lower-bound results beat it (a rescore of those decides);
+      rescore: has no whole-run count and nothing beats its lower bound."""
+    v = [dict(r) for r in rs if r.get("valid") and r.get("ir_per_item") and "mean" in r]
+    low = {}
+    for r in v:
+        if r.get(COST):
+            low[r["task"]] = min(low.get(r["task"], float("inf")), r[COST] - r["ir_per_item"])
+    v = [dict(r, _c=r[COST] if r.get(COST) else r["ir_per_item"] + max(0.0, low.get(r["task"], 0.0))) for r in v]
+    top = {p["name"] for p in v if not any(_beaten(p, b, "_c") for b in v)}
+    front = {p["name"] for p in v if p["name"] in top and p.get(COST)}
+    rescore = {p["name"] for p in v if p["name"] in top and not p.get(COST)}
+    prov = {p["name"] for p in v if p["name"] not in top and p.get(COST)
+            and all(not b.get(COST) for b in v if _beaten(p, b, "_c"))}
+    return front, prov, rescore
 
 
 def front(rs):
-    """Names of valid proposals on their task's accuracy-cost front: no other valid proposal on the same task is at least
-    as accurate (within the candidate's 1 SE) and cheaper in whole-run Ir/item. confirm/PLAN.md rule 2, applied among
-    proposals; beats-linear alone rewarded 30-266x instruction blowups (GLM F101; 2026-11-21: 13 of 59 linear-beaters
-    cost over 20x)."""
-    return _front([r for r in rs if r.get("valid") and r.get(COST) and "mean" in r], COST)
+    return fronts(rs)[0]
 
 
 def recount(rs):
-    """Valid proposals scored before the whole-run count was recorded that the marginal count puts on the front: listed
-    for a rescore, never dropped silently (2026-11-22: 3 of the 9 marginal-front points)."""
-    v = [r for r in rs if r.get("valid") and r.get("ir_per_item") and "mean" in r]
-    return {n for n in _front(v, "ir_per_item") if not next(r for r in v if r["name"] == n).get(COST)}
+    """Old results (no whole-run count) on the front by their lower bound: listed for a rescore, never dropped."""
+    return fronts(rs)[2]
 
 
 def board(d):
@@ -96,7 +114,7 @@ def board(d):
     n, k = len(rs), sum(r["valid"] for r in rs)
     lo, hi = wilson(k, n)
     calls = sum(r.get("calls", 1) for r in rs)
-    fr, rc = front(rs), recount(rs)
+    fr, prov, rc = fronts(rs)
     design = {}
     for p, r in rs_pairs:
         folder = os.path.dirname(p)
@@ -127,9 +145,11 @@ def board(d):
              f"(no other valid proposal at least as accurate within 1 SE and cheaper in whole-run Ir/item, startup "
              f"included; the marginal Ir/item is shown, not ranked).", "",
              f"Distinct designs: {distinct} (of {k} valid).", ""]
-    if rc:
-        lines += [f"On the front under the marginal count but scored before the whole-run count was recorded (front "
-                  f"column 'rescore'): {', '.join(sorted(rc))}.", ""]
+    if rc or prov:
+        lines += [f"Scored before the whole-run count was recorded, on the front by a lower bound (marginal Ir/item plus "
+                  f"the task's smallest measured startup cost; front column 'rescore'): {len(rc)}"
+                  + (f" ({', '.join(sorted(rc))})" if rc else "") + f". Beaten only by those, so decided by their rescore "
+                  f"(front column 'provisional'): {len(prov)}.", ""]
     if pending:
         lines += [f"Not scored (scoring job failed; pending a rescore, not counted): {', '.join(pending)}.", ""]
     if n >= 20:
@@ -146,7 +166,7 @@ def board(d):
         ir = f"{r['ir_per_item']:.0f}" if r.get("ir_per_item") else ""
         ns = f"{r['ns_per_item']:.0f}" if r.get("ns_per_item") else ""
         whole = f"{r[COST]:.0f}" if r.get(COST) else ""
-        fc = "rescore" if r["name"] in rc else r["name"] in fr
+        fc = "rescore" if r["name"] in rc else "provisional" if r["name"] in prov else r["name"] in fr
         lines.append(f"| {r['name']} | {r.get('task', '')} | {r['extracted']} | {r['reproduced']} | {r['valid']} | {acc} | {vl} | {whole} | {ir} | {ns} | {fc} | {dup.get(r['name'], '')} |")
     open(os.path.join(d, "LEADERBOARD.md"), "w").write("\n".join(lines) + "\n")
     return n, k
