@@ -7969,7 +7969,7 @@
    "id": "G19",
    "title": "F072: infer rejects k > n ('bad weights size', exit 3) while train.py's predict tolerates k > n, so a training set s",
    "kind": "fix",
-   "status": "review",
+   "status": "done",
    "origin": "review",
    "review": "glm-20261120:F072",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -8051,6 +8051,12 @@
      "at": "2026-11-21T03:10:55Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T03:38:50Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #45 merged; model: The change removes the k > n rejection and clamps k to n in infer.c as the item allows, adds a test that fails on the old code (exit 3) and passes on the new, and touches nothing else; the test's subprocess calls are needed only to compile and run the binary under test.",
+     "outcome": "confirm"
     }
    ]
   },
