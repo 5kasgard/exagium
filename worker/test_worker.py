@@ -114,6 +114,14 @@ class Research(unittest.TestCase):
         self.assertEqual(len(ok), 1)
         self.assertEqual(len(dropped), 7)
 
+    def test_quote_typography_is_not_a_mismatch(self):
+        # R27/R31 2026-11-21: the reader wrote U+2011 for '-', arXiv kept LaTeX '70\%', and a quote ended with an added '.'
+        src = [{"sid": "S1", "abstract": "routing across a pool of real-world models cuts cost by up to 70\\% on math, and more"}]
+        good = "routing across a pool of real‑world models cuts cost by up to 70% on math."
+        ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
+                                  {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
+        self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
+
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
         for bad in ("http", "<", "@someone", "#12", "](", "\n"):

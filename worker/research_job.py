@@ -78,6 +78,11 @@ URL_OK = re.compile(r"^https://([a-z0-9-]+\.)*(doi\.org|arxiv\.org|openalex\.org
                     r"stackexchange\.com|ycombinator\.com|reddit\.com)(/[^\s\[\]()<>\"'`]*)?$")   # whole URL (review N4)
 UNTRUSTED = ("forum", "Q&A", "encyclopedia", "code")   # anyone can write these (review N6); a repo README is its author's own claim
 MAX_QUOTE_WORDS = 40
+# Typography only, the words must still match: 7 of 9 'not found verbatim' drops on R27 and R31 (runs 44947483203,
+# 44950857676, 2026-11-21) were the reader's U+2011 hyphen for the abstract's '-', arXiv's LaTeX '70\%', or a full
+# stop added where the abstract goes on. The other 2 quotes are not in their abstracts at all and stay dropped.
+TYPO = {c: "-" for c in (0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212)} | \
+       {0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x00A0: " ", 0x2009: " ", 0x202F: " "}
 
 
 def clean(t, n=300):
@@ -364,7 +369,7 @@ def verified(claims, sources):
     """Script check: the quote occurs verbatim (whitespace-normalised) in the source's abstract, and every number in
     the claim occurs in the quote. Returns (kept, dropped with reasons)."""
     by = {s["sid"]: s for s in sources}
-    norm = lambda s: " ".join(str(s).split()).lower()
+    norm = lambda s: " ".join(str(s).translate(TYPO).replace("\\%", "%").split()).lower()
     kept, dropped = [], []
     for c in claims if isinstance(claims, list) else []:
         if not isinstance(c, dict) or not {"source", "claim", "quote"} <= set(c) \
@@ -375,7 +380,7 @@ def verified(claims, sources):
         s = by.get(c["source"])
         if not s:
             dropped.append((c, "unknown source")); continue
-        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or norm(c["quote"]) not in norm(s["abstract"]):
+        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or norm(c["quote"]).rstrip(".,;") not in norm(s["abstract"]):
             dropped.append((c, "quote not found verbatim in the abstract")); continue
         nums = re.findall(r"\d+(?:\.\d+)?", str(c["claim"]))
         if any(n not in str(c["quote"]) for n in nums):
