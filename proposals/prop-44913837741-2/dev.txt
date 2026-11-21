@@ -1,0 +1,15 @@
+FAILED: prop-44913837741-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 102, in <module>
+    main()
+  File "/w/train.py", line 51, in main
+    X_feat = [featurize(np.frombuffer(r, dtype=np.uint8)) for r in X_raw]
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 35, in featurize
+    idxs.append(hash_ngram(i, x[i]))
+                ^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 29, in hash_ngram
+    h ^= b; h = (h * FNV_PRIME) & 0xffffffff
+    ^^^^^^
+OverflowError: Python integer 84696351 out of bounds for uint8
+
