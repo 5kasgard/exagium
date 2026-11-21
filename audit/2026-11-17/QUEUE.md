@@ -303,6 +303,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K49 | B3 |  | minor | medium | fix | Order each slot's fillers by calibrated score, keeping the pinned override | In router/slots.py, chain(slot, override) takes an optional calibration registry argument. When override is given it still returns only that (pool, model) filler, unchanged. Otherwise it sorts the slot's fillers by calibration score(actor, slot family), highest first, keeping the original order for ties. With no registry passed, the output is identical to the current chain. Add tests to router/test_router.py: an override returns exactly that filler; with a registry where filler B has more successes than filler A, B comes first; with no registry, the order matches the original. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R31 | B3 |  | minor | high | test | How can task difficulty and worker capability be jointly estimated before execution so each task is routed to the cheapest model-harness-tool configuration pred | Worker job (research): literature card for P20. Why: It informs the design of worker cards, pre-assignment demand estimation, and IRT-based routing to the cheapest predicted-success worker. | queue P20; queue P27 (generator) |
+| R32 | B3 |  | minor | high | test | How can systems derive and document per-model safe input/output token limits from provider documentation and observed request logs, then enforce them with a pre | Worker job (research): literature card for P20a. Why: It identifies published methods for sourcing, measuring, and enforcing model-specific token limits that can directly populate worker cards and the pre-call size check. | queue P20a; queue P27 (generator) |
+
 ## Parked (64)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
