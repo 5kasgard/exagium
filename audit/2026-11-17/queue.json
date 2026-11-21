@@ -12475,7 +12475,7 @@
    "id": "K44",
    "title": "P20a-1b: Pure parser of the call log into per-call cost records, keyed by attempt id where the record carries one",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20",
    "generated_at": "2026-11-21T11:04:53Z",
@@ -12496,7 +12496,7 @@
     "router/analysis/attempt_join.py",
     "router/test_router.py"
    ],
-   "next": "Create router/analysis/attempt_join.py (under 80 lines, standard library only) with parse_calls(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as log_usage in router/engines.py writes them) and returns (by_attempt, skipped): by_attempt maps attempt id to {cost, input_tokens, output_tokens, calls} summed over that attempt's lines; lines with no attempt id go under key None; malformed JSON lines and lines missing the cost field are counted in skipped, never raised. Add a test to router/test_router.py that feeds three lines (two with attempt id 'a1', one with no id, one malformed) and asserts the sums, the None bucket and skipped == 1.",
+   "next": "Create router/analysis/attempt_join.py (under 80 lines, standard library only) with parse_calls(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as log_usage in router/engines.py writes them) and returns (by_attempt, skipped): by_attempt maps attempt id to {cost, input_tokens, output_tokens, calls} summed over that attempt's lines; lines with no attempt id go under key None; malformed JSON lines and lines missing the cost field are counted in skipped, never raised. Add a test to router/test_router.py that feeds three lines (two with attempt id 'a1', one with no id, one malformed) and asserts the sums, the None bucket and skipped == 1. PREVIOUS ATTEMPT REJECTED: no edits. Do the whole item, with a test.",
    "refs": [
     "queue P20",
     "worker/split.py"
@@ -12540,6 +12540,12 @@
      "lost_lease": false,
      "outcome": "failed",
      "escalated": "failed 2 times in a row"
+    },
+    {
+     "at": "2026-11-21T21:23:44Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no edits"
     }
    ],
    "work_types": {
