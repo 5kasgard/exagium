@@ -126,7 +126,34 @@ def related(repo, item, skip, k=5):
         return f"(index unavailable: {type(e).__name__})"
 
 
-BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(?:(.*?)\n)?=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)
+HEAD = re.compile(r"^<<<<<<< SEARCH[ \t]+(\S+)[ \t]*$")
+SEP = re.compile(r"^=======[ \t]*$")
+END = re.compile(r">>>>>>> REPLACE[ \t]*$")
+
+
+def blocks_in(text):
+    """(path, old, new) for each search/replace block, read line by line so no block can reach into the next. The
+    regex this replaces let an empty SEARCH (a new file) run on to the NEXT block's =======: the new file got the test's
+    replacement and the test edit vanished (13 of 39 'no edits' code runs 2026-11-20/21, e.g. K44 run 44953039259;
+    no new-file item had landed)."""
+    out, cur, part = [], None, None
+    for line in text.split("\n"):
+        if cur is None:
+            m = HEAD.match(line)
+            if m:
+                cur, part = (m.group(1), [], []), 1
+            continue
+        if part == 1 and SEP.match(line):
+            part = 2
+        elif part == 2 and END.search(line):
+            head = line[:END.search(line).start()]
+            out.append((cur[0], "\n".join(cur[1]), "\n".join(cur[2] + ([head] if head else []))))
+            cur = None
+        elif HEAD.match(line):   # a block cut off before its REPLACE is dropped, and this line starts a new one
+            cur, part = (HEAD.match(line).group(1), [], []), 1
+        else:
+            cur[part].append(line)
+    return out
 
 
 def parse_reply(text):
@@ -134,7 +161,7 @@ def parse_reply(text):
     live code jobs, 2026-11-20), or the older JSON form. Returns {"edits": [...], "note": ...} or None."""
     if not text:
         return None
-    blocks = BLOCK.findall(text)
+    blocks = blocks_in(text)
     if blocks:
         note = re.search(r"^NOTE:\s*(.+)$", text, re.M)
         return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else ""}

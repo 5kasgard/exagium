@@ -700,6 +700,25 @@ class CodeReplyFormat(unittest.TestCase):
         self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
         self.assertIsNone(C.parse_reply("nothing here"))
 
+    def test_new_file_block_does_not_swallow_the_next(self):
+        # K44 run 44953039259: an empty SEARCH (a new file) ran on to the test block's =======, so the new file got the
+        # test's code and the test edit vanished. Each block must stand alone, whatever order the model writes them in.
+        import code_job as C
+        new = "<<<<<<< SEARCH router/analysis/attempt_join.py\n=======\ndef parse_calls(lines):\n    return {}\n>>>>>>> REPLACE\n"
+        test = ('<<<<<<< SEARCH router/test_router.py\nif __name__ == "__main__":\n=======\nclass T(unittest.TestCase):\n'
+                '    pass\n\nif __name__ == "__main__":\n>>>>>>> REPLACE\n')
+        want = [{"path": "router/analysis/attempt_join.py", "old": "", "new": "def parse_calls(lines):\n    return {}"},
+                {"path": "router/test_router.py", "old": 'if __name__ == "__main__":',
+                 "new": 'class T(unittest.TestCase):\n    pass\n\nif __name__ == "__main__":'}]
+        self.assertEqual(C.parse_reply("```\n" + new + "\n" + test + "```\nNOTE: n")["edits"], want)
+        self.assertEqual(C.parse_reply(test + new)["edits"], want[::-1])
+        # a blank line in SEARCH still marks a new file; a block cut off before REPLACE is dropped, not merged on
+        self.assertEqual(C.parse_reply(new.replace("=======", "\n=======", 1))["edits"][0]["old"], "")
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny\n" + test)["edits"], want[1:])
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n" + test)["edits"], want[1:])
+        # a replacement that ends on the marker's line keeps its text
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny>>>>>>> REPLACE")["edits"][0]["new"], "y")
+
 
 class SandboxRefused(unittest.TestCase):
     def test_sandbox_paths(self):
