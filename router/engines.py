@@ -190,6 +190,44 @@ def anthropic_call(model, prompt, max_tokens=2000, system=None):
                       "text": text, "error": None if text else _scrub(j.get("_error") or json.dumps(j))[:600]})
 
 
+def retry_after(status, headers, now):
+    """Seconds until the pool's rate-limit window resets, or None if status != 429.
+    Pure function: no network, no I/O.
+    Priority: Retry-After header (seconds or HTTP-date), then first header whose name contains 'reset'.
+    Fallback for 429 without usable header: 60 seconds.
+    """
+    if status != 429:
+        return None
+    if not headers:
+        return 60
+    # Case-insensitive header lookup
+    h = {k.lower(): v for k, v in headers.items()}
+    # 1) Retry-After: seconds or HTTP-date
+    ra = h.get("retry-after")
+    if ra is not None:
+        try:
+            return max(0, int(ra.strip()))
+        except ValueError:
+            # HTTP-date (RFC 7231): e.g. "Wed, 21 Oct 2015 07:28:00 GMT"
+            try:
+                from email.utils import parsedate_to_datetime
+                dt = parsedate_to_datetime(ra.strip())
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=time.timezone.utc)
+                return max(0, int(dt.timestamp() - now))
+            except Exception:
+                pass
+    # 2) First header containing 'reset' (e.g. x-ratelimit-reset, ratelimit-reset, x-rate-limit-reset)
+    for k, v in h.items():
+        if "reset" in k:
+            try:
+                return max(0, int(v.strip()))
+            except ValueError:
+                continue
+    # 3) Fallback
+    return 60
+
+
 def _scrub(s):
     for k in SECRET_ENVS:
         v = os.environ.get(k)

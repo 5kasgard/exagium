@@ -137,6 +137,33 @@ class Scrub(unittest.TestCase):
 
 
 
+class RetryAfter(unittest.TestCase):
+    def test_retry_after_seconds_header(self):
+        now = 1000.0
+        self.assertEqual(engines.retry_after(429, {"Retry-After": "30"}, now), 30)
+
+    def test_retry_after_http_date(self):
+        # HTTP date 60 seconds in the future
+        from email.utils import formatdate
+        now = 1000.0
+        future = formatdate(now + 60, usegmt=True)
+        self.assertEqual(engines.retry_after(429, {"Retry-After": future}, now), 60)
+
+    def test_non_429_returns_none(self):
+        self.assertIsNone(engines.retry_after(200, {"Retry-After": "30"}, 1000.0))
+        self.assertIsNone(engines.retry_after(500, {}, 1000.0))
+
+    def test_fallback_when_no_usable_header(self):
+        self.assertEqual(engines.retry_after(429, {}, 1000.0), 60)
+        self.assertEqual(engines.retry_after(429, {"X-Other": "value"}, 1000.0), 60)
+
+    def test_ratelimit_reset_header(self):
+        now = 1000.0
+        self.assertEqual(engines.retry_after(429, {"X-RateLimit-Reset": "45"}, now), 45)
+        self.assertEqual(engines.retry_after(429, {"x-ratelimit-reset": "45"}, now), 45)
+        self.assertEqual(engines.retry_after(429, {"RateLimit-Reset": "45"}, now), 45)
+
+
 class DecisionsScrub(unittest.TestCase):
     def test_f045_http_error_body_is_scrubbed_in_json_and_stdout(self):
         import contextlib, io, tempfile, urllib.error, urllib.request
