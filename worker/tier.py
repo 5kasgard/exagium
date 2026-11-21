@@ -55,6 +55,36 @@ CONTROLS = [
 ]
 
 
+def qualifies(runs):
+    """A model qualifies if it has at least two runs, every run has controls_right == 5 and agree >= 27.
+    A run is {controls_right: int of 5, agree: int of 30, cost: float, latency_s: float}."""
+    if not runs or len(runs) < 2:
+        return False
+    for run in runs:
+        if run.get("controls_right") != 5:
+            return False
+        if run.get("agree", 0) < 27:
+            return False
+    return True
+
+
+def choose(models):
+    """Choose the qualified model with lowest total cost, then lowest median latency.
+    models: dict of model_name -> list of runs.
+    Returns the model name, or None if none qualify."""
+    qualified = {}
+    for model, runs in models.items():
+        if qualifies(runs):
+            total_cost = sum(r.get("cost", 0.0) for r in runs)
+            latencies = sorted(r.get("latency_s", 0.0) for r in runs)
+            n = len(latencies)
+            median_latency = latencies[n // 2] if n % 2 == 1 else (latencies[n // 2 - 1] + latencies[n // 2]) / 2
+            qualified[model] = (total_cost, median_latency)
+    if not qualified:
+        return None
+    return min(qualified.items(), key=lambda x: (x[1][0], x[1][1]))[0]
+
+
 def summarise(item, art):
     """Script summary of the last run's artifact for the prompt (no model text is trusted for anything but this)."""
     s = json.load(open(os.path.join(art, "search.json"))) if os.path.exists(os.path.join(art, "search.json")) else {}
