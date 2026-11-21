@@ -1,0 +1,15 @@
+FAILED: prop-44860695096-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 154, in <module>
+    main()
+  File "/w/train.py", line 135, in main
+    W_lin, V, b = train_fm(X_train, y_train, C, d, k, epochs, rng)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 93, in train_fm
+    scores = fm_forward(Xb, W_lin, V, b, C, d, k)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 31, in fm_forward
+    lin = b[c] + np.sum(W_lin[c][X_idx], axis=1, dtype=np.float32)
+                        ~~~~~~~~^^^^^^^
+IndexError: index 35 is out of bounds for axis 0 with size 14
+
