@@ -8539,7 +8539,7 @@
    "id": "K18",
    "title": "Q59: script guard rejects a guarantee whose scope words are dropped (E3 case)",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q59",
    "generated_at": "2026-11-20T21:42:23Z",
@@ -8557,7 +8557,7 @@
     "worker/doc_job.py",
     "worker/test_worker.py"
    ],
-   "next": "In lost_guarantee() in worker/doc_job.py, add the scope and strength words the E3 failure dropped (anyone, anybody, whatever, ever, never, any, all, no matter) to the set it checks, so that when one is present in the old line and absent from the new line, check_edits() rejects the edit and the item ends as no change, not a PR. Add a test in class GuaranteeWords in worker/test_worker.py using the exact E3 pair: old 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' and new 'Results cannot be changed or deleted once recorded.' must be rejected. Also add a control that must pass: a same-meaning rewrite that keeps every listed word (e.g. only 'recorded' to 'written down') is accepted. Both tests must pass, and the existing GuaranteeWords and DocSafety tests must still pass.",
+   "next": "In lost_guarantee() in worker/doc_job.py, add the scope and strength words the E3 failure dropped (anyone, anybody, whatever, ever, never, any, all, no matter) to the set it checks, so that when one is present in the old line and absent from the new line, check_edits() rejects the edit and the item ends as no change, not a PR. Add a test in class GuaranteeWords in worker/test_worker.py using the exact E3 pair: old 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' and new 'Results cannot be changed or deleted once recorded.' must be rejected. Also add a control that must pass: a same-meaning rewrite that keeps every listed word (e.g. only 'recorded' to 'written down') is accepted. Both tests must pass, and the existing GuaranteeWords and DocSafety tests must still pass. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change misses adding \"no matter\" and does not include the required new tests, so it does not fully satisfy the item.. Do the whole item, with a test.",
    "refs": [
     "queue Q59",
     "worker/split.py"
@@ -8587,6 +8587,12 @@
      "at": "2026-11-20T22:38:30Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T02:30:18Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change misses adding \"no matter\" and does not include the required new tests, so it does not fully satisfy the item."
     }
    ]
   },
