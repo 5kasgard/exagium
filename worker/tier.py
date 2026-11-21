@@ -239,9 +239,35 @@ def drain_code(wt, ask, record):
         conflict = not ok and len(why) == 1 and "merge conflicts" in why[0]
         if conflict:   # approved, but another merged PR touched the same lines: redone on today's main, not escalated
             subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{REPO}/pulls/{n}", "-f", "state=closed"], capture_output=True, text=True)
-        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
-                    note + ("; closed for a redo on today's main" if conflict else ""))
+        person = not ok and verdict == "approve" and any("files a person merges" in w for w in why)
+        if not ok and not conflict and not person:   # rejected on its merits: close the PR; one retry with the reason, then a smaller split
+            subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{REPO}/pulls/{n}", "-f", "state=closed"], capture_output=True, text=True)
+            if tier_redos(item) < MAX_REDOS:
+                rc = _redo_with_reason(wt, item["id"], "; ".join(str(w) for w in why)[:500], note)
+            else:
+                rc = Q.move(wt, f"tier-{MODEL}", item["id"], "resplit", note + "; parked for a smaller split")
+        else:   # merged, a conflict to redo, or an approved change on a path only a person merges (the owner)
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
+                        note + ("; closed for a redo on today's main" if conflict else ""))
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
+
+
+def _redo_with_reason(wt, item_id, why, note):
+    """review -> open with the rejection written into the item's next step (the coder never saw reasons before)."""
+    for _ in range(Q.TRIES):
+        Q.sync(wt)
+        q = Q.load(wt)
+        it = next(x for x in q["items"] if x["id"] == item_id)
+        if it["status"] != "review":
+            return 1
+        it["next"] = (it.get("next", "") + f" PREVIOUS ATTEMPT REJECTED: {why}. Do the whole item, with a test, under 80 changed lines.")[:3000]
+        it["status"] = Q.T.next_status("review", "redo")
+        it.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": f"tier-{MODEL}", "outcome": "redo",
+                                          "result": f"tier: one retry with the rejection reason in the next step: {note}"[:400]})
+        Q.save(wt, q)
+        if Q.commit_push(wt, f"tier: {item_id} redo with the rejection reason"):
+            return 0
+    return 1
 
 
 def retry_code(wt, record):
@@ -252,8 +278,8 @@ def retry_code(wt, record):
     for i in [x for x in q["items"] if x.get("status") == "escalated" and x.get("code")][:MAX_ITEMS]:
         last = (i.get("runs") or [{}])[-1]
         why = "; ".join(str(w) for w in (last.get("why") or [])[:3])[:500]
-        if tier_redos(i) >= MAX_REDOS:
-            rc = Q.move(wt, f"tier-{MODEL}", i["id"], "escalate", f"tier: second escalation of a code item; last: {why}")
+        if tier_redos(i) >= MAX_REDOS:   # parked with the reason; the splitter cuts its parent again, smaller
+            rc = Q.move(wt, f"tier-{MODEL}", i["id"], "resplit", f"tier: failed after its retry, parked for a smaller split; last: {why}")
             record.setdefault("code_retries", []).append({"id": i["id"], "escalated": True, "rc": rc}); continue
         for _ in range(Q.TRIES):
             Q.sync(wt)

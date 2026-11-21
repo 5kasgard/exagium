@@ -950,5 +950,16 @@ class OnlyTestEdits(unittest.TestCase):
         self.assertEqual(len(r["proposal"]["edits"]), 2)
 
 
+
+class Resplit(unittest.TestCase):
+    def test_failed_code_items_park_for_a_smaller_split(self):
+        import transitions as TR, split as SP
+        self.assertEqual(TR.next_status("escalated", "resplit"), "parked")
+        self.assertEqual(TR.next_status("review", "resplit"), "parked")
+        q = {"items": [{"id": "P1", "status": "open", "kind": "build"},
+                       {"id": "K1", "status": "parked", "split_from": "P1", "code": {"files": ["a.py"]}}]}
+        self.assertEqual([i["id"] for i in SP.candidates(q)], ["P1"])   # its only child parked: the parent is cut again
+
+
 if __name__ == "__main__":
     unittest.main()

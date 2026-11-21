@@ -60,6 +60,8 @@ the replacement lines
 
 To add a new function, SEARCH for a line it should follow and repeat that line at the start of the replacement.
 To write a new (empty) file, leave the SEARCH part empty: the SEARCH line, then ======= on the next line.
+Keep the whole change under 80 changed lines (added plus removed): larger changes are not merged without a person.
+Change the code the item is about, not only its test: the test shows the change works.
 Finish with one line: NOTE: what you changed and why."""
 
 REVIEW = """You review a proposed code change. Approve only if it does what the item asks, changes nothing else, adds no

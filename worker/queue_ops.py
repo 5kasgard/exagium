@@ -236,7 +236,7 @@ def held(wt, worker, item_id):
 
 
 TIER_OUTCOMES = {"confirm", "redo", "escalate", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
-                 "decide_scheduled", "decide_owner", "dispatch", "verdict", "invalid"}
+                 "decide_scheduled", "decide_owner", "dispatch", "verdict", "invalid", "resplit"}
 EXPERIMENT_FAILED = "lost"   # only the experiment record job moves scheduled -> open with it (move(..., allow_failed=True))
 
 

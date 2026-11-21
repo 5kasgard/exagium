@@ -34,6 +34,9 @@ be done this way (it needs a person, money, new infrastructure or data that does
 ITEM {id}: {title}
 NEXT STEP: {next}
 
+EARLIER SUB-ITEMS OF THIS ITEM AND WHAT HAPPENED (cut smaller where one failed; do not repeat a done one):
+{history}
+
 THE PARTS MOST RELATED TO THIS ITEM (module purpose, functions with their first docstring line, and the tests that
 cover them; from worker/repo_index.py):
 {parts}
@@ -224,8 +227,12 @@ def run(wt, repo, out, ask=None, decide_fn=None):
         tried = set()
         for parent in candidates(q)[:MAX_PARENTS]:
             parts = RI.show(RI.rank(mods, parent["title"] + " " + parent.get("next", ""), 8))
+            hist = [f"- {k['id']} ({k['status']}): {k['title'][:120]}"
+                    + (f" | last: {str((k.get('runs') or [{}])[-1].get('result') or '')[:200]}" if k.get("runs") else "")
+                    for k in q["items"] if k.get("split_from") == parent["id"]]
             reply = ask(PROMPT.format(id=parent["id"], title=parent["title"], next=parent.get("next", "")[:3000],
-                                      files=listing, tests=", ".join(tests), parts=parts or "(none matched)"))
+                                      files=listing, tests=", ".join(tests), parts=parts or "(none matched)",
+                                      history="\n".join(hist) or "(none)"))
             d = first_json(reply or "")
             if not isinstance(d, dict) or not isinstance(d.get("subitems"), list):
                 log.append({"parent": parent["id"], "ok": False, "why": "reply not the asked JSON", "raw": (reply or "")[:2500]})
