@@ -54,12 +54,18 @@ def call(engines, pool, model, prompt):
     return engines.compat_call(pool, model, prompt, max_tokens=16000)
 
 
-def chain(slot, override=None):
-    """The fillers to try, in order. override (pool, model) pins one filler (arm tests)."""
+def chain(slot, override=None, calibration=None):
+    """The fillers to try, in order. override (pool, model) pins one filler (arm tests).
+    If calibration is provided (a mapping (actor, slot_family) -> score), fillers are sorted
+    by that score descending, stable for ties. actor is the pool; slot_family is the slot name."""
     if override:
         return [tuple(override)]
     paid = os.environ.get("PAID_FALLBACK") == "1"
-    return [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
+    fillers = [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
+    if calibration is None:
+        return fillers
+    # Stable sort by calibration score descending; pool is the actor, slot is the family
+    return sorted(fillers, key=lambda fm: calibration.get((fm[0], slot), 0.0), reverse=True)
 
 
 def run(slot, prompt, ask, parse, override=None):
