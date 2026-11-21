@@ -107,8 +107,8 @@ First 20: 11 valid -> KEEP the one-call proposer (rule fixed in PLAN.md).
 | prop-44605830497-1 | optdigits | True | True | True | 0.9540 ± 0.0068 | -0.0073 ± 0.0069 | 5616 | 558 | False |  |
 | prop-44605830497-2 | text | True | True | True | 0.3287 ± 0.0061 | -0.0088 ± 0.0044 | 37092 | 4291 | False |  |
 | prop-44607792777-0 | adult | True | False | False |  |  |  |  | False |  |
-| prop-44607792777-1 | optdigits | True | True | True | 0.9697 ± 0.0055 | +0.0084 ± 0.0051 | 4915 | 317 | True |  |
-| prop-44607792777-2 | text | True | True | True | 0.3440 ± 0.0061 | +0.0065 ± 0.0051 | 40250 | 3120 | False |  |
+| prop-44607792777-1 | optdigits | True | True | True | 0.9697 ± 0.0055 | +0.0084 ± 0.0051 | 4915 | 408 | True |  |
+| prop-44607792777-2 | text | True | True | True | 0.3440 ± 0.0061 | +0.0065 ± 0.0051 | 40250 | 3114 | False |  |
 | prop-44610648477-0 | adult | True | True | True | 0.8136 ± 0.0048 | -0.0388 ± 0.0035 | 1725 | 146 | False |  |
 | prop-44610648477-1 | optdigits | True | True | True | 0.9854 ± 0.0039 | +0.0241 ± 0.0061 | 104297 | 5294 | False |  |
 | prop-44610648477-2 | text | True | False | False |  |  |  |  | False |  |
