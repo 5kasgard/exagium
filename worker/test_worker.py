@@ -422,6 +422,28 @@ class LoopMetrics(unittest.TestCase):
         self.assertIn("not measured", out[4])
 
 
+class GenerateThroughput(unittest.TestCase):
+    """2026-11-22 (owner: break the open items down on free compute, following the data): the research cap counted the
+    splitter's code items, so it was spent before the generator ran; and a run tried every candidate until one passed."""
+
+    def test_cap_counts_research_items_only(self):
+        import generate as G
+        day = "2026-11-21"
+        q = {"items": [{"id": f"K{n}", "origin": "generated", "generated_at": day + "T01:00:00Z", "code": {}} for n in range(25)]
+             + [{"id": "R1", "origin": "generated", "generated_at": day + "T02:00:00Z", "research": {"question": "q"}}]}
+        self.assertEqual(G.today_count(q, day), 1)
+
+    def test_a_run_makes_at_most_max_tries_draft_calls(self):
+        import generate as G
+        from unittest import mock
+        q = {"items": [{"id": f"P{n}", "status": "open", "kind": "build", "title": "t" * 20, "next": "n"} for n in range(20)]}
+        tried = []
+        with tempfile.TemporaryDirectory() as out, mock.patch.object(G.Q, "sync"), mock.patch.object(G.Q, "load", return_value=q), \
+                mock.patch.object(G, "regate", return_value=[]):
+            G.run("wt", out, draft_fn=lambda prompt: tried.append(1) or None, decide_fn=lambda p: ([], None))
+        self.assertEqual(len(tried), G.MAX_TRIES)
+
+
 class GenerateControls(unittest.TestCase):
     def test_frozen_controls(self):
         import generate as G
