@@ -482,8 +482,14 @@ def _read(out, d, q, calls, ask):
             pool = [dict(d["pool"][i], relevance=round(ps[i], 3)) for i in keep]
             d["sources"] = pick(pool, kinds, scores=[x["relevance"] * 1e6 + (x.get("cited_by") or 0) for x in pool])
             rel = {"pool": len(ps), "relevant": len(keep), "read": len(d["sources"])}
-            if not d["sources"]:   # nothing on topic: no reader call; the tier narrows the question (its redo path)
-                json.dump({"claims": [], "open_questions": [], "relevance": rel, "error": "no relevant sources in the pool (relevance filter)"},
+            # card() reads search.json and re-checks every quote against its sources by S-id: it must see the sources the
+            # reader saw, not the citation-picked ones the search step wrote (audit 2026-11-21: A F2, GLM F112)
+            json.dump(d, open(os.path.join(out, "search.json"), "w"), indent=1)
+            if not d["sources"]:   # nothing on topic: no reader call; card() records "no claims" and the tier narrows it
+                # every key card() reads, so it records the outcome instead of crashing (audit A F2, GLM F113: KeyError)
+                json.dump({"reading": {"claims": [], "open_questions": []}, "script_kept": [], "script_dropped": [],
+                           "check": None, "model_fail": [], "relevance": rel,
+                           "error": "no relevant sources in the pool (relevance filter)"},
                           open(os.path.join(out, "read.json"), "w"), indent=1)
                 print(f"relevance: 0 of {len(ps)} sources on topic; not reading")
                 return
