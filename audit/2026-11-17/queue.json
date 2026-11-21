@@ -4710,11 +4710,11 @@
    ],
    "next": "Bench-4 ranked harnesses on 3 tasks the Forge wrote (T1-T3); anything tuned against them will learn them. Build a frozen held-out suite of tasks the Forge did not write: a seeded random sample of 6 public tasks (Terminal-Bench or SWE-bench Verified, licence-checked) with their own outside tests as graders; never shown to P5, P29 or any proposer; same seal, cap and grader as bench-4. TEST, rule fixed now: rerun OpenHands (base), OpenCode and Goose, 2 repeats each (36 attempts, under one day's shared allowance). bench-4's verdict transfers if OpenCode's tokens-per-pass ratio upper 95% bound is below 1 and its passes are not worse (Fisher p >= 0.05); otherwise record bench-4 as task-specific. Outside agents stay frozen as fixed baselines here; agents we build are scored only on this suite. Pass floor added after review: also needs passes at least the base's minus 1 (Fisher alone at 12 attempts lets 9/12 vs 12/12 through, one-sided p 0.11). Blind review 44525785629 (gpt-oss-120b, llama-4-scout, sources stripped): KEEP from both. Scout's 'rotate the suite' rejected for P28: a frozen suite is what makes runs comparable; P29's look cap handles overfitting. Source choice, researched 2026-11-20 (Claude, web; R15 is the worker's independent cross-check): (a) SWE-bench Verified is out: models name the buggy file from the issue text alone up to 76% of the time there vs up to 53% on repositories outside it (arXiv 2506.12286), so it measures memory as much as skill. (b) SWE-rebench (Nebius, NeurIPS 2025 D&B; arXiv 2505.20411; v2 2602.23866): 21k+ executable Python tasks from permissively licensed repos, refreshed continuously, contamination tracked by model release date. Primary source: sample only tasks created after the free model's release date. (c) Terminal-Bench 2.0: 89 human-verified tasks, Apache-2.0, carries a canary string; frontier agents solve under 65% and small models about 15% (arXiv 2601.11868). Secondary, easy-tagged tasks only. Feasibility step added before the 36 attempts, rule fixed now: a 6-attempt pilot (base harness, 6 candidate tasks, 1 each); keep a task only if the pilot's attempt finishes inside the cap; if fewer than 6 tasks survive from 12 candidates, the suite is too hard for free models and P28 reports that instead of a ratio. Pilot attempts count for nothing. DATA 2026-11-19 22:00Z: the rule 'tasks created after the free model's release' cannot be met. Nemotron 3 Ultra was released 2026-06-04, pre-training data to September 2025, post-training data to May 2026 (NVIDIA model card); SWE-rebench's leaderboard set (CC BY 4.0) has monthly splits only to 2026_03 (16 splits; 2025_10..2026_03 hold 361 tasks, each with a docker image and harbor resource fields). Those 361 are after pre-training but inside the post-training window, and SWE-rebench is published as RL training data, so contamination cannot be ruled out from dates. Next step, cheap and script-graded, fixed now: the SWE-Bench Illusion probe (arXiv 2506.12286): give the model each issue text alone and ask for the file paths to change; exact match against the task's patch. Run on 20 seeded 2025_10..2026_03 tasks and 20 SWE-bench Verified tasks (where memorisation is documented). If the fresh set's accuracy is not lower than Verified's by at least 15 points, treat it as contaminated too, and P28 builds its own tasks from issues after 2026-06-04 with SWE-rebench's open pipeline instead. RESULT 2026-11-19 23:05Z (Claude shift; main 58fad9a, run 44632998540, rules in router/bench6/illusion/PLAN.md, sample raised to 40 a side before any result since 20 gave an SE of 15.8 points): top-1 file from the issue alone, Verified 0.72, fresh 0.35; gap 37.5 points (95% interval 17.3-57.7) >= 15, so the fresh 2025_10..2026_03 set is used (less recalled, not proven unseen). Dry control 44632695009 read 0.50/0.50. NEXT: the 6-attempt feasibility pilot (rule above) on 12 seeded fresh tasks, then the 36 attempts. STEP 1 RESULT 2026-11-20 09:15Z (scheduled Claude shift; main 290aaec; rules in router/bench6/pilot/PLAN.md, fixed before the dry run 44705639845): grader check with no model call on 12 seeded fresh candidates (router/bench6/pilot/candidates.json, seed 20261121, the 40 probe ids excluded): 8 of 12 usable (unfixed code fails a FAIL_TO_PASS test, gold patch passes every listed test, in the task's own image; rule at least 8: met), run 44706105305. Unusable: haystack-10029 and pyinaturalist-643 (the dataset's test ids are malformed: '[' and ids cut at a space), gpuhunt-197 (tests reported both PASSED and FAILED), fusesoc-776 (environment failure). OPEN POINT before any attempt: the pilot rule says '6-attempt pilot (6 candidate tasks, 1 each)' and 'fewer than 6 tasks survive from 12 candidates'; the two do not fit. Proposed (to settle before the run, not after): one base-harness attempt on each of the 8 usable tasks; keep a task if its attempt finishes inside the cap; fewer than 6 kept -> report too hard. NEXT: adapt bench-4's harness run (router/bench4/run_openhands.py) to run inside each task's image and grade with envcheck's statuses()/judge on the agent's diff; dry run with the gold patch as the 'agent' (must read usable) before any model call.",
    "work_types": {
-    "data": 0.945,
-    "experiment": 0.891
+    "experiment": 0.98,
+    "data": 0.972
    },
-   "work_types_key": "3c55c4e84bbe1fc9",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "23d2e761bf7de4fe",
+   "work_types_at": "2026-11-21T04:42:24Z",
    "split_tried": "2026-11-21T03:36:54Z"
   },
   {
@@ -4745,11 +4745,11 @@
    ],
    "next": "Hypothesis: a harness fitted to our pools and tasks beats off-the-shelf ones on cost. Free models propose harness variants as diffs to a small base (prompt, tool set, stop rule); dev tasks score them inside the jail; only a variant that survives dev meets the held-out suite once. Independence rule: a variant counts as validated only against the frozen outside arms and outside-written tests, never against a model judge from the same family. TEST, rule fixed now: adopt a variant as default only if on P28's suite its tokens per pass are at most 2/3 of the best outside arm (upper 95% bound) and passes are not worse (Fisher p >= 0.05); at most 1 held-out run per variant and 2 per week, so the suite is not overfitted by repeated looks. Blocked by P28 (no held-out suite yet) and P5 (its first-20 keep/switch verdict shows whether the proposer loop yields valid candidates). Note: no live job uses an agent harness today (worker and P5 call models directly), so harness savings land only once agentic work runs. Pass floor added after review: also needs passes at least the base's minus 1 (Fisher alone at 12 attempts lets 9/12 vs 12/12 through, one-sided p 0.11). Blind review 44525785629: DEFER from both until P28 has a result, and both named P29 the item born from discussion rather than data (ACCEPTED: it stays blocked by P28 and P5, and no live job uses a harness yet).",
    "work_types": {
-    "experiment": 0.963,
-    "build": 0.254
+    "experiment": 0.983,
+    "build": 0.269
    },
-   "work_types_key": "e35a681e8f9fcd16",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "146c95d2b0b76ffd",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "Q59",
@@ -4773,12 +4773,12 @@
    ],
    "next": "Per test 2's outcome rule each failure becomes an item. Hypotheses to test, one each, against the 30 graded items as a replay set: (1) a 'check only' instruction (D21) should allow no edit unless the checker finds an error; (2) agent-facing paths must route to a PR before commit (DB was committed directly; find why the path rule missed tests/canary-BRIEF.md); (3) the reviewer should reject a change that weakens a guarantee's strength (Q38), not only redundancy and vagueness; (4) a card with zero surviving claims should end as 'no change' with a note, not a PR (R4). Fix rule: each change must flip its failure on replay without flipping any of the 26 acceptable items. Grading lesson (owner 2026-11-20: use the best tool, not a model, where a check is mechanical): a script checked 10 of 24 edit items exactly from test 2's prose outcomes and agreed with the agent 10/10; most of the rest are mechanical too if outcomes are written as exact expected text (target line after the edit, required delivery, banned patterns). Rule for test 3 and Q59's replay: outcomes written as exact expected lines and graded by script; a model or agent only for meaning judgements (same-meaning rewrites, guarantee strength, claim vs quote), always with known-answer controls mixed in. 2026-11-20 20:20Z: fixes (2) and (4) landed on main fddd1ed (agent-facing keyword anywhere in the file name -> PR; a card with no surviving claim is not written), unit-tested; replay on the 30 targets flips DB and R4 only. Open: (1) check-only edits (D21) and (3) guarantee weakening (Q38) change model prompts, so they need a replay through the models on the same items, graded by script where the outcome is exact. 2026-11-20: fixes 1 and 3 on main c4d442d (drafter: check-only items leave true lines alone; reviewer: rejects softened guarantees and rewordings of true lines; a rejected edit is restored and ends as no change, not a PR; unit tests). Replay E1-E4 on tests/worker-canary-3.md through the live worker, graded by script against the outcomes fixed in each item. Pass: 4/4. REPLAY RESULT 2026-11-19 20:40Z (worker/grade_canary3.py, rule fixed before the runs): 3/4, FAIL. E1 PASS (check-only true line left alone: fix 1 works), E2 PASS (false number fixed exactly), E4 PASS (spelling). E3 FAIL: 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' became 'Results cannot be changed or deleted once recorded.' and the reviewer approved. By the fixed rule ('never' must stay) it fails; on meaning, 'cannot' holds but 'by anyone at all' is gone, and for this project (the owner is the adversary) that scope is the guarantee. Fix 3 is not yet shown to work. Also found and fixed on the way: the worker stopped for budget with doc items ready because the top item was research (46fada0: claim only job types the budget can pay for; verified, it then ran E1-E4). Next: the reviewer is the same model family on every item; test a script guard for guarantee words (never, cannot, anyone, always, must) that sends any edit removing one to no change, replayed on E3 plus test 2's 30 items. 2026-11-19 20:50Z: guarantee-word guard on main (7681fa2, tests fixed in 5368ae9 after Claude pushed it with 2 failing tests); live replay E5 filed with its outcome fixed first. E5 PASS 2026-11-19 20:58Z: the drafter again dropped 'never' and 'anyone' when shortening; the script guard blocked it and the line stayed as is. With E1, E2, E4: fixes 1, 2, 4 and the guard shown on live runs; fix 3's reviewer prompt alone did not hold (E3), the script guard does. Same session: idle re-poll moved into its own job (2bd0595) because a waiting budget keeper blocked it. Q59 can close once the next 2 days of worker output show no new miss of these four kinds.",
    "work_types": {
-    "experiment": 0.807,
-    "code_change": 0.486,
+    "experiment": 0.958,
+    "code_change": 0.329,
     "sandbox_or_workflow": 0.289
    },
-   "work_types_key": "9306566444d0b391",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "0eb1057cf274b121",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "R15",
@@ -4835,10 +4835,10 @@
     }
    ],
    "work_types": {
-    "literature": 0.976
+    "literature": 0.988
    },
-   "work_types_key": "c8199a5c18725294",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "34bc6bea83dd7d5d",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "R16",
@@ -5440,13 +5440,11 @@
    ],
    "next": "Hypothesis: facts that change (a model's availability on a free pool, a free-tier limit, a dataset's certificate and hash, a licence, a benchmark's contamination status) are re-derived by hand or break runs; a register checked by script catches the change first. Build: facts/register.json, one entry per fact (value, source, checked_at, recheck_after, probe: a script command, mechanical only); facts.yml runs the due probes daily on free Actions with no model call; same value -> pass, ends; changed value -> a failure outcome that escalates through worker/transitions.py and lists the items, workflows and cards that cite the fact (links with P21/R18). Facts with no API go to P7f's scan-then-drill instead. TEST, rule fixed now: register the 10 facts that broke or cost work on 2026-11-19/20; probe daily for 14 days; count changes caught before they broke a run versus breaks the register missed. Keep and widen if it catches at least 2 changes before a break, or any break it would have prevented that cost a rescore or a diagnosis; otherwise stop at the probes that already exist (router pool probes, search-probe). Blind review 44619592473 (gpt-oss-120b; ERNIE 5.5 Flash; sources stripped): KEEP and MERGE; both said data called for it. ACCEPTED, MERGE: no new job; the register (facts/register.json with each fact's dependants) is checked by the existing daily probe jobs (router pool probes, search-probe), extended. ACCEPTED: scan-then-drill for facts with no API is out of the first version. ACCEPTED (ERNIE's fix to the test): count only changes to facts that a run, workflow or card in the register's dependency list cites; keep if at least 2 such changes are caught before they break anything; log changes to uncited facts separately as noise. REJECTED: gpt-oss's 'keep at 1 prevented break' (one event over 14 days cannot separate a working register from luck). v1 LIVE 2026-11-19 21:40Z (main 94cc910): facts/register.json (8 cited facts: UCI hashes and TLS, 3 OpenRouter free models, 2 benchmark licences), facts/check.py (script probes, no model; offline tests in CI), run by the worker's idle job; status on worker-runs facts/status.json; first Actions check: 8 same. Test window: 14 days from 2026-11-20. Keyed facts (Groq, NIM, Cloudflare model availability) are not yet registered: they need the probe job's keys.",
    "work_types": {
-    "build": 0.948,
-    "sandbox_or_workflow": 0.604,
-    "code_change": 0.497,
-    "experiment": 0.229
+    "build": 0.909,
+    "code_change": 0.539
    },
-   "work_types_key": "0ee32f45399d25da",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "e8c0b0603b0afd4f",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "severity": "minor",
@@ -5474,12 +5472,12 @@
    ],
    "next": "Gemini review F007 (its ranking text, verified): over 100 proposals are scored on one dev split and the best is reported; computed from the board (2026-11-19 22:30Z): 32 valid optdigits proposals, median dev SE 0.0063; if they were equally good, the best would read about 2.07 SE (0.013) above its true accuracy, more than the 0.0074 gap between the top (0.986) and gbdt (0.979). An upper bound, since proposals differ, but enough that the claim is unestablished. PLAN.md has no guard. TEST, rule fixed now: carve a confirmation split (20% of train, seeded, never shown to proposers or used in scoring); retrain the top 5 by dev plus mlp16, gbdt and linear on the other 80%; a proposal's 'above every family' stands only if its paired difference on the confirmation split exceeds 2 SE. README already says 'not yet confirmed' (e4867d3). Gemini's summary (owner relayed 2026-11-20) checked against data: on the same meter (runner, digits dev) the top 5 proposals by accuracy cost 17,082-168,404 Ir/item against mlp16's 8,686 and gbdt's 41,743; the top one 35,422 Ir and 3,119 ns/item vs mlp16's 776 ns (Gemini compared with the scale meter's 83-104 ns/img, a different meter). Across all 32 valid digits proposals the cheaper half is not less accurate (mean 0.9447 vs 0.9399), so cost is not buying accuracy on average; selecting by dev accuracy alone still picks costly ones. Added to this test, fixed now: the confirmation also reports each candidate's position on the accuracy-vs-Ir/item front, and a proposal counts as an advance only if no baseline beats it on both on the confirmation split. PLAN.md's first-20 rule stays as registered; this is the rule for what the board calls a winner from here on. 2026-11-20 08:25 Brisbane: plan, split, decide and workflow on main (0c338ae); run 44626779359. RESULT 2026-11-20 (chat session, main 083ec5e, run 44628651975, runner/results/2026-11-20-p5b/): 0 of 5 above every family on the confirmation split; 3 of 5 on the accuracy-cost front (gbdt-level accuracy at a third or less of its instructions); winner's curse about +0.005. Run 44626779359 had failed silently (no pipefail; derived split had no card): fixed in 8164d38 before the result run.",
    "work_types": {
-    "experiment": 0.966,
-    "data": 0.499,
-    "build": 0.213
+    "experiment": 0.858,
+    "data": 0.212,
+    "code_change": 0.207
    },
-   "work_types_key": "d9622d1dd9fdeaf2",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "5690693002bad53f",
+   "work_types_at": "2026-11-21T04:42:24Z",
    "split_tried": "2026-11-20T22:24:27Z"
   },
   {
@@ -5505,10 +5503,11 @@
    ],
    "next": "A denylist allows any syscall added to the kernel later. Landlock and bubblewrap sit around it, so this is defence in depth, not an open hole. Test: strace -f the 5 built candidates and 20 P5 proposals (train and infer) in the jail, collect the syscall set, build an allowlist, and rerun all candidates and the P5 rescore set under it; adopt if all pass and timings are unchanged within 1%.",
    "work_types": {
-    "experiment": 0.941
+    "experiment": 0.979,
+    "sandbox_or_workflow": 0.453
    },
-   "work_types_key": "a86d4f009c246b58",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "b9b4750ac3645019",
+   "work_types_at": "2026-11-21T04:42:24Z",
    "split_tried": "2026-11-20T22:24:27Z"
   },
   {
@@ -5535,14 +5534,12 @@
    "next": "CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths.",
    "split_tried": "2026-11-20T21:42:21Z",
    "work_types": {
-    "code_change": 0.8,
-    "sandbox_or_workflow": 0.767,
-    "held": 0.385,
-    "experiment": 0.261,
-    "already_done": 0.209
+    "code_change": 0.872,
+    "sandbox_or_workflow": 0.677,
+    "held": 0.4
    },
-   "work_types_key": "5754d915b0db3cf0",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "a5152e96588e5d03",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "P31",
@@ -5573,10 +5570,10 @@
    ],
    "next": "Hypothesis: most 'management' is mechanical and already scripted (queue order: render.py; routing: transitions.py; budgets: ledger; checks: guards), and the judgement left (review and escalated tiers, grading meaning, choosing the next experiment within the queue's order) can run on cheap OpenRouter models if they are chosen by known answers, not reputation. TEST, rule fixed now: a model may hold a judgement role if, on the 35-item grading set (30 items with the Sonnet agent's verdicts as reference, which matched every control and the 10 script-checkable items, plus 5 controls), it gets all 5 controls right and agrees on at least 27 of 30, in two separate runs; ties broken by cost per run, then latency. Round 1 (free): ERNIE 5.5 Flash, Ling 3.2 Flash, Nemotron 3.5 Super, dots-3-note, Gemma 4 31B (runs 44637766024, 44637782137). Round 2 needs the owner: $10 of OpenRouter credit lifts free models to 1,000 requests a day and funds paid candidates. Then: worker/tier.py drains 'review' and 'escalated' with the chosen model, records outcomes through queue_ops move, and escalates to Claude only what it cannot settle; the scheduled Claude shift becomes conditional on that escalation count. Measure for 7 days: tier decisions later overturned by Claude or the owner (target under 10%), and Claude sessions per day. ROUND 1-2 RESULT: Nemotron 3.5 Super (OpenRouter free) qualified: 5/5 controls and 29/30 (one missing, none wrong) in both runs (44637766024/44637782137, 44638858995/44638875784). ERNIE 5.5 Flash: run 1 spent all 16,000 output tokens (no answer), run 2 5/5 and 29/30: not qualified (unreliable). dots-3-note: out of tokens; Ling 3.2 Flash and Gemma 4 31B: 429. Blind review 44639274508 (gpt-oss-120b DEFER; ERNIE KEEP). ACCEPTED (ERNIE): the overturn rate must come from an unbiased sample: each day 10 random tier-settled, non-escalated decisions are re-graded by a second qualified grader (Claude weekly until one exists) and the rate is reported on that sample; scope is confirm/redo/grade only, and 'next experiment' means the queue's fixed order, already scripted; a guard that result-producing work does not stop when Claude sessions fall. ACCEPTED in part (gpt-oss): 35 items is small (29/30 twice: Wilson lower bound about 0.83 each); the known-answer set grows from the record (Q59 replays, Gemini's 8 reproduced verdicts, the checker probes) before the role widens. REJECTED: deferring the whole test (the cost it targets is daily and the gate already exists). OWNER'S PICKS TESTED 2026-11-20: Particle-1 (free; post-trained on DeepSeek V4.1 Flash for agentic coding): 5/5 controls and 30/30 in both runs, 12-28 s per half (runs 44639929030, 44639941019, 44639955298, 44639968864): QUALIFIES, best so far, and 2 requests per run. Perplexity Decider V1.3 (free; OpenRouter Decisions API, returns a probability per question, one request per item): run 1 5/5 controls, 29/30 (R7 wrong at p 0.393), 0.2-0.4 s per item (runs 44640108993, 44640288379; router/decisions_probe.py); run 2 due when the free daily cap allows, since it spends 35 requests a run. Next: worker/tier.py on Particle-1, with Nemotron 3.5 Super as the second qualified grader for the daily unbiased sample. DECISION MODELS (owner 2026-11-20: fast and accurate, need their own format): batch format (the whole set as state, one yes/no question per item; 2 requests a run) on runs 44641017103/44641033433: Decider V1.3 free 5/5 controls, 30/30, 0.6-0.8 s per half; with its per-item run (29/30) it QUALIFIES. Decider Flash V1.3 free 5/5, 26/30 (wrong on D12, D14, D15, D16): does not. OpenRouter lists about 45 decision models (output_modalities=decisions); paid ones charge input tokens only, about $0.01-0.19 per million (a 35-item run is about 21,000 tokens, under $0.005) with no request cap. Roles, as a hypothesis to test: decision models for gates and verdicts (confirm or not, keep a claim or not, route), returning probabilities scripts threshold; a generative model (Particle-1) only where text must be written (a redo note, a rewrite). CHECKER TRIAL (main 3ea4de88): Decider V1.3 as the research checker passed the shift's 6 known answers in both runs with identical probabilities (runs 44642435194, 44642486813; Flash 5/6 twice). Live from 2026-11-20 00:05Z: the decision model decides keep/drop in one request per card, the Nemotron majority runs as a shadow and decides only if the call fails; ledger caps openrouter at 30 calls/day. First live card R10 (run 44643446371): Decider kept claims 1 and 4 (p 0.91, 0.83; others <= 0.13); the Nemotron shadow kept 1, its six votes split [], [1], [1,2] / [], [1], []. Measure over the next 10 cards: agreement with the shadow, and the next tier's sampled check of claims kept by one and not the other. Drop the shadow (6 NIM calls a card) if agreement is high and the sampled disagreements favour the decision model. INTERIM 2026-11-20 03:10Z (5 cards with claims, runs 44643446371-44646792479): decider and Nemotron shadow agree on 18 of 22 claims; all 4 disagreements are the decider keeping a claim the shadow dropped (p 0.83, 0.88, 0.52, 0.64). 5 of 22 probabilities fell between 0.4 and 0.6. Owner idea (2026-11-20): use decision models like code, every fuzzy condition an if. Hypothesis to test next, not adopted: a decide() helper returning yes (p >= 0.7), no (p <= 0.3) or unsure (escalate), cached by input hash since outputs repeat exactly, each with known-answer tests like unit tests; scripts stay for anything exact. Test on this trial's data first: how many of the 4 disagreements fall in the unsure band, and what the next tier rules on them. ROUTING BY DECISIONS (owner 2026-11-20: route the system's interactions by decisions, not only ifs): 8 known tier cases, a choice of confirm/redo/escalate (router/review/tier-routing): 6 of 8, rule needed 7 (run 44667045470). Confident and right on 6; D16 a near tie (0.48/0.47), caught by the 0.6 unsure band; E5 escalated at 0.70, wrong but in the safe direction. Not adopted for live routing. Next test: give the state the item's acceptable outcome and which guard fired and why, then rerun on these 8 plus new cases as they occur. Principle kept from this: the model chooses only among the moves transitions.py allows; it never creates one.",
    "work_types": {
-    "experiment": 0.977
+    "experiment": 0.973
    },
-   "work_types_key": "9745d387524e5c1c",
-   "work_types_at": "2026-11-20T21:42:42Z"
+   "work_types_key": "519a3b90327cfd47",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "P32",
@@ -5606,10 +5603,10 @@
    ],
    "next": "Each mechanism is a hypothesis tied to a bottleneck already in the record, with one cheap test and a rule fixed before it runs: (1) RERANK the sources of a research card against its question before the reader (bottleneck: R10's off-topic and too-broad claims): on the checker-relevance known answers and R4/R10 sources, does the free reranker put the sources of kept claims above off-topic ones (rule: every kept-claim source in the top half, every known off-topic source below it); (2) EMBEDDINGS for queue and card overlap (bottleneck: duplicate items found by hand, e.g. P7e/P7f, R11 vs P20c): do the known duplicate pairs from the queue's history rank first among each item's nearest neighbours (rule: at least 4 of 5); (3) SCHEMA-ENFORCED OUTPUT (bottleneck: 'reply was not JSON' failures): rerun the failed prompts with a JSON schema on a model that supports it (rule: 0 parse failures in 20 calls); (4) LOGPROBS from a generative model as a confidence band (Particle-1 supports them): does low confidence pick out the items it got wrong on the grading set; (5) BATCH variants at half price for P5 proposals once paid models are in use (needs the owner's credit). One mechanism at a time, in this order; each that passes becomes a router capability with its known-answer test kept as a regression test. Blind review 44667582086 (Particle-1 DEFER; gpt-oss-120b got no answer: Cloudflare's account-wide free 10,000 neurons were used up). ACCEPTED: rank by observed failures first. Worker failure table from the queue record (2026-11-18..20): research with no surviving claim 12, PR for a person 4, guard or reviewer refused 4 (mostly correct refusals), model reply not JSON or call failed 3, budget stop 2, infrastructure 1, no edit 1. So (1) rerank, aimed at the 12, goes first; schema output (3) waits; embeddings, logprobs and batch wait until a measured failure points at them. ACCEPTED: a control arm on identical items: the current pipeline and the pipeline with the reranker on the same cards, adopt only if the reranker raises surviving claims per card with no rise in claims the next tier rejects (fixed now: at least 3 more surviving claims over 6 cards, none of them rejected in the tier's check). TEST 1 RESULT 2026-11-20 10:32Z (rerank arm, worker/rerank_arm.py, run 44712474121; same candidate pool per item, same reader Nemotron 3 Ultra, same checker and decision model; only the source picker differs): rerank NOT adopted. Decision-kept claims over the 4 cards that ran: most-cited 17, reranked 13 (R6 6/4, R7 4/4, R8 3/2, R9 4/3); Nemotron shadow 15/10. The reranked picks overlap the cited ones 13-18 of 25-30 sources and drew more reader claims (54 vs 37) but fewer survived the checks. R5 and R3 failed with HTTP 422 from the rerank API in their first batch of 50 (R9's 114-document pool passed in three batches, so the limit is not the count; cause not pursued since the arm lost). Even with both missing cards the rule (>= 3 more over 6 cards) could not be met. Next in P32's order: the next feature on the failure table, now that 'no claims' is not fixed by source choice. PICK ARM 2026-11-20 12:10Z (worker/pick_arm.py, run 44731664906; same saved pools, same reader Nemotron 3 Ultra; rule fixed first: +3 decision-kept over 6 items and no more no-claims items): paper-heavy pick (papers 24, others 6) NOT adopted. Decision-kept per item live/papers: R3 2/2, R5 4/fail, R6 4/4, R7 5/5, R8 3/fail, R9 3/6; on the 4 items both arms read: 14 vs 17, but the papers arm's reader returned no JSON on R5 and R8. Why it was tested: the 16 cards on main kept 34 claims from 385 sources, 32 from papers, 2 preprints, none from the 193 forum, Q&A, encyclopedia and code sources. Second finding: 9 of 10 successful reads hit the script-kept cap of 6 (MAX_CHECKED), so more verified claims are found than are ever checked; the cap exists for the Nemotron majority's cost, not the decision model's (one request, up to 100 questions). Next test, rule fixed now: the decision model checks every script-verified claim (no cap, the Nemotron shadow kept on the first 6 only) on the same saved bundles; adopt if decision-kept claims rise by >= 5 over 6 items and a blind sample of 10 of the extra claims has no more than 1 the reviewer rejects. CAP TEST 2026-11-20 12:30Z: ADOPTED. Same read per item, decision model on the first 6 vs on all verified claims (run 44733739497; R5 and R9 did not run: the NIM cap of 400 was reached): R3 2/3, R6 5/8, R7 5/5, R8 3/7, total 15/23 (+8 >= +5). Blind review 44736203102 of all 7 extra claims (gpt-oss-120b; Particle-1 gave no reply): 1 rejected (adds certainty its quote lacks), inside the rule (at most 1). Live on main: up to 40 claims judged in one request; the Nemotron shadow removed (it ran 6 NIM calls per card); NIM cap 400 -> 1,000 (owner). Watch: the digest's no-claims share and kept claims per card over the next 12 research runs.",
    "work_types": {
-    "experiment": 0.974
+    "experiment": 0.963
    },
-   "work_types_key": "7a2ef69a7bcec2db",
-   "work_types_at": "2026-11-20T21:42:42Z",
+   "work_types_key": "35e5b2e0d80ce86e",
+   "work_types_at": "2026-11-21T04:42:24Z",
    "split_tried": "2026-11-20T22:24:27Z"
   },
   {
@@ -5784,7 +5781,12 @@
       "queueing heterogeneous servers with quotas"
      ]
     }
-   ]
+   ],
+   "work_types": {
+    "literature": 0.992
+   },
+   "work_types_key": "25f4d2bff0d8a00a",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "R22",
@@ -5874,7 +5876,12 @@
       "prerequisite graph visualization minimal requirement cost"
      ]
     }
-   ]
+   ],
+   "work_types": {
+    "literature": 0.991
+   },
+   "work_types_key": "566faabee77064ee",
+   "work_types_at": "2026-11-21T04:42:24Z"
   },
   {
    "id": "K1",
