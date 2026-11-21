@@ -2,6 +2,8 @@
 python3 -I envcheck.py sample OUT.json          # freeze the 12 candidates (needs network to HF datasets-server)
 python3 -I envcheck.py run CANDS.json ID OUTDIR # inside CI: pull image, negative and positive known-answer runs
 python3 -I envcheck.py grade DIR                # summary over result-*.json files under DIR
+python3 -I envcheck.py attempt CANDS.json ID DIFF|gold|empty OUTDIR   # grade one attempt's diff in the task's image (step 2)
+python3 -I envcheck.py grade-attempts DIR EXPECT  # known-answer check over attempt-*.json: EXPECT resolved|unresolved
 """
 import ast, json, os, random, re, subprocess, sys, time
 
@@ -79,6 +81,24 @@ def judge(c, neg, pos):
     return True, "ok"
 
 
+def resolved(c, st):
+    """SWE-bench's rule, pure: an attempt resolves the task if every FAIL_TO_PASS and every PASS_TO_PASS test is reported
+    PASSED after the attempt's diff and then the task's test_patch are applied. -> (resolved, reason)."""
+    ids = c["FAIL_TO_PASS"] + c["PASS_TO_PASS"]
+    if not c["FAIL_TO_PASS"]:
+        return False, "no FAIL_TO_PASS tests"
+    miss = [t for t in ids if st.get(t) != "PASSED"]
+    if miss:
+        f2p = sum(st.get(t) == "PASSED" for t in c["FAIL_TO_PASS"])
+        return False, f"{len(miss)} of {len(ids)} tests not PASSED ({f2p} of {len(c['FAIL_TO_PASS'])} FAIL_TO_PASS), e.g. {miss[0][:120]}"
+    return True, "ok"
+
+
+def test_files(test_patch):
+    """Paths the task's test_patch writes ('+++ b/path'), which the attempt's own edits to them are reset from."""
+    return sorted({l[6:].strip() for l in test_patch.splitlines() if l.startswith("+++ b/")})
+
+
 def run(cands, iid, outdir):
     c = next(x for x in json.load(open(cands))["candidates"] if x["instance_id"] == iid)
     os.makedirs(outdir, exist_ok=True)
@@ -134,6 +154,82 @@ echo "=====FORGE-POSITIVE====="; run
 """
 
 
+# Step 2 (PLAN.md): grade one attempt. The attempt's diff is applied to the unfixed code, every file the test_patch writes
+# is put back as at HEAD (or removed if new), the test_patch is applied, and the task's own tests run once.
+INNER_ATTEMPT = r"""
+set -u
+[ -f /opt/miniconda3/bin/activate ] && . /opt/miniconda3/bin/activate testbed 2>/dev/null
+cd /testbed || { echo "no /testbed"; exit 3; }
+if [ -s /w/attempt.diff ]; then git apply -v /w/attempt.diff >/dev/null 2>&1 || { echo "=====FORGE-NOAPPLY====="; exit 6; }; fi
+python - <<'PY'
+import json, subprocess
+for f in json.load(open("/w/test_files.json")):
+    if subprocess.run(["git", "cat-file", "-e", "HEAD:" + f], capture_output=True).returncode == 0:
+        subprocess.run(["git", "checkout", "HEAD", "--", f], check=True)
+    else:
+        subprocess.run(["rm", "-f", f])
+PY
+git apply -v /w/test_patch.diff >/dev/null 2>&1 || { echo "test_patch did not apply"; exit 4; }
+echo "=====FORGE-ATTEMPT====="
+python - <<'PY'
+import json, shlex, subprocess
+cmd = shlex.split(open("/w/test_cmd").read()) + json.load(open("/w/tests.json"))
+subprocess.run(cmd)
+PY
+"""
+
+
+def attempt(cands, iid, diff, outdir):
+    """diff: a file holding the attempt's unified diff, or 'gold' / 'empty' for the known-answer runs (no model call)."""
+    c = next(x for x in json.load(open(cands))["candidates"] if x["instance_id"] == iid)
+    os.makedirs(outdir, exist_ok=True)
+    text = c["patch"] if diff == "gold" else "" if diff == "empty" else open(diff).read()
+    res = {"id": iid, "diff": diff if diff in ("gold", "empty") else "file", "diff_chars": len(text)}
+    start = time.time()
+    left = lambda: max(60, LIMIT_S - (time.time() - start))
+    rc, log, s = sh(["docker", "pull", "-q", c["docker_image"]], left())
+    if rc != 0:
+        res.update(resolved=None, reason=f"image pull failed: {log[-300:]}")
+    else:
+        work = os.path.join(outdir, "w-" + iid); os.makedirs(work, exist_ok=True)
+        open(os.path.join(work, "attempt.diff"), "w").write(text)
+        open(os.path.join(work, "test_patch.diff"), "w").write(c["test_patch"])
+        json.dump(test_files(c["test_patch"]), open(os.path.join(work, "test_files.json"), "w"))
+        json.dump(c["FAIL_TO_PASS"] + c["PASS_TO_PASS"], open(os.path.join(work, "tests.json"), "w"))
+        open(os.path.join(work, "test_cmd"), "w").write(c["test_cmd"])
+        open(os.path.join(work, "inner.sh"), "w").write(INNER_ATTEMPT)
+        rc, log, s = sh(["docker", "run", "--rm", "-v", f"{os.path.abspath(work)}:/w", c["docker_image"], "bash", "/w/inner.sh"], left())
+        open(os.path.join(outdir, f"attempt-log-{iid}.txt"), "w").write(log)
+        if "=====FORGE-NOAPPLY=====" in log:
+            res.update(resolved=False, reason="the attempt's diff did not apply")
+        elif "=====FORGE-ATTEMPT=====" not in log or rc == "timeout":
+            res.update(resolved=None, reason=f"grader did not reach the tests (rc {rc}): {log[-300:]}")
+        else:
+            st = statuses(log.split("=====FORGE-ATTEMPT=====", 1)[1], c["FAIL_TO_PASS"] + c["PASS_TO_PASS"])
+            res["counts"] = {k: list(st.values()).count(k) for k in set(st.values())}
+            res["resolved"], res["reason"] = resolved(c, st)
+    res["seconds"] = round(time.time() - start, 1)
+    json.dump(res, open(os.path.join(outdir, f"attempt-{iid}.json"), "w"), indent=1)
+    print(json.dumps({k: res[k] for k in ("id", "diff", "resolved", "reason", "seconds")}))
+    return 0
+
+
+def grade_attempts(d, expect):
+    """Known-answer check (PLAN.md step 2): every task reads `expect`; None (grader did not finish) counts as a miss."""
+    rs = []
+    for root, _, files in os.walk(d):
+        rs += [json.load(open(os.path.join(root, f))) for f in files if f.startswith("attempt-") and f.endswith(".json")]
+    rs.sort(key=lambda r: r["id"])
+    want = expect == "resolved"
+    ok = 0
+    for r in rs:
+        good = r["resolved"] is want
+        ok += good
+        print(f"{'as expected' if good else 'MISS       '} {r['id']:<45} {r['diff']:<5} {str(r['resolved']):<5} {r['seconds']:>7}s {r['reason'][:100]}")
+    print(f"{ok} of {len(rs)} read {expect}")
+    return 0 if rs and ok == len(rs) else 1
+
+
 def grade(d):
     rs = []
     for root, _, files in os.walk(d):
@@ -153,5 +249,9 @@ if __name__ == "__main__":
         sys.exit(run(a[1], a[2], a[3]))
     elif a and a[0] == "grade":
         grade(a[1])
+    elif a and a[0] == "attempt":
+        sys.exit(attempt(a[1], a[2], a[3], a[4]))
+    elif a and a[0] == "grade-attempts":
+        sys.exit(grade_attempts(a[1], a[2]))
     else:
         print(__doc__); sys.exit(1)

@@ -1,5 +1,6 @@
 # Queue P28 pilot, environment check (router/bench6/pilot/PLAN.md). No model call, no secret: pulls each candidate's
 # SWE-rebench image and runs its own tests without and with the gold patch (known-answer negative and positive).
+# mode gold / empty (PLAN.md step 2): the attempt grader's known-answer runs, the gold patch or an empty diff as the attempt.
 name: bench6-env
 on:
   workflow_dispatch:
@@ -7,6 +8,10 @@ on:
       ids:
         description: "comma-separated instance ids, or all (the 12 frozen candidates)"
         required: true
+      mode:
+        description: "env (step 1 check), gold or empty (step 2: grade the gold patch / an empty diff as an attempt)"
+        required: false
+        default: env
 permissions: {}
 jobs:
   plan:
@@ -53,7 +58,13 @@ jobs:
       - name: check
         env:
           ID: ${{ matrix.id }}
-        run: python3 -I router/bench6/pilot/envcheck.py run router/bench6/pilot/candidates.json "$ID" "$RUNNER_TEMP/out"
+          MODE: ${{ github.event.inputs.mode }}
+        run: |
+          case "$MODE" in
+            env|'') python3 -I router/bench6/pilot/envcheck.py run router/bench6/pilot/candidates.json "$ID" "$RUNNER_TEMP/out" ;;
+            gold|empty) python3 -I router/bench6/pilot/envcheck.py attempt router/bench6/pilot/candidates.json "$ID" "$MODE" "$RUNNER_TEMP/out" ;;
+            *) echo "mode must be env, gold or empty"; exit 1 ;;
+          esac
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ always() }}
         with:
@@ -61,3 +72,5 @@ jobs:
           path: |
             ${{ runner.temp }}/out/result-*.json
             ${{ runner.temp }}/out/log-*.txt
+            ${{ runner.temp }}/out/attempt-*.json
+            ${{ runner.temp }}/out/attempt-log-*.txt

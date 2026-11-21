@@ -24,3 +24,25 @@ and are fixed or replaced (next tasks down the permutation) before any model att
 **Open point for the pilot's rule (recorded, not changed here).** P28 says "a 6-attempt pilot (6 candidate tasks, 1
 each)" and also "if fewer than 6 tasks survive from 12 candidates": the two do not fit (6 attempts cannot keep 6 of 12).
 The next step settles it before any attempt.
+
+## Step 2: the attempt grader (rules fixed 2026-11-21 23:10Z, before any run of it)
+
+**Why before any model attempt.** Step 1 showed each usable task's tests tell the gold patch from no patch when the
+test_patch is applied first. A model attempt is graded differently: the agent edits the unfixed code without the new
+tests, then the test_patch is applied over its edit. That path is new, so it gets its own known-answer check, with no
+model call.
+
+**Grading an attempt** (`envcheck.py attempt`, `bench6-env.yml` mode `gold` or `empty`): in the task's own image, apply
+the attempt's diff to `/testbed` (a diff that does not apply = not resolved); put every file the test_patch writes back
+as at HEAD (removed if new), so an attempt cannot pass by editing the tests; apply the test_patch; run the task's own
+FAIL_TO_PASS and PASS_TO_PASS tests once. **Resolved** = every one of them reported PASSED (SWE-bench's rule). A run that
+does not reach the tests (pull failure, timeout, test_patch not applying) reads neither, and counts as a miss below.
+
+**Known-answer rule.** On the 8 usable tasks of step 1: the gold patch as the attempt must read resolved on all 8, and an
+empty diff must read not resolved on all 8. Any miss means the grader is fixed before any model attempt; the count is
+reported either way. Dry run first: one task in each mode on the branch, before the 16.
+
+**The pilot rule's open point, proposed here to settle before any attempt (not after):** one base-harness attempt on
+each of the 8 usable tasks; a task is kept if its attempt finishes inside the cap (call cap and wall time of bench-4's
+base harness); fewer than 6 kept means the fresh set is too hard for this pilot, and that is the result. Settled when a
+person merges this PLAN; until then no model attempt runs.
