@@ -38,7 +38,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P3 | B1 | Q81 | B3 | runner/candidates |
 | P7 | B7 | R21 | B3 | research/cards/R21.md |
 | P7 | B7 | R22 | B9 | research/cards/R22.md |
-| P7 | B7 | D27 | B3 | .github/workflows/research.yml |
 | P7 | B7 | Q66 | B3 | .github/workflows/research.yml |
 | P7 | B7 | Q73 | B3 | research |
 | P7 | B7 | Q77 | B3 | research |
@@ -49,18 +48,15 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7 | B7 | R30 | B9 | research/cards/R30.md |
 | P7 | B7 | R31 | B3 | research/cards/R31.md |
 | P7 | B7 | R32 | B3 | research/cards/R32.md |
-| P10 | B8 | D27 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | Q66 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | Q67 | B3 | audit/periodic |
 | P10 | B8 | Q68 | B3 | audit/periodic/README.md |
 | P7b | B7 | Q59 | B3 | worker/research_job.py |
-| P7b | B7 | D27 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | P26a | B3 | worker/research_job.py |
 | P7b | B7 | P26g | B3 | worker/research_job.py |
 | P7b | B7 | Q66 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | Q67 | B3 | worker/research_job.py |
 | P7c | B7 | Q59 | B3 | worker/research_job.py |
-| P7c | B7 | D27 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | P26a | B3 | worker/research_job.py |
 | P7c | B7 | P26g | B3 | worker/research_job.py |
 | P7c | B7 | Q66 | B3 | .github/workflows/worker.yml |
@@ -71,7 +67,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7d | B7 | Q67 | B3 | worker/research_job.py |
 | P7e | B7 | Q73 | B3 | research/sources |
 | P7e | B7 | Q77 | B3 | research/sources |
-| P14 | B10 | D27 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | Q65 | B3 | loop/results/machines-* |
 | P14 | B10 | Q66 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | Q69 | B3 | loop/results/machines-* |
@@ -238,7 +233,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | R32 | B3 |  | minor | high | test | How can systems derive and document per-model safe input/output token limits from provider documentation and observed request logs, then enforce them with a pre | Worker job (research): literature card for P20a. Why: It identifies published methods for sourcing, measuring, and enforcing model-specific token limits that can directly populate worker cards and the pre-call size check. | queue P20a; queue P27 (generator) |
 
-## Escalated (a check failed; the next tier takes it) (15)
+## Escalated (a check failed; the next tier takes it) (14)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -250,7 +245,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R29 | B1 |  | minor | high | test | What published methods combine mutation-tested sandbox conformance suites, defense-in-depth and least-privilege design, syscall/argument fuzzing, and evaluator- | Worker job (research): literature card for P18. Why: It identifies evidence-backed test and monitoring patterns for the queued jail-assurance work without changing current implementation. | queue P18; queue P27 (generator) |
 | R30 | B9 |  | minor | high | test | What published methods convert trained classifiers into straight-line C, lookup tables, or rule sets, and how do they verify per-input output agreement with the | Worker job (research): literature card for P19. Why: It identifies established distillation-to-code and equivalence-checking techniques that can guide the first optdigits test. | queue P19; queue P27 (generator) |
 | R31 | B3 |  | minor | high | test | How can task difficulty and worker capability be jointly estimated before execution so each task is routed to the cheapest model-harness-tool configuration pred | Worker job (research): literature card for P20. Why: It informs the design of worker cards, pre-assignment demand estimation, and IRT-based routing to the cheapest predicted-success worker. | queue P20; queue P27 (generator) |
-| D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
 | K45 | B3 |  | minor | medium | fix | Give the timed run the counted run's HOME as well as its cwd | In runner/run.py, move the cwd and HOME settings that count() uses into one helper that both count() and timed() call, so timed() sets HOME to the same value count() sets (not the caller's HOME). Test in runner/test_runner.py (add to the class that covers run.py): patch the timer and the valgrind launcher with fakes that record os.getcwd() and os.environ['HOME'] inside the jailed process, call count() and timed() on the same candidate and input, and assert both recorded pairs are equal and that HOME is not the caller's HOME. The test must fail on the current timed() code, which leaves HOME unchanged. | queue Q79; worker/split.py |
 | K46 | B3 |  | minor | medium | fix | Give the timed run the same visible input files as the counted run | In runner/run.py, make timed() stage its input files into a fresh sandbox directory with the same file set and names count() stages, instead of running in a directory that shows other files. Test in runner/test_runner.py: with a fake timer that writes a sorted listing of the directory it runs in, call count() and timed() on the same inputs and assert the two listings are identical and contain only the staged inputs. The test must fail on the current timed() code, where the listing differs. | queue Q79; worker/split.py |
 | K48 | B3 |  | minor | medium | fix | Add a calibration registry module (outcomes per actor and task family, Wilson lower bound as the score) | Create router/calibration.py, under 80 lines, standard library only. Provide record(actor, family, ok) that counts successes and trials per (actor, family) pair, score(actor, family) that returns the Wilson lower bound at z=1.96 (0.0 when there are no trials), and dump(path) and load(path) that write and read the counts as JSON. Add tests to router/test_router.py: after 8 successes in 10 trials, score is about 0.49; with 0 trials, score is 0.0; dump then load gives the same scores; and a family with more trials and the same rate scores higher. | queue P26c; worker/split.py |
@@ -366,7 +360,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (106)
+## Done (107)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -430,6 +424,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
 | D25 | B3 |  | minor | medium | fix | Failed run, unknown: router:unknown | Filed by worker/diagnose.py from run 44713342137 (router). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44713342137 |
 | D26 | B3 |  | minor | medium | fix | Failed run, unknown: .github/workflows/tier.yml:unknown | Filed by worker/diagnose.py from run 44739347561 (.github/workflows/tier.yml). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44739347561 |
+| D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
 | D3 | B3 |  | minor | medium | doc | Worker release test 2: canary line 3 | In tests/worker-canary-2.md, line 7 (canary line 3): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D4 | B3 |  | minor | medium | doc | Worker release test 2: canary line 4 | In tests/worker-canary-2.md, line 8 (canary line 4): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D5 | B3 |  | minor | medium | doc | Worker release test 2: canary line 5 | In tests/worker-canary-2.md, line 9 (canary line 5): fix the grammar. | worker/RELEASE-TEST-2.md on main |
