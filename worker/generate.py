@@ -28,7 +28,7 @@ PROPOSER = "particle-ai/particle-1:free"      # P31: 30/30 twice on the known-an
 DECIDER = "perplexity/pplx-decider-v1.3:free"  # P31: checker trial 6/6 twice; another family than the proposer
 MAX_PER_DAY = 10   # 2026-11-22 data: research items land 18 of 25 (72%; splitter code items 6 of 51); 68 open items qualify;
                    # 7 more a day is about 14 NVIDIA + 28 OpenRouter calls against 675 and 419 left of the daily caps (2026-11-21)
-MAX_TRIES = 3      # draft calls a run may make (it tried every candidate until one passed): with the gate, within openrouter:4
+MAX_TRIES = 2      # draft calls a run may make (it tried every candidate until one passed): + regate + gate = openrouter:4
 KINDS = ("build", "test", "fix")
 # Known-answer controls, frozen text (first live gate, 2026-11-20 10:52Z: a control built from live queue text scored
 # 0.42 because P5's next step had moved on since R5 was filed; the drafts scored 0.96-0.99, the off-topic pair 0.005)
@@ -122,12 +122,13 @@ def controls():
     return [(CONTROL_GOOD_Q, *CONTROL_ITEM), (CONTROL_BAD_Q, *CONTROL_ITEM)]
 
 
-def regate(wt, decide_fn, calls):
-    """Items still 'proposed' (a withheld gate) get the gate again, before any new draft."""
+def regate(wt, decide_fn, calls, room=MAX_PER_DAY):
+    """Items still 'proposed' (a withheld gate) get the gate again, before any new draft: at most today's room (review
+    2026-11-22: re-gated items keep their old date, so a batch of MAX_PER_DAY passed on top of the day's own)."""
     Q.sync(wt)
     q = Q.load(wt)
     by = {i["id"]: i for i in q["items"]}
-    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("generated_from") in by][:MAX_PER_DAY]
+    pend = [i for i in q["items"] if i.get("status") == "proposed" and i.get("generated_from") in by][:max(0, room)]
     if not pend:
         return []
     pairs = controls() + [(i["research"]["question"], by[i["generated_from"]]["title"], by[i["generated_from"]].get("next", ""))
@@ -179,11 +180,12 @@ def _run(wt, out, calls, draft_fn=None, decide_fn=None):
     Q.sync(wt)
     q = Q.load(wt)
     day = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
-    regated = regate(wt, decide_fn or (lambda p: decide(p, calls)), calls)   # a withheld gate first, inside the cap
+    room = MAX_PER_DAY - today_count(q, day)   # a capped day spends nothing, the regate call included (review 2026-11-22)
+    regated = regate(wt, decide_fn or (lambda p: decide(p, calls)), calls, room) if room > 0 else []
     if regated:
         print(f"generate: regated {regated}")
     q = Q.load(wt)
-    room = MAX_PER_DAY - today_count(q, day)
+    room = MAX_PER_DAY - today_count(q, day) - len(regated)   # re-gated items keep their old date: count them here
     if room <= 0:
         print(f"generate: cap reached ({MAX_PER_DAY} today)")
         _write_calls(out, calls)
