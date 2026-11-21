@@ -18,6 +18,37 @@ class T(unittest.TestCase):
         self.assertEqual(I.parse(None), [])
         self.assertEqual(I.parse("no idea"), [])
 
+    def test_remove_file_paths(self):
+        self.assertEqual(I.remove_file_paths("change src/x.py and y/z.py"), "change <path> and <path>")
+        self.assertEqual(I.remove_file_paths("see README.md, e.g. foo"), "see <path>, e.g. foo")
+        self.assertEqual(I.remove_file_paths(None), "")
+
+    def test_probe_offline(self):
+        d = tempfile.mkdtemp()
+        mk = lambda i, g: {"id": i, "repo": "r", "split": "s", "created_at": "", "issue": f"task:{i} in src/x.py", "gold": g}
+        s = {"fresh": {"tasks": [mk("f1", ["a.py"]), mk("f2", ["b.py"])]},
+             "verified": {"tasks": [mk("v1", ["c.py"]), mk("v2", ["d.py"])]}}
+        json.dump(s, open(os.path.join(d, "s.json"), "w"))
+        answers = {"task:f1 in <path>": "```paths\na.py\n```",
+                   "task:f2 in <path>": "```paths\nwrong.py\n```",
+                   "task:v1 in <path>": "```paths\nc.py\n```",
+                   "task:v2 in <path>": "```paths\nd.py\n```"}
+        def stub(repo, issue):
+            return answers[issue]
+        r = I.probe(os.path.join(d, "s.json"), d, call=stub)
+        records = r["records"]
+        self.assertEqual(len(records), 4)
+        self.assertAlmostEqual(r["match_rate"], 0.75)
+        self.assertAlmostEqual(sum(x["match"] for x in records) / len(records), r["match_rate"])
+        by = {x["task_id"]: x for x in records}
+        self.assertTrue(by["f1"]["match"] and by["v1"]["match"] and by["v2"]["match"])
+        self.assertFalse(by["f2"]["match"])
+        self.assertEqual(by["f1"]["named_file"], "a.py")
+        self.assertEqual(by["f2"]["gold_files"], ["b.py"])
+        saved = json.load(open(os.path.join(d, "probe.json")))
+        self.assertEqual(saved["match_rate"], r["match_rate"])
+        self.assertEqual(len(saved["records"]), 4)
+
     def test_grade_known(self):
         d = tempfile.mkdtemp()
         mk = lambda i, g: {"id": i, "repo": "r", "split": "s", "created_at": "", "issue": "x", "gold": g}
