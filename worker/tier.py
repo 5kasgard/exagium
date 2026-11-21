@@ -137,6 +137,26 @@ def candidates(q):
 # reviewer approved, this model approves after its own controls, the diff is small, and no file is a gate or money path.
 MERGE_MAX_LINES = 80
 MERGE_REFUSE = re.compile(CJ.REFUSE.pattern + r"|^worker/(tier|generate|research_job|doc_job)\.py$|^router/(slots|engines|pick)\.py$|^facts/", re.I)
+# Audit 2026-11-21 (R1 F1, A F1, B F1; the first version of this fix was rejected by review): a refuse list let
+# model-written code merge into files that jobs holding keys run (router/probe.py #19, worker/digest.py #15,
+# router/decisions_route.py #14, router/bench6/illusion/illusion.py #42 merged on 2026-11-21; each diff read since: none
+# harmful). Auto-merge now takes only experiment modules: they run in experiment.yml's run job, which has no secrets and
+# a read-only token. Not taken, because something with keys, a write token or the scores reads them: .md files (prompts
+# for keyed agents: runner/CONTRACT.md, router/bench/tasks/*.md, router/review/**; plans; READMEs agents are sent to),
+# transfer/ (built into the scoring jobs by tasks/build.py), runner/, worker/, router/, tests. A person merges those.
+# Also refused: experiments/run_one.py (it writes the verdict the record job trusts) and a
+# name that shadows a standard-library module (audit R2 F2: worker/datetime.py was imported by an unchanged keyed script).
+MERGE_ALLOW = re.compile(r"experiments/[a-z][a-z0-9_]*\.py")
+MERGE_ALLOW_NOT = {"experiments/run_one.py", "experiments/__init__.py"}
+
+
+def merge_allowed(path):
+    """A path the tier may merge without a person (see above). tests/test_workflows.py checks that no job holding a
+    secret or a write token runs or imports one."""
+    if not isinstance(path, str) or not MERGE_ALLOW.fullmatch(path) or path in MERGE_ALLOW_NOT or MERGE_REFUSE.search(path):
+        return False
+    return os.path.basename(path)[:-3] not in getattr(sys, "stdlib_module_names", ()) | set(sys.builtin_module_names)
+
 
 CODE_PROMPT = """You review a code change before it is merged into main without a person. Approve only if it does exactly what
 the item asks, changes nothing else, and adds no network access, secrets, file deletion, subprocess or eval that the
@@ -171,15 +191,17 @@ def code_verdict(ctx, ask):
 def pr_files(n):
     """The PR's files, or None when they could not be fetched (GLM review F024: a failed fetch returned [], and an empty
     diff passed every size and path check vacuously, so an 'approve' could merge files nobody saw)."""
-    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}/files", "-q", "[.[] | {filename, additions, deletions, patch}]"],
-                       capture_output=True, text=True)
+    # every page (a PR's file list stops at 30 per page), and status and previous_filename, so a rename is judged on both
+    # names (gate review 2026-11-21)
+    r = subprocess.run(["gh", "api", "--paginate", f"repos/{REPO}/pulls/{n}/files", "-q",
+                        ".[] | {filename, additions, deletions, patch, status, previous_filename}"], capture_output=True, text=True)
     if r.returncode:
         return None
     try:
-        files = json.loads(r.stdout)
+        files = [json.loads(x) for x in r.stdout.splitlines() if x.strip()]
     except json.JSONDecodeError:
         return None
-    return files if isinstance(files, list) and files else None
+    return files or None
 
 
 def code_prs(q):
@@ -204,7 +226,8 @@ def merge_decision(item, files, verdict):
         why.append(f"{lines} changed lines (over {MERGE_MAX_LINES})")
     own = (item.get("code") or {}).get("files", []) + [(item.get("code") or {}).get("test")]
     import doc_job
-    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in own
+    bad = [f["filename"] for f in files if not merge_allowed(f["filename"]) or f["filename"] not in own
+           or f.get("status", "modified") not in ("added", "modified") or f.get("previous_filename")
            or (f["filename"].endswith(".md") and not doc_job.merge_ok(f["filename"]))]   # agent-facing texts: a person merges
     if bad:
         why.append(f"files a person merges, or not the item's own: {', '.join(bad)}")
