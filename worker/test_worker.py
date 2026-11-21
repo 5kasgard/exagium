@@ -1031,5 +1031,61 @@ class NewFileSearchIgnored(unittest.TestCase):
         self.assertEqual(C.apply_edits(files, ok)["experiments/x.py"], "PLAN = 1\n")
 
 
+class P31Qualification(unittest.TestCase):
+    """Queue P31: model qualification from recorded grading runs."""
+    def test_qualifies_particle1_two_perfect_runs(self):
+        import tier as TI
+        runs = [
+            {"controls_right": 5, "agree": 30, "cost": 0.01, "latency_s": 2.0},
+            {"controls_right": 5, "agree": 30, "cost": 0.01, "latency_s": 2.5},
+        ]
+        self.assertTrue(TI.qualifies(runs))
+
+    def test_qualifies_perplexity_one_run_not_enough(self):
+        import tier as TI
+        runs = [
+            {"controls_right": 5, "agree": 29, "cost": 0.02, "latency_s": 1.5},
+        ]
+        self.assertFalse(TI.qualifies(runs))
+
+    def test_qualifies_nemotron_two_runs_29_agree(self):
+        import tier as TI
+        runs = [
+            {"controls_right": 5, "agree": 29, "cost": 0.03, "latency_s": 3.0},
+            {"controls_right": 5, "agree": 29, "cost": 0.03, "latency_s": 3.5},
+        ]
+        self.assertTrue(TI.qualifies(runs))
+
+    def test_qualifies_ernie_one_token_exhausted_run(self):
+        import tier as TI
+        runs = [
+            {"controls_right": 0, "agree": 0, "cost": 0.05, "latency_s": 10.0},  # spent all tokens
+            {"controls_right": 5, "agree": 30, "cost": 0.01, "latency_s": 2.0},
+        ]
+        self.assertFalse(TI.qualifies(runs))
+
+    def test_choose_picks_cheaper_of_two_qualified(self):
+        import tier as TI
+        models = {
+            "Particle-1": [
+                {"controls_right": 5, "agree": 30, "cost": 0.01, "latency_s": 2.0},
+                {"controls_right": 5, "agree": 30, "cost": 0.01, "latency_s": 2.5},
+            ],
+            "Nemotron": [
+                {"controls_right": 5, "agree": 29, "cost": 0.03, "latency_s": 3.0},
+                {"controls_right": 5, "agree": 29, "cost": 0.03, "latency_s": 3.5},
+            ],
+        }
+        self.assertEqual(TI.choose(models), "Particle-1")
+
+    def test_choose_returns_none_when_none_qualify(self):
+        import tier as TI
+        models = {
+            "Bad-1": [{"controls_right": 4, "agree": 30, "cost": 0.01, "latency_s": 2.0}],
+            "Bad-2": [{"controls_right": 5, "agree": 26, "cost": 0.01, "latency_s": 2.0}],
+        }
+        self.assertIsNone(TI.choose(models))
+
+
 if __name__ == "__main__":
     unittest.main()
