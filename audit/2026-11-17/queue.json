@@ -11037,7 +11037,7 @@
    "id": "K29",
    "title": "Pure size check for worker cards",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-21T03:36:56Z",
@@ -11058,7 +11058,7 @@
     "worker/cards.py",
     "worker/test_worker.py"
    ],
-   "next": "Create worker/cards.py (under 80 lines, stdlib only) with check_size(card, prompt_chars, max_tokens). A card is a dict {\"input_chars\": int, \"output_tokens\": int, \"source\": str}. Return (\"ok\", \"\") when prompt_chars <= input_chars and max_tokens <= output_tokens; (\"split\", reason) when the prompt is over input_chars but the output budget fits; (\"refuse\", reason) when max_tokens is over output_tokens or the card is missing or has no source. Add class Cards to worker/test_worker.py with one test per branch (ok, split, refuse for output, refuse for missing source) and check that the module imports without network or secrets.",
+   "next": "Create worker/cards.py (under 80 lines, stdlib only) with check_size(card, prompt_chars, max_tokens). A card is a dict {\"input_chars\": int, \"output_tokens\": int, \"source\": str}. Return (\"ok\", \"\") when prompt_chars <= input_chars and max_tokens <= output_tokens; (\"split\", reason) when the prompt is over input_chars but the output budget fits; (\"refuse\", reason) when max_tokens is over output_tokens or the card is missing or has no source. Add class Cards to worker/test_worker.py with one test per branch (ok, split, refuse for output, refuse for missing source) and check that the module imports without network or secrets. PREVIOUS ATTEMPT REJECTED: no edits. Do the whole item, with a test.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -11135,6 +11135,12 @@
      "lost_lease": false,
      "outcome": "failed",
      "escalated": "failed 2 times in a row"
+    },
+    {
+     "at": "2026-11-21T11:04:30Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no edits"
     }
    ],
    "work_types": {
