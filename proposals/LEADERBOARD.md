@@ -62,7 +62,7 @@ First 20: 11 valid -> KEEP the one-call proposer (rule fixed in PLAN.md).
 | prop-44558599768-1 | optdigits | True | True | True | 0.9550 ± 0.0067 | -0.0063 ± 0.0071 | 1960 | 255 | False |  |
 | prop-44558599768-2 | text | True | False | False |  |  |  |  | False |  |
 | prop-44560212924-0 | adult | True | False | False |  |  |  |  | False |  |
-| prop-44560212924-1 | optdigits | True | True | True | 0.9759 ± 0.0050 | +0.0146 ± 0.0051 | 6826 | 568 | False |  |
+| prop-44560212924-1 | optdigits | True | True | True | 0.9759 ± 0.0050 | +0.0146 ± 0.0051 | 6826 | 658 | False |  |
 | prop-44560212924-2 | text | True | False | False |  |  |  |  | False |  |
 | prop-44563547516-0 | adult | True | True | True | 0.8647 ± 0.0042 | +0.0123 ± 0.0029 | 673 | 68 | False |  |
 | prop-44563547516-1 | optdigits | True | True | True | 0.8902 ± 0.0101 | -0.0711 ± 0.0098 | 18051 | 1129 | False |  |
