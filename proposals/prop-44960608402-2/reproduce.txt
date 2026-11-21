@@ -1,0 +1,12 @@
+FAILED: prop-44960608402-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 134, in <module>
+    main()
+  File "/w/train.py", line 58, in main
+    cross_idx[:, idx] = [hash_pair(i, j, X_bytes[k, i], X_bytes[k, j], M) for k in range(n)]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 24, in hash_pair
+    x = (i << 24) | (j << 16) | (b1 << 8) | b2
+        ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+OverflowError: Python integer 65536 out of bounds for uint8
+
