@@ -509,6 +509,64 @@ class TierMerge(unittest.TestCase):
         self.assertEqual([(i["id"], n) for i, n in TI.code_prs(q)], [("K1", 9)])
 
 
+class TierOutcomes(unittest.TestCase):
+    """Audit 2026-11-21 (A F3, GLM F115, R2 F3), driven through drain_code: no verdict, or GitHub refusing a merge for a
+    reason other than a conflict, is not a judgement (it closed good PRs and spent their one redo); a change too long for
+    the reviewer to see whole goes to a person."""
+
+    def _drain(self, verdict, files, merge_rc=0, state="clean"):
+        import tier as TI
+        from unittest import mock
+        item = {"id": "X1", "title": "t", "status": "review", "code": {"files": ["experiments/x.py"], "test": "experiments/test_experiments.py"},
+                "runs": [{"outcome": "pr", "where": "https://github.com/o/r/pull/7"}]}
+        calls, moves = [], []
+
+        def run(cmd, **k):
+            calls.append(cmd)
+            out = state if cmd[-1] == ".mergeable_state" else ""
+            rc = merge_rc if "PUT" in cmd else 0
+            return mock.Mock(returncode=rc, stdout=out, stderr="refused" if rc else "")
+        ask = lambda prompt: verdict
+        rec = {"code_controls": [], "code_prs": []}
+        with mock.patch.object(TI, "CODE_CONTROLS", []), mock.patch.object(TI.Q, "sync"), \
+                mock.patch.object(TI.Q, "load", return_value={"items": [item]}), mock.patch.object(TI, "pr_files", return_value=files), \
+                mock.patch.object(TI.subprocess, "run", side_effect=run), \
+                mock.patch.object(TI.Q, "move", side_effect=lambda wt, who, i, outcome, note: moves.append(outcome) or 0), \
+                mock.patch.object(TI, "_redo_with_reason", side_effect=lambda *a: moves.append("redo_with_reason") or 0):
+            TI.drain_code("wt", ask, rec)
+        closed = any("state=closed" in c for c in calls)
+        return closed, moves, rec["code_prs"][0]
+
+    F = [{"filename": "experiments/x.py", "additions": 2, "deletions": 0, "patch": "+a\n+b", "status": "modified"}]
+
+    def test_no_verdict_leaves_the_pr_for_the_next_run(self):
+        for reply in (None, "", "not json", '{"verdict": "maybe"}'):
+            closed, moves, rec = self._drain(reply, self.F)
+            self.assertEqual((closed, moves), (False, []), repr(reply))
+            self.assertIn("no verdict", rec["why"][0])
+
+    def test_a_refused_merge_that_is_not_a_conflict_is_retried(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state="blocked")
+        self.assertEqual((closed, moves), (False, []))
+
+    def test_a_conflict_is_redone(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state="dirty")
+        self.assertEqual((closed, moves), (True, ["redo"]))
+
+    def test_a_merge(self):
+        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', self.F)[:2], (False, ["confirm"]))
+
+    def test_a_rejection_on_merit_still_closes_and_redoes(self):
+        self.assertEqual(self._drain('{"verdict": "reject", "reason": "wrong"}', self.F)[:2], (True, ["redo_with_reason"]))
+
+    def test_a_change_too_long_to_see_whole_goes_to_a_person(self):
+        long = [dict(self.F[0], patch="+" + "x" * 25000)]
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', long)
+        self.assertEqual((closed, moves), (False, ["escalate"]))
+        nodiff = [dict(self.F[0], patch=None)]
+        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', nodiff)[:2], (False, ["escalate"]))
+
+
 class TierRedoCap(unittest.TestCase):
     def test_count(self):
         import tier as TI

@@ -116,6 +116,7 @@ def artifact(run_url, dest):
     return True
 
 
+DIFF_SEEN = 20000   # characters of the diff the reviewing model is shown; a longer change goes to a person
 MAX_REDOS = 1   # 2026-11-20: R4 was narrowed twice in a row; a second "no claims" after this tier's redo goes to the owner
 
 
@@ -256,17 +257,31 @@ def drain_code(wt, ask, record):
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
             record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
             continue
-        diff = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)[:20000]
-        verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": diff}, ask)
+        full = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)
+        verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": full[:DIFF_SEEN]}, ask)
+        if verdict is None:   # no answer (outage, empty or unparsable reply) is not a judgement: leave it for the next run
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["no verdict: left for the next tier run"],
+                                       "rc": None})   # audit 2026-11-21 (A F3, GLM F115): this closed good PRs and spent the redo
+            continue
         ok, why = merge_decision(item, files, verdict)
+        unseen = len(full) > DIFF_SEEN or any(not f.get("patch") for f in files)
+        if unseen:   # the reviewer could not see the whole change (audit R2 F3: a payload after 20,000 characters merged unseen)
+            ok = False
+            why.append("files a person merges: the change is too long, or has a file with no diff, for the reviewer to see whole")
+        conflict = False
         if ok:
             m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge", "-f", "merge_method=squash"],
                                capture_output=True, text=True)
             if m.returncode:
-                why.append("merge refused by GitHub: " + (m.stderr or m.stdout)[-200:])
-                ok = False
+                st = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", ".mergeable_state"], capture_output=True, text=True)
+                if st.stdout.strip() != "dirty":   # refused for another reason (checks pending, head moved, GitHub down): retry later
+                    record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "rc": None,
+                                               "why": ["merge refused by GitHub, not a conflict: left for the next tier run: "
+                                                       + (m.stderr or m.stdout)[-200:]]})
+                    continue
+                why.append("merge conflicts with today's main: " + (m.stderr or m.stdout)[-160:])
+                ok, conflict = False, True
         note = f"tier ({MODEL}): PR #{n} " + ("merged" if ok else "not merged: " + "; ".join(why)) + f"; model: {reason}"[:400]
-        conflict = not ok and len(why) == 1 and "merge conflicts" in why[0]
         if conflict:   # approved, but another merged PR touched the same lines: redone on today's main, not escalated
             subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{REPO}/pulls/{n}", "-f", "state=closed"], capture_output=True, text=True)
         person = not ok and verdict == "approve" and any("files a person merges" in w for w in why)
