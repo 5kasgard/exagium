@@ -1406,5 +1406,31 @@ class WorkerSpecCard(unittest.TestCase):
         self.assertNotIn("**Not yet:** code items", text)
 
 
+class CardsSize(unittest.TestCase):
+    def test_small_prompt_ok(self):
+        from worker.cards import check_size
+        result = check_size("nvidia", "nvidia/nemotron-3-ultra", 1000, 100)
+        self.assertEqual(result, ("ok", None))
+
+    def test_oversize_prompt_split(self):
+        from worker.cards import check_size
+        result = check_size("nvidia", "nvidia/nemotron-3-ultra", 128001, 100)
+        self.assertEqual(result, ("split", 2))
+        result = check_size("nvidia", "nvidia/nemotron-3-ultra", 256001, 100)
+        self.assertEqual(result, ("split", 3))
+
+    def test_max_tokens_above_output_limit_refused(self):
+        from worker.cards import check_size
+        result = check_size("nvidia", "nvidia/nemotron-3-ultra", 1000, 16001)
+        self.assertEqual(result[0], "refuse")
+        self.assertIn("output limit", result[1])
+
+    def test_unknown_model_refused(self):
+        from worker.cards import check_size
+        result = check_size("nvidia", "unknown-model", 1000, 100)
+        self.assertEqual(result[0], "refuse")
+        self.assertIn("no size card", result[1])
+
+
 if __name__ == "__main__":
     unittest.main()
