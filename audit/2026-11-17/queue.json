@@ -10889,7 +10889,7 @@
    "id": "K28",
    "title": "P20a-1a: Pure join of graded attempts with call-log costs, keyed by attempt id",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20",
    "generated_at": "2026-11-21T03:36:56Z",
@@ -10910,7 +10910,7 @@
     "router/attempt_table.py",
     "router/test_router.py"
    ],
-   "next": "Create router/attempt_table.py (under 80 lines, standard library only) with join(outcomes, calls) -> list of row dicts. outcomes is a list of graded attempt dicts (task, arm, attempt id, passed), and calls is a list of call-log records. Read router/engines.py log_usage for the exact keys a call record has, and read router/bench4/decide.py for the outcome keys. Each row holds attempt, task, arm, passed, cost_usd (the sum of the calls whose attempt id matches), and calls (the count). Calls with no outcome are dropped, and outcomes with no call get cost_usd 0.0 and calls 0 and are marked joined=False. The row is never silently removed. Add a test to router/test_router.py with synthetic records: two attempts, one with two calls and one with no calls. Assert the summed cost, the call count, and that the no-call attempt is present with joined=False.",
+   "next": "Create router/attempt_table.py (under 80 lines, standard library only) with join(outcomes, calls) -> list of row dicts. outcomes is a list of graded attempt dicts (task, arm, attempt id, passed), and calls is a list of call-log records. Read router/engines.py log_usage for the exact keys a call record has, and read router/bench4/decide.py for the outcome keys. Each row holds attempt, task, arm, passed, cost_usd (the sum of the calls whose attempt id matches), and calls (the count). Calls with no outcome are dropped, and outcomes with no call get cost_usd 0.0 and calls 0 and are marked joined=False. The row is never silently removed. Add a test to router/test_router.py with synthetic records: two attempts, one with two calls and one with no calls. Assert the summed cost, the call count, and that the no-call attempt is present with joined=False. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change adds the join function but does not add the required test in router/test_router.py. Do the whole item, with a test.",
    "refs": [
     "queue P20",
     "worker/split.py"
@@ -10953,6 +10953,12 @@
      "at": "2026-11-21T04:06:15Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T10:07:20Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change adds the join function but does not add the required test in router/test_router.py"
     }
    ],
    "work_types": {
