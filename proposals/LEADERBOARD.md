@@ -232,8 +232,8 @@ First 20: 11 valid -> KEEP the one-call proposer (rule fixed in PLAN.md).
 | prop-44719147472-0 | adult | True | True | True | 0.8620 ± 0.0043 | +0.0095 ± 0.0032 | 755 | 126 | False |  |
 | prop-44719147472-1 | optdigits | True | True | True | 0.9561 ± 0.0066 | -0.0052 ± 0.0069 | 6189 | 385 | False |  |
 | prop-44719147472-2 | text | True | True | True | 0.1830 ± 0.0050 | -0.1545 ± 0.0066 | 25255 | 1970 | False |  |
-| prop-44720793657-0 | adult | True | True | True | 0.8320 ± 0.0046 | -0.0204 ± 0.0045 | 3472 | 187 | False |  |
-| prop-44720793657-1 | optdigits | True | True | True | 0.9582 ± 0.0065 | -0.0031 ± 0.0065 | 1573 | 469 | True |  |
+| prop-44720793657-0 | adult | True | True | True | 0.8320 ± 0.0046 | -0.0204 ± 0.0045 | 3472 | 219 | False |  |
+| prop-44720793657-1 | optdigits | True | True | True | 0.9582 ± 0.0065 | -0.0031 ± 0.0065 | 1573 | 477 | True |  |
 | prop-44720793657-2 | text | True | False | False |  |  |  |  | False |  |
 | prop-44722426293-0 | adult | True | True | True | 0.8551 ± 0.0044 | +0.0026 ± 0.0038 | 826 | 56 | False |  |
 | prop-44722426293-1 | optdigits | True | False | False |  |  |  |  | False |  |
