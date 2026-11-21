@@ -217,6 +217,16 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
                       {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
         if st == 200 and j.get("choices"):
             text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
+        if st == 200 and not text and j.get("provider") and not model.endswith(":free"):
+            # 2026-11-21: 17 of 49 paid DeepSeek calls came back 200 with no text (one seen: provider Cohere); one retry that
+            # skips the provider which returned nothing (OpenRouter provider routing), so a paid call is not wasted
+            bad = j.get("provider")
+            st, j = _post("https://openrouter.ai/api/v1/chat/completions", dict(body, provider={"ignore": [bad]}),
+                          {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
+            if st == 200 and j.get("choices"):
+                text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
+            if not text:
+                j = dict(j, _skipped_provider=bad)
     elif engine == "cloudflare":
         acct = os.environ["CLOUDFLARE_ACCOUNT_ID"]
         st, j = _post(f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{model}",

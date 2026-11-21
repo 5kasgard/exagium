@@ -151,7 +151,9 @@ def check_edits(files, edits):
             why.append(f"malformed edit {str(e)[:100]}"); continue
         if e["path"] not in files:
             why.append(f"{e['path']}: not a file this item may change"); continue
-        n = files[e["path"]].count(e["old"]) if e["old"] else (1 if files[e["path"]] == "" else 0)   # empty old: a new file
+        # a new (empty) file takes the replacement as its whole text, whatever the model put in SEARCH: 4 of 4 new-file
+        # items on 2026-11-21 (K29, K35, K37, K40) failed with "'old' occurs 0 times" because the coder searched for text
+        n = 1 if files[e["path"]] == "" else files[e["path"]].count(e["old"]) if e["old"] else 0
         if n != 1:
             why.append(f"{e['path']}: 'old' occurs {n} times (must be exactly once)"); continue
         if e["old"] == e["new"]:
@@ -165,7 +167,7 @@ def apply_edits(files, edits):
     in one file could misapply); a conflicting edit raises, which the callers treat as no usable change."""
     new = dict(files)
     for e in edits:
-        if not e["old"] and new[e["path"]] == "":   # writing a new file
+        if new[e["path"]] == "" and files[e["path"]] == "":   # writing a new file (its SEARCH text is ignored)
             new[e["path"]] = e["new"] if e["new"].endswith("\n") else e["new"] + "\n"
             continue
         if not e["old"] or new[e["path"]].count(e["old"]) != 1:
@@ -254,9 +256,13 @@ def draft(out):
             except ValueError as x:
                 n, e, w = None, [], w + [str(x)]
             only_test = bool(e) and {x["path"] for x in e} <= {b.get("test")} and any(p != b.get("test") for p in b["files"])
+            no_test = bool(e) and b.get("test") in b["files"] and b.get("test") not in {x["path"] for x in e} \
+                and not b.get("test", "").startswith("experiments/")   # K28, K39: the reviewer rejects a change with no test
             return e, w, n, (w if not e else []) + static_problems(b["files"], n) + (
                 [f"the edits change only the test file {b.get('test')}; the item needs the change itself in "
-                 f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else [])
+                 f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else []) + (
+                [f"the edits add no test: add one to {b.get('test')} that fails on the current code and passes with the change"]
+                if no_test else [])
         edits, why, new, problems = checked(proposal)
         repaired = None
         if problems and proposal.get("edits"):   # one repair round with the problems written in (owner 2026-11-21: code lands least)

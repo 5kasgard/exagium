@@ -947,6 +947,24 @@ class OnlyTestEdits(unittest.TestCase):
                 C.draft(d)
             r = json.load(open(os.path.join(d, "draft.json")))
         self.assertIn("only the test file", r["repair"]["before"][0])
+
+    def test_no_test_edit_is_a_problem(self):
+        import code_job as C, slots
+        from unittest import mock
+        code_only = "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 2\n>>>>>>> REPLACE\nNOTE: n"
+        replies = iter([code_only, code_only + "\n<<<<<<< SEARCH t/test_a.py\n# t\n=======\n# t2\n>>>>>>> REPLACE"])
+        def fake_run(slot, prompt, ask, parse):
+            if slot == "coder":
+                t = next(replies)
+                return parse(t), {"text": t}, [{"pool": "p"}]
+            return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+        with tempfile.TemporaryDirectory() as d:
+            json.dump({"item": {"id": "K2", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "t/test_a.py": "# t\n"},
+                       "test": "t/test_a.py", "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+            with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                C.draft(d)
+            r = json.load(open(os.path.join(d, "draft.json")))
+        self.assertIn("add no test", r["repair"]["before"][0])
         self.assertEqual(len(r["proposal"]["edits"]), 2)
 
 
@@ -1000,6 +1018,17 @@ class RunnerTypesDoc(unittest.TestCase):
         self.assertNotIn("loop on 6 runner types, counter on 8", text)
         self.assertIn("2 runner types", text)
         self.assertIn("job slots", text)
+
+
+
+class NewFileSearchIgnored(unittest.TestCase):
+    def test_new_file_takes_replacement_whatever_search_says(self):
+        import code_job as C
+        files = {"experiments/x.py": ""}
+        e = [{"path": "experiments/x.py", "old": "# placeholder", "new": "PLAN = 1"}]
+        ok, why = C.check_edits(files, e)
+        self.assertEqual((len(ok), why), (1, []))
+        self.assertEqual(C.apply_edits(files, ok)["experiments/x.py"], "PLAN = 1\n")
 
 
 if __name__ == "__main__":

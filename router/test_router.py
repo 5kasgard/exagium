@@ -119,6 +119,18 @@ class Scrub(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "refusing paid"):
                 engines.call("openrouter", "z-ai/glm-5.3-flash", "hi")
 
+    def test_paid_empty_reply_retries_without_that_provider(self):
+        replies = [(200, {"provider": "Cohere", "choices": [{"message": {"content": None}}]}),
+                   (200, {"provider": "Other", "choices": [{"message": {"content": "ok"}}], "usage": {}})]
+        seen = []
+        def fake(url, body, headers):
+            seen.append(body.get("provider"))
+            return replies.pop(0)
+        with mock.patch.object(engines, "_post", fake), mock.patch.object(engines, "paid_guard"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": os.devnull}):
+            r = engines.call("openrouter", "deepseek/x", "hi", allow_paid=True)
+        self.assertEqual((r["text"], seen), ("ok", [None, {"ignore": ["Cohere"]}]))
+
     def test_f039_paid_logged_as_paid_pool(self):
         import tempfile
         with tempfile.TemporaryDirectory() as d:
