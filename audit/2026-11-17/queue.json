@@ -9517,7 +9517,7 @@
    "id": "K25",
    "title": "F083: verify TLS certificates in the facts probe",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "Q67",
    "generated_at": "2026-11-20T22:34:18Z",
@@ -9563,6 +9563,12 @@
      "at": "2026-11-20T22:46:41Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T01:50:35Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #40 not merged: files a person merges, or not the item's own: facts/check.py, facts/test_check.py; model: The diff removes the unverified-context fallback entirely rather than swapping in create_default_context(), so verification stays on, and the added test checks that a certificate failure raises and never reaches urlopen; the unshown get() helper is the one unverified assumption.",
+     "outcome": "escalate"
     }
    ]
   },
