@@ -11644,6 +11644,108 @@
      "escalated": "failed 2 times in a row"
     }
    ]
+  },
+  {
+   "id": "K41",
+   "title": "Parse a 429 reply into a pool reset time (pure function, no calls)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P8",
+   "generated_at": "2026-11-21T06:59:08Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py add retry_after(status, headers, now) returning the seconds until the pool's window resets when status is 429, else None. Use the retry-after header (seconds, or an HTTP date) and, failing that, the first ratelimit-reset-style header found in the headers dict (names containing 'reset'). If a 429 has no usable header, return 60 as the fallback. Test in router/test_router.py: a 429 with retry-after '30' gives 30; a 429 with an HTTP date gives the difference from now; a 200 gives None; a 429 with no headers gives 60.",
+   "refs": [
+    "queue P8",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K42",
+   "title": "Record a pool as exhausted until a given time, and check it before a call",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P8",
+   "generated_at": "2026-11-21T06:59:08Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py add mark_exhausted(state_path, pool, until) and is_exhausted(state_path, pool, now). The state is one JSON file mapping pool name to an until timestamp; mark_exhausted reads, sets the value, and writes it back atomically (write a temp file, then rename). is_exhausted returns True only while now is before the stored until, and False for an unknown pool or a missing file. Test in router/test_router.py with a temp directory: after mark_exhausted(pool, t+60), is_exhausted at t+30 is True and at t+61 is False; an unknown pool is False; a second pool's entry does not affect the first.",
+   "refs": [
+    "queue P8",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K43",
+   "title": "Make compat_call respect and set pool exhaustion on a 429",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P8",
+   "generated_at": "2026-11-21T06:59:08Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py, change compat_call so that, before sending, it raises Refused when is_exhausted(state, name, now) is True (the state path comes from an environment variable such as ROUTER_EXHAUST_STATE, and nothing is checked when that variable is unset). When the response status is 429, call retry_after and mark_exhausted with the returned window and then raise Refused with the reason. Test in router/test_router.py by stubbing the HTTP send: a 429 marks the pool and the next call raises Refused without sending; a 200 leaves the pool usable; with the variable unset, behaviour is unchanged.",
+   "refs": [
+    "queue P8",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
