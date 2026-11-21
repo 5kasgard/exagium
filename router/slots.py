@@ -62,8 +62,10 @@ def chain(slot, override=None):
     return [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
 
 
-def run(slot, prompt, ask, parse, override=None):
-    """Try each filler until one returns a reply that parses. Returns (parsed or None, last reply, tries list)."""
+def run(slot, prompt, ask, parse, override=None, registry=None):
+    """Try each filler until one returns a reply that parses. Returns (parsed or None, last reply, tries list).
+    If registry is provided, record each try's outcome via registry.record(actor, slot_family, ok) where
+    actor is the filler's pool and model, and ok is True when the reply parsed."""
     tries, last = [], None
     for pool, model in chain(slot, override):
         try:
@@ -71,8 +73,11 @@ def run(slot, prompt, ask, parse, override=None):
         except Exception as e:   # GLM review F036: a missing key or unknown pool aborted the whole chain; it is a failure like any other
             last = {"ok": False, "status": None, "text": None, "error": f"{type(e).__name__}: {str(e)[:200]}"}
         got = parse(last.get("text")) if last.get("ok") else None
-        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": got is not None,
-                      **({"error": str(last.get("error"))[:200]} if last.get("error") and got is None else {})})
-        if got is not None:
+        ok = got is not None
+        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": ok,
+                      **({"error": str(last.get("error"))[:200]} if last.get("error") and not ok else {})})
+        if registry is not None:
+            registry.record(f"{pool}:{model}", slot, ok)
+        if ok:
             return got, last, tries
     return None, last, tries
