@@ -12902,7 +12902,7 @@
    "id": "K50",
    "title": "Record each fallback try's outcome into the calibration registry",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "P26c",
    "generated_at": "2026-11-21T20:05:39Z",
@@ -12950,6 +12950,12 @@
      "at": "2026-11-21T20:36:05Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T21:23:38Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #67 not merged: files a person merges, or not the item's own: router/slots.py, router/test_router.py; model: The diff adds an optional registry parameter that records each try's outcome as actor f\"{pool}:{model}\" and ok only when registry is not None, and the tests cover both the recording path and the None-registry path. The only other change, rewriting the error condition from `got is None` to `not ok`, is behaviorally identical, and no network, secrets, deletion, subprocess, or eval is introd",
+     "outcome": "escalate"
     }
    ],
    "work_types": {
