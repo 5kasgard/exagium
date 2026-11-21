@@ -80,7 +80,8 @@ UNTRUSTED = ("forum", "Q&A", "encyclopedia", "code")   # anyone can write these 
 MAX_QUOTE_WORDS = 40
 # Typography only, the words must still match: 7 of 9 'not found verbatim' drops on R27 and R31 (runs 44947483203,
 # 44950857676, 2026-11-21) were the reader's U+2011 hyphen for the abstract's '-', arXiv's LaTeX '70\%', or a full
-# stop added where the abstract goes on. The other 2 quotes are not in their abstracts at all and stay dropped.
+# stop added where the abstract goes on. The other 2 are also typography (a LaTeX '--' dash, a missing space after a
+# full stop in the abstract) and are left dropped: not handled until data shows they matter.
 TYPO = {c: "-" for c in (0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212)} | \
        {0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x00A0: " ", 0x2009: " ", 0x202F: " "}
 
@@ -365,6 +366,20 @@ def parse_json(text):
         return None
 
 
+def whole_in(q, a):
+    """q occurs in a and starts and ends on a word or number edge: 'up to 70' does not match inside '70.5%' (review
+    2026-11-22: a plain substring test let a quote stop partway through a number)."""
+    edge = lambda t, i: i < 0 or i >= len(t) or not (t[i].isalnum() or t[i] == "." and 0 <= i - 1 and i + 1 < len(t)
+                                                      and t[i - 1].isdigit() and t[i + 1].isdigit())
+    i = a.find(q)
+    while q and i >= 0:
+        signed = q[0].isdigit() and i > 0 and a[i - 1] == "-"   # '0.5 gain' is not in '-0.5 gain'
+        if (edge(a, i - 1) and not signed or not q[0].isalnum()) and (edge(a, i + len(q)) or not q[-1].isalnum()):
+            return True
+        i = a.find(q, i + 1)
+    return False
+
+
 def verified(claims, sources):
     """Script check: the quote occurs verbatim (whitespace-normalised) in the source's abstract, and every number in
     the claim occurs in the quote. Returns (kept, dropped with reasons)."""
@@ -380,7 +395,7 @@ def verified(claims, sources):
         s = by.get(c["source"])
         if not s:
             dropped.append((c, "unknown source")); continue
-        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or norm(c["quote"]).rstrip(".,;") not in norm(s["abstract"]):
+        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or not whole_in(norm(c["quote"]).rstrip(".,;"), norm(s["abstract"])):
             dropped.append((c, "quote not found verbatim in the abstract")); continue
         nums = re.findall(r"\d+(?:\.\d+)?", str(c["claim"]))
         if any(n not in str(c["quote"]) for n in nums):

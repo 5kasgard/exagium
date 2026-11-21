@@ -121,6 +121,12 @@ class Research(unittest.TestCase):
         ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
                                   {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
         self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
+        # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
+        c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
+        ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
+                                  c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
+        self.assertEqual((len(ok), len(dropped)), (1, 3))
 
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
