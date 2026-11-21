@@ -12018,7 +12018,7 @@
    "id": "K40",
    "title": "Add a writer-clustered standard error helper",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q81",
    "generated_at": "2026-11-21T05:42:54Z",
@@ -12039,7 +12039,7 @@
     "runner/cluster_se.py",
     "runner/test_runner.py"
    ],
-   "next": "Create runner/cluster_se.py (under 80 lines) with cluster_se(values, writers) returning the standard error of the mean of values with observations clustered by writer id: group the values by writer, compute the sum of squared cluster totals of deviations from the grand mean, and apply the usual CR1 small-sample factor G/(G-1) * (N-1)/(N-K) with K=1. Return None when fewer than 2 clusters exist, and raise ValueError when the lengths differ. Add tests to runner/test_runner.py: with one observation per writer, the result equals the ordinary SE of the mean times sqrt(G/(G-1)) with N-1 over N-1 (so it matches the plain SE up to the correction); with all observations from one writer the result is None; and with two writers of constant values each the result is 0.",
+   "next": "Create runner/cluster_se.py (under 80 lines) with cluster_se(values, writers) returning the standard error of the mean of values with observations clustered by writer id: group the values by writer, compute the sum of squared cluster totals of deviations from the grand mean, and apply the usual CR1 small-sample factor G/(G-1) * (N-1)/(N-K) with K=1. Return None when fewer than 2 clusters exist, and raise ValueError when the lengths differ. Add tests to runner/test_runner.py: with one observation per writer, the result equals the ordinary SE of the mean times sqrt(G/(G-1)) with N-1 over N-1 (so it matches the plain SE up to the correction); with all observations from one writer the result is None; and with two writers of constant values each the result is 0. PREVIOUS ATTEMPT REJECTED: no edits. Do the whole item, with a test.",
    "refs": [
     "queue Q81",
     "worker/split.py"
@@ -12116,6 +12116,12 @@
      "lost_lease": false,
      "outcome": "failed",
      "escalated": "failed 2 times in a row"
+    },
+    {
+     "at": "2026-11-21T20:33:58Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no edits"
     }
    ],
    "work_types": {
