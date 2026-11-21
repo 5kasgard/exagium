@@ -13100,18 +13100,18 @@
    "id": "R26",
    "title": "What established client-side patterns use HTTP 429 and Retry-After to mark a resource pool exhausted, fail fast before sending further requests, and clear the e",
    "kind": "test",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "generated_from": "K43",
    "generated_at": "2026-11-21T20:34:44Z",
    "research": {
-    "question": "What established client-side patterns use HTTP 429 and Retry-After to mark a resource pool exhausted, fail fast before sending further requests, and clear the exhaustion state once the retry window elapses?",
+    "question": "Do published resilience-pattern sources (circuit breaker or bulkhead literature, or RFC specs) describe clients that honor HTTP 429 with Retry-After by opening a breaker, failing fast, and resetting after the window?",
     "queries": [
-     "HTTP 429 Retry-After client backoff",
-     "circuit breaker 429 Retry-After fail fast",
-     "per-key rate limit exhaustion state",
-     "Retry-After header RFC 9110",
-     "connection pool exhaustion HTTP 429"
+     "RFC 6585 429 Too Many Requests",
+     "RFC 9110 Retry-After header field",
+     "circuit breaker HTTP 429 Retry-After",
+     "circuit breaker half-open state reset",
+     "Release It stability patterns circuit breaker"
     ]
    },
    "touches": [
@@ -13147,13 +13147,31 @@
      "at": "2026-11-21T20:39:25Z",
      "lost_lease": false,
      "outcome": "no_claims"
+    },
+    {
+     "at": "2026-11-21T21:23:17Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: Most of the 30 sources were off-topic (T-cell exhaustion, neural networks, x86), and the question has several parts that the sources only touched on, so a narrower query aimed at the RFCs and circuit-breaker literature is needed."
     }
    ],
    "work_types": {
     "literature": 0.996
    },
    "work_types_key": "f38bb237f7ee32a3",
-   "work_types_at": "2026-11-21T20:34:59Z"
+   "work_types_at": "2026-11-21T20:34:59Z",
+   "research_history": [
+    {
+     "question": "What established client-side patterns use HTTP 429 and Retry-After to mark a resource pool exhausted, fail fast before sending further requests, and clear the exhaustion state once the retry window elapses?",
+     "queries": [
+      "HTTP 429 Retry-After client backoff",
+      "circuit breaker 429 Retry-After fail fast",
+      "per-key rate limit exhaustion state",
+      "Retry-After header RFC 9110",
+      "connection pool exhaustion HTTP 429"
+     ]
+    }
+   ]
   },
   {
    "id": "R27",
