@@ -717,6 +717,61 @@ class IntakeReview(unittest.TestCase):
 
 
 
+class ExperimentLoop(unittest.TestCase):
+    """Audit 2026-11-21 (A F4, R2 F5, GLM F117, F123): an experiment that never yields a verdict must climb a tier, not
+    bounce open -> scheduled -> open forever; and a 'scheduled' item whose run was cancelled must not sit there forever."""
+
+    def test_lost_runs_escalate_through_dispatches(self):
+        import queue_ops as QO, transitions as T
+        i = {"id": "X1", "status": "open", "experiment": {"name": "x"}, "runs": []}
+        seen = []
+        for n in range(8):
+            i["status"] = T.next_status(i["status"], "dispatch")
+            i["runs"].append({"outcome": "dispatch", "result": "started"})
+            i["runs"].append({"outcome": "lost", "result": "no result"})
+            i["status"] = T.next_status("scheduled", "lost", QO.failures(i))
+            seen.append(i["status"])
+            if i["status"] != "open":
+                break
+        self.assertEqual(seen[-1], "escalated")
+        self.assertLessEqual(len(seen), T.MAX_FAILURES)
+
+    def test_scheduled_with_no_run_expires_as_lost(self):
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        old = {"id": "X2", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=QO.SCHEDULED_TTL_H + 1)), "outcome": "dispatch"}]}
+        new = {"id": "X3", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=1)), "outcome": "dispatch"}]}
+        self.assertEqual(QO.expire({"items": [old, new]}, t), ["X2"])
+        self.assertEqual((old["status"], old["runs"][-1]["outcome"], new["status"]), ("open", "lost", "scheduled"))
+
+    def test_owner_scheduled_items_wait(self):
+        """Review 2026-11-21: 'scheduled' is also the owner's decide_scheduled; days-old ones must stay put."""
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X5", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        j = {"id": "X6", "status": "scheduled", "experiment": {"name": "x"},
+             "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        self.assertEqual(QO.expire({"items": [i, j]}, t), [])
+
+    def test_a_late_result_is_recorded_not_moved(self):
+        import queue_ops as QO
+        from unittest import mock
+        q = {"items": [{"id": "X7", "status": "open", "experiment": {"name": "x"}, "runs": []}]}
+        with mock.patch.object(QO, "sync"), mock.patch.object(QO, "load", return_value=q), mock.patch.object(QO, "save"), \
+                mock.patch.object(QO, "commit_push", return_value=True):
+            self.assertEqual(QO.move("wt", "experiment", "X7", "verdict", "holds"), 0)
+        self.assertEqual((q["items"][0]["status"], q["items"][0]["runs"][-1]["outcome"]), ("open", "late_result"))
+        # and it does not reset the failure count (review 2026-11-21: it did, so the loop came back, slower)
+        self.assertEqual(QO.failures({"runs": [{"outcome": "lost"}, {"outcome": "late_result"}, {"outcome": "dispatch"}, {"outcome": "lost"}]}), 2)
+
+    def test_in_progress_with_no_claim_counts_toward_escalation(self):
+        import queue_ops as QO, transitions as T, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X4", "status": "in progress", "runs": [{"outcome": "lease_expired", "result": "no claim held"}] * (T.MAX_FAILURES - 1)}
+        QO.expire({"items": [i]}, t)
+        self.assertEqual(i["status"], "escalated")
+
+
 class NewFiles(unittest.TestCase):
     """Owner 2026-11-21: the worker builds as well as edits; an item may create one small file in an existing folder."""
     def test_code_job_creates_a_file(self):

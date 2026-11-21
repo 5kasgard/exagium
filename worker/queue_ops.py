@@ -26,6 +26,7 @@ QUEUE_MD = "audit/2026-11-17/QUEUE.md"
 BRANCH = "pilot/lgn-20261115"
 LEASE_HOURS = 2
 TRIES = 5
+SCHEDULED_TTL_H = 8   # experiment.yml: 60 + 10 min a run, and runs of one experiment queue one after another (review)
 MAX_FAILURES = T.MAX_FAILURES   # kept for readers; the rule lives in transitions.py
 ID = re.compile(r"[A-Za-z0-9._-]+")
 
@@ -84,15 +85,24 @@ def expire(q, t):
     exit), and chat claims older than CHAT_TTL_H hours (F017). Returns their ids."""
     out = []
     for i in q["items"]:
+        if i.get("status") == "scheduled" and i.get("experiment") and i.get("runs") and i["runs"][-1].get("outcome") == "dispatch" \
+                and parse(i["runs"][-1].get("at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=SCHEDULED_TTL_H):
+            # the experiment run was cancelled or never recorded: nothing else moves it (audit 2026-11-21, GLM F123). Only a
+            # dispatched experiment: 'scheduled' is also the owner's decide_scheduled, which waits on purpose (review)
+            i.setdefault("runs", []).append({"at": iso(t), "worker": "expiry", "result": f"no experiment result within {SCHEDULED_TTL_H} h",
+                                             "outcome": "lost"})
+            i["status"] = T.next_status("scheduled", "lost", failures(i))
+            out.append(i["id"])
+            continue
         if i.get("status") != "in progress":
             continue
         who = str(i.get("claimed_by") or "")
         stale_chat = who and not who.startswith("worker-") and parse(i.get("claimed_at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=CHAT_TTL_H)
         if not who or stale_chat:
-            i["status"] = T.next_status("in progress", "lease_expired")
             i.setdefault("runs", []).append({"at": iso(t), "worker": who or "nobody",
                                              "result": "no claim held" if not who else f"chat claim older than {CHAT_TTL_H} h",
                                              "outcome": "lease_expired"})
+            i["status"] = T.next_status("in progress", "lease_expired", failures(i))   # counted, like a worker lease (GLM F117)
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])
@@ -150,11 +160,13 @@ def failures(i):
     n = 0
     for r in reversed(i.get("runs", [])):
         res = str(r.get("result", ""))
-        if res.startswith("not started") or r.get("outcome") in ("budget", "retry"):
+        # a dispatch only starts the experiment run: it is neither a success nor a failure, so it must not end the count
+        # (audit 2026-11-21, A F4 / R2 F5: dispatch reset it, and a run that never gave a verdict looped forever)
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result"):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue
-        if r.get("outcome") in ("failed", "lost") or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
+        if r.get("outcome") in ("failed", "lost", "lease_expired") or (not r.get("outcome") and res.startswith("failed")):   # outcome when recorded (Q60)
             n += 1; continue
         break
     return n
@@ -251,6 +263,15 @@ def move(wt, actor, item_id, outcome, reason, allow_failed=False):
         i = next((x for x in q["items"] if x["id"] == item_id), None)
         if i is None:
             raise SystemExit(f"no item {item_id}")
+        if outcome in ("verdict", "invalid", EXPERIMENT_FAILED) and i["status"] != "scheduled":
+            # a result that arrives after expiry moved the item on: keep it on the record, move nothing (review 2026-11-21)
+            i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": "late, after the item left scheduled: " + reason,
+                                             "outcome": "late_result"})
+            save(wt, q)
+            if commit_push(wt, f"{actor}: {item_id} late {outcome} recorded (status {i['status']} kept)"):
+                print(f"{item_id}: {i['status']} (late {outcome} recorded)")
+                return 0
+            continue
         to = T.next_status(i["status"], outcome, failures(i) + 1 if outcome == EXPERIMENT_FAILED else 0)   # raises NotAllowed for a move the table does not have
         i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": reason, "outcome": outcome})
         i["status"] = to
