@@ -154,7 +154,9 @@ class PauseStopsSpending(unittest.TestCase):
             w, text = yaml.safe_load(open(f)), open(f).read()
             on = w.get(True) or w.get("on") or {}
             auto = {"schedule", "push", "workflow_run", "pull_request"} & set(on if isinstance(on, (dict, list)) else [on])
-            if auto and re.search(r"secrets\.(?!GITHUB_TOKEN)", text) and "worker/PAUSE" not in text:
+            keyed = re.search(r"secrets(\.(?!GITHUB_TOKEN)|\[)|secrets:\s*inherit", text)   # every form (review 2026-11-22)
+            checks = re.search(r"-f worker/PAUSE|contents/worker/PAUSE", text) and re.search(r"paused", text)   # a real check, not a comment
+            if auto and keyed and not checks:
                 missing.append(os.path.basename(f))
         self.assertEqual(missing, [])
 
