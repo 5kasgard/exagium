@@ -625,7 +625,8 @@ class GLMReview20261120(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             repo, out = os.path.join(d, "r"), os.path.join(d, "o"); os.makedirs(repo); os.makedirs(out)
             open(os.path.join(repo, "a.py"), "w").write("x = 1\n")
-            json.dump({"files": {"a.py": "x = 1\n"}, "test": "t"}, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"files": {"a.py": "x = 1\n"}, "test": "t", "item": {"id": "K1", "touches": ["a.py"], "code": {"files": ["a.py"], "test": "t"}}},
+                      open(os.path.join(out, "bundle.json"), "w"))
             json.dump({"proposal": {"edits": [{"path": "a.py", "old": "x = 1", "new": "x = 2"}]}, "review": {"reason": "?"}},
                       open(os.path.join(out, "draft.json"), "w"))
             json.dump({"passed": True}, open(os.path.join(out, "test.json"), "w"))
@@ -900,7 +901,9 @@ class SecondDraft(unittest.TestCase):
             t = "import unittest\nfrom pkg import m\nclass T(unittest.TestCase):\n    def test(self):\n        self.assertEqual(m.X, 2)\n"
             open(os.path.join(repo, "pkg", "test_m.py"), "w").write(t)
             files = {"pkg/m.py": "X = 1\n", "pkg/test_m.py": t}
-            json.dump({"files": files, "test": "pkg/test_m.py"}, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"files": files, "test": "pkg/test_m.py", "item": {"id": "K1", "touches": list(files),
+                       "code": {"files": [p for p in files if p != "pkg/test_m.py"], "test": "pkg/test_m.py"}}},
+                      open(os.path.join(out, "bundle.json"), "w"))
             bad = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 3"}]}
             good = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 2"}]}
             json.dump({"proposal": bad, "review": {"verdict": "approve"}, "arm": "two",
@@ -984,6 +987,39 @@ class MergeAgentTexts(unittest.TestCase):
         ok, _ = TI.merge_decision(item, [{"filename": "README.md", "additions": 1, "deletions": 0}], "approve")
         self.assertFalse(ok)   # gate review 2026-11-21: AGENTS.md sends agents to the README, so a person merges it too
 
+
+
+class LandRechecksBundle(unittest.TestCase):
+    """Audit 2026-11-21 (B F2, R1 F2): model code runs in the test job, whose artifact was unpacked over draft.json and
+    bundle.json in the land job. The workflow now unpacks it apart (tests/test_workflows.py); apply() also re-checks."""
+
+    def _run(self, bundle, env_item="K1"):
+        import code_job as C
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            repo, out = os.path.join(d, "r"), os.path.join(d, "o")
+            os.makedirs(os.path.join(repo, "worker")); os.makedirs(out)
+            for p, t in bundle["files"].items():
+                os.makedirs(os.path.dirname(os.path.join(repo, p)) or repo, exist_ok=True); open(os.path.join(repo, p), "w").write(t)
+            json.dump(bundle, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"proposal": {"edits": [{"path": p, "old": t, "new": t + "# x\n"} for p, t in bundle["files"].items()]},
+                       "review": {"verdict": "approve"}}, open(os.path.join(out, "draft.json"), "w"))
+            json.dump({"passed": True, "runs": []}, open(os.path.join(out, "test.json"), "w"))
+            with mock.patch.dict(os.environ, {"ITEM": env_item}):
+                C.apply(repo, out)
+            return json.load(open(os.path.join(out, "result.json")))["result"]
+
+    def test_bundle_must_match_the_item(self):
+        item = {"id": "K1", "touches": ["worker/a.py"], "code": {"files": ["worker/a.py"], "test": "worker/test_a.py"}}
+        ok = {"item": item, "files": {"worker/a.py": "x = 1\n", "worker/test_a.py": "# t\n"}}
+        self.assertEqual(self._run(ok), "pr")
+        forged = dict(ok, files=dict(ok["files"], **{"worker/tier.py": "y = 1\n"}))        # a file the item does not own
+        self.assertEqual(self._run(forged), "guard_blocked")
+        wf = dict(ok, item=dict(item, touches=item["touches"] + [".github/workflows/x.yml"],
+                                code={"files": ["worker/a.py", ".github/workflows/x.yml"], "test": "worker/test_a.py"}),
+                  files=dict(ok["files"], **{".github/workflows/x.yml": "on: push\n"}))      # a refused path, even if listed
+        self.assertEqual(self._run(wf), "guard_blocked")
+        self.assertEqual(self._run(ok, env_item="K2"), "guard_blocked")                    # another item's bundle
 
 
 class SplitTypes(unittest.TestCase):

@@ -21,6 +21,22 @@ def _mapping(loader, node, deep=False):
 UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _mapping)
 
 
+
+class TestArtifactApart(unittest.TestCase):
+    """Audit 2026-11-21 (B F2, R1 F2): model code runs in worker.yml's test job. Its artifact holds only test.json and is
+    unpacked into its own folder, never over the draft job's draft.json and bundle.json."""
+    def test_worker_test_artifact(self):
+        w = yaml.safe_load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "worker.yml")))
+        up = [s for s in w["jobs"]["test"]["steps"] if "upload-artifact" in str(s.get("uses"))]
+        self.assertEqual([s["with"]["path"] for s in up], ["tested/test.json"])
+        down = [s for s in w["jobs"]["land"]["steps"] if "download-artifact" in str(s.get("uses")) and s["with"]["name"] == "test"]
+        self.assertEqual([s["with"]["path"] for s in down], ["tested"])
+        self.assertIn("cp tested/test.json job/test.json", yaml.dump(w["jobs"]["land"]))
+        self.assertIn("sums", w["jobs"]["draft"]["outputs"])                       # land checks the draft job's own hashes
+        self.assertEqual(w["jobs"]["land"]["env"]["DRAFT_SUMS"], "${{ needs.draft.outputs.sums }}")
+        self.assertIn('[ "$got" != "$DRAFT_SUMS" ]', open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "worker.yml")).read())
+
+
 class Workflows(unittest.TestCase):
     def test_no_grep_count_or_echo(self):
         """'grep -c' prints 0 and exits 1 when nothing matches, so '|| echo 0' yields two lines (killed the idle job, 2026-11-20)."""
