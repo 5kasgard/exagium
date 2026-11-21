@@ -169,6 +169,40 @@ class DecisionsScrub(unittest.TestCase):
         self.assertIn("***", result["raw"]["error"])
 
 
+class Exhaustion(unittest.TestCase):
+    """ITEM K42: pool exhaustion state file."""
+
+    def test_mark_and_check_exhausted(self):
+        import tempfile, time
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "exhausted.json")
+            t = int(time.time())
+            engines.mark_exhausted(state, "pool1", t + 60)
+            self.assertTrue(engines.is_exhausted(state, "pool1", t + 30))
+            self.assertFalse(engines.is_exhausted(state, "pool1", t + 61))
+            # unknown pool is False
+            self.assertFalse(engines.is_exhausted(state, "pool2", t + 30))
+            # second pool's entry does not affect the first
+            engines.mark_exhausted(state, "pool2", t + 120)
+            self.assertTrue(engines.is_exhausted(state, "pool1", t + 30))
+            self.assertTrue(engines.is_exhausted(state, "pool2", t + 90))
+            self.assertFalse(engines.is_exhausted(state, "pool1", t + 61))
+
+    def test_missing_file_is_not_exhausted(self):
+        import tempfile, time
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "missing.json")
+            self.assertFalse(engines.is_exhausted(state, "pool1", int(time.time())))
+
+    def test_corrupt_file_is_not_exhausted(self):
+        import tempfile, time
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "corrupt.json")
+            with open(state, "w") as f:
+                f.write("not json")
+            self.assertFalse(engines.is_exhausted(state, "pool1", int(time.time())))
+
+
 class SpendCaps(unittest.TestCase):
     """Queue P4: a paid pool is refused before any request unless listed, within per-call caps, logged and under the daily cap."""
 
