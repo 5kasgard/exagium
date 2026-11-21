@@ -11168,7 +11168,7 @@
    "id": "K34",
    "title": "Return dependants with each detected fact change",
    "kind": "fix",
-   "status": "in progress",
+   "status": "escalated",
    "origin": "generated",
    "split_from": "P30",
    "generated_at": "2026-11-21T04:05:31Z",
@@ -11222,16 +11222,26 @@
      "worker": "tier-claude-haiku-5-5",
      "outcome": "redo",
      "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #50 not merged: files a person merges, or not the item's own: facts/check.py, facts/test_check.py; model verdict: reject; model: The diff goes beyond adding dependants: it replaces the change record's formatted string with a dict, drops the existing message text, and changes `f['cited_by']` to `f.get('cited_by'"
+    },
+    {
+     "result": "no accepted edit",
+     "where": "https://github.com/5kasgard/exagium/actions/runs/44875636894",
+     "run": "https://github.com/5kasgard/exagium/actions/runs/44875636894",
+     "edits": 0,
+     "why": [
+      "reviewer: reject: The changes do not include a test that verifies the dependants list is present in the change record as required."
+     ],
+     "worker": "worker-44875636894",
+     "at": "2026-11-21T06:29:18Z",
+     "lost_lease": false,
+     "outcome": "guard_blocked"
     }
    ],
    "work_types": {
     "code_change": 0.991
    },
    "work_types_key": "8ee821c141c77e2a",
-   "work_types_at": "2026-11-21T05:43:09Z",
-   "claimed_by": "worker-44875636894",
-   "claimed_at": "2026-11-21T06:27:48Z",
-   "lease_until": "2026-11-21T08:27:48Z"
+   "work_types_at": "2026-11-21T05:43:09Z"
   },
   {
    "id": "K35",
