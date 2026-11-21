@@ -8024,7 +8024,7 @@
    "id": "G20",
    "title": "F105: Canary 3 grading hardcodes fixed line numbers and exact string equality for E2 (the repo's own Gemini F006, op",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "review",
    "review": "glm-20261120:F105",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -8038,7 +8038,7 @@
     "worker/grade_canary3.py",
     "worker/test_worker.py"
    ],
-   "next": "Fix review finding glm-20261120:F105 (test-gap, low). Claim: Canary 3 grading hardcodes fixed line numbers and exact string equality for E2 (the repo's own Gemini F006, open). Evidence at worker/grade_canary3.py lines [5, 9]: LINES = {\"E1\": 5, \"E2\": 6, \"E3\": 7, \"E4\": 8, \"E5\": 9}   # E5 added 2026-11-19 (Gemini review F006: it was graded by hand) Proposed fix: Assert semantic invariants (presence of the cap sentence's key tokens) rather than exact full-line strings on fixed line numbers. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else.",
+   "next": "Fix review finding glm-20261120:F105 (test-gap, low). Claim: Canary 3 grading hardcodes fixed line numbers and exact string equality for E2 (the repo's own Gemini F006, open). Evidence at worker/grade_canary3.py lines [5, 9]: LINES = {\"E1\": 5, \"E2\": 6, \"E3\": 7, \"E4\": 8, \"E5\": 9}   # E5 added 2026-11-19 (Gemini review F006: it was graded by hand) Proposed fix: Assert semantic invariants (presence of the cap sentence's key tokens) rather than exact full-line strings on fixed line numbers. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else. PREVIOUS ATTEMPT REJECTED: model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "audit/reviews/glm-20261120/findings.jsonl",
     "worker/intake_review.py"
@@ -8087,6 +8087,12 @@
      "at": "2026-11-21T03:03:47Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T03:04:51Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #44 not merged: model verdict: reject; model: The diff replaces the E2 exact-string check with key-token matching, but it leaves the hardcoded LINES line-number mapping that the item names as part of the defect, so the fix is incomplete, and the added test never exercises line lookup, so it does not verify that"
     }
    ]
   },
