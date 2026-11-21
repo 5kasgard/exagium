@@ -287,6 +287,12 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K25 | B3 |  | minor | medium | fix | F083: verify TLS certificates in the facts probe | Replace any unverified SSL context (ssl._create_unverified_context or verify_mode CERT_NONE) in the fetch path with ssl.create_default_context() so check_hostname and certificate verification stay on. Test: a fetch against a host whose certificate does not verify returns a failure, not a verified fact. | queue Q67; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| K34 | B3 |  | minor | high | fix | Return dependants with each detected fact change | In facts/check.py run(), when a probe returns a value that differs from the stored value, add to the change record the entry's dependants list, read from that fact's 'dependants' field in facts/register.json (empty list if absent). Leave the status write and the same-value path unchanged. Test in facts/test_check.py: a register with one fact whose dependants are ['worker/research_job.py', 'card:Q12'] and a stub probe returning a different value yields one change record whose dependants equal those two strings; a probe returning the stored value yields no change record. | queue P30; worker/split.py |
+
 ## Parked (46)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |

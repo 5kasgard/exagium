@@ -10751,6 +10751,40 @@
    "claimed_by": "worker-44864104395",
    "claimed_at": "2026-11-21T04:02:49Z",
    "lease_until": "2026-11-21T06:02:49Z"
+  },
+  {
+   "id": "K34",
+   "title": "Return dependants with each detected fact change",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P30",
+   "generated_at": "2026-11-21T04:05:31Z",
+   "code": {
+    "files": [
+     "facts/check.py"
+    ],
+    "test": "facts/test_check.py",
+    "context": [
+     "worker/repo_index.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "facts/check.py",
+    "facts/test_check.py"
+   ],
+   "next": "In facts/check.py run(), when a probe returns a value that differs from the stored value, add to the change record the entry's dependants list, read from that fact's 'dependants' field in facts/register.json (empty list if absent). Leave the status write and the same-value path unchanged. Test in facts/test_check.py: a register with one fact whose dependants are ['worker/research_job.py', 'card:Q12'] and a stub probe returning a different value yields one change record whose dependants equal those two strings; a probe returning the stored value yields no change record.",
+   "refs": [
+    "queue P30",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
