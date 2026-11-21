@@ -661,6 +661,28 @@ class GLMReview20261120(unittest.TestCase):
             push.reset_mock()
             self.assertEqual(LG.record(wt, "gen-2", os.path.join(wt, "missing.jsonl")), 0)   # nothing held: no commit
             push.assert_not_called()
+
+    def test_paid_retry_counts_both_requests_in_the_ledger(self):
+        """Audit 2026-11-21 (R3 F2): a paid reply that came back empty is billed, then retried; the ledger the dollar cap
+        reads must count both requests and both costs. Driven through the path the worker uses: call() -> write_calls ->
+        ledger.record."""
+        import ledger as LG, engines, doc_job
+        from unittest import mock
+        replies = [(200, {"provider": "Cohere", "choices": [{"message": {"content": ""}}], "usage": {"cost": 0.004, "total_tokens": 10}}),
+                   (200, {"provider": "Other", "choices": [{"message": {"content": "ok"}}], "usage": {"cost": 0.003, "total_tokens": 7}})]
+        with mock.patch.object(engines, "_post", lambda u, b, h: replies.pop(0)), mock.patch.object(engines, "paid_guard"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}):
+            r = dict(engines.call("openrouter", "deepseek/x", "hi", allow_paid=True), engine="openrouter_paid")
+        self.assertEqual(r["text"], "ok")
+        with tempfile.TemporaryDirectory() as wt, mock.patch.object(LG, "sync"), mock.patch.object(LG, "push", return_value=True):
+            doc_job.write_calls(wt, [r])
+            p = LG.day_path(wt); os.makedirs(os.path.dirname(p))
+            json.dump({"openrouter_paid": {"reserved": 3, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": [], "pending_calls": {"run-1": 3},
+                                           "pending_usd": {"run-1": 0.024}}}, open(p, "w"))
+            LG.record(wt, "run-1", os.path.join(wt, "calls.jsonl"))
+            e = json.load(open(p))["openrouter_paid"]
+        self.assertEqual((e["calls"], e["usd"], e["tokens"]), (2, 0.007, 17))
+
     def test_f036_exception_moves_down_the_chain(self):
         import slots
         seen = []

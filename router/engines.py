@@ -199,6 +199,16 @@ def _scrub(s):
     return re.sub(r"(account|org|organization|user)(_?id)?(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2\3***\4", s, flags=re.I) if s else s
 
 
+def _two_requests(a, b):
+    """One usage record for two billed requests: token counts and costs summed (None when neither reported a cost)."""
+    out = {"requests": 2}
+    for k in ("prompt_tokens", "completion_tokens", "total_tokens", "cost"):
+        vals = [u[k] for u in (a, b) if isinstance(u.get(k), (int, float))]
+        if vals and (k != "cost" or len(vals) == 2):   # one cost missing: leave it out, so the ledger books 2 estimates
+            out[k] = round(sum(vals), 6) if k == "cost" else sum(vals)
+    return out
+
+
 def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, reasoning=None):
     if engine in ("nvidia", "groq") and system is None:   # free pools the worker uses; router/pick.py spreads reviews to them (2026-11-20)
         return compat_call(engine, model, prompt, max_tokens=max_tokens)
@@ -221,10 +231,15 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
             # 2026-11-21: 17 of 49 paid DeepSeek calls came back 200 with no text (one seen: provider Cohere); one retry that
             # skips the provider which returned nothing (OpenRouter provider routing), so a paid call is not wasted
             bad = j.get("provider")
+            first = usage if isinstance(usage, dict) else {}
             st, j = _post("https://openrouter.ai/api/v1/chat/completions", dict(body, provider={"ignore": [bad]}),
                           {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
+            usage = None
             if st == 200 and j.get("choices"):
                 text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
+            # both requests are billed: the returned record carries both, so the ledger counts 2 calls and their summed
+            # cost (audit 2026-11-21, R3 F2; the record callers write to calls.jsonl keeps only usage, so it goes there)
+            usage = _two_requests(first, usage if isinstance(usage, dict) else {})
             if not text:
                 j = dict(j, _skipped_provider=bad)
     elif engine == "cloudflare":
