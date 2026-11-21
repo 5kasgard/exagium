@@ -1,0 +1,15 @@
+FAILED: prop-44888873592-2 on text: train.py exited 1:
+Tuning E=16, H=64
+Traceback (most recent call last):
+  File "/w/train.py", line 178, in <module>
+    main()
+  File "/w/train.py", line 148, in main
+    params, val_acc = train_model(train_X, train_y, val_X, val_y, d, C, E, H, rng,
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 107, in train_model
+    loss, grad = loss_and_grad(Xb, yb)
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 93, in loss_and_grad
+    grad_emb[j, idx[b]] += grad_hidden[b, j * E:(j + 1) * E]
+ValueError: operands could not be broadcast together with shapes (16,) (0,) (16,) 
+
