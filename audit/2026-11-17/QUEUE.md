@@ -19,22 +19,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q38 | B5 | Q63 | B3 | record/README.md, record/experiments/anchors/VERIFY-anchors.md |
 | Q38 | B5 | Q68 | B3 | record/README.md |
 | Q38 | B5 | Q80 | B3 | record/README.md, record/experiments/anchors/VERIFY-anchors.md |
-| Q39 | B5 | P8 | B3 | worker/test_worker.py |
-| Q39 | B5 | P20c | B3 | worker/test_worker.py |
-| Q39 | B5 | P20d | B3 | worker/test_worker.py |
-| Q39 | B5 | G2 | B3 | worker/test_worker.py |
-| Q39 | B5 | G7 | B3 | worker/test_worker.py |
-| Q39 | B5 | G8 | B3 | worker/test_worker.py |
-| Q39 | B5 | G20 | B3 | worker/test_worker.py |
-| Q39 | B5 | G21 | B3 | worker/test_worker.py |
-| Q39 | B5 | G22 | B3 | worker/test_worker.py |
-| Q39 | B5 | K15 | B3 | worker/test_worker.py |
-| Q39 | B5 | K18 | B3 | worker/test_worker.py |
-| Q39 | B5 | K19 | B3 | worker/test_worker.py |
-| Q39 | B5 | Q68 | B3 | VERIFY.md |
-| Q39 | B5 | Q78 | B3 | VERIFY.md |
-| Q39 | B5 | K20 | B3 | worker/test_worker.py |
-| Q39 | B5 | K26 | B3 | worker/test_worker.py |
 | Q44 | B5 | Q65 | B3 | loop/candidates |
 | Q44 | B5 | Q69 | B3 | loop/candidates |
 | Q44 | B5 | Q71 | B3 | loop/candidates |
@@ -164,7 +148,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B3 Free workers (queue worker, proposer, process manager) | P5, P8, P9 | P5, P8 | 12 | One scheduled-worker machinery: claims and leases in the queue, key and generated code in separate jobs. The proposer (P5) is one job type of the queue worker (P8), so they are built once. | Claude designs once; a separate agent reviews (it holds a key); after that free models and CI run it on a schedule. |
 | B7 Research worker | P7, P7e | P7 | 3 | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 | B1 Task suite (new runner) | Q54, P3, Q25, P18, P23, P5c | Q54, P3, P18, P5c | 2 | All build or use the same new runner and jail: P1 adds the first two tasks, P2 turns them into the general contract, Q10's jail hardening lands in the runner P2 creates (one security review instead of two), P3 extends it, Q54 and Q25 are answered by its data. | Claude designs P1/P2 once; CI runners measure; a free model (gpt-oss-120b) reviews; family ports can go to the free proposer once P5 runs. |
-| B5 Doc truthfulness | Q38, Q39, Q36, Q44 | Q38, Q39, Q36, Q44 | 2 | Wording fixes with known targets (file and line in each item): one pass, one free review, no code risk. | A free model drafts from the item text; a second free model checks against the cited lines; Claude spot-checks. |
+| B5 Doc truthfulness | Q38, Q36, Q44 | Q38, Q36, Q44 | 2 | Wording fixes with known targets (file and line in each item): one pass, one free review, no code risk. | A free model drafts from the item text; a second free model checks against the cited lines; Claude spot-checks. |
 | B9 Knowledge store and what builds on it | P11, P17, P12, P13, P16, P19, P21, P22 | P11, P17, P21 | 2 | P12, P13 and P16 all read from the store P11 creates, and P6 now waits on it too; one schema, one ingest script, one review. P17 names what the store must answer. | Claude designs the schema once; a script fills it from the ledger; free models review; later items can go to the free proposer once P5 runs. |
 | B10 Hardware as a search dimension | P14, P15 | P14 |  | P14 is a cheap go/no-go on free runners; P15 only proceeds if rankings change across machines. | CI runners measure; a script compares rankings; free review. |
 | B4 Repo and workflow hygiene | Q28, Q09, Q29 | Q29 |  | All .github/workflows and branch settings: one actionlint and zizmor pass (zizmor --fix does much of Q07 mechanically), one review, one round of CI runs. | Mostly mechanical: linters and auto-fix on CI; a free review; Claude only for the /activity-log test design. |
@@ -294,7 +278,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K26 | B3 |  | minor | medium | fix | F020: stop generate.py crashing on a first-item cap break | In run/_run, when the cap is hit before the first item is processed, return the early result (writing the calls via _write_calls) instead of indexing the empty list. Test in class Generate: with the daily cap already used by zero items, run() returns without raising and still writes the calls ledger. | queue Q67; worker/split.py |
 | K27 | B3 |  | minor | medium | fix | Give the timed run the counted run's cwd and HOME | In timed(), set the working directory and HOME to the same values count() uses for the same candidate and input (the jail's fixed sandbox cwd and a sandbox HOME, not the caller's). Add a test in runner/test_runner.py that stubs the subprocess call in both timed() and count(), records the cwd and HOME env each one receives, and asserts they are equal for the same input. | queue Q79; worker/split.py |
 
-## Needs the owner (24)
+## Needs the owner (23)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -330,9 +314,8 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | K24 | B3 |  | minor | medium | fix | F041: refuse paid Anthropic calls at the engines level | In anthropic_call (and in call() for engine 'anthropic'), run paid_guard(engine, prompt_chars, max_tokens) before any request is built, and raise Refused when allow_paid is false or the cap is reached. Test: with allow_paid=False, anthropic_call and call('anthropic', ...) raise Refused and the injected _send is never called. | queue Q67; worker/split.py |
 | K25 | B3 |  | minor | medium | fix | F083: verify TLS certificates in the facts probe | Replace any unverified SSL context (ssl._create_unverified_context or verify_mode CERT_NONE) in the fetch path with ssl.create_default_context() so check_hostname and certificate verification stay on. Test: a fetch against a host whose certificate does not verify returns a failure, not a verified fact. | queue Q67; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
-| Q39 | B5 |  | minor | medium | doc | Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites. Worker release test (2026-11-18): line 58 only (16 -> 23 counter tests), through the PR-only path for agent-facing files; the rest of Q39 stays for a person. Line 58 merged 2026-11-18 (main 539a6c2, from the worker's branch, graded acceptable blind); the rest of Q39 remains, so targets removed. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The diff modifies many sections beyond line 58, exceeding the requested single change. Do the whole item, with a test. | E E-13, E-14; E ASD-STE100 table |
 
-## Parked (28)
+## Parked (29)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -355,6 +338,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q21 |  |  | minor | medium | fix | OpenRouter allowance guard fails open when the allowance cannot be read | Parked 2026-11-18: the allowance guard lives only in bench3/4/5.yml (grep on main), and those benches are complete and run only by hand, so it has no live effect. Fix with Q01-Q03 before any new bench run; P4 (spend caps in router/engines.py) covers live calls. Fail closed (skip the batch) when the allowance read fails | E E-10 |
 | Q26 |  |  | minor | medium | decision | Copy-by-directory duplication: 5.6% of function lines on main, 29% on the pilot branch (controls ~0%) | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Hypothesis for the next plan: new candidates as one train.py + config; registered plans keep frozen copies (C F1, F16). Test it in that plan. | C F1, F16; S2 confirmed |
 | Q31 |  |  | minor | medium | decision | Frozen digests fork history: a fix to record.py/count.py forces old-commit re-measurement | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided for the next plan: version frozen tools separately, a tools tag per plan (C F12). | C F12 |
+| Q39 | B5 |  | minor | medium | doc | Agent-facing texts: VERIFY.md numbering restarts 4x, 800-word cap vs ~21 items, says 16 counter tests (23 exist); BRIEF says ruled out and still open for the same H; 10 ASD-STE100 rewrites proposed | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Do it: VERIFY.md:58 says 16 counter tests, there are 23; make one numbering sequence (restarts at 74, 86, 93); fit the word cap to the items; finish the BRIEF half and review the 10 ASD-STE100 rewrites. Worker release test (2026-11-18): line 58 only (16 -> 23 counter tests), through the PR-only path for agent-facing files; the rest of Q39 stays for a person. Line 58 merged 2026-11-18 (main 539a6c2, from the worker's branch, graded acceptable blind); the rest of Q39 remains, so targets removed. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The diff modifies many sections beyond line 58, exceeding the requested single change. Do the whole item, with a test. | E E-13, E-14; E ASD-STE100 table |
 | K10 | B3 |  | minor | low | fix | Run valgrind under limits.c in confine mode | In runner/jail.py, where confine mode launches valgrind for the counter, wrap the valgrind invocation in the same limits.c rlimit setup that bubblewrap mode already applies, so the rlimits apply in confine mode too. Keep the bubblewrap path unchanged. Done when the confine-mode valgrind command line includes the limits.c wrapper and the existing runner tests still pass. | queue Q62; worker/split.py |
 | Q17 |  |  | minor | low | fix | bench3/4 MODE free text: a typo falls through to a counted run | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry MODE validation into the next bench design. | B F6 |
 | Q23 |  |  | minor | low | fix | Stalled bench4 attempts run to the 35-min cap with <=25 calls | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Amendment to a complete registered bench (0 cells open); carry an idle timeout into the next bench design. | E E-09 |
