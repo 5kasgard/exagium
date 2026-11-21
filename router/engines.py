@@ -3,12 +3,40 @@
 Keys come from the environment (GitHub secrets) and are never printed or logged.
 Every call returns a record: engine, model, ok, status, latency_s, usage, text, error.
 """
-import json, os, re, time, urllib.request, urllib.error
+import json, os, re, time, urllib.request, urllib.error, tempfile
 
 TIMEOUT = 180
 # Groq sits behind Cloudflare, which refuses Python's default "Python-urllib/3.x" User-Agent with 403 "error
 # code: 1010" before any key is checked (reproduced 2026-11-18: same URL, named agent -> 401 without a key).
 UA = "exagium-router/1.0 (+https://github.com/5kasgard/exagium)"
+
+
+def mark_exhausted(state_path, pool, until):
+    """Record that a pool is exhausted until the given timestamp (epoch seconds)."""
+    data = {}
+    try:
+        with open(state_path) as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    data[pool] = int(until)
+    dir_name = os.path.dirname(state_path) or "."
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False) as tf:
+        json.dump(data, tf)
+        tmp = tf.name
+    os.replace(tmp, state_path)
+
+
+def is_exhausted(state_path, pool, now):
+    """Return True if the pool is exhausted at the given time (epoch seconds)."""
+    try:
+        with open(state_path) as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+    until = data.get(pool)
+    return until is not None and int(now) < int(until)
+
 
 
 def _ua(req):

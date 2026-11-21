@@ -59,6 +59,35 @@ class Verdict(unittest.TestCase):
             self.assertFalse(probe.required(r), r)
 
 
+class ExhaustionState(unittest.TestCase):
+    def test_mark_and_check_exhausted(self):
+        import tempfile, time
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "exhausted.json")
+            t = int(time.time())
+            engines.mark_exhausted(state, "pool1", t + 60)
+            self.assertTrue(engines.is_exhausted(state, "pool1", t + 30))
+            self.assertFalse(engines.is_exhausted(state, "pool1", t + 61))
+            self.assertFalse(engines.is_exhausted(state, "unknown", t + 30))
+            engines.mark_exhausted(state, "pool2", t + 100)
+            self.assertTrue(engines.is_exhausted(state, "pool2", t + 50))
+            self.assertTrue(engines.is_exhausted(state, "pool1", t + 30))
+
+    def test_missing_file_is_not_exhausted(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "missing.json")
+            self.assertFalse(engines.is_exhausted(state, "any", 1234567890))
+
+    def test_corrupt_json_is_not_exhausted(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            state = os.path.join(d, "bad.json")
+            with open(state, "w") as f:
+                f.write("not json")
+            self.assertFalse(engines.is_exhausted(state, "any", 1234567890))
+
+
 class ProbeDocstring(unittest.TestCase):
     def test_f048_cost_mentions_probe_compat_calls(self):
         doc = probe.__doc__ or ""
