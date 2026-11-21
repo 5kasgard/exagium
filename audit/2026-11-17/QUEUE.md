@@ -295,6 +295,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K49 | B3 |  | minor | medium | fix | Order each slot's fillers by calibrated score, keeping the pinned override | In router/slots.py, chain(slot, override) takes an optional calibration registry argument. When override is given it still returns only that (pool, model) filler, unchanged. Otherwise it sorts the slot's fillers by calibration score(actor, slot family), highest first, keeping the original order for ties. With no registry passed, the output is identical to the current chain. Add tests to router/test_router.py: an override returns exactly that filler; with a registry where filler B has more successes than filler A, B comes first; with no registry, the order matches the original. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R29 | B1 |  | minor | high | test | What published methods combine mutation-tested sandbox conformance suites, defense-in-depth and least-privilege design, syscall/argument fuzzing, and evaluator- | Worker job (research): literature card for P18. Why: It identifies evidence-backed test and monitoring patterns for the queued jail-assurance work without changing current implementation. | queue P18; queue P27 (generator) |
+| R30 | B9 |  | minor | high | test | What published methods convert trained classifiers into straight-line C, lookup tables, or rule sets, and how do they verify per-input output agreement with the | Worker job (research): literature card for P19. Why: It identifies established distillation-to-code and equivalence-checking techniques that can guide the first optdigits test. | queue P19; queue P27 (generator) |
+
 ## Parked (64)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
