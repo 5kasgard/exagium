@@ -45,5 +45,11 @@ class Rules(unittest.TestCase):
         self.assertIn("**0 of 5** hold", txt)
 
 
+    def test_valid_rate_verdict(self):
+        self.assertEqual(decide.valid_rate_verdict(11, 20), "keep")
+        self.assertEqual(decide.valid_rate_verdict(16, 26), "keep")
+        self.assertEqual(decide.valid_rate_verdict(9, 20), "switch")
+
+
 if __name__ == "__main__":
     unittest.main()
