@@ -422,6 +422,48 @@ class LoopMetrics(unittest.TestCase):
         self.assertIn("not measured", out[4])
 
 
+class GenerateThroughput(unittest.TestCase):
+    """2026-11-22 (owner: break the open items down on free compute, following the data): the research cap counted the
+    splitter's code items, so it was spent before the generator ran; and a run tried every candidate until one passed."""
+
+    def test_cap_counts_research_items_only(self):
+        import generate as G
+        day = "2026-11-21"
+        q = {"items": [{"id": f"K{n}", "origin": "generated", "generated_at": day + "T01:00:00Z", "code": {}} for n in range(25)]
+             + [{"id": "R1", "origin": "generated", "generated_at": day + "T02:00:00Z", "research": {"question": "q"}}]}
+        self.assertEqual(G.today_count(q, day), 1)
+
+    def test_a_run_makes_at_most_max_tries_draft_calls(self):
+        import generate as G
+        from unittest import mock
+        q = {"items": [{"id": f"P{n}", "status": "open", "kind": "build", "title": "t" * 20, "next": "n"} for n in range(20)]}
+        tried = []
+        with tempfile.TemporaryDirectory() as out, mock.patch.object(G.Q, "sync"), mock.patch.object(G.Q, "load", return_value=q), \
+                mock.patch.object(G, "regate", return_value=[]):
+            G.run("wt", out, draft_fn=lambda prompt: tried.append(1) or None, decide_fn=lambda p: ([], None))
+        self.assertEqual(len(tried), G.MAX_TRIES)
+
+    def test_calls_fit_the_reservation(self):
+        """Regate decide + MAX_TRIES drafts + final decide <= the workflows' openrouter:4 (review 2026-11-22: 5 before)."""
+        import generate as G, re
+        wf = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "worker.yml")).read()
+        self.assertEqual(int(re.search(r'"gen-\$GITHUB_RUN_ID" "openrouter:(\d+)"', wf).group(1)), 1 + G.MAX_TRIES + 1)
+
+    def test_regate_takes_only_todays_room(self):
+        import generate as G
+        from unittest import mock
+        day = G.dt.datetime.now(G.dt.timezone.utc).strftime("%Y-%m-%d")
+        q = {"items": [{"id": "P1", "status": "open", "kind": "build", "title": "a parent item", "next": "n"}]
+             + [{"id": f"R{n}", "title": "a research question", "status": "proposed", "generated_from": "P1", "origin": "generated", "research": {"question": "q"},
+                 "generated_at": "2026-01-01T00:00:00Z"} for n in range(15)]
+             + [{"id": f"R{n}", "status": "done", "origin": "generated", "research": {"question": "q"}, "generated_at": day + "T00:00:00Z"}
+                for n in range(100, 100 + G.MAX_PER_DAY - 2)]}
+        seen = []
+        with tempfile.TemporaryDirectory() as out, mock.patch.object(G.Q, "sync"), mock.patch.object(G.Q, "load", return_value=q):
+            G.run("wt", out, draft_fn=lambda p: None, decide_fn=lambda pairs: seen.append(len(pairs) - 2) or (None, "x"))
+        self.assertEqual(seen[0], 2)   # 2 of today's 10 left: 2 re-gated, not 10
+
+
 class GenerateControls(unittest.TestCase):
     def test_frozen_controls(self):
         import generate as G
