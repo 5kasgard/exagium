@@ -298,5 +298,26 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class AttemptJoin(unittest.TestCase):
+    def test_parse_calls(self):
+        import router.analysis.attempt_join as attempt_join
+        lines = [
+            '{"attempt_id": "a1", "usage": {"cost": 0.01, "prompt_tokens": 10, "completion_tokens": 20}}',
+            '{"attempt_id": "a1", "usage": {"cost": 0.02, "prompt_tokens": 30, "completion_tokens": 40}}',
+            '{"usage": {"cost": 0.03, "prompt_tokens": 50, "completion_tokens": 60}}',
+            'not json',
+        ]
+        by_attempt, skipped = attempt_join.parse_calls(lines)
+        self.assertEqual(skipped, 1)
+        self.assertEqual(by_attempt["a1"]["cost"], 0.03)
+        self.assertEqual(by_attempt["a1"]["input_tokens"], 40)
+        self.assertEqual(by_attempt["a1"]["output_tokens"], 60)
+        self.assertEqual(by_attempt["a1"]["calls"], 2)
+        self.assertEqual(by_attempt[None]["cost"], 0.03)
+        self.assertEqual(by_attempt[None]["input_tokens"], 50)
+        self.assertEqual(by_attempt[None]["output_tokens"], 60)
+        self.assertEqual(by_attempt[None]["calls"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
