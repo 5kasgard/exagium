@@ -9783,14 +9783,15 @@
    "kind": "test",
    "status": "open",
    "origin": "follow-up",
-   "severity": "minor",
+   "severity": "critical",
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "From HANDOFF-item4-loop inbox (never filed): closes the 'counted path is not the timed path' limit on real hardware. Needs a host with a readable PMU (GitHub runners usually have none: check first, as probe's meter-tier detection does).",
+   "next": "Audit R4 F1 (critical): a count switched off at run time needs a second, independent count; the runner's ratio band is reported, not enforced, because honest baselines reach 20-46x. Evidence 2026-11-22 (chat): no host tested has a readable PMU (machines A, B, C, Z: timing and cachegrind tiers only, probe/README.md); among valid proposals ns per instruction spreads 4-18x per task (marginal; 165-372 results on the proposals branch), so a time-vs-count gate catches only a gross switch-off. Next (no cost): on ubuntu-24.04 and arm runners, probe (1) perf stat -e instructions:u, (2) a QEMU user-mode TCG instruction-count plugin (a count the candidate cannot switch off with client requests); pick whichever exists and agrees with cachegrind within a stated band on the baselines. Original note: From HANDOFF-item4-loop inbox (never filed): closes the 'counted path is not the timed path' limit on real hardware. Needs a host with a readable PMU (GitHub runners usually have none: check first, as probe's meter-tier detection does).",
    "refs": [
     "owner 2026-11-21: every item ever mentioned",
-    "claude/forge-tool-fit-register.md"
+    "claude/forge-tool-fit-register.md",
+    "claude/HANDOFF-chat-2026-11-22-queue.md"
    ],
    "blocked_by": [],
    "batch": "B3",
