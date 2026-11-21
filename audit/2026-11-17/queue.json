@@ -12516,7 +12516,7 @@
    "id": "K44",
    "title": "P20a-1b: Pure parser of the call log into per-call cost records, keyed by attempt id where the record carries one",
    "kind": "fix",
-   "status": "review",
+   "status": "parked",
    "origin": "generated",
    "split_from": "P20",
    "generated_at": "2026-11-21T11:04:53Z",
@@ -12633,6 +12633,12 @@
      "at": "2026-11-21T23:08:14Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T23:08:55Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #73 not merged: files a person merges, or not the item's own: router/analysis/attempt_join.py, router/test_router.py; model verdict: reject; model: The parser assumes cost and attempt_id are nested under 'usage' and at the top level without confirming this matches what log_usage in engines.py writes, and rec.get() will raise on valid JSON that is not an object (e.g. a list or null usage), violating 'never raised'. The float assertEqual on cost sums is also fragile.; parked for a smaller split",
+     "outcome": "resplit"
     }
    ],
    "work_types": {
