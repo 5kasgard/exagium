@@ -8,6 +8,15 @@ PROPS = ["prop-44492370928-2", "prop-44587812936-1", "prop-44610648477-1", "prop
 BASE = ["label-gbdt", "label-mlp16", "label-linear"]
 
 
+def valid_rate_verdict(valid, n):
+    """PLAN.md keep/switch rule: "KEEP while the valid rate is at least 1/2
+    (valid * 2 >= n); SWITCH once it is below 1/2."
+
+    Pure: no I/O, no other inputs.
+    """
+    return "keep" if valid * 2 >= n else "switch"
+
+
 def dev_scores(board):
     out = {}
     for line in open(board):
