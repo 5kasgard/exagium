@@ -155,7 +155,14 @@ def merge_allowed(path):
     secret or a write token runs or imports one."""
     if not isinstance(path, str) or not MERGE_ALLOW.fullmatch(path) or path in MERGE_ALLOW_NOT or MERGE_REFUSE.search(path):
         return False
-    return os.path.basename(path)[:-3] not in getattr(sys, "stdlib_module_names", ()) | set(sys.builtin_module_names)
+    name = os.path.basename(path)[:-3]   # no standard-library or installed name: it would shadow it (gate review 2026-11-21)
+    import importlib.util
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError):
+        spec = None
+    other = spec is not None and not str(getattr(spec, "origin", "") or "").replace(os.sep, "/").endswith("/" + path)
+    return name not in sys.stdlib_module_names and name not in sys.builtin_module_names and not other
 
 
 CODE_PROMPT = """You review a code change before it is merged into main without a person. Approve only if it does exactly what

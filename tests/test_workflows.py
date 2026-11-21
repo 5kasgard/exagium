@@ -98,9 +98,14 @@ class MergeAllowlist(unittest.TestCase):
         self.assertIn("router/probe.py", ran)
         self.assertIn("transfer/tasks.py", ran)   # via tasks/build.py in the scoring jobs (gate review 2026-11-21)
         self.assertEqual(sorted(p for p in ran if tier.merge_allowed(p)), [])
-        # and no privileged job runs experiment code at all, by any route the scan could miss
+        # and no privileged job mentions experiments at all, apart from three that only name the folder: the record job
+        # (copies verdict.json, runs no experiment code), the idle job (dispatch_experiments.py checks that a file exists),
+        # anchor-test (record/experiments/anchors/, another folder). Gate review 2026-11-21: loops, PYTHONPATH, -s, and
+        # variables escaped every narrower pattern.
+        known = {("experiment.yml", "record"), ("worker.yml", "idle"), ("anchor-test.yml", "try")}
         for wf, name, text in jobs:
-            self.assertNotRegex(text, r"python3?[^\n]*(?<![\w_])experiments/|-m\s+experiments\.|cd\s+experiments", f"{wf}:{name}")
+            if (wf, name) not in known:
+                self.assertNotRegex(text, r"\bexperiments\b", f"{wf}:{name}")
 
     def test_known_cases(self):
         tier = self._tier()
@@ -108,7 +113,7 @@ class MergeAllowlist(unittest.TestCase):
                   "router/bench6/illusion/illusion.py", "runner/proposals/judge.py", "runner/jail.py", ".github/x.yml",
                   "AGENTS.md", "README.md", "runner/CONTRACT.md", "router/bench/tasks/T1.md", "runner/proposals/PLAN.md",
                   "transfer/tasks.py", "transfer/meter.py", "runner/candidates/label-knn/train.py", "ledger/inbox/x.json",
-                  "experiments/../worker/split.py", "experiments/run_one.py", "experiments/json.py", "experiments/a.py\n",
+                  "experiments/../worker/split.py", "experiments/run_one.py", "experiments/json.py", "experiments/yaml.py", "experiments/a.py\n",
                   "Experiments/a.py", "experiments/sub/a.py", ".agents/a.md", "experiments/A.py", ""):
             self.assertFalse(tier.merge_allowed(p), repr(p))
         for p in ("experiments/queue_drift.py", "experiments/test_experiments.py", "experiments/new_one.py"):
