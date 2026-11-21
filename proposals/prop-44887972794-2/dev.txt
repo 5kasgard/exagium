@@ -1,0 +1,15 @@
+FAILED: prop-44887972794-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 199, in <module>
+    main()
+  File "/w/train.py", line 138, in main
+    loss, grads = loss_and_grad(Xb, yb)
+                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 84, in loss_and_grad
+    logits, pool_out, relu_out, windows = forward(Xb)
+                                          ^^^^^^^^^^^
+  File "/w/train.py", line 79, in forward
+    logits = pool_out @ lin_w.T + lin_b
+             ~~~~~~~~~^~~~~~~~~
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 65 is different from 32)
+
