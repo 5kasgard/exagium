@@ -12268,6 +12268,107 @@
    },
    "work_types_key": "33b98481957c5041",
    "work_types_at": "2026-11-21T06:59:24Z"
+  },
+  {
+   "id": "K44",
+   "title": "P20a-1b: Pure parser of the call log into per-call cost records, keyed by attempt id where the record carries one",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20",
+   "generated_at": "2026-11-21T11:04:53Z",
+   "code": {
+    "files": [
+     "router/analysis/attempt_join.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/engines.py",
+     "router/bench/grade.py"
+    ],
+    "new": [
+     "router/analysis/attempt_join.py"
+    ]
+   },
+   "touches": [
+    "router/analysis/attempt_join.py",
+    "router/test_router.py"
+   ],
+   "next": "Create router/analysis/attempt_join.py (under 80 lines, standard library only) with parse_calls(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as log_usage in router/engines.py writes them) and returns (by_attempt, skipped): by_attempt maps attempt id to {cost, input_tokens, output_tokens, calls} summed over that attempt's lines; lines with no attempt id go under key None; malformed JSON lines and lines missing the cost field are counted in skipped, never raised. Add a test to router/test_router.py that feeds three lines (two with attempt id 'a1', one with no id, one malformed) and asserts the sums, the None bucket and skipped == 1.",
+   "refs": [
+    "queue P20",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K45",
+   "title": "Give the timed run the counted run's HOME as well as its cwd",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q79",
+   "generated_at": "2026-11-21T11:04:53Z",
+   "code": {
+    "files": [
+     "runner/run.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "runner/run.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In runner/run.py, move the cwd and HOME settings that count() uses into one helper that both count() and timed() call, so timed() sets HOME to the same value count() sets (not the caller's HOME). Test in runner/test_runner.py (add to the class that covers run.py): patch the timer and the valgrind launcher with fakes that record os.getcwd() and os.environ['HOME'] inside the jailed process, call count() and timed() on the same candidate and input, and assert both recorded pairs are equal and that HOME is not the caller's HOME. The test must fail on the current timed() code, which leaves HOME unchanged.",
+   "refs": [
+    "queue Q79",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K46",
+   "title": "Give the timed run the same visible input files as the counted run",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q79",
+   "generated_at": "2026-11-21T11:04:53Z",
+   "code": {
+    "files": [
+     "runner/run.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "runner/run.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In runner/run.py, make timed() stage its input files into a fresh sandbox directory with the same file set and names count() stages, instead of running in a directory that shows other files. Test in runner/test_runner.py: with a fake timer that writes a sorted listing of the directory it runs in, call count() and timed() on the same inputs and assert the two listings are identical and contain only the staged inputs. The test must fail on the current timed() code, where the listing differs.",
+   "refs": [
+    "queue Q79",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
