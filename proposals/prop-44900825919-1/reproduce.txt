@@ -1,0 +1,12 @@
+FAILED: prop-44900825919-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 109, in <module>
+    main()
+  File "/w/train.py", line 94, in main
+    acc = accuracy(X_val, y_val, protos, pcls)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 66, in accuracy
+    diff = protos[:, None] - X.T[None]  # (P, n, d) - memory heavy, do batch
+           ~~~~~~~~~~~~~~~~^~~~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (10,1,64) (1,64,574) 
+
