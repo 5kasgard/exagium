@@ -492,12 +492,13 @@ class CodeJob(unittest.TestCase):
 class TierMerge(unittest.TestCase):
     def test_merge_gate(self):
         import tier as TI
-        item = {"code": {"files": ["worker/diagnose.py"]}}
-        ok, why = TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 5, "deletions": 0}], "approve")
+        item = {"code": {"files": ["experiments/x.py"]}}
+        ok, why = TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 5, "deletions": 0}], "approve")
         self.assertTrue(ok)
-        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 90, "deletions": 0}], "approve")[0])
-        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 1, "deletions": 0}], "reject")[0])
-        for f in ("worker/tier.py", "router/slots.py", ".github/workflows/x.yml", "worker/other.py"):
+        self.assertFalse(TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 90, "deletions": 0}], "approve")[0])
+        self.assertFalse(TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 1, "deletions": 0}], "reject")[0])
+        # worker/diagnose.py was mergeable here before the audit of 2026-11-21: tier.yml runs it with keys
+        for f in ("worker/tier.py", "router/slots.py", ".github/workflows/x.yml", "worker/other.py", "worker/diagnose.py"):
             self.assertFalse(TI.merge_decision({"code": {"files": [f]}} if f != "worker/other.py" else item,
                                                [{"filename": f, "additions": 1, "deletions": 0}], "approve")[0], f)
 
@@ -700,7 +701,9 @@ class IntakeReview(unittest.TestCase):
         import intake_review as IR
         from unittest import mock
         with tempfile.TemporaryDirectory() as d:
-            rows = {"F1": "worker/digest.py", "F2": ".github/workflows/x.yml", "F3": "record/record.py", "F4": "worker/digest.py"}
+            # F5: worker/digest.py runs with keys (digest.yml), so it goes to a person (audit 2026-11-21; it was filed before)
+            rows = {"F1": "experiments/queue_drift.py", "F2": ".github/workflows/x.yml", "F3": "record/record.py",
+                    "F4": "experiments/queue_drift.py", "F5": "worker/digest.py", "F6": "transfer/meter.py"}
             with open(os.path.join(d, "findings.jsonl"), "w") as f:
                 for k, p in rows.items():
                     f.write(json.dumps({"id": k, "file": p, "lines": [1, 2], "body": {"kind": "bug", "claim": "c " + k, "evidence": "e"}}) + "\n")
@@ -709,8 +712,9 @@ class IntakeReview(unittest.TestCase):
             open(os.path.join(d, "RESPONSE.md"), "w").write("## Fixed\n| F4 | high | abc1234 | |\n## Not changed\n## Open\n")
             items, skipped = IR.candidates(d)
             self.assertEqual([x["review"].split(":")[1] for x in items], ["F1"])
-            self.assertEqual(items[0]["test"], "worker/test_worker.py")
-            self.assertEqual(skipped, {"F2": "workflow or refused path", "F3": "a person merges this path", "F4": "closed"})
+            self.assertEqual(items[0]["test"], "experiments/test_experiments.py")
+            self.assertEqual(skipped, {"F2": "workflow or refused path", "F3": "a person merges this path", "F4": "closed",
+                                       "F5": "a person merges this path", "F6": "a person merges this path"})
             q = {"items": [{"id": "G1", "review": items[0]["review"], "status": "open"}]}
             with mock.patch.object(IR.Q, "sync"), mock.patch.object(IR.Q, "load", return_value=q):
                 self.assertEqual(IR.file_items(d, items), [])   # filed once already: nothing new
@@ -901,7 +905,7 @@ class MergeAgentTexts(unittest.TestCase):
         ok, why = TI.merge_decision(item, [{"filename": "AGENTS.md", "additions": 1, "deletions": 0}], "approve")
         self.assertFalse(ok)
         ok, _ = TI.merge_decision(item, [{"filename": "README.md", "additions": 1, "deletions": 0}], "approve")
-        self.assertTrue(ok)
+        self.assertFalse(ok)   # gate review 2026-11-21: AGENTS.md sends agents to the README, so a person merges it too
 
 
 
