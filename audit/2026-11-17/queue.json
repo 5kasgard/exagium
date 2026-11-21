@@ -11550,7 +11550,7 @@
    "id": "K35",
    "title": "Add a calibration registry: record outcomes per actor and task family, with a Wilson lower bound as the score",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P26c",
    "generated_at": "2026-11-21T05:15:16Z",
@@ -11571,7 +11571,7 @@
     "router/calibration.py",
     "router/test_router.py"
    ],
-   "next": "Create router/calibration.py (under 80 lines, standard library only) with class Registry: record(actor, family, ok) adds one event; counts(actor, family) returns (successes, n); cap(actor, family, z=1.96) returns the Wilson lower bound of the success rate, or 0.0 when n is 0; load(path) and save(path) keep events as JSON lines. Add tests to router/test_router.py: after 3 successes and 1 failure the cap equals the Wilson lower bound computed by hand (about 0.4); an unseen actor gives 0.0; save then load gives the same counts; events for one actor do not change another actor's counts.",
+   "next": "Create router/calibration.py (under 80 lines, standard library only) with class Registry: record(actor, family, ok) adds one event; counts(actor, family) returns (successes, n); cap(actor, family, z=1.96) returns the Wilson lower bound of the success rate, or 0.0 when n is 0; load(path) and save(path) keep events as JSON lines. Add tests to router/test_router.py: after 3 successes and 1 failure the cap equals the Wilson lower bound computed by hand (about 0.4); an unseen actor gives 0.0; save then load gives the same counts; events for one actor do not change another actor's counts. PREVIOUS ATTEMPT REJECTED: no edits. Do the whole item, with a test.",
    "refs": [
     "queue P26c",
     "worker/split.py"
@@ -11648,6 +11648,12 @@
      "lost_lease": false,
      "outcome": "failed",
      "escalated": "failed 2 times in a row"
+    },
+    {
+     "at": "2026-11-21T16:47:01Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no edits"
     }
    ],
    "work_types": {
