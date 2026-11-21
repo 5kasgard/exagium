@@ -38,8 +38,9 @@ int main(int argc, char **argv) {
     memcpy(hd, w, 20);
     int d = hd[1], C = hd[3], k = hd[4];
     long n = hd[2];
-    if (hd[0] != 0x314E4E4B || d < 1 || n < 1 || C < 1 || C > 256 || k < 1 || k > 64 || k > n ||
+    if (hd[0] != 0x314E4E4B || d < 1 || n < 1 || C < 1 || C > 256 || k < 1 || k > 64 ||
         nw != 20 + 2L * d * 65536 + n * d + n) { fprintf(stderr, "bad weights size\n"); return 3; }
+    if (k > n) k = n;                                    /* train.py's predict() uses min(k, n) */
     const uint16_t *cost = (const uint16_t *)(w + 20);   /* little-endian host assumed (x86, arm64) */
     const unsigned char *X = w + 20 + 2L * d * 65536, *y = X + n * d;
     unsigned char *x = N ? slurp(argv[2], &nx) : NULL;
