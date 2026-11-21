@@ -219,7 +219,7 @@ elif step == "reset":
     tracked = set(git("ls-files", "-z", capture_output=True, text=True, check=True).stdout.split("\0"))
     changed = git("status", "--porcelain=v1", "-z", "--untracked-files=all", capture_output=True, text=True, check=True).stdout.split("\0")
     paths = [c[3:] for c in changed if len(c) > 3]
-    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", "tox.ini", "setup.cfg")}
+    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml", "tox.ini", "setup.cfg")}
     for f in sorted(pick):
         if f in tracked:
             git("checkout", "HEAD", "--", f, check=True)
@@ -232,8 +232,9 @@ elif step == "test":
 
 
 def summary(log):
-    """Only pytest's own short test summary block counts: from its last header to the next '=' line, so a status line
-    printed by the code under test elsewhere (e.g. at exit) is not read (review 2026-11-21)."""
+    """Only the last short-test-summary block counts, from its header to the next '=' line: stray status lines printed by
+    the code under test outside such a block are not read. Code that prints a whole fake block at exit is not caught
+    (PLAN.md, "Not ruled out")."""
     i = log.rfind("short test summary info")
     if i < 0:
         return ""

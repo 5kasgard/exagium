@@ -34,14 +34,15 @@ model call.
 
 **Grading an attempt** (`envcheck.py attempt`, `bench6-env.yml` with a step 2 mode): in the task's own image, apply the
 attempt's diff to `/testbed` (a diff that does not apply = not resolved); put back as at HEAD (or remove if new) every
-file the test_patch touches, every `conftest.py`, `pytest.ini`, `tox.ini` and `setup.cfg` the attempt changed; apply the
-test_patch; run the task's own FAIL_TO_PASS and PASS_TO_PASS tests once. Only pytest's own short test summary block is
+file the test_patch touches, every `conftest.py`, `pytest.ini`, `.pytest.ini`, `pytest.toml`, `tox.ini` and `setup.cfg` the attempt changed; apply the
+test_patch; run the task's own FAIL_TO_PASS and PASS_TO_PASS tests once. Only the last short test summary block is
 read. **Resolved** = every one of those tests reported PASSED there (SWE-bench's rule). A run that does not reach the
 tests (pull failure, timeout, test_patch not applying) reads neither, and counts as a miss below. The grader's helpers
 run with `python -I` from `/`, so nothing the attempt adds under `/testbed` is imported by them.
 
 **Not ruled out** (an attempt written to fool the grader): code under test that changes how pytest reports (for example
-through a plugin loaded from the package itself or `pyproject.toml`). Model attempts' diffs are kept with their grades
+through a plugin loaded from the package itself, `pyproject.toml`, or `uv.lock` for the task that runs `uv run`), or that
+prints a whole fake summary block at exit. Model attempts' diffs are kept with their grades
 so a person can read any resolved one.
 
 **Known-answer rule.** On the 8 usable tasks of step 1 (`ids=usable`), four modes, 32 runs, no model call:
