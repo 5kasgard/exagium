@@ -95,6 +95,43 @@ def parse(text):
     return out[:3]
 
 
+_EXT = r"(?:py|js|ts|jsx|tsx|go|rs|rb|java|kt|scala|c|cc|cpp|h|hpp|cs|php|lua|swift|m|mm|sh|yml|yaml|json|toml|md|txt|html|css|scss|vue|svelte)"
+_PATH_RE = re.compile(r"\b[\w./-]*\w+\." + _EXT + r"\b")
+
+
+def remove_file_paths(text):
+    """K7: file paths (with or without directories) become <path>, so the model must reason from the issue alone."""
+    return _PATH_RE.sub("<path>", text or "")
+
+
+def _live_call(repo, issue):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    import engines
+    engines.TIMEOUT = 600
+    r = engines.compat_call(ENGINE, MODEL, PROMPT.format(repo=repo, issue=issue[:ISSUE_CHARS]), max_tokens=MAX_TOKENS)
+    return r.get("text")
+
+
+def probe(sample_path, out, call=None):
+    """K7: scrub paths from each issue, ask for the file, and record (task, named, gold, match) plus the aggregate."""
+    s = json.load(open(sample_path))
+    os.makedirs(out, exist_ok=True)
+    call = call or _live_call
+    records = []
+    for name in ("fresh", "verified"):
+        for t in s[name]["tasks"]:
+            issue = remove_file_paths(t["issue"])
+            pred = parse(call(t["repo"], issue))
+            named = pred[0] if pred else None
+            records.append({"task_id": t["id"], "set": name, "named_file": named,
+                            "gold_files": t["gold"], "match": bool(named and named in t["gold"])})
+    rate = sum(r["match"] for r in records) / len(records) if records else 0.0
+    res = {"records": records, "match_rate": rate}
+    json.dump(res, open(os.path.join(out, "probe.json"), "w"), indent=1)
+    print(f"probe: {len(records)} tasks, match rate {rate:.2f}")
+    return res
+
+
 def ask(sample_path, out, dry=False):
     s = json.load(open(sample_path))
     os.makedirs(out, exist_ok=True)
@@ -160,4 +197,5 @@ if __name__ == "__main__":
     if cmd == "sample": sample(sys.argv[2])
     elif cmd == "ask": ask(sys.argv[2], sys.argv[3], "--dry" in sys.argv[4:])
     elif cmd == "grade": grade(sys.argv[2], sys.argv[3])
-    else: sys.exit("usage: sample | ask | grade")
+    elif cmd == "probe": probe(sys.argv[2], sys.argv[3])
+    else: sys.exit("usage: sample | ask | grade | probe")
