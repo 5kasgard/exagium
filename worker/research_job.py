@@ -431,6 +431,7 @@ def decide_claims(q, kept, calls):
 
 REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
 REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
+REL_FAIL = []     # why the last relevance() returned None
 REL_CONTROL_NO = ("Ridge regression with Tikhonov regularisation: closed-form estimator and its bias-variance trade-off.",)
 
 
@@ -458,7 +459,12 @@ def relevance(q, pool, calls):
         calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": DECIDER,
                       "ok": st == 200, "status": st, "latency_s": round(time.time() - t0, 2), "usage": resp.get("usage") or {}})
         ps = [((resp.get("answers") or {}).get(f"s{i}") or {}).get("noul") for i in range(len(docs))] if st == 200 else []
-        if st != 200 or any(not isinstance(p, (int, float)) for p in ps) or not (ps[0] >= 0.5 and ps[1] < 0.5):
+        missing = sum(not isinstance(p, (int, float)) for p in ps)
+        if st != 200 or missing or not (ps[0] >= 0.5 and ps[1] < 0.5):
+            # why, kept for the run's record: 5 of 8 research runs on 2026-11-21 failed here unseen (HTTP 200 every time)
+            REL_FAIL[:] = [f"batch {b // REL_BATCH + 1} of {-(-len(pool) // REL_BATCH)}: " + (
+                f"HTTP {st} {str(resp.get('error', ''))[:120]}" if st != 200 else f"{missing} of {len(ps)} answers missing"
+                if missing else f"controls wrong (question {ps[0]:.2f}, unrelated {ps[1]:.2f})")]
             return None
         out += ps[2:]
     return out
@@ -495,8 +501,18 @@ def read(out):
 def _read(out, d, q, calls, ask):
     rel = None
     if d.get("pool") and os.environ.get("OPENROUTER_API_KEY"):   # read the relevant sources, not the most cited
+        REL_FAIL[:] = []
         ps = relevance(q, d["pool"], calls)
-        if ps is not None:
+        if ps is None:
+            # infrastructure, not evidence: read unfiltered, 5 of 5 runs on 2026-11-21 (R26 twice, R28, R29, R30) found no
+            # claim, and each "no claims" goes to the paid tier. So: no reader call; the item reopens and is retried
+            # (escalated after MAX_FAILURES in a row), with the reason on record.
+            fail = "relevance filter failed: " + (REL_FAIL[0] if REL_FAIL else "no reason recorded")
+            json.dump({"reading": {"claims": [], "open_questions": [], "error": fail}, "script_kept": [], "script_dropped": [],
+                       "check": None, "model_fail": [fail]}, open(os.path.join(out, "read.json"), "w"), indent=1)
+            print(fail + "; not reading unfiltered sources")
+            return
+        else:
             kinds = list(dict.fromkeys(x["group"] for x in d["pool"]))
             keep = [i for i, p in enumerate(ps) if p >= REL_KEEP]
             pool = [dict(d["pool"][i], relevance=round(ps[i], 3)) for i in keep]
