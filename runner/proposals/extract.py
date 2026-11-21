@@ -2,7 +2,7 @@
 python3 -I extract.py REPLY.md CAND_DIR   -> writes CAND_DIR/{train.py, infer.c, README.md}; exit 1 with a reason if
 the reply does not hold exactly what is asked: a ```hypothesis block, one ```python block for train.py and one ```c
 block for infer.c (the first of each kind is taken), each within its size limit. Nothing in the reply is executed here."""
-import os, re, sys
+import json, os, re, sys
 
 LIMITS = {"hypothesis": 3000, "python": 40000, "c": 40000}
 FENCE = re.compile(r"^```[ \t]*([A-Za-z0-9_+-]*)[^\n]*\n(.*?)^```[ \t]*$", re.S | re.M)
@@ -16,6 +16,33 @@ def blocks(reply):
         if kind and kind not in out:
             out[kind] = body
     return out
+
+
+def record(call, id=None, family=None, finish_reason=None, valid=False):
+    """Build a safe extracted-proposal record: reply text and proposal fields only."""
+    if isinstance(call, dict):
+        text = call.get("text", call.get("reply"))
+        if finish_reason is None:
+            finish_reason = call.get("finish", call.get("finish_reason"))
+    else:
+        text = call
+    # Also accept record(call, id, family, valid), where the fourth positional is the flag.
+    if isinstance(finish_reason, bool) and valid is False:
+        valid, finish_reason = finish_reason, None
+        if isinstance(call, dict):
+            finish_reason = call.get("finish", call.get("finish_reason"))
+    return {"id": id, "family": family, "text": text,
+            "finish_reason": finish_reason, "valid": bool(valid)}
+
+
+def write_record(path, call, id=None, family=None, finish_reason=None, valid=False):
+    rec = record(call, id, family, finish_reason, valid)
+    with open(path, "w") as fh:
+        json.dump(rec, fh, sort_keys=True)
+    return rec
+
+
+write_extracted_record = write_record
 
 
 def extract(reply, dst):

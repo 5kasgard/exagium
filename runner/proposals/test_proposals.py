@@ -28,6 +28,17 @@ class Extract(unittest.TestCase):
             extract.extract(two, d)
             self.assertNotIn("other", open(os.path.join(d, "train.py")).read())
 
+    def test_record_keeps_only_safe_proposal_fields(self):
+        call = {"text": "reply body", "finish": "stop",
+                "headers": {"Authorization": "Bearer sk-TEST-123"},
+                "key": "sk-TEST-123", "env": {"TOKEN": "sk-TEST-123"}}
+        rec = extract.record(call, id="p", family="fam", valid=True)
+        raw = json.dumps(rec)
+        self.assertNotIn("sk-TEST-123", raw)
+        self.assertIn("reply body", raw)
+        self.assertIn("stop", raw)
+        self.assertTrue(rec["valid"])
+
 
 class PlanDoc(unittest.TestCase):
     def test_plan_says_first_block_of_each_kind(self):
