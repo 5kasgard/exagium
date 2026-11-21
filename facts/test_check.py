@@ -36,6 +36,23 @@ class Check(unittest.TestCase):
         self.assertEqual(rc, 2)
         self.assertFalse(st["a"]["same"])
 
+    def test_change_record_carries_dependants(self):
+        reg = {"facts": [{"id": "a", "probe": {"kind": "x"}, "value": 1, "recheck_days": 1,
+                          "cited_by": ["thing A"], "dependants": ["worker/research_job.py", "card:Q12"]}]}
+        with tempfile.TemporaryDirectory() as d:
+            r, s = os.path.join(d, "r.json"), os.path.join(d, "s.json")
+            json.dump(reg, open(r, "w"))
+            with mock.patch.object(check, "probe", lambda p: 2), \
+                 mock.patch("builtins.print") as pr:
+                self.assertEqual(check.run(r, s), 2)
+            recs = [c.args[1] for c in pr.call_args_list if c.args and c.args[0] == "CHANGED"]
+            self.assertEqual(len(recs), 1)
+            self.assertEqual(recs[0]["dependants"], ["worker/research_job.py", "card:Q12"])
+            with mock.patch.object(check, "probe", lambda p: 1), \
+                 mock.patch("builtins.print") as pr:
+                self.assertEqual(check.run(r, os.path.join(d, "s2.json")), 0)
+            self.assertEqual([c for c in pr.call_args_list if c.args and c.args[0] == "CHANGED"], [])
+
     def test_probe_error_is_not_a_change(self):
         rc, _ = self.go({"x": RuntimeError("down"), "y": "v"})
         self.assertEqual(rc, 3)

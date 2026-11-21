@@ -86,7 +86,8 @@ def run(register, status_path, now=None, keyed=False):
         same = v == f["value"]
         st[f["id"]] = {"at": now.isoformat(), "value": v, "same": same}
         if not same:
-            changed.append(f"{f['id']}: registered {f['value']!r}, now {v!r}; cited by: {'; '.join(f['cited_by'])}")
+            changed.append({"id": f["id"], "registered": f["value"], "now": v,
+                            "cited_by": f.get("cited_by", []), "dependants": f.get("dependants", [])})
     with open(status_path, "w") as fh:
         json.dump(st, fh, indent=1)
     for m in changed:
