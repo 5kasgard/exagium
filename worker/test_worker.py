@@ -700,6 +700,34 @@ class CodeReplyFormat(unittest.TestCase):
         self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
         self.assertIsNone(C.parse_reply("nothing here"))
 
+    def test_new_file_block_does_not_swallow_the_next(self):
+        # K44 run 44953039259: an empty SEARCH (a new file) ran on to the test block's =======, so the new file got the
+        # test's code and the test edit vanished. Each block must stand alone, whatever order the model writes them in.
+        import code_job as C
+        new = "<<<<<<< SEARCH router/analysis/attempt_join.py\n=======\ndef parse_calls(lines):\n    return {}\n>>>>>>> REPLACE\n"
+        test = ('<<<<<<< SEARCH router/test_router.py\nif __name__ == "__main__":\n=======\nclass T(unittest.TestCase):\n'
+                '    pass\n\nif __name__ == "__main__":\n>>>>>>> REPLACE\n')
+        want = [{"path": "router/analysis/attempt_join.py", "old": "", "new": "def parse_calls(lines):\n    return {}"},
+                {"path": "router/test_router.py", "old": 'if __name__ == "__main__":',
+                 "new": 'class T(unittest.TestCase):\n    pass\n\nif __name__ == "__main__":'}]
+        self.assertEqual(C.parse_reply("```\n" + new + "\n" + test + "```\nNOTE: n")["edits"], want)
+        self.assertEqual(C.parse_reply(test + new)["edits"], want[::-1])
+        # a blank line in SEARCH still marks a new file; a block cut off before REPLACE is dropped, not merged on
+        self.assertEqual(C.parse_reply(new.replace("=======", "\n=======", 1))["edits"][0]["old"], "")
+        for cut in ("<<<<<<< SEARCH a.py\nx\n=======\ny\n" + test, "<<<<<<< SEARCH a.py\nx\n" + test, test + "<<<<<<< SEARCH a.py\nx\n"):
+            r = C.parse_reply(cut)
+            self.assertEqual((r["edits"], r["cut"]), (want[1:], ["a.py"]))
+        self.assertEqual(C.parse_reply(new + test)["cut"], [])
+        # review 2026-11-22: text holding a line that looks like a block start is reported as cut (the caller then repairs
+        # or refuses the whole set), never silently dropped while the other blocks land
+        r = C.parse_reply("<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertIsNone(r)   # no whole block: the slot chain moves on to the next model (review 2026-11-22)
+        r = C.parse_reply(test + "<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertEqual((r["edits"], r["cut"]), (want[1:], ["d.md", "path"]))
+        self.assertEqual(C.parse_reply((new + test).replace("\n", "\r\n"))["edits"], want)
+        # a replacement that ends on the marker's line keeps its text
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny>>>>>>> REPLACE")["edits"][0]["new"], "y")
+
 
 class SandboxRefused(unittest.TestCase):
     def test_sandbox_paths(self):
@@ -989,6 +1017,29 @@ class CoderRepair(unittest.TestCase):
         self.assertEqual(r["static"], [])
         self.assertEqual(r["repair"]["after"], [])
         self.assertIn("import json", r["proposal"]["edits"][0]["new"])
+
+    def test_cut_block_is_repaired_or_refused_never_landed_in_part(self):
+        # review 2026-11-22: a block that ends early must not leave the other blocks to land without it
+        import code_job as C, slots
+        from unittest import mock
+        whole = "<<<<<<< SEARCH b.py\ny = 1\n=======\ny = 2\n>>>>>>> REPLACE\n"
+        part = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n"
+        fine = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n>>>>>>> REPLACE\nNOTE: n"
+        for second, n_edits in ((part, 0), (fine, 2)):
+            replies = iter([part, second])
+            def fake_run(slot, prompt, ask, parse):
+                if slot == "coder":
+                    t = next(replies)
+                    return parse(t), {"text": t}, [{"pool": "p"}]
+                return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+            with tempfile.TemporaryDirectory() as d:
+                json.dump({"item": {"id": "K1", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "b.py": "y = 1\n"},
+                           "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+                with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                    C.draft(d)
+                r = json.load(open(os.path.join(d, "draft.json")))
+            self.assertIn("a.py: a block ended", r["repair"]["before"][0])
+            self.assertEqual(len(r["proposal"]["edits"]), n_edits)
 
 
 class DigestBudgetWindow(unittest.TestCase):
