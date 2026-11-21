@@ -7988,7 +7988,7 @@
    "id": "G22",
    "title": "F107: README says 'loop on 6 runner types, counter on 8', but loop.yml and counter.yml each define exactly 2 runner ",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "review",
    "review": "glm-20261120:F107",
    "filed_at": "2026-11-20T20:47:56Z",
@@ -8002,7 +8002,7 @@
     "README.md",
     "worker/test_worker.py"
    ],
-   "next": "Fix review finding glm-20261120:F107 (doc-drift, low). Claim: README says 'loop on 6 runner types, counter on 8', but loop.yml and counter.yml each define exactly 2 runner labels (ubuntu-24.04, ubuntu-24.04-arm) - the 6 and 8 are matrix job slots, not runner types, overstating host diversity. Evidence at README.md lines [24, 24]: Everything runs on free compute: GitHub Actions runners (loop on 6 runner types, counter on 8), plus free model tiers. Proposed fix: Rephrase to '2 runner types across N job slots'. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else.",
+   "next": "Fix review finding glm-20261120:F107 (doc-drift, low). Claim: README says 'loop on 6 runner types, counter on 8', but loop.yml and counter.yml each define exactly 2 runner labels (ubuntu-24.04, ubuntu-24.04-arm) - the 6 and 8 are matrix job slots, not runner types, overstating host diversity. Evidence at README.md lines [24, 24]: Everything runs on free compute: GitHub Actions runners (loop on 6 runner types, counter on 8), plus free model tiers. Proposed fix: Rephrase to '2 runner types across N job slots'. Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change only updates the README and does not add the required test in worker/test_worker.py. Do the whole item, with a test.",
    "refs": [
     "audit/reviews/glm-20261120/findings.jsonl",
     "worker/intake_review.py"
@@ -8039,6 +8039,12 @@
      "at": "2026-11-20T21:37:31Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T01:50:41Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change only updates the README and does not add the required test in worker/test_worker.py"
     }
    ]
   },
