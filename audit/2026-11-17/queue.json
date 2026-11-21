@@ -11708,7 +11708,7 @@
    "id": "K37",
    "title": "P26g-1: experiment measuring independent roots per research claim, rule fixed before running",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P26g",
    "generated_at": "2026-11-21T05:15:16Z",
@@ -11729,7 +11729,7 @@
     "experiments/claim_roots.py",
     "experiments/test_experiments.py"
    ],
-   "next": "Create experiments/claim_roots.py with a PLAN string stating: on the landed research cards, for each claim count the distinct roots (provenance roots as RabbitHole defines them, with a claim whose sources share a root counting once), and measure the share of claims that rest on one root which a second source repeats. run() reads the landed cards (find where research_job.py writes them) and returns a JSON-able dict with the claim count and that share. rule(result) returns {\"verdict\": \"holds\" if the share is at least 0.20, \"fails\" if it is below 0.20, \"invalid\" if there are no claims or the cards lack source data, \"why\": ...}. Add a test in experiments/test_experiments.py that rule() gives holds at exactly 0.20, fails at 0.19, and invalid for zero claims. The threshold 0.20 must not change after this lands.",
+   "next": "Create experiments/claim_roots.py with a PLAN string stating: on the landed research cards, for each claim count the distinct roots (provenance roots as RabbitHole defines them, with a claim whose sources share a root counting once), and measure the share of claims that rest on one root which a second source repeats. run() reads the landed cards (find where research_job.py writes them) and returns a JSON-able dict with the claim count and that share. rule(result) returns {\"verdict\": \"holds\" if the share is at least 0.20, \"fails\" if it is below 0.20, \"invalid\" if there are no claims or the cards lack source data, \"why\": ...}. Add a test in experiments/test_experiments.py that rule() gives holds at exactly 0.20, fails at 0.19, and invalid for zero claims. The threshold 0.20 must not change after this lands. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change adds claim_roots.py but does not add the required tests in experiments/test_experiments.py as specified in the item.. Do the whole item, with a test.",
    "refs": [
     "queue P26g",
     "worker/split.py"
@@ -11792,6 +11792,12 @@
      "at": "2026-11-21T08:11:51Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T16:47:02Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change adds claim_roots.py but does not add the required tests in experiments/test_experiments.py as specified in the item."
     }
    ],
    "work_types": {
