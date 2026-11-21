@@ -278,6 +278,12 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K25 | B3 |  | minor | medium | fix | F083: verify TLS certificates in the facts probe | Replace any unverified SSL context (ssl._create_unverified_context or verify_mode CERT_NONE) in the fetch path with ssl.create_default_context() so check_hostname and certificate verification stay on. Test: a fetch against a host whose certificate does not verify returns a failure, not a verified fact. | queue Q67; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| K47 | B3 |  | minor | high | fix | Worker cards: pure size check per (pool, model) | Create worker/cards.py (under 80 lines, stdlib only) with a CARDS dict keyed by (pool, model) holding max_input_chars and max_output_tokens, each entry with a 'source' string: a provider doc URL, or 'observed' with the run date and evidence. Enter a limit only if it can be cited (the 2026-11-19 Nemotron cut-off at max_tokens 16000 may be recorded as observed truncation); otherwise leave it out. Add check_size(pool, model, prompt_chars, max_tokens) returning ('ok', None), ('split', parts) when prompt_chars exceeds the input limit, or ('refuse', reason) when max_tokens exceeds the output limit or the model has no card. Add class CardsSize to worker/test_worker.py that checks: a small prompt is ok, an oversize prompt is split with the right part count, max_tokens above the output limit is refused, and an unknown model is refused. | queue P20a; worker/split.py |
+
 ## Parked (60)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |

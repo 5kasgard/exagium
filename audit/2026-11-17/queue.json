@@ -12555,6 +12555,42 @@
    },
    "work_types_key": "4cb192fc99dc24c4",
    "work_types_at": "2026-11-21T11:05:02Z"
+  },
+  {
+   "id": "K47",
+   "title": "Worker cards: pure size check per (pool, model)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20a",
+   "generated_at": "2026-11-21T16:49:54Z",
+   "code": {
+    "files": [
+     "worker/cards.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "router/engines.py"
+    ],
+    "new": [
+     "worker/cards.py"
+    ]
+   },
+   "touches": [
+    "worker/cards.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Create worker/cards.py (under 80 lines, stdlib only) with a CARDS dict keyed by (pool, model) holding max_input_chars and max_output_tokens, each entry with a 'source' string: a provider doc URL, or 'observed' with the run date and evidence. Enter a limit only if it can be cited (the 2026-11-19 Nemotron cut-off at max_tokens 16000 may be recorded as observed truncation); otherwise leave it out. Add check_size(pool, model, prompt_chars, max_tokens) returning ('ok', None), ('split', parts) when prompt_chars exceeds the input limit, or ('refuse', reason) when max_tokens exceeds the output limit or the model has no card. Add class CardsSize to worker/test_worker.py that checks: a small prompt is ok, an oversize prompt is split with the right part count, max_tokens above the output limit is refused, and an unknown model is refused.",
+   "refs": [
+    "queue P20a",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
