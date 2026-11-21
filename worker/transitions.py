@@ -47,7 +47,8 @@ TABLE.update({("review", "confirm"): "done", ("review", "redo"): "open", ("revie
               ("scheduled", "lost"): "open",
               # a code item that failed its retry is parked for the splitter to cut smaller, not sent to the owner
               # (2026-11-21: 23 of 31 items waiting on the owner were code items a person could not help from a phone)
-              ("escalated", "resplit"): "parked", ("review", "resplit"): "parked"})
+              ("escalated", "resplit"): "parked", ("review", "resplit"): "parked",
+              ("review", "defer"): "review"})   # the tier could not judge a PR this run (no verdict, merge refused): kept, counted
 for s in STATES:   # the owner may settle any item, from any state; nothing else is implied
     TABLE.update({(s, "decide_done"): "done", (s, "decide_open"): "open", (s, "park"): "parked",
                   (s, "decide_blocked"): "blocked", (s, "decide_scheduled"): "scheduled", (s, "decide_owner"): "waiting on the owner"})
