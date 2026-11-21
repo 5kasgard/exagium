@@ -170,11 +170,33 @@ def claude_cost(model, inp, out):
     return round((inp * pi + out * po) / 1e6, 6)
 
 
+_PAID_USED = {}
+
+
+def paid_slot(pool):
+    """Take one paid request from this run's allowance, set by the workflow next to its ledger reservation as
+    ROUTER_PAID_CALLS="anthropic:19,openrouter_paid:3". None set, or used up: False, and the request is not sent.
+    Audit 2026-11-21 (R3 F1): the daily caps were checked only when a run reserved, on an estimate; nothing tied the
+    requests a run made to what it reserved (tier reserved 5 Claude calls and made up to 15, split 2 and up to 6)."""
+    caps = {}
+    for x in os.environ.get("ROUTER_PAID_CALLS", "").split(","):
+        k, _, v = x.strip().partition(":")
+        if k and v.isdigit():
+            caps[k] = int(v)
+    if _PAID_USED.get(pool, 0) >= caps.get(pool, 0):
+        return False
+    _PAID_USED[pool] = _PAID_USED.get(pool, 0) + 1
+    return True
+
+
 def anthropic_call(model, prompt, max_tokens=2000, system=None):
     """One Messages API call. Only models with a known price are allowed, so every call's cost can be recorded."""
     if model not in CLAUDE_PRICES:
         raise ValueError(f"no price recorded for {model}: add it to CLAUDE_PRICES with its source first")
     t0 = time.time()
+    if not paid_slot("anthropic"):
+        return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": "anthropic", "model": model, "ok": False,
+                "status": None, "latency_s": 0, "usage": {}, "text": None, "error": "run's paid-call allowance used up or not set (ROUTER_PAID_CALLS)"}
     body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]}
     if system:
         body["system"] = system
@@ -223,11 +245,16 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
         body = {"model": model, "messages": msgs, "max_tokens": max_tokens}
         if reasoning:   # e.g. {"effort": "low"}: paid reasoning models spent all 8,000 tokens thinking on code jobs (2026-11-20)
             body["reasoning"] = reasoning
+        paid = not model.endswith(":free")
+        if paid and not paid_slot("openrouter_paid"):
+            return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": engine, "model": model, "ok": False,
+                    "status": None, "latency_s": 0, "usage": None, "text": None,
+                    "error": "run's paid-call allowance used up or not set (ROUTER_PAID_CALLS)"}
         st, j = _post("https://openrouter.ai/api/v1/chat/completions", body,
                       {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
         if st == 200 and j.get("choices"):
             text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
-        if st == 200 and not text and j.get("provider") and not model.endswith(":free"):
+        if st == 200 and not text and j.get("provider") and paid and paid_slot("openrouter_paid"):   # the retry is a request too
             # 2026-11-21: 17 of 49 paid DeepSeek calls came back 200 with no text (one seen: provider Cohere); one retry that
             # skips the provider which returned nothing (OpenRouter provider routing), so a paid call is not wasted
             bad = j.get("provider")

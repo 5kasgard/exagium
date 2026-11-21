@@ -673,7 +673,8 @@ class GLMReview20261120(unittest.TestCase):
         replies = [(200, {"provider": "Cohere", "choices": [{"message": {"content": ""}}], "usage": {"cost": 0.004, "total_tokens": 10}}),
                    (200, {"provider": "Other", "choices": [{"message": {"content": "ok"}}], "usage": {"cost": 0.003, "total_tokens": 7}})]
         with mock.patch.object(engines, "_post", lambda u, b, h: replies.pop(0)), mock.patch.object(engines, "paid_guard"), \
-                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}):
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": "openrouter_paid:2"}), \
+                mock.patch.object(engines, "_PAID_USED", {}):
             r = dict(engines.call("openrouter", "deepseek/x", "hi", allow_paid=True), engine="openrouter_paid")
         self.assertEqual(r["text"], "ok")
         with tempfile.TemporaryDirectory() as wt, mock.patch.object(LG, "sync"), mock.patch.object(LG, "push", return_value=True):
