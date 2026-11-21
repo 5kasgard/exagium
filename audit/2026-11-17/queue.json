@@ -10373,7 +10373,7 @@
    "id": "K26",
    "title": "F020: stop generate.py crashing on a first-item cap break",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q67",
    "generated_at": "2026-11-20T22:34:18Z",
@@ -10391,7 +10391,7 @@
     "worker/generate.py",
     "worker/test_worker.py"
    ],
-   "next": "In run/_run, when the cap is hit before the first item is processed, return the early result (writing the calls via _write_calls) instead of indexing the empty list. Test in class Generate: with the daily cap already used by zero items, run() returns without raising and still writes the calls ledger.",
+   "next": "In run/_run, when the cap is hit before the first item is processed, return the early result (writing the calls via _write_calls) instead of indexing the empty list. Test in class Generate: with the daily cap already used by zero items, run() returns without raising and still writes the calls ledger. PREVIOUS ATTEMPT REJECTED: reviewer: reject: The change removes the later cap‑check after regating, altering existing behavior for cases where the cap is hit after processing some items, which the item did not request.. Do the whole item, with a test.",
    "refs": [
     "queue Q67",
     "worker/split.py"
@@ -10421,6 +10421,12 @@
      "at": "2026-11-20T22:48:58Z",
      "lost_lease": false,
      "outcome": "guard_blocked"
+    },
+    {
+     "at": "2026-11-21T07:02:32Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: reviewer: reject: The change removes the later cap‑check after regating, altering existing behavior for cases where the cap is hit after processing some items, which the item did not request."
     }
    ],
    "work_types": {
