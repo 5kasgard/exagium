@@ -135,9 +135,10 @@ def blocks_in(text):
     """(path, old, new) for each search/replace block, read line by line so no block can reach into the next. The
     regex this replaces let an empty SEARCH (a new file) run on to the NEXT block's =======: the new file got the test's
     replacement and the test edit vanished (13 of 39 'no edits' code runs 2026-11-20/21, e.g. K44 run 44953039259;
-    no new-file item had landed)."""
-    out, cur, part = [], None, None
-    for line in text.split("\n"):
+    no new-file item had landed). Returns (blocks, cut): cut lists the path of each block that ended before its REPLACE
+    line (or whose text holds a line that looks like a block start), so the caller reports it instead of dropping it."""
+    out, cut, cur, part = [], [], None, None
+    for line in text.replace("\r\n", "\n").split("\n"):
         if cur is None:
             m = HEAD.match(line)
             if m:
@@ -149,11 +150,14 @@ def blocks_in(text):
             head = line[:END.search(line).start()]
             out.append((cur[0], "\n".join(cur[1]), "\n".join(cur[2] + ([head] if head else []))))
             cur = None
-        elif HEAD.match(line):   # a block cut off before its REPLACE is dropped, and this line starts a new one
+        elif HEAD.match(line):   # a block cut off before its REPLACE is reported as cut, and this line starts a new one
+            cut.append(cur[0])
             cur, part = (HEAD.match(line).group(1), [], []), 1
         else:
             cur[part].append(line)
-    return out
+    if cur is not None:
+        cut.append(cur[0])
+    return out, cut
 
 
 def parse_reply(text):
@@ -161,10 +165,11 @@ def parse_reply(text):
     live code jobs, 2026-11-20), or the older JSON form. Returns {"edits": [...], "note": ...} or None."""
     if not text:
         return None
-    blocks = blocks_in(text)
-    if blocks:
+    blocks, cut = blocks_in(text)
+    if blocks or cut:
         note = re.search(r"^NOTE:\s*(.+)$", text, re.M)
-        return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else ""}
+        return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else "",
+                "cut": cut}
     j = D.parse_json(text)
     return j if isinstance(j, dict) else None
 
@@ -285,14 +290,16 @@ def draft(out):
             only_test = bool(e) and {x["path"] for x in e} <= {b.get("test")} and any(p != b.get("test") for p in b["files"])
             no_test = bool(e) and b.get("test") in b["files"] and b.get("test") not in {x["path"] for x in e} \
                 and not b.get("test", "").startswith("experiments/")   # K28, K39: the reviewer rejects a change with no test
-            return e, w, n, (w if not e else []) + static_problems(b["files"], n) + (
+            return e, w, n, (w if not e else []) + [
+                f"{p}: a block ended before its >>>>>>> REPLACE line (or its text holds a line starting '<<<<<<< SEARCH'), "
+                f"so it was not used; send every block whole" for p in prop.get("cut") or []] + static_problems(b["files"], n) + (
                 [f"the edits change only the test file {b.get('test')}; the item needs the change itself in "
                  f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else []) + (
                 [f"the edits add no test: add one to {b.get('test')} that fails on the current code and passes with the change"]
                 if no_test else [])
         edits, why, new, problems = checked(proposal)
         repaired = None
-        if problems and proposal.get("edits"):   # one repair round with the problems written in (owner 2026-11-21: code lands least)
+        if problems and (proposal.get("edits") or proposal.get("cut")):   # one repair round with the problems written in (owner 2026-11-21: code lands least)
             text = (d or {}).get("text") or ""
             fixed, d2, t2 = slots.run("coder", REPAIR.format(prompt=b["prompt"], reply=text[-12000:], problems="\n".join(problems[:20])),
                                       ask, parse_reply)
