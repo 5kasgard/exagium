@@ -1406,5 +1406,36 @@ class WorkerSpecCard(unittest.TestCase):
         self.assertNotIn("**Not yet:** code items", text)
 
 
+class CardsSize(unittest.TestCase):
+    """K47: check_size enforces per-(pool, model) input/output limits with cited sources."""
+    def test_small_prompt_ok(self):
+        import worker.cards as C
+        self.assertEqual(C.check_size("nvidia", "nvidia/nemotron-3-ultra", 1000, 1000), ("ok", None))
+
+    def test_oversize_prompt_split(self):
+        import worker.cards as C
+        # limit is 128000 chars; 256001 should need 3 parts
+        self.assertEqual(C.check_size("nvidia", "nvidia/nemotron-3-ultra", 256_001, 1000), ("split", 3))
+
+    def test_max_tokens_over_output_limit_refused(self):
+        import worker.cards as C
+        # output limit is 16000
+        self.assertEqual(
+            C.check_size("nvidia", "nvidia/nemotron-3-ultra", 1000, 20_000),
+            ("refuse", "max_tokens 20000 > output limit 16000"),
+        )
+
+    def test_unknown_model_refused(self):
+        import worker.cards as C
+        self.assertEqual(
+            C.check_size("nvidia", "nvidia/unknown-model", 1000, 1000),
+            ("refuse", "no card for nvidia/nvidia/unknown-model"),
+        )
+        self.assertEqual(
+            C.check_size("unknown_pool", "model", 1000, 1000),
+            ("refuse", "no card for unknown_pool/model"),
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
