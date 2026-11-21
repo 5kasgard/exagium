@@ -1,0 +1,15 @@
+FAILED: prop-44919900333-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 191, in <module>
+    main()
+  File "/w/train.py", line 127, in main
+    hashes_tr = compute_hashes(X_tr)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 52, in compute_hashes
+    hashes[n, idx] = hash_ngram([pos, x[pos]], UNIGRAM_SEED)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 32, in hash_ngram
+    h = (h ^ b) & MASK64
+         ~~^~~
+OverflowError: Python int too large to convert to C long
+
