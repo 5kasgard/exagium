@@ -209,6 +209,32 @@ class KnnWiderGrid(unittest.TestCase):
         self.assertTrue(all(r == 8 and q == 2 for r, q, _ in calls))
 
 
+class KnnInferKGreaterThanN(unittest.TestCase):
+    """GLM F072: infer accepts k > n and clamps to the training-set size, like train.py's predict."""
+    def test_k_greater_than_n_is_clamped(self):
+        import struct
+        src = os.path.join(HERE, "candidates", "label-knn", "infer.c")
+
+        def weights(k):
+            d, n, C = 1, 2, 2
+            return (struct.pack("<5i", 0x314E4E4B, d, n, C, k)
+                    + bytes(2 * d * 65536) + bytes([0, 1]) + bytes([0, 1]))
+
+        with tempfile.TemporaryDirectory() as d:
+            exe = os.path.join(d, "infer")
+            subprocess.run([os.environ.get("CC", "cc"), "-O2", "-o", exe, src], check=True)
+            inp = os.path.join(d, "in.rec")
+            open(inp, "wb").write(records.pack([b"\x00"]))
+            outs = []
+            for k in (2, 5):
+                w = os.path.join(d, "w%d.bin" % k)
+                open(w, "wb").write(weights(k))
+                r = subprocess.run([exe, w, inp, "1"], capture_output=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                outs.append(r.stdout)
+            self.assertEqual(outs[0], outs[1])
+
+
 def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
