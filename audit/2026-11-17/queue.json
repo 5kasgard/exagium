@@ -12921,7 +12921,7 @@
    "id": "K48",
    "title": "Add a calibration registry module (outcomes per actor and task family, Wilson lower bound as the score)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P26c",
    "generated_at": "2026-11-21T20:05:39Z",
@@ -12942,7 +12942,7 @@
     "router/calibration.py",
     "router/test_router.py"
    ],
-   "next": "Create router/calibration.py, under 80 lines, standard library only. Provide record(actor, family, ok) that counts successes and trials per (actor, family) pair, score(actor, family) that returns the Wilson lower bound at z=1.96 (0.0 when there are no trials), and dump(path) and load(path) that write and read the counts as JSON. Add tests to router/test_router.py: after 8 successes in 10 trials, score is about 0.49; with 0 trials, score is 0.0; dump then load gives the same scores; and a family with more trials and the same rate scores higher.",
+   "next": "Create router/calibration.py, under 80 lines, standard library only. Provide record(actor, family, ok) that counts successes and trials per (actor, family) pair, score(actor, family) that returns the Wilson lower bound at z=1.96 (0.0 when there are no trials), and dump(path) and load(path) that write and read the counts as JSON. Add tests to router/test_router.py: after 8 successes in 10 trials, score is about 0.49; with 0 trials, score is 0.0; dump then load gives the same scores; and a family with more trials and the same rate scores higher. PREVIOUS ATTEMPT REJECTED: 104 changed lines (over 80); files a person merges, or not the item's own: router/calibration.py, router/test_router.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P26c",
     "worker/split.py"
@@ -13004,6 +13004,12 @@
      "at": "2026-11-21T23:11:26Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T23:13:04Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #75 not merged: 104 changed lines (over 80); files a person merges, or not the item's own: router/calibration.py, router/test_router.py; model verdict: reject; model: The dump/load roundtrip test compares each score to itself (cal.score(\"a\",\"f\") vs cal.score(\"a\",\"f\")), so it never checks that scores survive the"
     }
    ],
    "work_types": {
