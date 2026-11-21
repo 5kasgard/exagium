@@ -11280,6 +11280,112 @@
    "claimed_by": "worker-44871910276",
    "claimed_at": "2026-11-21T05:39:57Z",
    "lease_until": "2026-11-21T07:39:57Z"
+  },
+  {
+   "id": "K38",
+   "title": "Q71 pre-registered ns-per-Ir band experiment (rule fixed before running)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q71",
+   "generated_at": "2026-11-21T05:42:54Z",
+   "code": {
+    "files": [
+     "experiments/ir_band.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "runner/records.py",
+     "experiments/run_one.py"
+    ],
+    "new": [
+     "experiments/ir_band.py"
+    ]
+   },
+   "touches": [
+    "experiments/ir_band.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/ir_band.py (under 80 lines) with a PLAN string saying: calibrate ns per Ir on a fixed reference workload on this host; a band is enforced only if every honest candidate in the recorded runner results falls inside it and the ctl-cnt control falls outside. run() calibrates ns per Ir on a fixed reference workload (timed run plus counter run, JSON-able dict with the ns/Ir factor, each honest candidate's ratio to the band, and the ctl-cnt ratio, or the reason data is missing). rule(result) returns {\"verdict\": \"holds\" if all honest candidates are inside the band and ctl-cnt is outside, \"fails\" if any honest candidate is outside or ctl-cnt is inside, \"invalid\" if calibration or records are missing, \"why\": ...}. Do not change loop.py or the enforcement. Add to experiments/test_experiments.py a test that calls rule() on a hand-built result for each of the three verdicts, and shows that the band is not enforced when an honest candidate falls outside it.",
+   "refs": [
+    "queue Q71",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K39",
+   "title": "Make test-split evaluation refuse any digest that differs from the frozen plan",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q76",
+   "generated_at": "2026-11-21T05:42:54Z",
+   "code": {
+    "files": [
+     "runner/run.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "runner/run.py",
+    "runner/test_runner.py"
+   ],
+   "next": "In cmd_evaluate, before scoring the test split, call require_plan(seq, t, cands) and stop with a nonzero exit (Bad-style error) if the candidate's or the split's current sha256 differs from the digests frozen in the plan. Show it with the test added in the previous sub-item: after altering one frozen digest (for example by editing the test split's recorded hash in the temporary ledger), evaluation is refused and no verdict is appended.",
+   "refs": [
+    "queue Q76",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K40",
+   "title": "Add a writer-clustered standard error helper",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q81",
+   "generated_at": "2026-11-21T05:42:54Z",
+   "code": {
+    "files": [
+     "runner/cluster_se.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [
+     "runner/results/2026-11-20-p5a/decide.py",
+     "runner/records.py"
+    ],
+    "new": [
+     "runner/cluster_se.py"
+    ]
+   },
+   "touches": [
+    "runner/cluster_se.py",
+    "runner/test_runner.py"
+   ],
+   "next": "Create runner/cluster_se.py (under 80 lines) with cluster_se(values, writers) returning the standard error of the mean of values with observations clustered by writer id: group the values by writer, compute the sum of squared cluster totals of deviations from the grand mean, and apply the usual CR1 small-sample factor G/(G-1) * (N-1)/(N-K) with K=1. Return None when fewer than 2 clusters exist, and raise ValueError when the lengths differ. Add tests to runner/test_runner.py: with one observation per writer, the result equals the ordinary SE of the mean times sqrt(G/(G-1)) with N-1 over N-1 (so it matches the plain SE up to the correction); with all observations from one writer the result is None; and with two writers of constant values each the result is 0.",
+   "refs": [
+    "queue Q81",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
