@@ -59,13 +59,30 @@ def one(name, extract_status, rep_path, dev_path, task=""):
     return v
 
 
+COST = "ir_per_item_with_startup"   # whole-run Ir/item ranks the front (decided by data 2026-11-22, audit F054 / R4):
+# on all 165 valid proposals with both counts the front was the same under either and the order unchanged (Spearman 1.0
+# per task; startup adds about 140 Ir/item on optdigits, 22 on text and adult), and the marginal count can be gamed by
+# moving work into the N=0 run (loop.py's schema: informational only). The marginal count stays on the board, unranked.
+
+
+def _front(v, key):
+    return {p["name"] for p in v if not any(b is not p and b["task"] == p["task"] and b["mean"] >= p["mean"] - p["se"]
+                                            and b[key] < p[key] for b in v)}
+
+
 def front(rs):
     """Names of valid proposals on their task's accuracy-cost front: no other valid proposal on the same task is at least
-    as accurate (within the candidate's 1 SE) and cheaper in Ir/item. confirm/PLAN.md rule 2, applied among proposals;
-    beats-linear alone rewarded 30-266x instruction blowups (GLM F101; 2026-11-21: 13 of 59 linear-beaters cost over 20x)."""
+    as accurate (within the candidate's 1 SE) and cheaper in whole-run Ir/item. confirm/PLAN.md rule 2, applied among
+    proposals; beats-linear alone rewarded 30-266x instruction blowups (GLM F101; 2026-11-21: 13 of 59 linear-beaters
+    cost over 20x)."""
+    return _front([r for r in rs if r.get("valid") and r.get(COST) and "mean" in r], COST)
+
+
+def recount(rs):
+    """Valid proposals scored before the whole-run count was recorded that the marginal count puts on the front: listed
+    for a rescore, never dropped silently (2026-11-22: 3 of the 9 marginal-front points)."""
     v = [r for r in rs if r.get("valid") and r.get("ir_per_item") and "mean" in r]
-    return {p["name"] for p in v if not any(b is not p and b["task"] == p["task"] and b["mean"] >= p["mean"] - p["se"]
-                                            and b["ir_per_item"] < p["ir_per_item"] for b in v)}
+    return {n for n in _front(v, "ir_per_item") if not next(r for r in v if r["name"] == n).get(COST)}
 
 
 def board(d):
@@ -79,7 +96,7 @@ def board(d):
     n, k = len(rs), sum(r["valid"] for r in rs)
     lo, hi = wilson(k, n)
     calls = sum(r.get("calls", 1) for r in rs)
-    fr = front(rs)
+    fr, rc = front(rs), recount(rs)
     design = {}
     for p, r in rs_pairs:
         folder = os.path.dirname(p)
@@ -107,8 +124,12 @@ def board(d):
              f"Proposals: {n}. Valid: {k} (rate {k / n if n else 0:.2f}, 95% Wilson {lo:.2f}-{hi:.2f}). "
              f"Beat label-linear: {sum(r['beats_linear'] for r in rs)}. Free calls per valid: "
              f"{calls / k if k else float('inf'):.1f}. On the accuracy-cost front of their task: {len(fr)} "
-             f"(no other valid proposal at least as accurate within 1 SE and cheaper).", "",
+             f"(no other valid proposal at least as accurate within 1 SE and cheaper in whole-run Ir/item, startup "
+             f"included; the marginal Ir/item is shown, not ranked).", "",
              f"Distinct designs: {distinct} (of {k} valid).", ""]
+    if rc:
+        lines += [f"On the front under the marginal count but scored before the whole-run count was recorded (front "
+                  f"column 'rescore'): {', '.join(sorted(rc))}.", ""]
     if pending:
         lines += [f"Not scored (scoring job failed; pending a rescore, not counted): {', '.join(pending)}.", ""]
     if n >= 20:
@@ -116,14 +137,17 @@ def board(d):
         kv = sum(r["valid"] for r in first)
         lines += [f"First 20: {kv} valid -> {'KEEP the one-call proposer' if kv >= 2 else 'SWITCH to an agent harness'} "
                   "(rule fixed in PLAN.md).", ""]
-    lines += ["| proposal | task | extracted | reproduced | valid | dev accuracy | vs linear | Ir/item | ns/item | front | dup of |",
-              "|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines += ["| proposal | task | extracted | reproduced | valid | dev accuracy | vs linear | Ir/item whole run | "
+              "Ir/item marginal | ns/item | front | dup of |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rs:
         acc = f"{r['mean']:.4f} ± {r['se']:.4f}" if "mean" in r else ""
         vl = f"{r['over_linear']:+.4f} ± {r['over_linear_se']:.4f}" if "over_linear" in r else ""
         ir = f"{r['ir_per_item']:.0f}" if r.get("ir_per_item") else ""
         ns = f"{r['ns_per_item']:.0f}" if r.get("ns_per_item") else ""
-        lines.append(f"| {r['name']} | {r.get('task', '')} | {r['extracted']} | {r['reproduced']} | {r['valid']} | {acc} | {vl} | {ir} | {ns} | {r['name'] in fr} | {dup.get(r['name'], '')} |")
+        whole = f"{r[COST]:.0f}" if r.get(COST) else ""
+        fc = "rescore" if r["name"] in rc else r["name"] in fr
+        lines.append(f"| {r['name']} | {r.get('task', '')} | {r['extracted']} | {r['reproduced']} | {r['valid']} | {acc} | {vl} | {whole} | {ir} | {ns} | {fc} | {dup.get(r['name'], '')} |")
     open(os.path.join(d, "LEADERBOARD.md"), "w").write("\n".join(lines) + "\n")
     return n, k
 

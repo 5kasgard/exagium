@@ -107,5 +107,32 @@ class TestBoardPending(unittest.TestCase):
             self.assertIn("Distinct designs: 2 (of 3 valid)", text)
 
 
+class TestFrontWholeRun(unittest.TestCase):
+    """2026-11-22 (F054, decided by data): the front ranks whole-run Ir/item; an old result with only the marginal count
+    that the marginal count puts on the front is listed for a rescore, not dropped."""
+    def r(self, name, mean, marg, whole=None, task="t"):
+        v = {"name": name, "task": task, "valid": True, "mean": mean, "se": 0.01, "ir_per_item": marg}
+        return dict(v, ir_per_item_with_startup=whole) if whole else v
+
+    def test_front_uses_whole_run(self):
+        # b is cheaper only at the margin (work moved into startup): it must not dominate a on the whole-run count
+        rs = [self.r("a", 0.90, 500, 600), self.r("b", 0.90, 100, 5000), self.r("c", 0.80, 50, 60)]
+        self.assertEqual(judge.front(rs), {"a", "c"})
+        self.assertEqual(judge.recount(rs), set())
+
+    def test_old_front_point_listed_for_rescore(self):
+        rs = [self.r("a", 0.90, 500, 600), self.r("old", 0.95, 400), self.r("old2", 0.80, 900)]
+        self.assertEqual((judge.front(rs), judge.recount(rs)), ({"a"}, {"old"}))
+        with tempfile.TemporaryDirectory() as d:
+            for x in rs:
+                os.makedirs(os.path.join(d, x["name"]))
+                json.dump(dict(x, extract="extracted", extracted=True, reproduced=True, beats_linear=False),
+                          open(os.path.join(d, x["name"], "result.json"), "w"))
+            judge.board(d)
+            text = open(os.path.join(d, "LEADERBOARD.md")).read()
+        self.assertIn("whole-run count was recorded (front column 'rescore'): old.", text)
+        self.assertIn("| old | t | True | True | True | 0.9500 ± 0.0100 |  |  | 400 |  | rescore |", text)
+
+
 if __name__ == "__main__":
     unittest.main()
