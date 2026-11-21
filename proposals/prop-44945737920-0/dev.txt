@@ -1,0 +1,12 @@
+FAILED: prop-44945737920-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 118, in <module>
+    main()
+  File "/w/train.py", line 79, in main
+    logits, h, flat = forward(Z)
+                      ^^^^^^^^^^
+  File "/w/train.py", line 58, in forward
+    emb = embed[np.arange(d), Z.T].transpose(1, 0, 2)  # (batch, d, E)
+          ~~~~~^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (14,) (14,64) 
+
