@@ -365,6 +365,16 @@ def apply(repo, out):
     t = json.load(open(os.path.join(out, "test.json"))) if os.path.exists(os.path.join(out, "test.json")) else {}
     if t.get("chosen") == "second" and d.get("alt"):   # the second draft passed where the first did not
         d = dict(d, proposal=d["alt"]["proposal"], review=d["alt"]["review"])
+    # defence in depth (audit 2026-11-21, B F2): the land job re-checks the bundle against the item itself, so a bundle
+    # that lists other files, or another item's, changes nothing, however it got here
+    it = b.get("item") or {}
+    c = it.get("code") or {}
+    own = set(c.get("files") or []) | ({c["test"]} if c.get("test") else set())
+    bad = [p for p in b.get("files", {}) if not allowed(p) or p not in own or (p != c.get("test") and p not in it.get("touches", []))]
+    if bad or not b.get("files") or (os.environ.get("ITEM") and it.get("id") != os.environ["ITEM"]):
+        res = {"result": "guard_blocked", "why": [f"bundle does not match the item: {bad or it.get('id')}"[:300]], "edits": 0}
+        json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
+        print(json.dumps(res)); return 0
     files = {p: open(os.path.join(repo, p), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, p)) else ""
              for p in b["files"]}   # a file the item creates is still absent here (and must be: else it is stale)
     if files != b["files"]:
