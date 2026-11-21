@@ -161,6 +161,8 @@ jobs:
     timeout-minutes: 45   # two checker attempts of up to 10 min each, plus the reader
     permissions:
       contents: read
+    outputs:
+      sums: ${{ steps.sums.outputs.sums }}   # land checks the draft it applies against these (no later job can write them)
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -182,6 +184,10 @@ jobs:
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job
           elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py draft job
           else python3 -I worker/research_job.py read job; fi
+      - id: sums
+        if: ${{ !cancelled() }}
+        name: hashes of the files land will trust (audit 2026-11-21 review)
+        run: echo "sums=$(cd job && { sha256sum draft.json bundle.json 2>/dev/null || true; } | sha256sum | cut -c1-64)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: ${{ !cancelled() }}
         with:
@@ -212,7 +218,7 @@ jobs:
         if: always()
         with:
           name: test
-          path: tested/
+          path: tested/test.json   # only this file: model code ran in this job and could have put a draft.json or bundle.json in tested/ (audit 2026-11-21, B F2)
   land:
     needs: [claim, prepare, draft, test]
     if: ${{ always() && needs.claim.outputs.item != '' }}
@@ -227,6 +233,7 @@ jobs:
       ITEM: ${{ needs.claim.outputs.item }}
       TYPE: ${{ needs.claim.outputs.type }}
       GH_TOKEN: ${{ github.token }}
+      DRAFT_SUMS: ${{ needs.draft.outputs.sums }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only job/ and note.json, never .git
         with:
@@ -241,7 +248,7 @@ jobs:
         continue-on-error: true
         with:
           name: test
-          path: job
+          path: tested   # its own folder: unpacked into job/ it could replace the draft job's draft.json and bundle.json, forging the reviewer's approval and the item's file list (audit 2026-11-21, B F2, R1 F2)
       - name: check, apply, merge or open a PR
         run: |
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
@@ -252,7 +259,12 @@ jobs:
           fi
           rc=0
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py apply . job || rc=$?
-          elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py apply . job || rc=$?
+          elif [ "$TYPE" = code ]; then
+            # the draft and bundle must be the ones the draft job made: model code in the test job holds the run's
+            # artifact token and could re-upload them (audit 2026-11-21 review); job outputs it cannot write
+            got=$(cd job && { sha256sum draft.json bundle.json 2>/dev/null || true; } | sha256sum | cut -c1-64)
+            if [ "$got" != "$DRAFT_SUMS" ]; then echo '{"result": "guard_blocked", "why": ["draft or bundle differs from what the draft job made"], "edits": 0}' > job/result.json
+            else rm -f job/test.json; [ -f tested/test.json ] && cp tested/test.json job/test.json; python3 -I worker/code_job.py apply . job || rc=$?; fi
           else python3 -I worker/research_job.py card . job || rc=$?; fi
           if [ "$rc" != 0 ] || [ ! -f job/result.json ]; then
             python3 -I worker/note.py note.json "failed: the check or apply step exited $rc" "" "$RUN_URL"
