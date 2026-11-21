@@ -1,0 +1,16 @@
+FAILED: prop-44883132443-2 on text: train.py exited 1:
+Trying D=8192
+Traceback (most recent call last):
+  File "/w/train.py", line 125, in <module>
+    main()
+  File "/w/train.py", line 104, in main
+    X_train_idx = np.stack([extract_indices(seq, D) for seq in X_train])
+                            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 37, in extract_indices
+    idx.append(hash_ngram(seq[start:start + n], D))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 28, in hash_ngram
+    h = (h * 31 + b) & 0xFFFFFFFF
+        ~~~~~~~~~~~~~^~~~~~~~~~~~
+OverflowError: Python integer 4294967295 out of bounds for uint8
+
