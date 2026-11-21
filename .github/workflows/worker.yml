@@ -32,7 +32,9 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads only claim.json from RUNNER_TEMP, never .git
       - name: pause switch
         run: |
-          if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "PAUSED=1" >> "$GITHUB_ENV"; fi
+          # STOPPED too: the idle job (generator, Claude splitter, classifier, dispatch) starts on an empty item with
+          # no stop reason, so a paused run still spent (audit 2026-11-21, R1 F4 / B F4)
+          if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "PAUSED=1" >> "$GITHUB_ENV"; echo "STOPPED=paused" >> "$GITHUB_ENV"; fi
       - name: tests
         if: env.PAUSED != '1'
         run: python3 -m unittest worker/test_worker.py

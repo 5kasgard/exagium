@@ -20,7 +20,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] this job pushes with the checkout token and uploads no workspace artifact
+      - name: pause switch (worker/PAUSE stops this keyed probe too; audit 2026-11-21, R1 F4)
+        id: pause
+        run: if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "paused=1" >> "$GITHUB_OUTPUT"; fi
       - name: "today's paid calls so far (queue P4): the daily cap counts router-runs' call log, not just this run"
+        if: steps.pause.outputs.paused != '1'
         id: seed
         run: |
           # fail closed: without today's history the daily cap would start from 0, so paid pools stay off (review 44393174128, 2)
@@ -30,6 +34,7 @@ jobs:
             echo "pools=" >> "$GITHUB_OUTPUT"; : > "$RUNNER_TEMP/usage.jsonl"; echo "no call history: paid pools off for this run"
           fi
       - name: probe every engine
+        if: steps.pause.outputs.paused != '1'
         env:
           # queue P4: paid pools this workflow may call, under engines.PAID's per-call and daily caps. Two probe runs at
           # once can each see the same count, so a day can exceed a cap by one run's calls (at most 4 per pool).
@@ -56,7 +61,7 @@ jobs:
           rc=0; python3 -I router/probe.py "$RUNNER_TEMP/probe.jsonl" || rc=$?
           echo "exit $rc"; echo "rc=$rc" >> "$GITHUB_ENV"
       - name: append the records to router-runs
-        if: always()
+        if: always() && steps.pause.outputs.paused != '1'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -71,4 +76,5 @@ jobs:
           done
           exit 1
       - name: fail if the probe failed
+        if: steps.pause.outputs.paused != '1'
         run: exit "$rc"

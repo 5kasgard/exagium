@@ -142,6 +142,28 @@ class MergeAllowlist(unittest.TestCase):
         self.assertTrue(tier.merge_decision(item, [dict(f, status="modified")], "approve")[0])
         self.assertFalse(tier.merge_decision(item, [dict(f, status="renamed", previous_filename="worker/split.py")], "approve")[0])
         self.assertFalse(tier.merge_decision(item, [dict(f, status="removed")], "approve")[0])
+class PauseStopsSpending(unittest.TestCase):
+    """Audit 2026-11-21 (R1 F4, B F4): worker/PAUSE stopped the claim but not the idle job's spending (generator, Claude
+    splitter, classifier, experiments), and router.yml and wiring.yml never looked at it."""
+    WF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
+
+    def test_every_keyed_self_starting_workflow_checks_pause(self):
+        import re
+        missing = []
+        for f in sorted(glob.glob(os.path.join(self.WF, "*.yml"))):
+            w, text = yaml.safe_load(open(f)), open(f).read()
+            on = w.get(True) or w.get("on") or {}
+            auto = {"schedule", "push", "workflow_run", "pull_request"} & set(on if isinstance(on, (dict, list)) else [on])
+            if auto and re.search(r"secrets\.(?!GITHUB_TOKEN)", text) and "worker/PAUSE" not in text:
+                missing.append(os.path.basename(f))
+        self.assertEqual(missing, [])
+
+    def test_a_paused_worker_run_does_not_start_the_idle_job(self):
+        w = yaml.safe_load(open(os.path.join(self.WF, "worker.yml")))
+        step = [s for s in w["jobs"]["claim"]["steps"] if "worker/PAUSE" in str(s.get("run", ""))][0]["run"]
+        self.assertIn('STOPPED=paused', step)
+        idle = w["jobs"]["idle"]["if"]
+        self.assertIn("needs.claim.outputs.stopped == ''", idle)   # so a stop reason (now: paused) keeps the idle job off
 
 if __name__ == "__main__":
     unittest.main()
