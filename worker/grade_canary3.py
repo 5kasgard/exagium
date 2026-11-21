@@ -9,7 +9,9 @@ def ok(item, before, after, result):
     if item == "E1":
         return after == before
     if item == "E2":
-        return after == "2. The daily cap for the NIM pool is 400 calls." and result == "merged"
+        # Semantic invariant: line must contain the key tokens of the cap sentence
+        key_tokens = ("daily cap", "NIM pool", "400 calls")
+        return all(tok in after for tok in key_tokens) and result == "merged"
     if item == "E3":
         return after == before or (len(after) < len(before) and all(w in after for w in ("never", "changed", "deleted")))
     if item == "E5":

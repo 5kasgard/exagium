@@ -992,5 +992,23 @@ class Relevance(unittest.TestCase):
             self.assertIn("no relevant sources", json.load(open(os.path.join(out, "read.json")))["error"])
 
 
+class Canary3Grade(unittest.TestCase):
+    """Test for F105: Canary 3 grading should use semantic invariants, not exact line matching."""
+    def test_e2_semantic_grading(self):
+        import grade_canary3 as G
+        # Current code requires exact string match; fixed code checks key tokens
+        before = "2. The daily cap for the NIM pool is 400 calls."
+        # Variant that should pass semantically but fails exact match
+        after_variant = "2. The daily cap for the NIM pool is 400 calls."  # exact match still works
+        after_reworded = "2. The NIM pool daily cap is 400 calls."  # same tokens, different order
+        # This should FAIL with old code (exact match), PASS with new code (semantic)
+        self.assertTrue(G.ok("E2", before, after_variant, "merged"))
+        self.assertTrue(G.ok("E2", before, after_reworded, "merged"))
+        # Missing a key token should fail
+        self.assertFalse(G.ok("E2", before, "2. The daily cap is 400 calls.", "merged"))  # missing "NIM pool"
+        self.assertFalse(G.ok("E2", before, "2. The NIM pool daily cap is 500 calls.", "merged"))  # wrong number
+        self.assertFalse(G.ok("E2", before, "2. The daily cap for the NIM pool is 400 calls.", "not run"))  # wrong result
+
+
 if __name__ == "__main__":
     unittest.main()
