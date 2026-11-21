@@ -926,5 +926,14 @@ class SplitTypes(unittest.TestCase):
         self.assertIsNone(SP.check(dict(base, experiment="other"), lines, tests)[0])
 
 
+class ReadmeRunnerTypes(unittest.TestCase):
+    """F107: README must not overstate runner types: loop and counter each use 2 runner labels."""
+    def test_runner_types_are_two(self):
+        import pathlib
+        readme = (pathlib.Path(__file__).resolve().parent.parent / "README.md").read_text()
+        self.assertNotIn("loop on 6 runner types", readme)
+        self.assertNotIn("counter on 8", readme)
+        self.assertIn("2 runner types", readme)
+
 if __name__ == "__main__":
     unittest.main()
