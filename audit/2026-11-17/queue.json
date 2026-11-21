@@ -11997,7 +11997,7 @@
    "id": "K42",
    "title": "Record a pool as exhausted until a given time, and check it before a call",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P8",
    "generated_at": "2026-11-21T06:59:08Z",
@@ -12015,7 +12015,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "In router/engines.py add mark_exhausted(state_path, pool, until) and is_exhausted(state_path, pool, now). The state is one JSON file mapping pool name to an until timestamp; mark_exhausted reads, sets the value, and writes it back atomically (write a temp file, then rename). is_exhausted returns True only while now is before the stored until, and False for an unknown pool or a missing file. Test in router/test_router.py with a temp directory: after mark_exhausted(pool, t+60), is_exhausted at t+30 is True and at t+61 is False; an unknown pool is False; a second pool's entry does not affect the first.",
+   "next": "In router/engines.py add mark_exhausted(state_path, pool, until) and is_exhausted(state_path, pool, now). The state is one JSON file mapping pool name to an until timestamp; mark_exhausted reads, sets the value, and writes it back atomically (write a temp file, then rename). is_exhausted returns True only while now is before the stored until, and False for an unknown pool or a missing file. Test in router/test_router.py with a temp directory: after mark_exhausted(pool, t+60), is_exhausted at t+30 is True and at t+61 is False; an unknown pool is False; a second pool's entry does not affect the first. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: router/engines.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P8",
     "worker/split.py"
@@ -12045,6 +12045,12 @@
      "at": "2026-11-21T07:14:03Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T10:07:15Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #54 not merged: files a person merges, or not the item's own: router/engines.py; model verdict: reject; model: The diff implements the requested functions and tests, but is_exhausted also silently returns False for a corrupt state file, which the item did not ask for and which could let calls to an exhausted po"
     }
    ],
    "work_types": {
