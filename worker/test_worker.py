@@ -1035,6 +1035,37 @@ class Relevance(unittest.TestCase):
             RJ._read(out, d, "q", [], None)
             self.assertIn("no relevant sources", json.load(open(os.path.join(out, "read.json")))["error"])
 
+    def test_nothing_on_topic_reaches_a_recorded_outcome(self):
+        """Audit 2026-11-21 (A F2, GLM F113): the test above stopped at read.json; card() then crashed on 'script_kept'.
+        Driven through card() this time."""
+        import research_job as RJ
+        from unittest import mock
+        item = {"id": "R99", "research": {"question": "q"}, "touches": ["research/cards/R99.md"]}
+        d = {"item": item, "sources": [], "log": [], "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as repo, \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch.object(RJ, "relevance", lambda q, pool, calls: [0.1]):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, d, "q", [], None)
+            RJ.card(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+        self.assertEqual((res["result"], res["claims"]), ("no claims", 0))
+
+    def test_card_checks_claims_against_the_sources_read(self):
+        """Audit 2026-11-21 (A F2, GLM F112): the filter re-picked sources (new S-ids) in memory only; card() re-checked
+        quotes against the old citation-picked list in search.json."""
+        import research_job as RJ
+        from unittest import mock
+        pool = [{"title": f"t{i}", "abstract": f"abstract {i}", "group": "papers", "kind": "paper", "via": "x", "year": 2020,
+                 "cited_by": 100 - i, "url": "https://x/" + str(i)} for i in range(3)]
+        d = {"item": {"id": "R98", "research": {"question": "q"}}, "sources": RJ.pick(pool, ["papers"]), "log": [], "pool": pool}
+        with tempfile.TemporaryDirectory() as out, mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                mock.patch.object(RJ, "relevance", lambda q, p, calls: [0.1, 0.1, 0.9]), \
+                mock.patch.object(RJ.slots, "run", return_value=(None, {"ok": False}, [])):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, dict(d), "q", [], None)
+            saved = json.load(open(os.path.join(out, "search.json")))["sources"]
+        self.assertEqual([s["title"] for s in saved], ["t2"])   # what the reader was given is what card() checks against
+
 
 class RunnerTypesDoc(unittest.TestCase):
     """F107: README must not call matrix job slots runner types."""
