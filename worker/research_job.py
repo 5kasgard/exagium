@@ -369,8 +369,8 @@ def parse_json(text):
 def whole_in(q, a):
     """q occurs in a and starts and ends on a word or number edge: 'up to 70' does not match inside '70.5%' (review
     2026-11-22: a plain substring test let a quote stop partway through a number)."""
-    edge = lambda t, i: i < 0 or i >= len(t) or not (t[i].isalnum() or t[i] == "." and 0 <= i - 1 and i + 1 < len(t)
-                                                      and t[i - 1].isdigit() and t[i + 1].isdigit())
+    edge = lambda t, i: i < 0 or i >= len(t) or not (t[i].isalnum() or t[i] in ".," and 0 <= i - 1 and i + 1 < len(t)
+                                                      and t[i - 1].isdigit() and t[i + 1].isdigit())   # 70.5, 1,000
     i = a.find(q)
     while q and i >= 0:
         signed = q[0].isdigit() and i > 0 and a[i - 1] == "-"   # '0.5 gain' is not in '-0.5 gain'
@@ -504,9 +504,11 @@ def _read(out, d, q, calls, ask):
         REL_FAIL[:] = []
         ps = relevance(q, d["pool"], calls)
         if ps is None:
-            # infrastructure, not evidence: read unfiltered, 5 of 5 runs on 2026-11-21 (R26 twice, R28, R29, R30) found no
-            # claim, and each "no claims" goes to the paid tier. So: no reader call; the item reopens and is retried
-            # (escalated after MAX_FAILURES in a row), with the reason on record.
+            # infrastructure, not evidence: of the 8 research runs on 2026-11-21 with saved records, 5 lost the filter and
+            # read unfiltered sources; all 5 ended with no claim (7 script-checked claims, all rejected by the decision
+            # model at p <= 0.25), and each "no claims" goes to the paid tier. So: no reader call, the reason on record, and
+            # the item reopens (a retry passed the filter once of twice). After MAX_FAILURES in a row it is escalated with
+            # no automatic next step (as failed research runs already were, R16/R17): the handoff lists such items.
             fail = "relevance filter failed: " + (REL_FAIL[0] if REL_FAIL else "no reason recorded")
             json.dump({"reading": {"claims": [], "open_questions": [], "error": fail}, "script_kept": [], "script_dropped": [],
                        "check": None, "model_fail": [fail]}, open(os.path.join(out, "read.json"), "w"), indent=1)

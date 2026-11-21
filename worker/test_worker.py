@@ -127,6 +127,7 @@ class Research(unittest.TestCase):
         ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
                                   c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
         self.assertEqual((len(ok), len(dropped)), (1, 3))
+        self.assertFalse(R.whole_in("training costs up to 1", "training costs up to 1,000 dollars"))
 
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
