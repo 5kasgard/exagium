@@ -11057,7 +11057,7 @@
    "id": "K33",
    "title": "Extracted proposal records keep only model text, no request headers or key values",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P5",
    "generated_at": "2026-11-21T03:36:56Z",
@@ -11076,7 +11076,7 @@
     "runner/proposals/extract.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "Make the function that writes an extracted proposal record build its output from the model's reply text and the proposal's own fields only (id, family, finish_reason, valid flag), dropping any header, key, or environment value that may have been passed in with the call. Test: build a record from a call whose arguments include a fake key string 'sk-TEST-123'; the serialized record must not contain 'sk-TEST-123' and must still contain the reply text and finish_reason.",
+   "next": "Make the function that writes an extracted proposal record build its output from the model's reply text and the proposal's own fields only (id, family, finish_reason, valid flag), dropping any header, key, or environment value that may have been passed in with the call. Test: build a record from a call whose arguments include a fake key string 'sk-TEST-123'; the serialized record must not contain 'sk-TEST-123' and must still contain the reply text and finish_reason. PREVIOUS ATTEMPT REJECTED: model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P5",
     "worker/split.py"
@@ -11106,6 +11106,12 @@
      "at": "2026-11-21T04:05:43Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T06:23:31Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #49 not merged: model verdict: reject; model: The test calls json.dumps but the diff never shows json being imported in test_proposals.py, so the test may fail with a NameError. The diff also adds an unrequested write_extracted_record alias and a file-writing path, and the positional bool-handling in record() i"
     }
    ],
    "work_types": {
