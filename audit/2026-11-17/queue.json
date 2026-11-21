@@ -11918,7 +11918,7 @@
    "id": "K41",
    "title": "Parse a 429 reply into a pool reset time (pure function, no calls)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P8",
    "generated_at": "2026-11-21T06:59:08Z",
@@ -11936,7 +11936,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "In router/engines.py add retry_after(status, headers, now) returning the seconds until the pool's window resets when status is 429, else None. Use the retry-after header (seconds, or an HTTP date) and, failing that, the first ratelimit-reset-style header found in the headers dict (names containing 'reset'). If a 429 has no usable header, return 60 as the fallback. Test in router/test_router.py: a 429 with retry-after '30' gives 30; a 429 with an HTTP date gives the difference from now; a 200 gives None; a 429 with no headers gives 60.",
+   "next": "In router/engines.py add retry_after(status, headers, now) returning the seconds until the pool's window resets when status is 429, else None. Use the retry-after header (seconds, or an HTTP date) and, failing that, the first ratelimit-reset-style header found in the headers dict (names containing 'reset'). If a 429 has no usable header, return 60 as the fallback. Test in router/test_router.py: a 429 with retry-after '30' gives 30; a 429 with an HTTP date gives the difference from now; a 200 gives None; a 429 with no headers gives 60. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: router/engines.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P8",
     "worker/split.py"
@@ -11979,6 +11979,12 @@
      "at": "2026-11-21T07:11:51Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T10:07:08Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #53 not merged: files a person merges, or not the item's own: router/engines.py; model verdict: reject; model: The HTTP-date branch uses `time.timezone.utc`, but `time.timezone` is an int, so a naive parsed date raises AttributeError, which the bare `except Exception` silently swallows and falls back to 60 inst"
     }
    ],
    "work_types": {
