@@ -1,0 +1,15 @@
+FAILED: prop-44864155180-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 142, in <module>
+    main()
+  File "/w/train.py", line 123, in main
+    T, b1, W_out, b_out = train_split(X_train, y_train, E, epochs, rng)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 91, in train_split
+    hidden, logits = forward(xb, T, b1, W_out, b_out)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 40, in forward
+    hidden = np.broadcast_to(b1, (n, E)).copy()  # (n, E)
+                                     ^
+NameError: name 'E' is not defined
+
