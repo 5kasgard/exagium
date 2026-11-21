@@ -38,7 +38,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P3 | B1 | Q81 | B3 | runner/candidates |
 | P7 | B7 | R21 | B3 | research/cards/R21.md |
 | P7 | B7 | R22 | B9 | research/cards/R22.md |
-| P7 | B7 | D24 | B3 | .github/workflows/research.yml |
 | P7 | B7 | D25 | B3 | .github/workflows/research.yml |
 | P7 | B7 | D26 | B3 | .github/workflows/research.yml |
 | P7 | B7 | D27 | B3 | .github/workflows/research.yml |
@@ -52,7 +51,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7 | B7 | R30 | B9 | research/cards/R30.md |
 | P7 | B7 | R31 | B3 | research/cards/R31.md |
 | P7 | B7 | R32 | B3 | research/cards/R32.md |
-| P10 | B8 | D24 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D25 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D26 | B3 | .github/workflows/whole-audit.yml |
 | P10 | B8 | D27 | B3 | .github/workflows/whole-audit.yml |
@@ -60,7 +58,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P10 | B8 | Q67 | B3 | audit/periodic |
 | P10 | B8 | Q68 | B3 | audit/periodic/README.md |
 | P7b | B7 | Q59 | B3 | worker/research_job.py |
-| P7b | B7 | D24 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | D25 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | D26 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | D27 | B3 | .github/workflows/worker.yml |
@@ -69,7 +66,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7b | B7 | Q66 | B3 | .github/workflows/worker.yml |
 | P7b | B7 | Q67 | B3 | worker/research_job.py |
 | P7c | B7 | Q59 | B3 | worker/research_job.py |
-| P7c | B7 | D24 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | D25 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | D26 | B3 | .github/workflows/worker.yml |
 | P7c | B7 | D27 | B3 | .github/workflows/worker.yml |
@@ -83,7 +79,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7d | B7 | Q67 | B3 | worker/research_job.py |
 | P7e | B7 | Q73 | B3 | research/sources |
 | P7e | B7 | Q77 | B3 | research/sources |
-| P14 | B10 | D24 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D25 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D26 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | D27 | B3 | .github/workflows/machines.yml |
@@ -253,7 +248,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | R32 | B3 |  | minor | high | test | How can systems derive and document per-model safe input/output token limits from provider documentation and observed request logs, then enforce them with a pre | Worker job (research): literature card for P20a. Why: It identifies published methods for sourcing, measuring, and enforcing model-specific token limits that can directly populate worker cards and the pre-call size check. | queue P20a; queue P27 (generator) |
 
-## Escalated (a check failed; the next tier takes it) (18)
+## Escalated (a check failed; the next tier takes it) (17)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -265,7 +260,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R29 | B1 |  | minor | high | test | What published methods combine mutation-tested sandbox conformance suites, defense-in-depth and least-privilege design, syscall/argument fuzzing, and evaluator- | Worker job (research): literature card for P18. Why: It identifies evidence-backed test and monitoring patterns for the queued jail-assurance work without changing current implementation. | queue P18; queue P27 (generator) |
 | R30 | B9 |  | minor | high | test | What published methods convert trained classifiers into straight-line C, lookup tables, or rule sets, and how do they verify per-input output agreement with the | Worker job (research): literature card for P19. Why: It identifies established distillation-to-code and equivalence-checking techniques that can guide the first optdigits test. | queue P19; queue P27 (generator) |
 | R31 | B3 |  | minor | high | test | How can task difficulty and worker capability be jointly estimated before execution so each task is routed to the cheapest model-harness-tool configuration pred | Worker job (research): literature card for P20. Why: It informs the design of worker cards, pre-assignment demand estimation, and IRT-based routing to the cheapest predicted-success worker. | queue P20; queue P27 (generator) |
-| D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
 | D25 | B3 |  | minor | medium | fix | Failed run, unknown: router:unknown | Filed by worker/diagnose.py from run 44713342137 (router). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44713342137 |
 | D26 | B3 |  | minor | medium | fix | Failed run, unknown: .github/workflows/tier.yml:unknown | Filed by worker/diagnose.py from run 44739347561 (.github/workflows/tier.yml). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44739347561 |
 | D27 | B3 |  | minor | medium | fix | Failed run, unknown: pick-arm:unknown | Filed by worker/diagnose.py from run 44733739497 (pick-arm). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44733739497 |
@@ -384,7 +378,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (103)
+## Done (104)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -445,6 +439,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | D21 | B3 |  | minor | medium | doc | Worker release test 2: canary line 22 | In tests/worker-canary-2.md, line 26 (canary line 22): check this line is accurate against worker/README.md, which says the worker never writes workflows, its own files or registered plans; change it only if it is wrong. | worker/RELEASE-TEST-2.md on main |
 | D22 | B3 |  | minor | medium | doc | Worker release test 2: canary line 23 | In tests/worker-canary-2.md, line 27 (canary line 23): say what the intervals are computed for: the acceptance rate. | worker/RELEASE-TEST-2.md on main |
 | D23 | B3 |  | minor | medium | fix | Failed run, unknown: wiring:unknown | Filed by worker/diagnose.py from run 44725158522 (wiring). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44725158522 |
+| D24 | B3 |  | minor | medium | fix | Failed run, unknown: worker:unknown | Filed by worker/diagnose.py from run 44714225592 (worker). Log tail:  | https://github.com/5kasgard/exagium/actions/runs/44714225592 |
 | D3 | B3 |  | minor | medium | doc | Worker release test 2: canary line 3 | In tests/worker-canary-2.md, line 7 (canary line 3): fix the spelling. | worker/RELEASE-TEST-2.md on main |
 | D4 | B3 |  | minor | medium | doc | Worker release test 2: canary line 4 | In tests/worker-canary-2.md, line 8 (canary line 4): fix the grammar. | worker/RELEASE-TEST-2.md on main |
 | D5 | B3 |  | minor | medium | doc | Worker release test 2: canary line 5 | In tests/worker-canary-2.md, line 9 (canary line 5): fix the grammar. | worker/RELEASE-TEST-2.md on main |
