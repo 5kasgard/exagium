@@ -280,6 +280,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K49 | B3 |  | minor | medium | fix | Order each slot's fillers by calibrated score, keeping the pinned override | In router/slots.py, chain(slot, override) takes an optional calibration registry argument. When override is given it still returns only that (pool, model) filler, unchanged. Otherwise it sorts the slot's fillers by calibration score(actor, slot family), highest first, keeping the original order for ties. With no registry passed, the output is identical to the current chain. Add tests to router/test_router.py: an override returns exactly that filler; with a registry where filler B has more successes than filler A, B comes first; with no registry, the order matches the original. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R26 | B3 |  | minor | high | test | What established client-side patterns use HTTP 429 and Retry-After to mark a resource pool exhausted, fail fast before sending further requests, and clear the e | Worker job (research): literature card for K43. Why: These sources describe standard implementations for honoring 429 Retry-After with per-pool exhaustion state and fail-fast behavior that can directly guide the compat_call changes and tests. | queue K43; queue P27 (generator) |
+| R27 | B8 |  | minor | high | test | What indicators and review practices reliably detect whole-system drift, blind spots, and self-running automation in software repositories when periodic audits  | Worker job (research): literature card for P10. Why: It informs the direction check, deferred indicators, and scheduler-resilience needed for the live periodic audit. | queue P10; queue P27 (generator) |
+
 ## Parked (64)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
