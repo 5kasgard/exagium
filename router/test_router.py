@@ -298,5 +298,55 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class CalibrationTest(unittest.TestCase):
+    def setUp(self):
+        import router.calibration as cal
+        cal._counts.clear()
+
+    def test_score_after_8_of_10(self):
+        import router.calibration as cal
+        for _ in range(8):
+            cal.record("a", "f", True)
+        for _ in range(2):
+            cal.record("a", "f", False)
+        # Wilson lower bound at 95% for 8/10 ≈ 0.49
+        self.assertAlmostEqual(cal.score("a", "f"), 0.49, places=2)
+
+    def test_score_zero_trials(self):
+        import router.calibration as cal
+        self.assertEqual(cal.score("a", "f"), 0.0)
+
+    def test_dump_load_roundtrip(self):
+        import router.calibration as cal
+        import tempfile, os
+        cal.record("a", "f", True)
+        cal.record("a", "f", True)
+        cal.record("a", "f", False)
+        cal.record("b", "g", True)
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "cal.json")
+            cal.dump(p)
+            cal._counts.clear()
+            cal.load(p)
+            self.assertAlmostEqual(cal.score("a", "f"), cal.score("a", "f"))
+            self.assertAlmostEqual(cal.score("b", "g"), cal.score("b", "g"))
+
+    def test_more_trials_same_rate_scores_higher(self):
+        import router.calibration as cal
+        # 8/10 = 0.8 rate
+        for _ in range(8):
+            cal.record("a", "f", True)
+        for _ in range(2):
+            cal.record("a", "f", False)
+        s1 = cal.score("a", "f")
+        # 80/100 = 0.8 rate, more trials
+        for _ in range(72):
+            cal.record("b", "f", True)
+        for _ in range(18):
+            cal.record("b", "f", False)
+        s2 = cal.score("b", "f")
+        self.assertGreater(s2, s1)
+
+
 if __name__ == "__main__":
     unittest.main()
