@@ -74,12 +74,13 @@ def fronts(rs):
     """(front, provisional, rescore) over valid proposals, on their task's accuracy-cost front: no other valid proposal on
     the same task at least as accurate (within the candidate's 1 SE) and cheaper in whole-run Ir/item. confirm/PLAN.md
     rule 2, applied among proposals; beats-linear alone rewarded 30-266x instruction blowups (GLM F101).
-    A result scored before the whole-run count was recorded competes with a lower bound: its marginal cost plus the
-    smallest startup cost measured on its task (review 2026-11-22: leaving such results out put 5 points on the front
+    A result scored before the whole-run count was recorded competes with its marginal cost plus the task's measured
+    startup floor (the smallest startup cost measured there; the do-nothing baseline's is about the same, so only a
+    libc-free program could start cheaper) (review 2026-11-22: leaving such results out put 5 points on the front
     that they beat by more than any startup spread). Then:
       front: has the whole-run count and nothing beats it;
       provisional: has it, and only lower-bound results beat it (a rescore of those decides);
-      rescore: has no whole-run count and nothing beats its lower bound."""
+      rescore: has no whole-run count and nothing beats it at that floor."""
     v = [dict(r) for r in rs if r.get("valid") and r.get("ir_per_item") and "mean" in r]
     low = {}
     for r in v:
@@ -99,7 +100,7 @@ def front(rs):
 
 
 def recount(rs):
-    """Old results (no whole-run count) on the front by their lower bound: listed for a rescore, never dropped."""
+    """Old results (no whole-run count) on the front at the measured startup floor: listed for a rescore, never dropped."""
     return fronts(rs)[2]
 
 
@@ -146,8 +147,8 @@ def board(d):
              f"included; the marginal Ir/item is shown, not ranked).", "",
              f"Distinct designs: {distinct} (of {k} valid).", ""]
     if rc or prov:
-        lines += [f"Scored before the whole-run count was recorded, on the front by a lower bound (marginal Ir/item plus "
-                  f"the task's smallest measured startup cost; front column 'rescore'): {len(rc)}"
+        lines += [f"Scored before the whole-run count was recorded, on the front at the task's measured startup floor "
+                  f"(marginal Ir/item plus the smallest startup cost measured on the task; front column 'rescore'): {len(rc)}"
                   + (f" ({', '.join(sorted(rc))})" if rc else "") + f". Beaten only by those, so decided by their rescore "
                   f"(front column 'provisional'): {len(prov)}.", ""]
     if pending:
