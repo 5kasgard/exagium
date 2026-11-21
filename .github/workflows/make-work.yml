@@ -24,6 +24,7 @@ jobs:
         if: steps.pause.outputs.paused != '1'
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          ROUTER_PAID_CALLS: "anthropic:6"   # = the reservation: split.py asks at most MAX_PARENTS (6) parents (it reserved 2 and made up to 6: audit R3 F1)
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -31,7 +32,7 @@ jobs:
           git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/gl" FETCH_HEAD
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD
           acc=0
-          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:2:6,openrouter:1"; then
+          if python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:6:6,openrouter:1"; then
             python3 -I worker/split.py "$RUNNER_TEMP/gq" . "$RUNNER_TEMP/split" | tee "$RUNNER_TEMP/split.log" || true
             python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || echo "ledger record exit $?"
             cat "$RUNNER_TEMP/split/split.json" 2>/dev/null | head -c 6000

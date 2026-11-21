@@ -182,6 +182,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # P31: the research checker's decision model (prompt text only)
           TYPE: ${{ needs.claim.outputs.type }}
           PAID_FALLBACK: ${{ needs.claim.outputs.paid }}   # 1 when the claim reserved paid reader fallbacks (dollar-capped ledger pool)
+          ROUTER_PAID_CALLS: ${{ needs.claim.outputs.paid == '1' && 'openrouter_paid:3' || '' }}   # = the claim's reservation (openrouter_paid:3:8), retries included
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py draft job
           elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py draft job
@@ -418,11 +419,12 @@ jobs:
         if: needs.claim.result == 'success' && needs.claim.outputs.item == ''
         env:
           CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}       # the splitter's draft (prompt text only; nothing is run here)
+          ROUTER_PAID_CALLS: "anthropic:6"   # = the reservation: split.py asks at most MAX_PARENTS (6) parents (it reserved 2 and made up to 6: audit R3 F1)
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}   # the gate
         run: |
           echo "accepted=0" >> "$GITHUB_OUTPUT"
           [ -d "$RUNNER_TEMP/gl" ] || { git fetch -q origin worker-runs && git worktree add -q --detach "$RUNNER_TEMP/gl" FETCH_HEAD; }
-          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:2:6,openrouter:1" || { echo "no budget: not splitting"; exit 0; }
+          python3 -I worker/ledger.py reserve "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "anthropic:6:6,openrouter:1" || { echo "no budget: not splitting"; exit 0; }
           [ -d "$RUNNER_TEMP/gq" ] || { git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/gq" FETCH_HEAD; }
           rc=0; python3 -I worker/split.py "$RUNNER_TEMP/gq" . "$RUNNER_TEMP/split" | tee "$RUNNER_TEMP/split.log" || rc=$?
           python3 -I worker/ledger.py record "$RUNNER_TEMP/gl" "split-$GITHUB_RUN_ID" "$RUNNER_TEMP/split/calls.jsonl" || echo "ledger record exit $?"

@@ -167,6 +167,27 @@ class PauseStopsSpending(unittest.TestCase):
         idle = w["jobs"]["idle"]["if"]
         self.assertIn("needs.claim.outputs.stopped == ''", idle)   # so a stop reason (now: paused) keeps the idle job off
 
+
+class PaidAllowanceMatchesReservation(unittest.TestCase):
+    """Audit 2026-11-21 (R3 F1): a step that runs a paid caller sets ROUTER_PAID_CALLS equal to the calls it reserves;
+    without it every paid request is refused and the job stops quietly (review 2026-11-22)."""
+    def test_allowance_equals_reservation(self):
+        import re
+        wf = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows")
+        seen = 0
+        for f in ("tier.yml", "make-work.yml", "worker.yml"):
+            for job in yaml.safe_load(open(os.path.join(wf, f)))["jobs"].values():
+                for st in job.get("steps", []):
+                    run = st.get("run", "")
+                    if not re.search(r"worker/(tier|split)\.py", run):
+                        continue
+                    seen += 1
+                    allow = dict(x.split(":") for x in str((st.get("env") or {}).get("ROUTER_PAID_CALLS", "")).split(",") if ":" in x)
+                    res = re.findall(r'ledger\.py reserve [^\n]*?"anthropic:(\d+):', run)
+                    self.assertTrue(res, f"{f}: no anthropic reservation next to {run[:60]!r}")
+                    self.assertEqual(allow.get("anthropic"), res[0], f"{f}: allowance {allow} vs reservation {res}")
+        self.assertEqual(seen, 3)   # tier, the make-work split, the idle split
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -127,7 +127,8 @@ class Scrub(unittest.TestCase):
             seen.append(body.get("provider"))
             return replies.pop(0)
         with mock.patch.object(engines, "_post", fake), mock.patch.object(engines, "paid_guard"), \
-                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": os.devnull}):
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": os.devnull, "ROUTER_PAID_CALLS": "openrouter_paid:2"}), \
+                mock.patch.object(engines, "_PAID_USED", {}):
             r = engines.call("openrouter", "deepseek/x", "hi", allow_paid=True)
         self.assertEqual((r["text"], seen), ("ok", [None, {"ignore": ["Cohere"]}]))
 
@@ -137,7 +138,8 @@ class Scrub(unittest.TestCase):
             log = os.path.join(d, "u.jsonl")
             with mock.patch.object(engines, "_post", return_value=(200, {"choices": [{"message": {"content": "ok"}}]})), \
                     mock.patch.object(engines, "paid_guard"), \
-                    mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": log}):
+                    mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_USAGE_LOG": log, "ROUTER_PAID_CALLS": "openrouter_paid:2"}), \
+                    mock.patch.object(engines, "_PAID_USED", {}):
                 r = engines.call("openrouter", "z-ai/glm-5.3-flash", "hi", allow_paid=True)
             self.assertEqual(r["engine"], "openrouter_paid")
             self.assertEqual(json.loads(open(log).read())["engine"], "openrouter_paid")
@@ -267,6 +269,34 @@ class ProbeUnderCaps(unittest.TestCase):
         self.assertTrue(calls and all(not r["ok"] for r in calls), recs)
         self.assertTrue(any("refused by spend cap" in (r.get("error") or "") for r in recs), recs)
 
+
+
+class PaidAllowance(unittest.TestCase):
+    """Audit 2026-11-21 (R3 F1): paid requests are capped where they are made, at the run's allowance; none set means none."""
+    def test_anthropic(self):
+        sent = []
+        with mock.patch.object(engines, "_post", lambda u, b, h: sent.append(1) or (200, {"content": [{"type": "text", "text": "ok"}], "usage": {}})), \
+                mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"CLAUDE_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
+            self.assertFalse(engines.anthropic_call("claude-haiku-5-5", "hi")["ok"])   # no allowance set: refused, not sent
+            self.assertEqual(sent, [])
+        with mock.patch.object(engines, "_post", lambda u, b, h: sent.append(1) or (200, {"content": [{"type": "text", "text": "ok"}], "usage": {}})), \
+                mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"CLAUDE_API_KEY": "k", "ROUTER_PAID_CALLS": "anthropic:2"}):
+            oks = [engines.anthropic_call("claude-haiku-5-5", "hi")["ok"] for _ in range(3)]
+        self.assertEqual((oks, len(sent)), ([True, True, False], 2))
+
+    def test_openrouter_retry_counts(self):
+        replies = [(200, {"provider": "C", "choices": [{"message": {"content": ""}}], "usage": {"cost": 0.004}})] * 3
+        sent = []
+        with mock.patch.object(engines, "_post", lambda u, b, h: sent.append(1) or replies[0]), mock.patch.object(engines, "paid_guard"), \
+                mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": "openrouter_paid:1"}):
+            engines.call("openrouter", "deepseek/x", "hi", allow_paid=True)   # the empty reply would retry: no allowance left
+            r = engines.call("openrouter", "deepseek/x", "hi", allow_paid=True)
+        self.assertEqual((len(sent), r["ok"]), (1, False))
+
+    def test_free_models_need_no_allowance(self):
+        with mock.patch.object(engines, "_post", lambda u, b, h: (200, {"choices": [{"message": {"content": "ok"}}]})), \
+                mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
+            self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
 if __name__ == "__main__":
     unittest.main()
