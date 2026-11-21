@@ -114,6 +114,21 @@ class Research(unittest.TestCase):
         self.assertEqual(len(ok), 1)
         self.assertEqual(len(dropped), 7)
 
+    def test_quote_typography_is_not_a_mismatch(self):
+        # R27/R31 2026-11-21: the reader wrote U+2011 for '-', arXiv kept LaTeX '70\%', and a quote ended with an added '.'
+        src = [{"sid": "S1", "abstract": "routing across a pool of real-world models cuts cost by up to 70\\% on math, and more"}]
+        good = "routing across a pool of real‑world models cuts cost by up to 70% on math."
+        ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
+                                  {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
+        self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
+        # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
+        c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
+        ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
+                                  c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
+        self.assertEqual((len(ok), len(dropped)), (1, 3))
+        self.assertFalse(R.whole_in("training costs up to 1", "training costs up to 1,000 dollars"))
+
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
         for bad in ("http", "<", "@someone", "#12", "](", "\n"):
@@ -1291,6 +1306,30 @@ class Relevance(unittest.TestCase):
             self.assertEqual(RJ.relevance("q", pool, []), [0.8, 0.2])
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.2, 0.1, 0.8, 0.2])):
             self.assertIsNone(RJ.relevance("q", pool, []))   # the question itself judged off-topic: not used
+        self.assertIn("controls wrong (question 0.20", RJ.REL_FAIL[0])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8])):
+            self.assertIsNone(RJ.relevance("q", pool, []))
+        self.assertEqual(RJ.REL_FAIL, ["batch 1 of 1: 1 of 4 answers missing"])
+
+    def test_failed_filter_means_no_reader_call_and_a_retry(self):
+        # 2026-11-21: 5 of 8 research runs lost the filter (reason unseen), read unfiltered sources, found nothing, and
+        # each "no claims" went to the paid tier. Now: a recorded model failure (failed_call: the item reopens), no reader call.
+        import research_job as RJ
+        from unittest import mock
+        item = {"id": "R99", "research": {"question": "q"}, "touches": ["research/cards/R99.md"]}
+        d = {"item": item, "sources": [{"sid": "S1", "title": "t", "abstract": "a", "kind": "paper"}], "log": [],
+             "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        def fail(q, pool, calls):
+            RJ.REL_FAIL[:] = ["batch 1 of 1: 1 of 3 answers missing"]
+        with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as repo, \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch.object(RJ, "relevance", fail), \
+                mock.patch.object(RJ.slots, "run", side_effect=AssertionError("reader called")):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, d, "q", [], None)
+            RJ.card(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+        self.assertEqual(res["result"], "failed_call")
+        self.assertEqual(res["why"], ["relevance filter failed: batch 1 of 1: 1 of 3 answers missing"])
 
     def test_nothing_on_topic_means_no_reader_call(self):
         import research_job as RJ
