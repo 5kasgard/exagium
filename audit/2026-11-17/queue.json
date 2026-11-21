@@ -12820,7 +12820,7 @@
    "id": "K47",
    "title": "Worker cards: pure size check per (pool, model)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-21T16:49:54Z",
@@ -12840,7 +12840,7 @@
     "worker/cards.py",
     "worker/test_worker.py"
    ],
-   "next": "Create worker/cards.py (under 80 lines, stdlib only) with a CARDS dict keyed by (pool, model) holding max_input_chars and max_output_tokens, each entry with a 'source' string: a provider doc URL, or 'observed' with the run date and evidence. Enter a limit only if it can be cited (the 2026-11-19 Nemotron cut-off at max_tokens 16000 may be recorded as observed truncation); otherwise leave it out. Add check_size(pool, model, prompt_chars, max_tokens) returning ('ok', None), ('split', parts) when prompt_chars exceeds the input limit, or ('refuse', reason) when max_tokens exceeds the output limit or the model has no card. Add class CardsSize to worker/test_worker.py that checks: a small prompt is ok, an oversize prompt is split with the right part count, max_tokens above the output limit is refused, and an unknown model is refused.",
+   "next": "Create worker/cards.py (under 80 lines, stdlib only) with a CARDS dict keyed by (pool, model) holding max_input_chars and max_output_tokens, each entry with a 'source' string: a provider doc URL, or 'observed' with the run date and evidence. Enter a limit only if it can be cited (the 2026-11-19 Nemotron cut-off at max_tokens 16000 may be recorded as observed truncation); otherwise leave it out. Add check_size(pool, model, prompt_chars, max_tokens) returning ('ok', None), ('split', parts) when prompt_chars exceeds the input limit, or ('refuse', reason) when max_tokens exceeds the output limit or the model has no card. Add class CardsSize to worker/test_worker.py that checks: a small prompt is ok, an oversize prompt is split with the right part count, max_tokens above the output limit is refused, and an unknown model is refused. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: worker/cards.py, worker/test_worker.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -12903,6 +12903,12 @@
      "at": "2026-11-21T23:11:16Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-21T23:12:57Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #74 not merged: files a person merges, or not the item's own: worker/cards.py, worker/test_worker.py; model verdict: reject; model: The Nemotron entry's max_input_chars of 128_000 has no citation; the only evidence is the observed output truncation at max_tokens 16000, and the item says to enter a limit only if"
     }
    ],
    "work_types": {
