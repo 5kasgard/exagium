@@ -240,5 +240,15 @@ def mock_task(R):
     return mock.patch.object(R, "task", return_value={"name": "t"})
 
 
+
+class MarginalGuard(unittest.TestCase):
+    """Audit 2026-11-21 (R4 F2): atk-n0burn burned 240M instructions only when N = 0 and was accepted at -250,724 Ir/item."""
+    def test_marginal_problem(self):
+        import run
+        self.assertIsNone(run.marginal_problem(444_175 + 240_136_328, 240_136_328))
+        self.assertIn("no more than", run.marginal_problem(444_175, 240_136_328))   # the audit's numbers
+        self.assertIn("no more than", run.marginal_problem(10, 10))
+        self.assertIn("not counts", run.marginal_problem(None, 10))
+
 if __name__ == "__main__":
     unittest.main()

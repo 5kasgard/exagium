@@ -265,6 +265,9 @@ def cmd_evaluate(a):
             # F052: the counted run must be the run that was scored, else the instruction count measures another program
             if sha_n != hashlib.sha256(out).hexdigest() or sha_0 != hashlib.sha256(out0).hexdigest():
                 raise Failed(f"{c['name']}: output under the counter differs from the native output")
+            why = marginal_problem(ir_n, ir_0)
+            if why:
+                raise Failed(f"{c['name']}: {why}")
             res[c["name"]] = dict(weights_sha256=hashlib.sha256(w).hexdigest(), weights_bytes=len(w),
                                   code={f: sha_file(os.path.join(c["dir"], f)) for f in CODE},
                                   items=items, output_b64=base64.b64encode(out).decode(),
@@ -321,6 +324,17 @@ def cmd_evaluate(a):
     for name, r in sorted(res.items(), key=lambda kv: -kv[1]["mean"]):
         print(f"  {name:14s} {r['mean']:.4f} ± {r['se'] or 0:.4f}  Ir/item {r['ir_per_item']:10.1f}  "
               f"ns/item {r['ns_per_item']:9.1f}  above floor: {r['above_floor']}")
+
+
+def marginal_problem(ir_n, ir_0):
+    """Audit 2026-11-21 (R4 F2, GLM F054): the run with N items does all the N = 0 run does and more, so it cannot count
+    fewer instructions. A candidate that burns instructions only when N = 0 got -250,724 Ir per item and was accepted,
+    and a negative cost heads the leaderboard front. None when the pair is possible."""
+    if not (isinstance(ir_n, int) and isinstance(ir_0, int)) or ir_0 < 0:
+        return f"instruction counts are not counts (N: {ir_n!r}, N = 0: {ir_0!r})"
+    if ir_n <= ir_0:
+        return f"the run with N items counted {ir_n} instructions, no more than the N = 0 run's {ir_0}: work was moved into the N = 0 run"
+    return None
 
 
 def main(argv=None):
