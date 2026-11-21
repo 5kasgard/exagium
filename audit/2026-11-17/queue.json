@@ -13649,6 +13649,77 @@
    },
    "work_types_key": "62aff2fc59a39acf",
    "work_types_at": "2026-11-21T21:08:06Z"
+  },
+  {
+   "id": "K53",
+   "title": "Parse a 429 reply into a pool reset time (pure function, new module)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P8",
+   "generated_at": "2026-11-21T22:12:48Z",
+   "code": {
+    "files": [
+     "worker/exhaust.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "worker/digest.py",
+     "router/engines.py"
+    ],
+    "new": [
+     "worker/exhaust.py"
+    ]
+   },
+   "touches": [
+    "worker/exhaust.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Create worker/exhaust.py (under 80 lines, stdlib only) with reset_time(status, headers, now) that takes an HTTP status, a dict of lower-cased response headers, and `now` as epoch seconds (int or float, never a datetime). Return None unless status is 429. Otherwise return now + the first valid number from the retry-after header (seconds), or now + 60 if absent or not a number. Add a class Exhaust to test_worker.py that checks: 429 with retry-after '30' at now=1000 gives 1030; 429 with no header gives 1060; 200 gives None; a non-numeric retry-after gives 1060. The test must not subtract a datetime from a float.",
+   "refs": [
+    "queue P8",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K54",
+   "title": "Writer-clustered SE helper (small piece: the function only)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "Q81",
+   "generated_at": "2026-11-21T22:12:48Z",
+   "code": {
+    "files": [
+     "runner/records.py"
+    ],
+    "test": "runner/test_runner.py",
+    "context": [
+     "runner/run.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/records.py",
+    "runner/test_runner.py"
+   ],
+   "next": "Add a pure function clustered_se(values, writers) to runner/records.py. It takes per-item values and the writer id of each item, and returns the standard error of the mean with the variance summed within each writer cluster, using the usual small-sample factor G/(G-1) with (n-1)/(n-k) (k = number of parameters, 1 for a mean). It returns None when there are fewer than 2 writers. Use the same mean-SE convention as summarise() in probe/probe.py. Add a test in runner/test_runner.py to show it is right: (a) if every writer contributes identical values, the clustered SE is 0 while the naive per-item SE is larger; (b) with one writer only, it returns None; (c) with items that have no writer id, the caller must not call it (the function raises ValueError on a None writer). Do not touch the plan-2 or P5 comparisons in this step.",
+   "refs": [
+    "queue Q81",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "medium",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
