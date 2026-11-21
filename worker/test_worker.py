@@ -739,10 +739,28 @@ class ExperimentLoop(unittest.TestCase):
     def test_scheduled_with_no_run_expires_as_lost(self):
         import queue_ops as QO, datetime as dt
         t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
-        old = {"id": "X2", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(hours=QO.SCHEDULED_TTL_H + 1)), "outcome": "dispatch"}]}
-        new = {"id": "X3", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(hours=1)), "outcome": "dispatch"}]}
+        old = {"id": "X2", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=QO.SCHEDULED_TTL_H + 1)), "outcome": "dispatch"}]}
+        new = {"id": "X3", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=1)), "outcome": "dispatch"}]}
         self.assertEqual(QO.expire({"items": [old, new]}, t), ["X2"])
         self.assertEqual((old["status"], old["runs"][-1]["outcome"], new["status"]), ("open", "lost", "scheduled"))
+
+    def test_owner_scheduled_items_wait(self):
+        """Review 2026-11-21: 'scheduled' is also the owner's decide_scheduled; days-old ones must stay put."""
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X5", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        j = {"id": "X6", "status": "scheduled", "experiment": {"name": "x"},
+             "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        self.assertEqual(QO.expire({"items": [i, j]}, t), [])
+
+    def test_a_late_result_is_recorded_not_moved(self):
+        import queue_ops as QO
+        from unittest import mock
+        q = {"items": [{"id": "X7", "status": "open", "experiment": {"name": "x"}, "runs": []}]}
+        with mock.patch.object(QO, "sync"), mock.patch.object(QO, "load", return_value=q), mock.patch.object(QO, "save"), \
+                mock.patch.object(QO, "commit_push", return_value=True):
+            self.assertEqual(QO.move("wt", "experiment", "X7", "verdict", "holds"), 0)
+        self.assertEqual((q["items"][0]["status"], q["items"][0]["runs"][-1]["outcome"]), ("open", "late_result"))
 
     def test_in_progress_with_no_claim_counts_toward_escalation(self):
         import queue_ops as QO, transitions as T, datetime as dt
