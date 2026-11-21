@@ -140,7 +140,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B2 Router: spend caps and usage log | all done | - |  | Both in router/engines.py: one edit, one test file, one live probe, one review. P5 (proposer) also edits engines.py, so B2 lands before B3. | Small Claude change plus router tests; free review; the live probe on CI checks it. |
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 
-## Can run now (66)
+## Can run now (67)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -173,6 +173,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R28 | B9 |  | minor | high | test | On handwritten digit recognition benchmarks such as optdigits, how do confidence-gated two-stage cascades of heterogeneous classifiers, with thresholds selected | Worker job (research): literature card for P12. Why: It directly informs whether a training-only-threshold two-stage cascade can beat the best single candidate on accuracy per unit cost for optdigits. | queue P12; queue P27 (generator) |
 | R29 | B1 |  | minor | high | test | What published methods combine mutation-tested sandbox conformance suites, defense-in-depth and least-privilege design, syscall/argument fuzzing, and evaluator- | Worker job (research): literature card for P18. Why: It identifies evidence-backed test and monitoring patterns for the queued jail-assurance work without changing current implementation. | queue P18; queue P27 (generator) |
 | R30 | B9 |  | minor | high | test | What published methods convert trained classifiers into straight-line C, lookup tables, or rule sets, and how do they verify per-input output agreement with the | Worker job (research): literature card for P19. Why: It identifies established distillation-to-code and equivalence-checking techniques that can guide the first optdigits test. | queue P19; queue P27 (generator) |
+| R31 | B3 |  | minor | high | test | How can task difficulty and worker capability be jointly estimated before execution so each task is routed to the cheapest model-harness-tool configuration pred | Worker job (research): literature card for P20. Why: It informs the design of worker cards, pre-assignment demand estimation, and IRT-based routing to the cheapest predicted-success worker. | queue P20; queue P27 (generator) |
 | K45 | B3 |  | minor | medium | fix | Give the timed run the counted run's HOME as well as its cwd | In runner/run.py, move the cwd and HOME settings that count() uses into one helper that both count() and timed() call, so timed() sets HOME to the same value count() sets (not the caller's HOME). Test in runner/test_runner.py (add to the class that covers run.py): patch the timer and the valgrind launcher with fakes that record os.getcwd() and os.environ['HOME'] inside the jailed process, call count() and timed() on the same candidate and input, and assert both recorded pairs are equal and that HOME is not the caller's HOME. The test must fail on the current timed() code, which leaves HOME unchanged. | queue Q79; worker/split.py |
 | K46 | B3 |  | minor | medium | fix | Give the timed run the same visible input files as the counted run | In runner/run.py, make timed() stage its input files into a fresh sandbox directory with the same file set and names count() stages, instead of running in a directory that shows other files. Test in runner/test_runner.py: with a fake timer that writes a sorted listing of the directory it runs in, call count() and timed() on the same inputs and assert the two listings are identical and contain only the staged inputs. The test must fail on the current timed() code, where the listing differs. | queue Q79; worker/split.py |
 | K48 | B3 |  | minor | medium | fix | Add a calibration registry module (outcomes per actor and task family, Wilson lower bound as the score) | Create router/calibration.py, under 80 lines, standard library only. Provide record(actor, family, ok) that counts successes and trials per (actor, family) pair, score(actor, family) that returns the Wilson lower bound at z=1.96 (0.0 when there are no trials), and dump(path) and load(path) that write and read the counts as JSON. Add tests to router/test_router.py: after 8 successes in 10 trials, score is about 0.49; with 0 trials, score is 0.0; dump then load gives the same scores; and a family with more trials and the same rate scores higher. | queue P26c; worker/split.py |
@@ -245,12 +246,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R32 | B3 |  | minor | high | test | How can systems derive and document per-model safe input/output token limits from provider documentation and observed request logs, then enforce them with a pre | Worker job (research): literature card for P20a. Why: It identifies published methods for sourcing, measuring, and enforcing model-specific token limits that can directly populate worker cards and the pre-call size check. | queue P20a; queue P27 (generator) |
-
-## Escalated (a check failed; the next tier takes it) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| R31 | B3 |  | minor | high | test | How can task difficulty and worker capability be jointly estimated before execution so each task is routed to the cheapest model-harness-tool configuration pred | Worker job (research): literature card for P20. Why: It informs the design of worker cards, pre-assignment demand estimation, and IRT-based routing to the cheapest predicted-success worker. | queue P20; queue P27 (generator) |
 
 ## Needs the owner (15)
 
