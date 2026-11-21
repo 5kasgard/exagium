@@ -204,7 +204,7 @@ def _two_requests(a, b):
     out = {"requests": 2}
     for k in ("prompt_tokens", "completion_tokens", "total_tokens", "cost"):
         vals = [u[k] for u in (a, b) if isinstance(u.get(k), (int, float))]
-        if vals:
+        if vals and (k != "cost" or len(vals) == 2):   # one cost missing: leave it out, so the ledger books 2 estimates
             out[k] = round(sum(vals), 6) if k == "cost" else sum(vals)
     return out
 

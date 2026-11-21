@@ -682,6 +682,7 @@ class GLMReview20261120(unittest.TestCase):
             LG.record(wt, "run-1", os.path.join(wt, "calls.jsonl"))
             e = json.load(open(p))["openrouter_paid"]
         self.assertEqual((e["calls"], e["usd"], e["tokens"]), (2, 0.007, 17))
+
     def test_f036_exception_moves_down_the_chain(self):
         import slots
         seen = []
