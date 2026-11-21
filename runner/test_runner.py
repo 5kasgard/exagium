@@ -37,6 +37,21 @@ class Records(unittest.TestCase):
                 records.unpack(bad, **kw)
 
 
+class CallStats(unittest.TestCase):
+    def test_mixed_records(self):
+        recs = [
+            {"pool": "engine1", "model": "m1", "finish_reason": "length", "output_tokens": 100},
+            {"engine": "engine1", "model": "m1", "stop_reason": "max_tokens", "usage": {"completion_tokens": 200}},
+            {"pool": "engine1", "model": "m1", "finish": "stop", "output_tokens": 10},
+            {"pool": "engine2", "model": "m2", "finish_reason": "stop", "output_tokens": 20},
+            {"pool": "engine2", "model": "m2", "finish_reason": "stop"},  # missing token count
+        ]
+        stats, skipped = records.call_stats(recs)
+        self.assertEqual(skipped, 1)
+        self.assertEqual(stats[("engine1", "m1")], {"calls": 3, "truncated": 2, "max_output_tokens": 10})
+        self.assertEqual(stats[("engine2", "m2")], {"calls": 1, "truncated": 0, "max_output_tokens": 20})
+
+
 class LabelChecker(unittest.TestCase):
     def test_scores(self):
         rc, s = run_check(LABEL_CHECK, [b"x", b"y"], [b"\x01", b"\x02"], records.pack([b"\x01", b"\x03"]))
