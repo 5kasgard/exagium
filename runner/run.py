@@ -233,11 +233,12 @@ def cmd_evaluate(a):
     if a.split == "test":
         if a.plan is None:
             raise Failed("--split test needs --plan SEQ")
-        plan = require_plan(a.plan, t, cs)
     elif a.split != "dev":
         raise Failed("--split must be dev or test")
     work = tempfile.mkdtemp(prefix="exagium-runner-")
     try:
+        if a.split == "test":
+            plan = require_plan(a.plan, t, cs)
         timer = os.path.join(work, "timer")
         L.build(L.TIMER, timer)
         cpu = sorted(os.sched_getaffinity(0))[-1]
