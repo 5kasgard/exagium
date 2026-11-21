@@ -251,7 +251,10 @@ def draft(out):
                 n = apply_edits(b["files"], e) if e else None
             except ValueError as x:
                 n, e, w = None, [], w + [str(x)]
-            return e, w, n, (w if not e else []) + static_problems(b["files"], n)
+            only_test = bool(e) and {x["path"] for x in e} <= {b.get("test")} and any(p != b.get("test") for p in b["files"])
+            return e, w, n, (w if not e else []) + static_problems(b["files"], n) + (
+                [f"the edits change only the test file {b.get('test')}; the item needs the change itself in "
+                 f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else [])
         edits, why, new, problems = checked(proposal)
         repaired = None
         if problems and proposal.get("edits"):   # one repair round with the problems written in (owner 2026-11-21: code lands least)

@@ -926,5 +926,29 @@ class SplitTypes(unittest.TestCase):
         self.assertIsNone(SP.check(dict(base, experiment="other"), lines, tests)[0])
 
 
+
+class OnlyTestEdits(unittest.TestCase):
+    """2026-11-21 morning: G19, G21, G22 changed only the test file; the reviewer rejected each, twice."""
+    def test_test_only_edit_is_a_problem(self):
+        import code_job as C, slots
+        from unittest import mock
+        only = "<<<<<<< SEARCH t/test_a.py\n# t\n=======\n# t2\n>>>>>>> REPLACE\nNOTE: n"
+        fixed = only.replace("NOTE: n", "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 2\n>>>>>>> REPLACE\nNOTE: n")
+        replies = iter([only, fixed])
+        def fake_run(slot, prompt, ask, parse):
+            if slot == "coder":
+                t = next(replies)
+                return parse(t), {"text": t}, [{"pool": "p"}]
+            return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+        with tempfile.TemporaryDirectory() as d:
+            json.dump({"item": {"id": "K2", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "t/test_a.py": "# t\n"},
+                       "test": "t/test_a.py", "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+            with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                C.draft(d)
+            r = json.load(open(os.path.join(d, "draft.json")))
+        self.assertIn("only the test file", r["repair"]["before"][0])
+        self.assertEqual(len(r["proposal"]["edits"]), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
