@@ -992,5 +992,15 @@ class Relevance(unittest.TestCase):
             self.assertIn("no relevant sources", json.load(open(os.path.join(out, "read.json")))["error"])
 
 
+class RunnerTypesDoc(unittest.TestCase):
+    """F107: README must not call matrix job slots runner types."""
+    def test_readme_reports_runner_types_and_job_slots(self):
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "README.md")
+        text = open(p).read()
+        self.assertNotIn("loop on 6 runner types, counter on 8", text)
+        self.assertIn("2 runner types", text)
+        self.assertIn("job slots", text)
+
+
 if __name__ == "__main__":
     unittest.main()

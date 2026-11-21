@@ -21,7 +21,7 @@ An exagium was the official Roman and Byzantine standard weight against which a 
 5. **[`record/`](record/)** keeps plans and verdicts in an append-only, hash-chained [`ledger/`](ledger/). One CI job writes it, and Sigstore and OpenTimestamps anchor it. A verdict is given by someone other than the claimant.
 6. **[`router/`](router/)** connects free model pools, measures which ones work, and runs pre-registered agent benches: sealed, timed coding tasks that test which free model and agent harness can do real work on this repo (the `router-runs` branch holds the raw data).
 
-Everything runs on free compute: GitHub Actions runners (loop on 6 runner types, counter on 8), plus free model tiers.
+Everything runs on free compute: GitHub Actions runners (2 runner types; loop on 6 job slots, counter on 8), plus free model tiers.
 
 ## Progress
 | Date (2026) | Step | Evidence |
@@ -62,7 +62,7 @@ Each kind of work goes to the cheapest worker that measurably does it well. The 
 
 | Work | Worker | Evidence |
 |---|---|---|
-| Measuring, scoring, training, recording | GitHub Actions CPU (free; loop on 6 runner types, counter on 8) | loop 23 of 24 runs ok; counter 21 of 21 |
+| Measuring, scoring, training, recording | GitHub Actions CPU (free; 2 runner types, loop on 6 job slots and counter on 8) | loop 23 of 24 runs ok; counter 21 of 21 |
 | Agent coding (fixes, candidates) | Nemotron 3 Ultra (OpenRouter free, about 1,000 requests/day); NIM-hosted agents | bench-2 3/3; bench-5 11/15 |
 | Outside review of code and claims | gpt-oss-120b (Cloudflare free) | found a real bug in `scale.py` on Nov 18; 3 of 8 points applied in bench-5 |
 | Short checks | Groq gpt-oss-120b (free, 8,000 tokens/min) | probe answers exactly |
