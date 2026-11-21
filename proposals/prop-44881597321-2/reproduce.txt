@@ -1,0 +1,15 @@
+FAILED: prop-44881597321-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 113, in <module>
+    main()
+  File "/w/train.py", line 50, in main
+    all_buckets = [get_buckets(X[i]) for i in range(n)]
+                   ^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 36, in get_buckets
+    buckets.append(hash_ngram(ctx[start:start + L]))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 27, in hash_ngram
+    h = (h * 31 + b) & 0xFFFFFFFF
+        ~~~~~~~~~~~~~^~~~~~~~~~~~
+OverflowError: Python integer 4294967295 out of bounds for uint8
+
