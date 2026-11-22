@@ -1,5 +1,5 @@
 """Tests for the contract's untrusted-byte paths: python3 -m unittest runner/test_runner.py (stdlib + numpy)."""
-import json, os, re, subprocess, sys, tempfile, unittest
+import hashlib, json, os, re, subprocess, sys, tempfile, unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -239,6 +239,49 @@ def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
 
+
+
+class TimedStagesCountedInputs(unittest.TestCase):
+    """K46: the timed run must see exactly the files the counted run sees (no timer beside the candidate)."""
+    def test_same_visible_files(self):
+        import types
+        from unittest import mock
+        import run as R
+
+        listings = []
+
+        def fake_jail(argv, mounts, *a, **kw):
+            src = mounts[0][0]
+            if any(str(x).endswith("count.py") for x in argv):
+                out = subprocess.run(["./infer"], cwd=src, capture_output=True, check=True).stdout
+                listings.append(out.decode().splitlines())
+                body = {"reps": [{"counts": {"Ir": 5}, "stdout_sha256": hashlib.sha256(out).hexdigest()}]}
+                body["digest_sha256"] = R.L.sha256_bytes(
+                    json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode())
+                return types.SimpleNamespace(returncode=0, stdout=(json.dumps(body) + "\n").encode(), stderr=b"")
+            tdir = next((s for s, dst, _ in mounts if dst == "/timer"), None)
+            timer = os.path.join(tdir, "timer") if tdir else os.path.join(src, "timer")
+            out = subprocess.run([timer], cwd=src, capture_output=True, check=True).stdout
+            listings.append(out.decode().splitlines())
+            return types.SimpleNamespace(returncode=0, stdout=out + b"\nexagium-timer 1 0 0 -1\n", stderr=b"")
+
+        with tempfile.TemporaryDirectory() as d:
+            exe, timer = os.path.join(d, "exe"), os.path.join(d, "timer")
+            script = "#!/bin/sh\nls -1 | sort\n"
+            for p in (exe, timer):
+                open(p, "w").write(script)
+                os.chmod(p, 0o755)
+            weights = os.path.join(d, "weights")
+            open(weights, "wb").write(b"w")
+            inp = os.path.join(d, "in.rec")
+            open(inp, "wb").write(b"")
+            c = {"name": "c", "exe": exe, "weights_path": weights}
+            with mock.patch.object(R.J, "jail", side_effect=fake_jail), \
+                    mock.patch.object(R.L, "JAIL", {"mode": "bwrap"}):
+                R.count(c, inp, 0, os.path.join(d, "rec"))
+                R.timed(c, inp, 0, timer, 0)
+        self.assertEqual(listings[0], listings[1])
+        self.assertEqual(set(listings[0]), {"infer", "weights.bin", "count.py", "in.rec"})
 
 
 class MarginalGuard(unittest.TestCase):

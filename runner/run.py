@@ -112,14 +112,18 @@ def train(c, t):
 
 def timed(c, inp, n, timer, cpu):
     """One jailed run under loop's timer: (output bytes, ns)."""
-    with tempfile.TemporaryDirectory(prefix="exagium-rrun-") as w:
+    with tempfile.TemporaryDirectory(prefix="exagium-rrun-") as w, \
+            tempfile.TemporaryDirectory(prefix="exagium-rtimer-") as td:
+        # K46: the timed run sees the same files, under the same names, as the counted run. The timer lives in its
+        # own mount so it is not visible in the worked directory.
         shutil.copy2(c["exe"], os.path.join(w, "infer"))
         shutil.copy2(c["weights_path"], os.path.join(w, "weights.bin"))
-        shutil.copy2(timer, os.path.join(w, "timer"))
+        shutil.copy2(L.COUNT, os.path.join(w, "count.py"))
         shutil.copy2(inp, os.path.join(w, "in.rec"))
+        shutil.copy2(timer, os.path.join(td, "timer"))
         # the timer forks, so it runs without the filter and adds it to its child, in both jail modes (Q10)
-        r = J.jail(["./timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)], [(w, "/w", False)],
-                   1800, seccomp=False)
+        r = J.jail(["/timer/timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)],
+                   [(w, "/w", False), (td, "/timer", False)], 1800, seccomp=False, cwd="/w")
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")
     f = tail.split()
     if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \
