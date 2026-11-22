@@ -250,5 +250,35 @@ class MarginalGuard(unittest.TestCase):
         self.assertIn("no more than", run.marginal_problem(10, 10))
         self.assertIn("not counts", run.marginal_problem(None, 10))
 
+
+class TimedHome(unittest.TestCase):
+    """K45: timed() must give its jailed run the same cwd and HOME count() gives, not the caller's HOME."""
+    def test_timed_matches_count(self):
+        from unittest import mock
+        import types
+        import run as R
+        rec = {"reps": [{"counts": {"Ir": 5}, "stdout_sha256": "x"}]}
+        body = {k: v for k, v in rec.items() if k != "digest_sha256"}
+        rec["digest_sha256"] = R.L.sha256_bytes(json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode())
+        line = (json.dumps(rec, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+        out = {"timer": b"\nexagium-timer 100 0 100 -1\n", "count": line}
+        calls, caller_home = [], os.environ.get("HOME")
+
+        def fake(cmd, *a, **k):
+            tag = "timer" if cmd[0] == "./timer" else "count"
+            calls.append((tag, os.getcwd(), os.environ.get("HOME")))
+            return types.SimpleNamespace(returncode=0, stdout=out[tag], stderr=b"")
+
+        c = {"name": "c", "exe": __file__, "weights_path": __file__}
+        with tempfile.TemporaryDirectory() as d:
+            inp = os.path.join(d, "in.rec")
+            open(inp, "wb").close()
+            with mock.patch.object(R.J, "jail", fake), mock.patch.object(R.subprocess, "run", fake):
+                R.count(c, inp, 0, d)
+                R.timed(c, inp, 0, __file__, 0)
+        self.assertEqual([t for t, _, _ in calls], ["count", "timer"])
+        self.assertEqual(calls[0][1:], calls[1][1:])
+        self.assertNotEqual(calls[0][2], caller_home)
+
 if __name__ == "__main__":
     unittest.main()

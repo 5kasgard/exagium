@@ -110,6 +110,32 @@ def train(c, t):
         return open(w, "rb").read()
 
 
+_jail_cwd_dir = None
+
+
+def jail_cwd():
+    """The cwd and HOME of jailed runs (count()'s pattern, K45): one fresh dir per process, used as both."""
+    global _jail_cwd_dir
+    if _jail_cwd_dir is None:
+        _jail_cwd_dir = tempfile.mkdtemp(prefix="exagium-jailcwd-")
+    return _jail_cwd_dir
+
+
+def in_jail_cwd(run):
+    """Run run() with jail_cwd() as the process's cwd and HOME, restored after; count() and timed() both use it (K45)."""
+    d, old_cwd, old_home = jail_cwd(), os.getcwd(), os.environ.get("HOME")
+    os.chdir(d)
+    os.environ["HOME"] = d
+    try:
+        return run()
+    finally:
+        os.chdir(old_cwd)
+        if old_home is None:
+            os.environ.pop("HOME", None)
+        else:
+            os.environ["HOME"] = old_home
+
+
 def timed(c, inp, n, timer, cpu):
     """One jailed run under loop's timer: (output bytes, ns)."""
     with tempfile.TemporaryDirectory(prefix="exagium-rrun-") as w:
@@ -118,8 +144,8 @@ def timed(c, inp, n, timer, cpu):
         shutil.copy2(timer, os.path.join(w, "timer"))
         shutil.copy2(inp, os.path.join(w, "in.rec"))
         # the timer forks, so it runs without the filter and adds it to its child, in both jail modes (Q10)
-        r = J.jail(["./timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)], [(w, "/w", False)],
-                   1800, seccomp=False)
+        r = in_jail_cwd(lambda: J.jail(["./timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)],
+                                       [(w, "/w", False)], 1800, seccomp=False))
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")
     f = tail.split()
     if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \
@@ -145,17 +171,18 @@ def count(c, inp, n, outdir):
             shutil.copy2(src, os.path.join(tool, name))
         tail = ["--reps", "2", "--input", "/tool/infer", "--input", "/tool/weights.bin", "--input", "/tool/in.rec", "--",
                 "./infer", "weights.bin", "in.rec", str(n)]
+        cwd = jail_cwd()
         if L.JAIL["mode"] == "confine":
             ro = [x for flag, p in L.read_allow() for x in (("--confine-ro", p) if flag == "--ro" else ("--confine-ls", p))]
-            with tempfile.TemporaryDirectory(prefix="exagium-rcnt-cwd-") as cwd:
-                r = subprocess.run([sys.executable, "-I", os.path.join(tool, "count.py"), "--stdout-record",
-                                    "--confine", L.JAIL["confine"], *ro, *[x.replace("/tool", tool, 1) for x in tail]],
-                                   capture_output=True, timeout=3600, cwd=cwd, env=dict(L.ENV, HOME=cwd, TMPDIR=cwd))
+            r = in_jail_cwd(lambda: subprocess.run(
+                [sys.executable, "-I", os.path.join(tool, "count.py"), "--stdout-record",
+                 "--confine", L.JAIL["confine"], *ro, *[x.replace("/tool", tool, 1) for x in tail]],
+                capture_output=True, timeout=3600, cwd=cwd, env=dict(L.ENV, HOME=cwd, TMPDIR=cwd)))
         else:
             # count.py forks valgrind, so it runs under the rlimits only and starts valgrind inside confine (runner/jail.py)
-            r = J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process",
+            r = in_jail_cwd(lambda: J.jail([sys.executable, "-I", "/tool/count.py", "--stdout-record", "--single-process",
                         *J.counter_confine("/tool"), *tail],
-                       [(tool, "/tool", False)], 3600, cwd="/tmp", seccomp=False)
+                       [(tool, "/tool", False)], 3600, cwd="/tmp", seccomp=False))
     if r.returncode != 0 or r.stdout.count(b"\n") != 1:
         raise Failed(f"{c['name']}: counter failed (exit {r.returncode}):\n{r.stderr.decode(errors='replace')[-1000:]}")
     rec = json.loads(r.stdout)
