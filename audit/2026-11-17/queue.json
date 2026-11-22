@@ -1423,12 +1423,11 @@
    ],
    "split_tried": "2026-11-20T21:34:53Z",
    "work_types": {
-    "literature": 0.978,
-    "build": 0.613,
-    "sandbox_or_workflow": 0.354
+    "literature": 0.898,
+    "build": 0.743
    },
-   "work_types_key": "62b1adf1633f4903",
-   "work_types_at": "2026-11-21T03:37:17Z"
+   "work_types_key": "8a4f090a90503d62",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "P8",
@@ -4775,12 +4774,11 @@
    ],
    "next": "Per test 2's outcome rule each failure becomes an item. Hypotheses to test, one each, against the 30 graded items as a replay set: (1) a 'check only' instruction (D21) should allow no edit unless the checker finds an error; (2) agent-facing paths must route to a PR before commit (DB was committed directly; find why the path rule missed tests/canary-BRIEF.md); (3) the reviewer should reject a change that weakens a guarantee's strength (Q38), not only redundancy and vagueness; (4) a card with zero surviving claims should end as 'no change' with a note, not a PR (R4). Fix rule: each change must flip its failure on replay without flipping any of the 26 acceptable items. Grading lesson (owner 2026-11-20: use the best tool, not a model, where a check is mechanical): a script checked 10 of 24 edit items exactly from test 2's prose outcomes and agreed with the agent 10/10; most of the rest are mechanical too if outcomes are written as exact expected text (target line after the edit, required delivery, banned patterns). Rule for test 3 and Q59's replay: outcomes written as exact expected lines and graded by script; a model or agent only for meaning judgements (same-meaning rewrites, guarantee strength, claim vs quote), always with known-answer controls mixed in. 2026-11-20 20:20Z: fixes (2) and (4) landed on main fddd1ed (agent-facing keyword anywhere in the file name -> PR; a card with no surviving claim is not written), unit-tested; replay on the 30 targets flips DB and R4 only. Open: (1) check-only edits (D21) and (3) guarantee weakening (Q38) change model prompts, so they need a replay through the models on the same items, graded by script where the outcome is exact. 2026-11-20: fixes 1 and 3 on main c4d442d (drafter: check-only items leave true lines alone; reviewer: rejects softened guarantees and rewordings of true lines; a rejected edit is restored and ends as no change, not a PR; unit tests). Replay E1-E4 on tests/worker-canary-3.md through the live worker, graded by script against the outcomes fixed in each item. Pass: 4/4. REPLAY RESULT 2026-11-19 20:40Z (worker/grade_canary3.py, rule fixed before the runs): 3/4, FAIL. E1 PASS (check-only true line left alone: fix 1 works), E2 PASS (false number fixed exactly), E4 PASS (spelling). E3 FAIL: 'Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given.' became 'Results cannot be changed or deleted once recorded.' and the reviewer approved. By the fixed rule ('never' must stay) it fails; on meaning, 'cannot' holds but 'by anyone at all' is gone, and for this project (the owner is the adversary) that scope is the guarantee. Fix 3 is not yet shown to work. Also found and fixed on the way: the worker stopped for budget with doc items ready because the top item was research (46fada0: claim only job types the budget can pay for; verified, it then ran E1-E4). Next: the reviewer is the same model family on every item; test a script guard for guarantee words (never, cannot, anyone, always, must) that sends any edit removing one to no change, replayed on E3 plus test 2's 30 items. 2026-11-19 20:50Z: guarantee-word guard on main (7681fa2, tests fixed in 5368ae9 after Claude pushed it with 2 failing tests); live replay E5 filed with its outcome fixed first. E5 PASS 2026-11-19 20:58Z: the drafter again dropped 'never' and 'anyone' when shortening; the script guard blocked it and the line stayed as is. With E1, E2, E4: fixes 1, 2, 4 and the guard shown on live runs; fix 3's reviewer prompt alone did not hold (E3), the script guard does. Same session: idle re-poll moved into its own job (2bd0595) because a waiting budget keeper blocked it. Q59 can close once the next 2 days of worker output show no new miss of these four kinds. GRADED 2026-11-21 23:00Z (Claude shift, by script over 2026-11-19T20:58Z-2026-11-21T20:58Z: 21 worker commits on main, 10 items merged): kind 1 (check-only item edited) 0; kind 2 (agent-facing path committed directly) 0 (one agent-facing file, worker/README.md in G8, landed through PR #24 merged by the owner's account: the PR route worked); kind 3 (guarantee word removed) 0 removed lines; kind 4 (zero-claim card landed) 0. The close rule is met; closing is the owner's move (open -> done is decide_done only).",
    "work_types": {
-    "experiment": 0.958,
-    "code_change": 0.329,
-    "sandbox_or_workflow": 0.289
+    "code_change": 0.667,
+    "experiment": 0.381
    },
-   "work_types_key": "0eb1057cf274b121",
-   "work_types_at": "2026-11-21T04:42:24Z"
+   "work_types_key": "1a55c7e87141f939",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "R15",
@@ -9803,11 +9801,11 @@
    ],
    "filed_at": "2026-11-20T22:07:32Z",
    "work_types": {
-    "experiment": 0.934,
-    "code_change": 0.298
+    "experiment": 0.74,
+    "review": 0.387
    },
-   "work_types_key": "178bac9ce272a2fa",
-   "work_types_at": "2026-11-21T05:15:32Z",
+   "work_types_key": "e895ed5d1d8470b6",
+   "work_types_at": "2026-11-22T03:06:44Z",
    "split_tried": "2026-11-21T05:42:45Z"
   },
   {
@@ -12774,10 +12772,10 @@
     }
    ],
    "work_types": {
-    "code_change": 0.988
+    "code_change": 0.994
    },
-   "work_types_key": "88d87dfbaef9054b",
-   "work_types_at": "2026-11-21T11:05:02Z"
+   "work_types_key": "d840215e636482a7",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "K46",
@@ -14214,8 +14212,8 @@
    "work_types": {
     "code_change": 0.994
    },
-   "work_types_key": "cff28e257c770ff5",
-   "work_types_at": "2026-11-21T22:12:57Z"
+   "work_types_key": "f2979bfaa12df0e6",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "K54",
@@ -14325,7 +14323,12 @@
    ],
    "claimed_by": "worker-44979086058",
    "claimed_at": "2026-11-22T03:06:31Z",
-   "lease_until": "2026-11-22T05:06:31Z"
+   "lease_until": "2026-11-22T05:06:31Z",
+   "work_types": {
+    "literature": 0.992
+   },
+   "work_types_key": "75e57beb7a605c99",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "R34",
@@ -14366,7 +14369,12 @@
      "outcome": "accept",
      "result": "decision model p=0.956; controls 0.990/0.002"
     }
-   ]
+   ],
+   "work_types": {
+    "literature": 0.996
+   },
+   "work_types_key": "7ee255a8eefaafad",
+   "work_types_at": "2026-11-22T03:06:44Z"
   },
   {
    "id": "K55",
@@ -14411,7 +14419,12 @@
      "outcome": "accept",
      "result": "decision model p=0.790; controls 0.996/0.003"
     }
-   ]
+   ],
+   "work_types": {
+    "code_change": 0.991
+   },
+   "work_types_key": "d752867b2a071911",
+   "work_types_at": "2026-11-22T03:06:44Z"
   }
  ],
  "batches": [
