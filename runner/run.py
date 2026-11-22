@@ -224,11 +224,8 @@ def cmd_evaluate(a):
     jail = J.check()
     t, cs = prepare(a)
     card = t["card"]
-    missing = [b for b in card["baselines"] if b not in a.cand]
-    if missing:
-        raise Failed(f"{t['name']}: every evaluation must include the baselines {card['baselines']}; missing {missing}")
-    if card["floor"] not in a.cand:
-        raise Failed(f"{t['name']}: the floor baseline {card['floor']} must be evaluated")
+    # K52: on the test split, verify the plan before any candidate's output is scored, so a digest mismatch
+    # exits before any test label is read (check() is never called on a plan that doesn't freeze the digests).
     plan = None
     if a.split == "test":
         if a.plan is None:
@@ -236,6 +233,11 @@ def cmd_evaluate(a):
         plan = require_plan(a.plan, t, cs)
     elif a.split != "dev":
         raise Failed("--split must be dev or test")
+    missing = [b for b in card["baselines"] if b not in a.cand]
+    if missing:
+        raise Failed(f"{t['name']}: every evaluation must include the baselines {card['baselines']}; missing {missing}")
+    if card["floor"] not in a.cand:
+        raise Failed(f"{t['name']}: the floor baseline {card['floor']} must be evaluated")
     work = tempfile.mkdtemp(prefix="exagium-runner-")
     try:
         timer = os.path.join(work, "timer")

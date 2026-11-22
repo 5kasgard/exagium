@@ -250,5 +250,31 @@ class MarginalGuard(unittest.TestCase):
         self.assertIn("no more than", run.marginal_problem(10, 10))
         self.assertIn("not counts", run.marginal_problem(None, 10))
 
+class PlanGateBeforeCheck(unittest.TestCase):
+    """K52: the test split must call require_plan before any check() runs on a candidate's output."""
+    def test_plan_gate_refuses_before_check(self):
+        import run as R
+        from unittest import mock
+        a = type("A", (), {
+            "task": "optdigits", "data": "/none",
+            "cand": ["majority"], "split": "test", "plan": 42,
+            "rounds": 1, "seed": 1, "out": "/dev/null", "records": None,
+        })
+        t = {"name": "optdigits",
+             "card": {"items": {"test": 1, "dev": 1}, "output": {"max_len": 8},
+                      "baselines": ["majority"], "floor": "majority",
+                      "metric": "accuracy", "data": {}},
+             "dir": "/none", "checker": "/none/check.py", "card_path": "/none/card.json"}
+        c = {"name": "majority", "dir": "/none/majority"}
+        with mock.patch.object(R.J, "check", return_value="bwrap"), \
+             mock.patch.object(R, "task", return_value=t), \
+             mock.patch.object(R, "cand", return_value=c), \
+             mock.patch.object(R, "require_plan", side_effect=R.Failed("digest mismatch")) as rp, \
+             mock.patch.object(R, "check") as ck:
+            with self.assertRaises(R.Failed):
+                R.cmd_evaluate(a)
+        rp.assert_called_once()
+        ck.assert_not_called()
+
 if __name__ == "__main__":
     unittest.main()
