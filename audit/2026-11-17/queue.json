@@ -12651,7 +12651,7 @@
    "id": "K45",
    "title": "Give the timed run the counted run's HOME as well as its cwd",
    "kind": "fix",
-   "status": "review",
+   "status": "parked",
    "origin": "generated",
    "split_from": "Q79",
    "generated_at": "2026-11-21T11:04:53Z",
@@ -12769,6 +12769,12 @@
      "worker": "tier-claude-haiku-5-5",
      "result": "tier (claude-haiku-5-5): PR #79 not judged: no verdict from the reviewing model; left for the next tier run",
      "outcome": "defer"
+    },
+    {
+     "at": "2026-11-22T06:06:45Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #79 not merged: files a person merges, or not the item's own: runner/run.py, runner/test_runner.py; model verdict: reject; model: The diff does share cwd/HOME between count() and timed(), but it also changes count()'s behaviour beyond the item: the per-run temp dir in confine mode is replaced by a process-wide mkdtemp directory that is never removed, which leaks files and alters existing cleanup.; parked for a smaller split",
+     "outcome": "resplit"
     }
    ],
    "work_types": {
