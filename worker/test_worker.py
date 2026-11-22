@@ -1373,6 +1373,33 @@ class Relevance(unittest.TestCase):
         self.assertEqual([s["title"] for s in saved], ["t2"])   # what the reader was given is what card() checks against
 
 
+class CardSize(unittest.TestCase):
+    """Worker cards: pure pre-call size check per (pool, model)."""
+    def test_ok_under_limit(self):
+        from worker import cards
+        res, why = cards.check_size("nvidia", "nemotron-3-ultra", "x" * 1000, 1000)
+        self.assertEqual((res, why), ("ok", ""))
+
+    def test_split_over_input_limit(self):
+        from worker import cards
+        res, why = cards.check_size("nvidia", "nemotron-3-ultra", "x" * 200000, 1000)
+        self.assertEqual(res, "split")
+        self.assertIn("prompt", why)
+        self.assertIn("max_input_chars", why)
+
+    def test_refuse_over_output_limit(self):
+        from worker import cards
+        res, why = cards.check_size("nvidia", "nemotron-3-ultra", "hello", 20000)
+        self.assertEqual(res, "refuse")
+        self.assertIn("max_tokens", why)
+        self.assertIn("max_output_tokens", why)
+
+    def test_refuse_unknown_pool_model(self):
+        from worker import cards
+        res, why = cards.check_size("unknown", "model", "hello", 100)
+        self.assertEqual((res, why), ("refuse", "no card for unknown/model"))
+
+
 class RunnerTypesDoc(unittest.TestCase):
     """F107: README must not call matrix job slots runner types."""
     def test_readme_reports_runner_types_and_job_slots(self):
