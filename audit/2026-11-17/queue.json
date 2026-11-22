@@ -15696,7 +15696,7 @@
    "id": "K57",
    "title": "Router: pure pre-call size check against a measured output budget",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-22T07:26:47Z",
@@ -15714,7 +15714,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "In router/engines.py add a pure function size_check(stats, engine, model, prompt_chars, max_tokens) that returns (ok, reason). It refuses when max_tokens is above the stats entry's max_out_tokens for that (engine, model), or when prompt_chars is above a limit passed in as an argument, and it allows the call when no entry exists. Import json at the top if the function uses it, so no NameError. Add a test in router/test_router.py asserting that a request above the recorded budget is refused with a reason naming the budget, that one within it is allowed, and that an unknown (engine, model) is allowed.",
+   "next": "In router/engines.py add a pure function size_check(stats, engine, model, prompt_chars, max_tokens) that returns (ok, reason). It refuses when max_tokens is above the stats entry's max_out_tokens for that (engine, model), or when prompt_chars is above a limit passed in as an argument, and it allows the call when no entry exists. Import json at the top if the function uses it, so no NameError. Add a test in router/test_router.py asserting that a request above the recorded budget is refused with a reason naming the budget, that one within it is allowed, and that an unknown (engine, model) is allowed. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -15744,6 +15744,12 @@
      "at": "2026-11-22T07:31:16Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-22T08:26:38Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #88 not merged: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject; model: The size_check implementation goes beyond the item: it accepts several speculative key formats and fallback field names (max_tokens, max_prompt_chars, prompt_chars_limit, prompt_"
     }
    ],
    "work_types": {
