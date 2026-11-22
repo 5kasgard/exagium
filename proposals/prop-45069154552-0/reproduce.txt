@@ -1,0 +1,13 @@
+FAILED: prop-45069154552-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 265, in <module>
+    main()
+  File "/w/train.py", line 232, in main
+    train_epoch(models, tr_ord, tr_cat, tr_y, k, C, lr, L2, t, states, BATCH, rng)
+  File "/w/train.py", line 188, in train_epoch
+    backward(models, x_ord, x_cat, yy, scores, k, C, lr, l2, t[0], states)
+  File "/w/train.py", line 119, in backward
+    g_cat_v[j, cat] = x @ (g_sum_v[mask] - g[mask, None] * v_f)
+                      ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 3 is different from 64)
+
