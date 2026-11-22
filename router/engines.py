@@ -104,6 +104,39 @@ def paid_guard(engine, prompt_chars, max_tokens):
         raise Refused(f"{engine}: daily cap of {cap['calls_per_day']} calls reached (UTC day)")
 
 
+def size_check(stats, engine, model, prompt_chars, max_tokens, prompt_limit=None):
+    """Pure pre-call size check: (ok, reason). No measured entry means allowed."""
+    entry = None
+    if isinstance(stats, dict):
+        for key in ((engine, model), f"{engine}/{model}", f"{engine}:{model}", f"{engine}|{model}"):
+            try:
+                if key in stats:
+                    entry = stats[key]
+                    break
+            except TypeError:
+                pass
+        if entry is None:
+            by_engine = stats.get(engine)
+            if isinstance(by_engine, dict):
+                entry = by_engine.get(model)
+    if entry is None:
+        return True, ""
+    if isinstance(entry, dict):
+        budget = entry.get("max_out_tokens", entry.get("max_tokens"))
+        if prompt_limit is None:
+            prompt_limit = entry.get("max_prompt_chars",
+                                     entry.get("prompt_chars_limit", entry.get("prompt_limit")))
+    else:
+        budget = entry
+    if budget is not None and max_tokens > budget:
+        return False, (f"{engine}/{model}: max_tokens {max_tokens} exceeds "
+                       f"max_out_tokens budget {budget}")
+    if prompt_limit is not None and prompt_chars > prompt_limit:
+        return False, (f"{engine}/{model}: prompt_chars {prompt_chars} exceeds "
+                       f"prompt limit {prompt_limit}")
+    return True, ""
+
+
 def log_usage(rec):
     """Queue Q22: one JSON line per call (no prompt, no reply text) when ROUTER_USAGE_LOG is set."""
     log = os.environ.get("ROUTER_USAGE_LOG")

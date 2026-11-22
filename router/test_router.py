@@ -298,5 +298,24 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class SizeCheckK57(unittest.TestCase):
+    """K57: pure pre-call check against a measured output budget."""
+
+    def test_output_budget_and_unknown(self):
+        stats = {("groq", "openai/gpt-oss-120b"): {"max_out_tokens": 1000}}
+        ok, why = engines.size_check(stats, "groq", "openai/gpt-oss-120b", 10, 1001)
+        self.assertFalse(ok)
+        self.assertIn("max_out_tokens", why)
+        self.assertIn("1000", why)
+        ok, why = engines.size_check(stats, "groq", "openai/gpt-oss-120b", 10, 1000)
+        self.assertTrue(ok, why)
+        ok, why = engines.size_check(stats, "nvidia", "not-measured", 10, 1001)
+        self.assertTrue(ok, why)
+        ok, why = engines.size_check(stats, "groq", "openai/gpt-oss-120b", 501, 1000,
+                                     prompt_limit=500)
+        self.assertFalse(ok)
+        self.assertIn("prompt limit", why)
+
+
 if __name__ == "__main__":
     unittest.main()
