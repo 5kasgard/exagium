@@ -114,6 +114,30 @@ def log_usage(rec):
     return rec
 
 
+def usage_stats(lines):
+    """Pure stats from ROUTER_USAGE_LOG lines: {(engine, model): {"calls": n, "max_out_tokens": m}}.
+    Invalid JSON and records without an output-token count are skipped, without raising."""
+    stats = {}
+    for line in lines:
+        try:
+            rec = json.loads(line)
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(rec, dict):
+            continue
+        usage = rec.get("usage")
+        if not isinstance(usage, dict):
+            continue
+        out = usage.get("completion_tokens")
+        if isinstance(out, bool) or not isinstance(out, (int, float)):
+            continue
+        key = (rec.get("engine"), rec.get("model"))
+        s = stats.setdefault(key, {"calls": 0, "max_out_tokens": 0})
+        s["calls"] += 1
+        s["max_out_tokens"] = max(s["max_out_tokens"], out)
+    return stats
+
+
 def compat_base(name):
     base = OPENAI_COMPAT[name][0]
     return os.environ.get(base[4:], "").rstrip("/") if base.startswith("env:") else base

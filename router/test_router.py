@@ -298,5 +298,17 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class UsageStats(unittest.TestCase):
+    def test_usage_stats_counts_and_max_output_tokens(self):
+        lines = [
+            json.dumps({"engine": "groq", "model": "openai/gpt-oss-120b", "usage": {"completion_tokens": 7}}),
+            json.dumps({"engine": "nvidia", "model": "nvidia/nemotron-3-ultra-550b-a55b", "usage": {"completion_tokens": 3}}),
+            "{not json",
+        ]
+        self.assertEqual(engines.usage_stats(lines), {
+            ("groq", "openai/gpt-oss-120b"): {"calls": 1, "max_out_tokens": 7},
+            ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"): {"calls": 1, "max_out_tokens": 3},
+        })
+
 if __name__ == "__main__":
     unittest.main()
