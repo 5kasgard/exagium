@@ -1,0 +1,12 @@
+FAILED: prop-45079865018-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 151, in <module>
+    main()
+  File "/w/train.py", line 124, in main
+    params = train_model(X_train, y_train, emb_dim, hidden_dim, lr, MAX_EPOCHS_TUNE, hp_rng, C)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 90, in train_model
+    grad_E_flat[pos * 256 + token] += g_emb[i, pos]
+                ~~~~~~~~~~^~~~~~~
+OverflowError: Python integer 256 out of bounds for uint8
+
