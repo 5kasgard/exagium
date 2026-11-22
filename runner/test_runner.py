@@ -1,5 +1,5 @@
 """Tests for the contract's untrusted-byte paths: python3 -m unittest runner/test_runner.py (stdlib + numpy)."""
-import json, os, re, subprocess, sys, tempfile, unittest
+import json, math, os, re, statistics, subprocess, sys, tempfile, unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -35,6 +35,22 @@ class Records(unittest.TestCase):
                         (good, {"count": 1})):
             with self.assertRaises(ValueError):
                 records.unpack(bad, **kw)
+
+
+class ClusteredSE(unittest.TestCase):
+    """K54: clustered SE sums variance within each writer; identical writer contributions give 0."""
+    def test_identical_writer_contributions(self):
+        vals = [0, 10, 0, 10]
+        self.assertEqual(records.clustered_se(vals, ["a", "a", "b", "b"]), 0)
+        naive = statistics.stdev(vals) / math.sqrt(len(vals))
+        self.assertGreater(naive, 0)
+
+    def test_one_writer(self):
+        self.assertIsNone(records.clustered_se([1, 2, 3], ["a", "a", "a"]))
+
+    def test_none_writer_raises(self):
+        with self.assertRaises(ValueError):
+            records.clustered_se([1, 2], ["a", None])
 
 
 class LabelChecker(unittest.TestCase):

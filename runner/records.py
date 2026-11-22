@@ -1,4 +1,6 @@
 """Record files: each record is a 4-byte little-endian length followed by that many bytes (runner/CONTRACT.md)."""
+import math
+import statistics
 import struct
 
 
@@ -35,3 +37,28 @@ def unpack(data, max_len=None, count=None):
 def read(path, **kw):
     with open(path, "rb") as f:
         return unpack(f.read(), **kw)
+
+
+def clustered_se(values, writers):
+    """SE of the mean with writer-clustered variance (CR1, k = 1 for a mean).
+
+    Variance is (G/(G-1)) * ((n-1)/(n-k)) * sum_g (sum_{i in g}(x_i - mean))^2 / n^2, the
+    same mean-SE convention as probe.summarise(). Returns None when there are fewer than 2
+    writers, and raises ValueError if a writer id is None (the caller must skip such items).
+    """
+    if len(values) != len(writers):
+        raise ValueError("values and writers must have the same length")
+    if any(w is None for w in writers):
+        raise ValueError("a writer id is None")
+    n = len(values)
+    G = len(set(writers))
+    if G < 2:
+        return None
+    m = statistics.fmean(values)
+    sums = {}
+    for v, w in zip(values, writers):
+        sums[w] = sums.get(w, 0.0) + (v - m)
+    meat = sum(s * s for s in sums.values())
+    k = 1
+    var = (G / (G - 1)) * ((n - 1) / (n - k)) * meat / (n * n)
+    return math.sqrt(var)
