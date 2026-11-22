@@ -1,0 +1,39 @@
+FAILED: prop-45024028032-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 217, in <module>
+    main()
+  File "/w/train.py", line 202, in main
+    acc, nodes = train_and_eval(Z_train, y_train, Z_tune, y_tune, max_depth, min_leaf)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 127, in train_and_eval
+    nodes = build_tree(Z_train, y_train, max_depth, min_leaf)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 122, in build_tree
+    recurse(0)
+  File "/w/train.py", line 113, in recurse
+    recurse(cur_idx)  # this will append left subtree nodes
+    ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 113, in recurse
+    recurse(cur_idx)  # this will append left subtree nodes
+    ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 113, in recurse
+    recurse(cur_idx)  # this will append left subtree nodes
+    ^^^^^^^^^^^^^^^^
+  [Previous line repeated 988 more times]
+  File "/w/train.py", line 100, in recurse
+    feat, thresh, _ = best_split(Z, y, feature_indices, min_leaf)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 67, in best_split
+    unique_vals = np.unique(col)
+                  ^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_arraysetops_impl.py", line 296, in unique
+    ret = _unique1d(ar, return_index, return_inverse, return_counts,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/lib/_arraysetops_impl.py", line 367, in _unique1d
+    if not optional_indices and not return_counts and not np.ma.is_masked(ar):
+                                                          ^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/ma/core.py", line 6930, in is_masked
+    m = getmask(x)
+        ^^^^^^^^^^
+RecursionError: maximum recursion depth exceeded
+
