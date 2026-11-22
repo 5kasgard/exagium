@@ -241,6 +241,27 @@ def mock_task(R):
 
 
 
+class PlanBeforeScoring(unittest.TestCase):
+    """K52: a test-split plan digest mismatch refuses before check() is called."""
+    def test_digest_mismatch_refuses_before_check(self):
+        import run as R
+        from unittest import mock
+        args = type("A", (), {
+            "data": "/data", "task": "t", "cand": ["c"], "out": "/tmp/out.json",
+            "split": "test", "rounds": 1, "seed": 1, "plan": 1, "records": None,
+        })
+        fake_task = {"name": "t"}
+        fake_cand = {"name": "c", "dir": "/nonexistent"}
+        with mock.patch.object(R.J, "check", return_value={}), \
+             mock.patch.object(R, "task", return_value=fake_task), \
+             mock.patch.object(R, "cand", return_value=fake_cand), \
+             mock.patch.object(R, "require_plan", side_effect=R.Failed("plan 1 does not freeze these as they are now: c/infer.c")), \
+             mock.patch.object(R, "check") as mock_check:
+            with self.assertRaisesRegex(R.Failed, "does not freeze"):
+                R.cmd_evaluate(args)
+            mock_check.assert_not_called()
+
+
 class MarginalGuard(unittest.TestCase):
     """Audit 2026-11-21 (R4 F2): atk-n0burn burned 240M instructions only when N = 0 and was accepted at -250,724 Ir/item."""
     def test_marginal_problem(self):
