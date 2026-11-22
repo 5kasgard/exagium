@@ -13,7 +13,7 @@ on:
         description: "which halves: docs2, cards2 or both (free models allow 50 requests a day: 27 + 8)"
         default: "cards2"
       checker:
-        description: "relcontrol = relevance-filter control replay, 1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
+        description: "relinstr = relevance-filter instruction test, relcontrol = relevance-filter control replay, 1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
         default: "0"
 permissions: {}
 jobs:
@@ -36,6 +36,9 @@ jobs:
         run: |
           case "$MODEL" in *[!A-Za-z0-9._:/-]*|'') echo "bad model id"; exit 1 ;; esac
           mkdir -p out
+          if [ "$CHECKER" = relinstr ]; then   # relevance-filter instruction variants vs labelled pools (relevance-control/PLAN-instruction.md)
+            python3 -I router/review/relevance-control/instr.py out/relinstr.json; exit 0
+          fi
           if [ "$CHECKER" = relcontrol ]; then   # research relevance filter's controls, replayed on frozen pools (router/review/relevance-control/PLAN.md)
             python3 -I router/review/relevance-control/replay.py router/review/relevance-control/pools.json out/relcontrol.json
             python3 -I router/review/relevance-control/replay.py router/review/relevance-control/pools.json out/relcontrol-prod.json --prod; exit 0
