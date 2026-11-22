@@ -298,5 +298,31 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class UsageStats(unittest.TestCase):
+    """K56: pure per-(engine, model) output-budget stats from the usage log."""
+
+    def test_counts_and_max_out_tokens(self):
+        lines = [
+            json.dumps({"engine": "groq", "model": "gpt-oss-120b", "usage": {"completion_tokens": 120}}),
+            "not json at all {",
+            json.dumps({"engine": "nvidia", "model": "nemotron", "usage": {"completion_tokens": 30}}),
+        ]
+        self.assertEqual(engines.usage_stats(lines),
+                         {("groq", "gpt-oss-120b"): {"calls": 1, "max_out_tokens": 120},
+                          ("nvidia", "nemotron"): {"calls": 1, "max_out_tokens": 30}})
+
+    def test_max_across_repeated_calls(self):
+        lines = [
+            json.dumps({"engine": "groq", "model": "gpt-oss-120b", "usage": {"completion_tokens": 60}}),
+            json.dumps({"engine": "groq", "model": "gpt-oss-120b", "usage": {"completion_tokens": 200}}),
+            "malformed",
+        ]
+        self.assertEqual(engines.usage_stats(lines),
+                         {("groq", "gpt-oss-120b"): {"calls": 2, "max_out_tokens": 200}})
+
+    def test_missing_usage_is_skipped(self):
+        self.assertEqual(engines.usage_stats([json.dumps({"engine": "groq", "model": "m"})]), {})
+
+
 if __name__ == "__main__":
     unittest.main()

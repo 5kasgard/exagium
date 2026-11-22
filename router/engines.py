@@ -114,6 +114,35 @@ def log_usage(rec):
     return rec
 
 
+def usage_stats(lines):
+    """Queue K56: pure per-(engine, model) output-budget stats from logged usage lines.
+
+    Takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as log_usage writes) and
+    returns {(engine, model): {"calls": n, "max_out_tokens": m}}. Malformed lines, non-dict records and
+    records whose usage has no completion_tokens are skipped; nothing raises on them.
+    """
+    out = {}
+    for line in lines:
+        try:
+            r = json.loads(line)
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(r, dict):
+            continue
+        u = r.get("usage")
+        if not isinstance(u, dict):
+            continue
+        n = u.get("completion_tokens")
+        if not isinstance(n, int) or isinstance(n, bool):
+            continue
+        key = (r.get("engine"), r.get("model"))
+        cur = out.setdefault(key, {"calls": 0, "max_out_tokens": 0})
+        cur["calls"] += 1
+        if n > cur["max_out_tokens"]:
+            cur["max_out_tokens"] = n
+    return out
+
+
 def compat_base(name):
     base = OPENAI_COMPAT[name][0]
     return os.environ.get(base[4:], "").rstrip("/") if base.startswith("env:") else base
