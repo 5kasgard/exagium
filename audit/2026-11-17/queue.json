@@ -15733,7 +15733,7 @@
    "id": "K57",
    "title": "Router: pure pre-call size check against a measured output budget",
    "kind": "fix",
-   "status": "in progress",
+   "status": "escalated",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-22T07:26:47Z",
@@ -15787,16 +15787,26 @@
      "worker": "tier-claude-haiku-5-5",
      "outcome": "redo",
      "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #88 not merged: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject; model: The size_check implementation goes beyond the item: it accepts several speculative key formats and fallback field names (max_tokens, max_prompt_chars, prompt_chars_limit, prompt_"
+    },
+    {
+     "result": "no accepted edit",
+     "where": "https://github.com/5kasgard/exagium/actions/runs/45003136531",
+     "run": "https://github.com/5kasgard/exagium/actions/runs/45003136531",
+     "edits": 0,
+     "why": [
+      "reviewer: reject: The added size_check function has an extra prompt_limit parameter not requested, deviating from the specified signature"
+     ],
+     "worker": "worker-45003136531",
+     "at": "2026-11-22T08:31:57Z",
+     "lost_lease": false,
+     "outcome": "guard_blocked"
     }
    ],
    "work_types": {
     "code_change": 0.992
    },
    "work_types_key": "14ddfe821c2cb855",
-   "work_types_at": "2026-11-22T07:26:57Z",
-   "claimed_by": "worker-45003136531",
-   "claimed_at": "2026-11-22T08:30:50Z",
-   "lease_until": "2026-11-22T10:30:50Z"
+   "work_types_at": "2026-11-22T07:26:57Z"
   }
  ],
  "batches": [
