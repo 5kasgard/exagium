@@ -1305,11 +1305,30 @@ class Relevance(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8, 0.2])):
             self.assertEqual(RJ.relevance("q", pool, []), [0.8, 0.2])
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.2, 0.1, 0.8, 0.2])):
-            self.assertIsNone(RJ.relevance("q", pool, []))   # the question itself judged off-topic: not used
-        self.assertIn("controls wrong (question 0.20", RJ.REL_FAIL[0])
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the answering control judged off-topic: not used
+        self.assertIn("controls wrong (answering 0.20", RJ.REL_FAIL[0])
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8])):
             self.assertIsNone(RJ.relevance("q", pool, []))
         self.assertEqual(RJ.REL_FAIL, ["batch 1 of 1: 1 of 4 answers missing"])
+
+    def test_yes_control_is_an_answering_source_not_the_bare_question(self):
+        # 2026-11-22: the bare question scored 0.14-0.48 as its own control (21 of 29 runs failed); replay in
+        # router/review/relevance-control: the answering text 0.655-0.999 on 15 pools
+        import research_job as RJ, io
+        from unittest import mock
+        seen = []
+        class R(io.BytesIO):
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        def fake(req, timeout=None):
+            seen.append(json.loads(req.data))
+            return R(json.dumps({"answers": {f"s{i}": {"noul": p} for i, p in enumerate([0.9, 0.1, 0.8])}}).encode())
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", fake):
+            self.assertEqual(RJ.relevance("Does X beat Y?", [{"title": "a", "abstract": "x"}], []), [0.8])
+        lines = seen[0]["state"].split("SOURCES:\n")[1].splitlines()
+        self.assertEqual(lines[0], "0. " + RJ.REL_CONTROL_YES.format(q="Does X beat Y?"))
+        self.assertNotEqual(lines[0], "0. Does X beat Y?")
 
     def test_failed_filter_means_no_reader_call_and_a_retry(self):
         # 2026-11-21: 5 of 8 research runs lost the filter (reason unseen), read unfiltered sources, found nothing, and
