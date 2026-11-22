@@ -13359,7 +13359,7 @@
    "id": "K52",
    "title": "Call require_plan in the test-split evaluate path before any scoring",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q76",
    "generated_at": "2026-11-21T20:05:39Z",
@@ -13377,7 +13377,7 @@
     "runner/run.py",
     "runner/test_runner.py"
    ],
-   "next": "In runner/run.py cmd_evaluate, when the split is the test split, call require_plan(seq, t, cands) with the plan seq from the arguments before check() is run on any candidate output, so a digest mismatch exits before any test label is read. Add a test in runner/test_runner.py that runs cmd_evaluate on the test split with a plan whose digest for one candidate was altered and asserts it refuses (nonzero exit or raised error) and that check() was never called (patch check with a mock that records calls).",
+   "next": "In runner/run.py cmd_evaluate, when the split is the test split, call require_plan(seq, t, cands) with the plan seq from the arguments before check() is run on any candidate output, so a digest mismatch exits before any test label is read. Add a test in runner/test_runner.py that runs cmd_evaluate on the test split with a plan whose digest for one candidate was altered and asserts it refuses (nonzero exit or raised error) and that check() was never called (patch check with a mock that records calls). PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: runner/run.py, runner/test_runner.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue Q76",
     "worker/split.py"
@@ -13439,6 +13439,12 @@
      "at": "2026-11-22T03:18:56Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-22T06:07:00Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #82 not merged: files a person merges, or not the item's own: runner/run.py, runner/test_runner.py; model verdict: reject; model: The diff moves the unrequested baseline and floor validation below the split check, changing error ordering beyond the item, and the added test mocks require_plan instead of using a "
     }
    ],
    "work_types": {
