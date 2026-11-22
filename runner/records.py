@@ -35,3 +35,28 @@ def unpack(data, max_len=None, count=None):
 def read(path, **kw):
     with open(path, "rb") as f:
         return unpack(f.read(), **kw)
+
+
+def clustered_se(values, writers):
+    """Standard error of the mean with the variance summed within each writer cluster.
+
+    Uses the usual cluster-robust small-sample factors G/(G-1) and (n-1)/(n-k), with k = 1 for a mean.
+    `writers` is the writer id of each item; a None writer is a caller bug and raises ValueError.
+    Returns None when fewer than two writers are present (the factor G/(G-1) is undefined)."""
+    n = len(values)
+    if len(writers) != n:
+        raise ValueError("values and writers must have the same length")
+    if any(w is None for w in writers):
+        raise ValueError("writer id is None; the caller must drop those items first")
+    if n < 2:
+        return None
+    clusters = {}
+    for v, w in zip(values, writers):
+        clusters.setdefault(w, []).append(v)
+    G = len(clusters)
+    if G < 2:
+        return None
+    mean = sum(values) / n
+    sumsq = sum((sum(v - mean for v in vs)) ** 2 for vs in clusters.values())
+    var = (G / (G - 1)) * ((n - 1) / (n - 1)) * sumsq / n ** 2
+    return var ** 0.5
