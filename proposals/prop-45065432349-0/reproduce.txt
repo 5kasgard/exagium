@@ -1,0 +1,15 @@
+FAILED: prop-45065432349-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 174, in <module>
+    main()
+  File "/w/train.py", line 151, in main
+    w0, biases, embeddings = train_fm(X_train, y_train, d, K, lr, l2, EPOCHS, BATCH, MOMENTUM, rng)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 112, in train_fm
+    logits = fm_forward(Xb, w0, biases, embeddings, d, k)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 43, in fm_forward
+    logits += biases[j * 256 + X[:, j]]
+                     ~~~~~~~~^~~~~~~~~
+OverflowError: Python integer 256 out of bounds for uint8
+
