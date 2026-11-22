@@ -14266,7 +14266,7 @@
    "id": "K54",
    "title": "Writer-clustered SE helper (small piece: the function only)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q81",
    "generated_at": "2026-11-21T22:12:48Z",
@@ -14284,7 +14284,7 @@
     "runner/records.py",
     "runner/test_runner.py"
    ],
-   "next": "Add a pure function clustered_se(values, writers) to runner/records.py. It takes per-item values and the writer id of each item, and returns the standard error of the mean with the variance summed within each writer cluster, using the usual small-sample factor G/(G-1) with (n-1)/(n-k) (k = number of parameters, 1 for a mean). It returns None when there are fewer than 2 writers. Use the same mean-SE convention as summarise() in probe/probe.py. Add a test in runner/test_runner.py to show it is right: (a) if every writer contributes identical values, the clustered SE is 0 while the naive per-item SE is larger; (b) with one writer only, it returns None; (c) with items that have no writer id, the caller must not call it (the function raises ValueError on a None writer). Do not touch the plan-2 or P5 comparisons in this step.",
+   "next": "Add a pure function clustered_se(values, writers) to runner/records.py. It takes per-item values and the writer id of each item, and returns the standard error of the mean with the variance summed within each writer cluster, using the usual small-sample factor G/(G-1) with (n-1)/(n-k) (k = number of parameters, 1 for a mean). It returns None when there are fewer than 2 writers. Use the same mean-SE convention as summarise() in probe/probe.py. Add a test in runner/test_runner.py to show it is right: (a) if every writer contributes identical values, the clustered SE is 0 while the naive per-item SE is larger; (b) with one writer only, it returns None; (c) with items that have no writer id, the caller must not call it (the function raises ValueError on a None writer). Do not touch the plan-2 or P5 comparisons in this step. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: runner/records.py, runner/test_runner.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue Q81",
     "worker/split.py"
@@ -14333,6 +14333,12 @@
      "at": "2026-11-22T03:25:59Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-22T06:07:14Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #83 not merged: files a person merges, or not the item's own: runner/records.py, runner/test_runner.py; model verdict: reject; model: The function and tests look correct and in scope, but the diff does not show that the SE convention matches probe.summarise() as the item requires, and probe/probe.py is not part"
     }
    ],
    "work_types": {
