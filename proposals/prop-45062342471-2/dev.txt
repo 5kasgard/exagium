@@ -1,0 +1,19 @@
+FAILED: /home/runner/work/exagium/exagium/runner/candidates/prop-45062342471-2/infer.c does not compile in the jail:
+/w/infer.c: In function 'main':
+/w/infer.c:95:85: warning: passing argument 5 of 'bsearch' from incompatible pointer type [-Wincompatible-pointer-types]
+   95 |             Entry *found = bsearch(suffix, entries[L], n_entries[L], sizeof(Entry), cmp_key_ctx, &keylen);
+      |                                                                                     ^~~~~~~~~~~
+      |                                                                                     |
+      |                                                                                     int (*)(const void *, const void *, void *)
+In file included from /usr/include/stdlib.h:965,
+                 from /w/infer.c:6:
+/usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h:21:24: note: expected '__compar_fn_t' {aka 'int (*)(const void *, const void *)'} but argument is of type 'int (*)(const void *, const void *, void *)'
+   21 |          __compar_fn_t __compar)
+      |          ~~~~~~~~~~~~~~^~~~~~~~
+/w/infer.c:95:28: error: too many arguments to function 'bsearch'
+   95 |             Entry *found = bsearch(suffix, entries[L], n_entries[L], sizeof(Entry), cmp_key_ctx, &keylen);
+      |                            ^~~~~~~
+/usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h:20:1: note: declared here
+   20 | bsearch (const void *__key, const void *__base, size_t __nmemb, size_t __size,
+      | ^~~~~~~
+
