@@ -432,19 +432,24 @@ def decide_claims(q, kept, calls):
 REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
 REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
 REL_FAIL = []     # why the last relevance() returned None
+# Known-answer YES control: a source that answers the question. It was the bare question text until 2026-11-22, which
+# cannot "answer part of it", so the model rightly scored it 0.14-0.48 and 21 of 29 research runs failed on it. Replay on
+# 15 frozen pools (router/review/relevance-control/PLAN.md, decisions-probe run 44998563696): this text 0.655-0.999 on all
+# 15, the unrelated control 0.000-0.002, the bare question 0.21-0.98.
+REL_CONTROL_YES = "{q} An empirical study that answers this question directly: we measure it and report the answer, with numbers and methods."
 REL_CONTROL_NO = ("Ridge regression with Tikhonov regularisation: closed-form estimator and its bias-variance trade-off.",)
 
 
 def relevance(q, pool, calls):
     """Is each candidate source about the QUESTION? One Decisions request per REL_BATCH sources (free decision model).
     Data, 2026-11-21: R23, R24, R25 read pools of Bloom filters, WHOIS, ridge regression, chromatin and music copyright,
-    and returned no claims twice each. Two controls per request: the question's own text must come out relevant and an
-    unrelated abstract must not, or the request is not used. Returns a p per pool entry, or None."""
+    and returned no claims twice each. Two controls per request: a source that answers the question must come out relevant
+    and an unrelated abstract must not, or the request is not used. Returns a p per pool entry, or None."""
     import time, urllib.request, urllib.error
     out = []
     for b in range(0, len(pool), REL_BATCH):
         part = pool[b:b + REL_BATCH]
-        docs = [f"{q}"] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
+        docs = [REL_CONTROL_YES.format(q=q)] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
         ask = "Is source {i} about the QUESTION itself (not merely the same broad field), so that it could answer part of it?"
         body = {"model": DECIDER, "state": f"QUESTION: {q}\n\nSOURCES:\n" + "\n".join(f"{i}. {t}" for i, t in enumerate(docs)),
                 "questions": {f"s{i}": {"type": "noul", "instructions": ask.format(i=i)} for i in range(len(docs))}}
@@ -464,7 +469,7 @@ def relevance(q, pool, calls):
             # why, kept for the run's record: 5 of 8 research runs on 2026-11-21 failed here unseen (HTTP 200 every time)
             REL_FAIL[:] = [f"batch {b // REL_BATCH + 1} of {-(-len(pool) // REL_BATCH)}: " + (
                 f"HTTP {st} {str(resp.get('error', ''))[:120]}" if st != 200 else f"{missing} of {len(ps)} answers missing"
-                if missing else f"controls wrong (question {ps[0]:.2f}, unrelated {ps[1]:.2f})")]
+                if missing else f"controls wrong (answering {ps[0]:.2f}, unrelated {ps[1]:.2f})")]
             return None
         out += ps[2:]
     return out

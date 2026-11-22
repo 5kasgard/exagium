@@ -21,6 +21,9 @@ class T(unittest.TestCase):
         self.assertEqual(lines[3], "3. T. A")
         self.assertEqual(set(b["questions"]), {"s0", "s1", "s2", "s3"})
 
+    def test_production_uses_the_tested_text(self):
+        self.assertEqual(R.NEW, R.RJ.REL_CONTROL_YES)
+
 
 if __name__ == "__main__":
     unittest.main()
