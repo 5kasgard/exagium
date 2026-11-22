@@ -1,0 +1,18 @@
+FAILED: prop-45003642798-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 159, in <module>
+    main()
+  File "/w/train.py", line 113, in main
+    acc = train_eval(X_tr, y_tr, X_te, y_te, F, C, TUNE_EPOCHS, np.random.default_rng(SEED))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 58, in train_eval
+    idx_tr = featurize(X_tr, F)
+             ^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 46, in featurize
+    idx[:, p] = (hash_feat(p, X[:, p]) % F).astype(np.int32)
+                 ^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 38, in hash_feat
+    return (h * PRIME) & 0xffffffff
+            ~~^~~~~~~
+OverflowError: Python integer 2654435761 out of bounds for uint8
+
