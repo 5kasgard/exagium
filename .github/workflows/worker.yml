@@ -494,7 +494,7 @@ jobs:
       group: worker-chain
       cancel-in-progress: false
     permissions:
-      actions: write     # dispatch the next run and list today's runs
+      actions: write     # dispatch the next run (or a keeper at the cap) and list today's runs
       contents: read     # read worker/PAUSE
     env:
       GH_TOKEN: ${{ github.token }}
@@ -520,6 +520,16 @@ jobs:
           # --paginate: one page held at most 100, so the 200 cap could never fire (GLM F002)
           chained=$(gh api --paginate "repos/$R/actions/workflows/worker.yml/runs?event=workflow_dispatch&created=>=$today&per_page=100" \
             -q '[.workflow_runs[] | select(.triggering_actor.login=="github-actions[bot]")] | length' | awk '{s+=$1} END {print s+0}')
-          if [ "$chained" -ge "$CHAIN_CAP" ]; then echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"; exit 0; fi
+          if [ "$chained" -ge "$CHAIN_CAP" ]; then
+            # the cap resets at 00:00 UTC, but nothing restarted the chain then except the cron, which GitHub dropped:
+            # 2026-11-21 the cap was hit at 23:23Z (211 of 200) and the worker sat idle until a person started it at 02:14Z
+            # with 10 items ready (schedule fired 4 of 24 hours that day). So hand over to a keeper, as the budget stop does.
+            echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"
+            kw=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
+            if [ "$kw" -gt 0 ]; then echo "a worker keeper is already waiting ($kw)"; exit 0; fi
+            at=$(date -u -d "$today +1 day 00:05" +%s)   # from $today, not "tomorrow": a check that crosses midnight would skip a day (review)
+            gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
+            echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"; exit 0
+          fi
           gh workflow run worker.yml -R "$R" --ref main
           echo "chained run $((chained + 1)) of $CHAIN_CAP today (UTC $today)"
