@@ -1,25 +1,27 @@
-# Result, 2026-11-22 (decisions-probe run 44998563696, branch fix/relevance-control; rules in PLAN.md, fixed first)
+# Result, 2026-11-22 (rules in PLAN.md, fixed first; dry runs before each)
 
-**Rule met: the new control scored p >= 0.5 and the unrelated control p < 0.5 on all 15 pools.** Dry run first (no request).
+**Production layout (`--prod`, run 44998923618): rule met on 15 of 15 pools.** The new control scored 0.717-1.000 and the unrelated control 0.001-0.002. First layout (bare question at index 0, new control at 1): rule met on 15 of 15 twice (runs 44998563696 and 44998923618), new control 0.655-0.999.
 
-| item | filter had | old control (bare question) | new control | unrelated | sources kept of 38 |
-|---|---|---|---|---|---|
-| R26 | failed | 0.337 | 0.975 | 0.001 | 1 |
-| R29 | failed | 0.378 | 0.655 | 0.001 | 1 |
-| R30 | failed | 0.261 | 0.947 | 0.001 | 2 |
-| R34 | failed | 0.936 | 0.997 | 0.001 | 0 |
-| R36 | failed | 0.883 | 0.989 | 0.001 | 1 |
-| R38 | failed | 0.263 | 0.926 | 0.001 | 4 |
-| R39 | failed | 0.509 | 0.981 | 0.001 | 1 |
-| R40 | failed | 0.281 | 0.885 | 0.001 | 0 |
-| R41 | failed | 0.502 | 0.932 | 0.002 | 0 |
-| R42 | failed | 0.207 | 0.928 | 0.0 | 0 |
-| R31 | passed | 0.978 | 0.997 | 0.0 | 4 |
-| R35 | passed | 0.958 | 0.999 | 0.001 | 1 |
-| R33 | passed | 0.982 | 0.999 | 0.001 | 0 |
-| R28 | passed | 0.977 | 0.999 | 0.001 | 3 |
-| R37 | passed | 0.771 | 0.999 | 0.001 | 0 |
+| item | filter had | bare question, request 1 / 2 | new, layout 1, request 1 / 2 | **new, production layout** | unrelated (prod) | sources kept of 38 (prod) |
+|---|---|---|---|---|---|---|
+| R26 | failed | 0.337 / 0.337 | 0.975 / 0.975 | **0.998** | 0.001 | 1 |
+| R29 | failed | 0.378 / 0.301 | 0.655 / 0.666 | **0.717** | 0.002 | 1 |
+| R30 | failed | 0.261 / 0.261 | 0.947 / 0.947 | **0.974** | 0.002 | 2 |
+| R34 | failed | 0.936 / 0.945 | 0.997 / 0.995 | **0.994** | 0.001 | 0 |
+| R36 | failed | 0.883 / 0.813 | 0.989 / 0.993 | **0.999** | 0.001 | 1 |
+| R38 | failed | 0.263 / 0.241 | 0.926 / 0.837 | **0.971** | 0.002 | 3 |
+| R39 | failed | 0.509 / 0.46 | 0.981 / 0.965 | **0.985** | 0.001 | 1 |
+| R40 | failed | 0.281 / 0.314 | 0.885 / 0.897 | **0.928** | 0.002 | 1 |
+| R41 | failed | 0.502 / 0.502 | 0.932 / 0.932 | **0.981** | 0.001 | 0 |
+| R42 | failed | 0.207 / 0.207 | 0.928 / 0.928 | **0.944** | 0.001 | 0 |
+| R31 | passed | 0.978 / 0.973 | 0.997 / 0.998 | **0.998** | 0.001 | 4 |
+| R35 | passed | 0.958 / 0.958 | 0.999 / 0.999 | **0.999** | 0.001 | 1 |
+| R33 | passed | 0.982 / 0.982 | 0.999 / 0.999 | **1.0** | 0.001 | 0 |
+| R28 | passed | 0.977 / 0.977 | 0.999 / 0.999 | **0.999** | 0.002 | 3 |
+| R37 | passed | 0.771 / 0.771 | 0.999 / 0.999 | **1.0** | 0.001 | 0 |
 
-Old control on the 10 failing pools: 6 of 10 below 0.5 this time (0.207-0.936): it sits around the bar and moves between requests, consistent with the hypothesis (in the original 21 runs it was below 0.5 every time). New control: 0.655-0.999.
+Between two identical requests a score moved by at most 0.089. The bare question scored below 0.5 on 6 of the 10 failing pools here (in the 21 original runs it was below 0.5 every time), so its score sits around the bar; the new control's lowest score in the production layout is 0.717 (R29), one request per pool.
 
-**Separate finding (not acted on here):** the filter keeps few sources: 18 of 570 (1.2 per 38 on average; 0 on 6 of 15 pools). With the control fixed, many runs will now reach the reader with 0-4 sources, so 'no claims' may become the common ending. Whether the instruction is too strict is the next question, to be tested the same way.
+What this does not show: that the filter is useful. The new control states that it answers the question, so the model can pass it on that statement alone; the controls now catch all-low or all-high output and answers under wrong indices, not a filter that misses relevant sources.
+
+**Separate finding (not acted on here):** the filter keeps few sources: 18 of 570 in the production layout (0 on 5 of 15 pools). With the control fixed, expect 'no claims' to replace 'filter failed' as the common ending. Whether the instruction is too strict is the next question, to be tested the same way.

@@ -433,9 +433,9 @@ REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls 
 REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
 REL_FAIL = []     # why the last relevance() returned None
 # Known-answer YES control: a source that answers the question. It was the bare question text until 2026-11-22, which
-# cannot "answer part of it", so the model rightly scored it 0.14-0.48 and 21 of 29 research runs failed on it. Replay on
-# 15 frozen pools (router/review/relevance-control/PLAN.md, decisions-probe run 44998563696): this text 0.655-0.999 on all
-# 15, the unrelated control 0.000-0.002, the bare question 0.21-0.98.
+# cannot "answer part of it", so the model scored it 0.14-0.48 and 21 of 29 research runs failed on it. Replay of this
+# exact request on 15 frozen pools (router/review/relevance-control/, run 44998923618 --prod): this text 0.717-1.000 on
+# all 15, the unrelated control 0.001-0.002. It does not show the filter is useful (RESULT.md).
 REL_CONTROL_YES = "{q} An empirical study that answers this question directly: we measure it and report the answer, with numbers and methods."
 REL_CONTROL_NO = ("Ridge regression with Tikhonov regularisation: closed-form estimator and its bias-variance trade-off.",)
 
