@@ -1406,5 +1406,19 @@ class WorkerSpecCard(unittest.TestCase):
         self.assertNotIn("**Not yet:** code items", text)
 
 
+class Exhaust(unittest.TestCase):
+    """K53: a 429 reply becomes a pool reset time."""
+    def test_reset_time(self):
+        import os as _os, sys as _sys
+        here = _os.path.dirname(_os.path.abspath(__file__))
+        if here not in _sys.path:
+            _sys.path.insert(0, here)
+        import exhaust
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "30"}, 1000), 1030)
+        self.assertEqual(exhaust.reset_time(429, {}, 1000), 1060)
+        self.assertIsNone(exhaust.reset_time(200, {"retry-after": "30"}, 1000))
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
+
+
 if __name__ == "__main__":
     unittest.main()
