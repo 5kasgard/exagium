@@ -1,0 +1,15 @@
+FAILED: prop-44996145720-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 162, in <module>
+    main()
+  File "/w/train.py", line 137, in main
+    trained_params, val_acc = train_loop(params, X_train, y_train, X_val, y_val, lr, MAX_EPOCHS, rng)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 102, in train_loop
+    logits, cache = forward(params, xb)
+                    ^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 43, in forward
+    emb_seq = emb[X, np.arange(emb.shape[0])]  # X is (n, d), emb is (d, 256, E) -> (n, d, E)
+              ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: index 116 is out of bounds for axis 0 with size 16
+
