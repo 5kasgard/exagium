@@ -28,6 +28,10 @@ class T(unittest.TestCase):
         self.assertFalse(sc["A@0.5"]["requests_ok"])
         self.assertIsNone(I.decide(sc))
 
+    def test_production_uses_the_chosen_variant(self):
+        self.assertEqual(I.ASKS["B"], I.RJ.REL_ASK)
+        self.assertEqual(I.RJ.REL_KEEP, 0.3)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1310,6 +1310,8 @@ class Relevance(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8])):
             self.assertIsNone(RJ.relevance("q", pool, []))
         self.assertEqual(RJ.REL_FAIL, ["batch 1 of 1: 1 of 4 answers missing"])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.35, 0.8, 0.2])):
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the unrelated control must stay under the same bar as the sources
 
     def test_yes_control_is_an_answering_source_not_the_bare_question(self):
         # 2026-11-22: the bare question scored 0.14-0.48 as its own control (21 of 29 runs failed); replay in

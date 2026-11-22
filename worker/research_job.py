@@ -430,7 +430,11 @@ def decide_claims(q, kept, calls):
 
 
 REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
-REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
+REL_KEEP = 0.3    # a source is read if p >= this; the controls must hold at the same bar. 0.5 with the old instruction kept 10 of
+                  # 26 labelled on-topic sources; instruction REL_ASK at 0.3 kept 21 of 26 at precision 0.913 (5 labelled pools,
+                  # router/review/relevance-control/PLAN-instruction.md, run 44999835217; rule fixed before the run)
+REL_ASK = ("Could source {i} give evidence, a method, a result or a counterexample that bears directly on some part of the "
+           "QUESTION? Being in the same broad field is not enough.")
 REL_FAIL = []     # why the last relevance() returned None
 # Known-answer YES control: a source that answers the question. It was the bare question text until 2026-11-22, which
 # cannot "answer part of it", so the model scored it 0.14-0.48 and 21 of 29 research runs failed on it. Replay of this
@@ -450,7 +454,7 @@ def relevance(q, pool, calls):
     for b in range(0, len(pool), REL_BATCH):
         part = pool[b:b + REL_BATCH]
         docs = [REL_CONTROL_YES.format(q=q)] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
-        ask = "Is source {i} about the QUESTION itself (not merely the same broad field), so that it could answer part of it?"
+        ask = REL_ASK
         body = {"model": DECIDER, "state": f"QUESTION: {q}\n\nSOURCES:\n" + "\n".join(f"{i}. {t}" for i, t in enumerate(docs)),
                 "questions": {f"s{i}": {"type": "noul", "instructions": ask.format(i=i)} for i in range(len(docs))}}
         req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",
@@ -465,7 +469,7 @@ def relevance(q, pool, calls):
                       "ok": st == 200, "status": st, "latency_s": round(time.time() - t0, 2), "usage": resp.get("usage") or {}})
         ps = [((resp.get("answers") or {}).get(f"s{i}") or {}).get("noul") for i in range(len(docs))] if st == 200 else []
         missing = sum(not isinstance(p, (int, float)) for p in ps)
-        if st != 200 or missing or not (ps[0] >= 0.5 and ps[1] < 0.5):
+        if st != 200 or missing or not (ps[0] >= REL_KEEP and ps[1] < REL_KEEP):
             # why, kept for the run's record: 5 of 8 research runs on 2026-11-21 failed here unseen (HTTP 200 every time)
             REL_FAIL[:] = [f"batch {b // REL_BATCH + 1} of {-(-len(pool) // REL_BATCH)}: " + (
                 f"HTTP {st} {str(resp.get('error', ''))[:120]}" if st != 200 else f"{missing} of {len(ps)} answers missing"
