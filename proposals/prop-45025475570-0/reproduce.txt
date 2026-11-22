@@ -1,0 +1,15 @@
+FAILED: prop-45025475570-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 142, in <module>
+    main()
+  File "/w/train.py", line 124, in main
+    emb, W, b = train_model(X_train, y_train, E, seed, tune_epochs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 77, in train_model
+    logits, feat = forward(X_batch)
+                   ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 49, in forward
+    e = emb[X_batch]  # fancy indexing works because emb is (d,256,E) and X_batch is (m,d)
+        ~~~^^^^^^^^^
+IndexError: index 32 is out of bounds for axis 0 with size 14
+
