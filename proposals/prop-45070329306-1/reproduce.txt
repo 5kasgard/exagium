@@ -1,0 +1,12 @@
+FAILED: prop-45070329306-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 88, in <module>
+    main()
+  File "/w/train.py", line 72, in main
+    acc = accuracy(X[val_idx], y[val_idx], log_prior, log_cond)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 48, in accuracy
+    scores = log_prior + np.sum(log_cond[np.arange(d), X.T, :], axis=0).T  # (n, C)
+                                ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (64,) (64,573) 
+
