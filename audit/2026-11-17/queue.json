@@ -12787,7 +12787,7 @@
    "id": "K46",
    "title": "Give the timed run the same visible input files as the counted run",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "Q79",
    "generated_at": "2026-11-21T11:04:53Z",
@@ -12803,7 +12803,7 @@
     "runner/run.py",
     "runner/test_runner.py"
    ],
-   "next": "In runner/run.py, make timed() stage its input files into a fresh sandbox directory with the same file set and names count() stages, instead of running in a directory that shows other files. Test in runner/test_runner.py: with a fake timer that writes a sorted listing of the directory it runs in, call count() and timed() on the same inputs and assert the two listings are identical and contain only the staged inputs. The test must fail on the current timed() code, where the listing differs.",
+   "next": "In runner/run.py, make timed() stage its input files into a fresh sandbox directory with the same file set and names count() stages, instead of running in a directory that shows other files. Test in runner/test_runner.py: with a fake timer that writes a sorted listing of the directory it runs in, call count() and timed() on the same inputs and assert the two listings are identical and contain only the staged inputs. The test must fail on the current timed() code, where the listing differs. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: runner/run.py, runner/test_runner.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue Q79",
     "worker/split.py"
@@ -12885,6 +12885,12 @@
      "worker": "tier-claude-haiku-5-5",
      "result": "tier (claude-haiku-5-5): PR #81 not judged: no verdict from the reviewing model; left for the next tier run",
      "outcome": "defer"
+    },
+    {
+     "at": "2026-11-22T06:43:54Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #81 not merged: files a person merges, or not the item's own: runner/run.py, runner/test_runner.py; model verdict: reject; model: The diff hardcodes `L.COUNT` as `count.py` and passes a new `cwd=` keyword to `J.jail`, but neither count()'s staging nor J.jail's signature is shown, so I cannot confirm the timed r"
     }
    ],
    "work_types": {
