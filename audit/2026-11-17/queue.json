@@ -15278,6 +15278,74 @@
    },
    "work_types_key": "bd43ccc48f415897",
    "work_types_at": "2026-11-22T04:29:38Z"
+  },
+  {
+   "id": "K56",
+   "title": "Router: pure per-(engine, model) output-budget stats from the usage log",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20a",
+   "generated_at": "2026-11-22T07:26:47Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py add a pure function usage_stats(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as written by log_usage) and returns {(engine, model): {'calls': n, 'max_out_tokens': m}}. Use exactly the keys log_usage writes, read from log_usage in that file. Skip lines that are not valid JSON and records with no output-token count, and never raise on them. Add a test in router/test_router.py with three fixed log lines for two (engine, model) pairs, including one malformed line, asserting the exact counts and max output tokens.",
+   "refs": [
+    "queue P20a",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K57",
+   "title": "Router: pure pre-call size check against a measured output budget",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20a",
+   "generated_at": "2026-11-22T07:26:47Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/slots.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py add a pure function size_check(stats, engine, model, prompt_chars, max_tokens) that returns (ok, reason). It refuses when max_tokens is above the stats entry's max_out_tokens for that (engine, model), or when prompt_chars is above a limit passed in as an argument, and it allows the call when no entry exists. Import json at the top if the function uses it, so no NameError. Add a test in router/test_router.py asserting that a request above the recorded budget is refused with a reason naming the budget, that one within it is allowed, and that an unknown (engine, model) is allowed.",
+   "refs": [
+    "queue P20a",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
