@@ -22,3 +22,9 @@ Otherwise the control is not the (whole) fault: record it and look further (the 
 Reported either way: the old control's p (replication: below 0.5 on the 10 failing pools is expected), and per pool the
 number of the 38 sources at p >= 0.5 (if near 0 everywhere, the filter is also too strict, a separate finding).
 A request that fails (HTTP, missing answers) is reported and counts as not meeting the rule.
+
+**Addendum, 2026-11-22 08:15Z (after the first replay, before the second; from review):** the first replay's request
+had the bare question at index 0 and the new control at index 1, so production's exact request was not tested. Second
+replay, `--prod`: exactly production's layout `[new control, unrelated, the 38]`, the same 15 pools, one request each.
+Same rule; the fix is kept only if it holds here too. A second request per pool in the first layout also shows how much
+a score moves between requests (variance was not measured by the first run).

@@ -21,6 +21,14 @@ class T(unittest.TestCase):
         self.assertEqual(lines[3], "3. T. A")
         self.assertEqual(set(b["questions"]), {"s0", "s1", "s2", "s3"})
 
+    def test_prod_layout_matches_production(self):
+        b, n = R.body("Q?", [{"title": "T", "abstract": "A"}], prod=True)
+        self.assertEqual(n, 3)
+        lines = b["state"].split("SOURCES:\n")[1].splitlines()
+        self.assertEqual(lines[0], "0. " + R.RJ.REL_CONTROL_YES.format(q="Q?"))
+        self.assertEqual(lines[1], "1. " + R.RJ.REL_CONTROL_NO[0])
+        self.assertEqual(lines[2], "2. T. A")
+
     def test_production_uses_the_tested_text(self):
         self.assertEqual(R.NEW, R.RJ.REL_CONTROL_YES)
 
