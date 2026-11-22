@@ -1,0 +1,15 @@
+FAILED: prop-45012822029-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 161, in <module>
+    main()
+  File "/w/train.py", line 140, in main
+    w0, w, V = train_fm(X_tr, y_tr, K, lr, epochs, rng_i)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 93, in train_fm
+    logits = fm_forward(Xb, w0, w, V, K)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 33, in fm_forward
+    lin = w0 + np.sum(w[np.arange(d), X.T].T, axis=1)  # (n,)
+                      ~^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (14,) (14,64) 
+
