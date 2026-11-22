@@ -1,0 +1,15 @@
+FAILED: prop-45026838063-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 128, in <module>
+    main()
+  File "/w/train.py", line 107, in main
+    acc, params = train_eval(X_tr_full, y_tr_full, X_val, y_val, D, C, rng_tune, tune_epochs)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 57, in train_eval
+    scores, e = forward(Xb)
+                ^^^^^^^^^^^
+  File "/w/train.py", line 39, in forward
+    e = emb[X, np.arange(d)]  # advanced indexing: (N, d, D)
+        ~~~^^^^^^^^^^^^^^^^^
+IndexError: index 97 is out of bounds for axis 0 with size 16
+
