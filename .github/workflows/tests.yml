@@ -42,4 +42,4 @@ jobs:
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v router/test_router.py
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v audit/periodic/test_indicators.py
           python3 -m unittest -v tests/test_workflows.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
-          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py router/bench6/pilot/test_envcheck.py   # were not in CI before 2026-11-20 (Q60 review)
+          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py router/bench6/pilot/test_envcheck.py router/review/relevance-control/test_replay.py   # were not in CI before 2026-11-20 (Q60 review)

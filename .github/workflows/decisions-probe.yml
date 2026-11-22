@@ -13,7 +13,7 @@ on:
         description: "which halves: docs2, cards2 or both (free models allow 50 requests a day: 27 + 8)"
         default: "cards2"
       checker:
-        description: "1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
+        description: "relcontrol = relevance-filter control replay, 1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
         default: "0"
 permissions: {}
 jobs:
@@ -36,6 +36,9 @@ jobs:
         run: |
           case "$MODEL" in *[!A-Za-z0-9._:/-]*|'') echo "bad model id"; exit 1 ;; esac
           mkdir -p out
+          if [ "$CHECKER" = relcontrol ]; then   # research relevance filter's controls, replayed on frozen pools (router/review/relevance-control/PLAN.md)
+            python3 -I router/review/relevance-control/replay.py router/review/relevance-control/pools.json out/relcontrol.json; exit 0
+          fi
           if [ "$CHECKER" = route ]; then
             python3 -I router/decisions_route.py "$MODEL" router/review/tier-routing/cases.json out/route.json; exit 0
           fi
