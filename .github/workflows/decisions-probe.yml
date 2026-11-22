@@ -13,7 +13,7 @@ on:
         description: "which halves: docs2, cards2 or both (free models allow 50 requests a day: 27 + 8)"
         default: "cards2"
       checker:
-        description: "relinstr = relevance-filter instruction test, relcontrol = relevance-filter control replay, 1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
+        description: "breadth / breadth-dry = search-breadth test, relinstr = relevance-filter instruction test, relcontrol = relevance-filter control replay, 1 = research-checker probe, route = tier-routing probe (router/review/tier-routing); 1 = run the research-checker probe instead (router/decisions_checker_probe.py, known answers in checker-relevance/PLAN.md)"
         default: "0"
 permissions: {}
 jobs:
@@ -36,6 +36,14 @@ jobs:
         run: |
           case "$MODEL" in *[!A-Za-z0-9._:/-]*|'') echo "bad model id"; exit 1 ;; esac
           mkdir -p out
+          if [ "$CHECKER" = breadth ] || [ "$CHECKER" = breadth-dry ]; then   # keyless metasearch vs current search (search-breadth/PLAN.md)
+            docker run -d --name sx -p 127.0.0.1:8080:8080 -v "$PWD/router/review/search-breadth/searxng:/etc/searxng:ro" \
+              searxng/searxng:2026.11.21-c6ee3e9fd@sha256:fc1d81d7e9d04d3c8b3e23c7162feddf5c3d6aecd32e67a56eaabcb8d8747f79
+            for i in $(seq 1 30); do curl -sf "http://127.0.0.1:8080/search?q=test&format=json" >/dev/null && break; sleep 2; done
+            dry=""; [ "$CHECKER" = breadth-dry ] && dry="--dry"
+            python3 -I router/review/search-breadth/breadth.py out/breadth.json $dry || true
+            docker logs sx 2>&1 | tail -40 > out/searxng.log; exit 0
+          fi
           if [ "$CHECKER" = relinstr ]; then   # relevance-filter instruction variants vs labelled pools (relevance-control/PLAN-instruction.md)
             python3 -I router/review/relevance-control/instr.py out/relinstr.json; exit 0
           fi
