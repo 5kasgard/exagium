@@ -27,3 +27,5 @@ Poor pools: R26 4 -> +10 (the RFC 6585 and RFC 9110 pages themselves, which no c
 Engines that did not answer from CI (queries out of 74): duckduckgo 74, google scholar 74, semantic scholar 68, europepmc 59. The results came from the engines that did; which ones, per result, is in the run's breadth.json ('via').
 
 Limits: one labeller (Claude), 40 per arm; snippets (up to 600 characters) stand in for abstracts, so the reader will need page text (next test: extraction). One run; SearXNG's engines change. Nothing in production changed yet.
+
+Which engines the kept SearXNG sources came from (a source can list several): google cse 202, arxiv 60, semantic scholar 6, pubmed 3, openairepublications 1. **Most of the gain rests on one engine (Google's custom-search endpoint)**; if it starts refusing CI addresses, the gain shrinks to roughly the arXiv share. The integration should log per-engine counts every run so that shows up at once.
