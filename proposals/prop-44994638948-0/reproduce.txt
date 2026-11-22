@@ -1,0 +1,11 @@
+FAILED: prop-44994638948-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 123, in <module>
+    main()
+  File "/w/train.py", line 108, in main
+    emb, W, b = train_one(X_tr, y_tr, d, C, E, TUNE_EPOCHS, rng)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 76, in train_one
+    np.add.at(grad_emb, (np.arange(d)[None, :], xb[:, :, None], np.arange(E)[None, None, :]), grad_h)
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (1,14) (64,14,1) (1,1,4) 
+
