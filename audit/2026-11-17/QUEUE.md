@@ -269,6 +269,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K50 | B3 |  | minor | medium | fix | Record each fallback try's outcome into the calibration registry | In router/slots.py, run(slot, prompt, ask, parse, override) calls calibration record(actor, slot family, ok) for each try it makes, where actor is the filler's pool and model and ok is True when the reply parsed. Accept an optional registry argument and do nothing extra when it is None. Add a test to router/test_router.py: run with a fake ask that fails once then parses records one failure and one success for that filler, and with a None registry the call still returns the same (parsed, last reply, tries) result. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R33 | B3 |  | minor | high | test | Do two-parameter item response theory models that jointly estimate task difficulty and worker ability predict held-out worker outcomes better than per-worker av | Worker job (research): literature card for P20b. Why: It directly tests whether joint IRT modeling improves held-out prediction over per-worker averages, matching the planned 2PL evaluation. | queue P20b; queue P27 (generator) |
+| R34 | B3 |  | minor | high | test | How do cost-aware routers with cascaded model selection and exploration compare with fixed drafter/checker assignment on cost per accepted output in live interl | Worker job (research): literature card for P20c. Why: It identifies published methods and evaluation designs for comparing adaptive cascaded routing against fixed assignment under live interleaved cost-per-accepted-item measurement. | queue P20c; queue P27 (generator) |
+
 ## Parked (69)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
