@@ -15289,7 +15289,7 @@
    "id": "K56",
    "title": "Router: pure per-(engine, model) output-budget stats from the usage log",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P20a",
    "generated_at": "2026-11-22T07:26:47Z",
@@ -15307,7 +15307,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "In router/engines.py add a pure function usage_stats(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as written by log_usage) and returns {(engine, model): {'calls': n, 'max_out_tokens': m}}. Use exactly the keys log_usage writes, read from log_usage in that file. Skip lines that are not valid JSON and records with no output-token count, and never raise on them. Add a test in router/test_router.py with three fixed log lines for two (engine, model) pairs, including one malformed line, asserting the exact counts and max output tokens.",
+   "next": "In router/engines.py add a pure function usage_stats(lines) that takes the lines of a ROUTER_USAGE_LOG file (one JSON object per line, as written by log_usage) and returns {(engine, model): {'calls': n, 'max_out_tokens': m}}. Use exactly the keys log_usage writes, read from log_usage in that file. Skip lines that are not valid JSON and records with no output-token count, and never raise on them. Add a test in router/test_router.py with three fixed log lines for two (engine, model) pairs, including one malformed line, asserting the exact counts and max output tokens. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P20a",
     "worker/split.py"
@@ -15337,6 +15337,12 @@
      "at": "2026-11-22T07:28:54Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-22T07:29:38Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #87 not merged: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject; model: The diff cannot confirm that the keys 'engine', 'model', 'usage' and 'completion_tokens' match what log_usage writes, since only its last line is shown, and the test file adds tw"
     }
    ],
    "work_types": {
