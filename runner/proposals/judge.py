@@ -31,10 +31,19 @@ def one(name, extract_status, rep_path, dev_path, task=""):
          "reproduced": False, "valid": False, "beats_linear": False}
     if not v["extracted"]:
         return v
-    if os.path.exists(rep_path):
-        rep = [r for r in json.load(open(rep_path)) if r.get("candidate") == name]
-        v["reproduced"] = bool(rep) and all(r.get("identical") for r in rep)
-    if not v["reproduced"] or not os.path.exists(dev_path):
+    if not os.path.exists(rep_path):
+        # F038 (review 2026-11-22): the reproduce step never wrote its output (valgrind or the jail failed mid-job);
+        # that is infrastructure, not the proposal - not scored, so infra faults cannot lower the valid rate
+        v["extract"] = "not scored"
+        v["not_scored_why"] = "reproduce.json missing"
+        return v
+    rep = [r for r in json.load(open(rep_path)) if r.get("candidate") == name]
+    v["reproduced"] = bool(rep) and all(r.get("identical") for r in rep)
+    if not v["reproduced"]:
+        return v
+    if not os.path.exists(dev_path):
+        v["extract"] = "not scored"   # F038: dev.json missing is the same class: infrastructure, not the proposal
+        v["not_scored_why"] = "dev.json missing"
         return v
     dev = json.load(open(dev_path))
     c = dev["candidates"].get(name)
