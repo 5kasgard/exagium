@@ -4,7 +4,7 @@ Proposals: 1115. Valid: 658 (rate 0.59, 95% Wilson 0.56-0.62). Beat label-linear
 
 Distinct designs: 658 (of 658 valid).
 
-Not scored (scoring job failed; pending a rescore, not counted): prop-45188054200-0, prop-45190776408-2, prop-45194302600-0, prop-45202183703-0, prop-45202183703-2, prop-45204555408-0, prop-45207483444-0, prop-45210629442-0, prop-45210629442-2.
+Not scored (scoring job failed; pending a rescore, not counted): prop-45188054200-0, prop-45190776408-2, prop-45194302600-0, prop-45202183703-0, prop-45202183703-2, prop-45204555408-0, prop-45207483444-0, prop-45210629442-0, prop-45210629442-2, prop-45214180871-0, prop-45214180871-1, prop-45214180871-2.
 
 First 20: 11 valid -> KEEP the one-call proposer (rule fixed in PLAN.md).
 
