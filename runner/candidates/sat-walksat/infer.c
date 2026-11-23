@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
         const signed char *L = (const signed char *)(r + 3);
         for (int i = 0; i < 3 * m; i++) {
             int l = L[i];
-            if (abs(l) > n) { fprintf(stderr, "bad instance\n"); return 3; }
+            if (l == 0 || abs(l) > n) { fprintf(stderr, "bad instance\n"); return 3; }  /* F124: literal 0 decodes as variable -1 (a[-1], out of bounds) */
         }
         unsigned char a[256], best[256];
         int *nt = calloc(m, sizeof(int));  /* true literals per clause */
