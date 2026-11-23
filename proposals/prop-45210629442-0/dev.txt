@@ -1,0 +1,12 @@
+FAILED: prop-45210629442-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 127, in <module>
+    main()
+  File "/w/train.py", line 109, in main
+    T, bias = train_model(X_train, y_train, C, lr, l2, epochs, batch, config_rng)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 42, in train_model
+    scores += T[j*256 + x[:, j], :]
+                ~~~~~~^~~~~~~~~
+OverflowError: Python integer 256 out of bounds for uint8
+
