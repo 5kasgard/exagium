@@ -117,12 +117,12 @@ class Research(unittest.TestCase):
     def test_quote_typography_is_not_a_mismatch(self):
         # R27/R31 2026-11-21: the reader wrote U+2011 for '-', arXiv kept LaTeX '70\%', and a quote ended with an added '.'
         src = [{"sid": "S1", "abstract": "routing across a pool of real-world models cuts cost by up to 70\\% on math, and more"}]
-        good = "routing across a pool of real\u2011world models cuts cost by up to 70% on math."
+        good = "routing across a pool of real‑world models cuts cost by up to 70% on math."
         ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
                                   {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
         self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
         # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
-        src = [{"sid": "S1", "abstract": "Gains of \u22120.5 to 1\u20132 points with \u201csmall\u201d models, and up to 70.5% on math."}]
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
         c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
         ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
                                   c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
@@ -573,7 +573,7 @@ class CodeJob(unittest.TestCase):
         self.assertEqual(QO.job_type(i), "code")
         self.assertTrue(QO.covered(i))
         self.assertFalse(QO.covered(dict(i, touches=[])))
-        self.assertFalse(QO.covered(dict(i, touches=["worker/diagnose.py"])))   # the test file is written too, so it is touched
+        self.assertFalse(QO.covered(dict(i, touches=["worker/diagnose.py"]))   # the test file is written too, so it is touched
 
     def test_tests_failed_is_a_failure(self):
         import transitions as TR
