@@ -1,0 +1,9 @@
+FAILED: prop-45102762970-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 156, in <module>
+    main()
+  File "/w/train.py", line 98, in main
+    conv_out = cols @ conv_w_flat.T + conv_b                # (B, 64, 8) -> transpose to (B,8,64)
+               ~~~~~^~~~~~~~~~~~~~~
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 9 is different from 64)
+
