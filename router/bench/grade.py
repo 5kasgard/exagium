@@ -33,10 +33,15 @@ def run_tests(workdir, fix_test_file, timeout=900):
         p = subprocess.run([sys.executable, "-I", "-c", RUNNER], cwd=rec, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"_harness": "timeout"}
+    # F001 (review 2026-11-22): the graded code imports during the run and can print a forged @@RESULTS@@ line
+    # before the real one; the runner's own line is the last one, so trust only that.
+    res = None
     for line in p.stdout.splitlines():
         if line.startswith("@@RESULTS@@"):
-            return json.loads(line[len("@@RESULTS@@"):])
-    return {"_harness": "no results", "_stderr": p.stderr[-800:]}
+            res = line[len("@@RESULTS@@"):]
+    if res is None:
+        return {"_harness": "no results", "_stderr": p.stderr[-800:]}
+    return json.loads(res)
 
 
 def main():
