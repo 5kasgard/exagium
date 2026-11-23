@@ -55,7 +55,8 @@ def probe(p):
                + urllib.parse.urlencode({"search": p["model"].split("/")[-1], "per_page": 100}))
         return p["model"] in {m.get("name") for m in json.loads(get(url, "CLOUDFLARE_API_TOKEN"))["result"]}
     if k == "hf_dataset_license":
-        return (json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}"))).get("cardData") or {}).get("license")
+        card = json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}"))
+        return (card.get("cardData") or {}).get("license")
     raise ValueError(f"unknown probe kind {k}")
 
 
