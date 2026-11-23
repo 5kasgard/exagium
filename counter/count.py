@@ -119,7 +119,7 @@ def host():
 def shared_libs(path):
     """sha256 of every shared library the dynamic loader would map for path (empty if not dynamic ELF)."""
     if not shutil.which("ldd"):
-        return {}
+        raise Failure("ldd missing; cannot fingerprint shared libs")   # F014 (review 2026-11-22): {} here was a fail-open fingerprint
     p = subprocess.run(["ldd", path], capture_output=True, text=True)
     libs = {}
     for line in p.stdout.splitlines():
