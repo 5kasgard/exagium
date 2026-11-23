@@ -85,11 +85,19 @@ def scan(hours, out):
     import datetime as dt
     repo = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
     since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=float(hours))).strftime("%Y-%m-%dT%H:%M:%SZ")
-    listing = gh(f"repos/{repo}/actions/runs?per_page=100&status=failure&created=>={since}", "-q",
-                 "[.workflow_runs[] | {id, name, created_at}]")
+    # F041 (review 2026-11-22): per_page=100 capped the listing at 100; --paginate walks every page. The -q emits
+    # one object per line so pages concatenate as JSON lines; a single-page answer is still one JSON array, so
+    # accept both shapes.
+    listing = gh(f"repos/{repo}/actions/runs?per_page=100&status=failure&created=>={since}", "--paginate", "-q",
+                 ".workflow_runs[] | {id, name, created_at}")
     if listing is None:
         print("diagnose: could not list failed runs"); return 3
-    runs = json.loads(listing or "[]")
+    runs = []
+    for l in (listing or "").splitlines():
+        if not l.strip():
+            continue
+        v = json.loads(l)
+        runs.extend(v) if isinstance(v, list) else runs.append(v)
     rows = []
     for r in runs:
         jid = (gh(f"repos/{repo}/actions/runs/{r['id']}/jobs", "-q", '.jobs[] | select(.conclusion=="failure") | .id') or "").split()
