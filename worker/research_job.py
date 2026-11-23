@@ -398,7 +398,8 @@ def verified(claims, sources):
         if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or not whole_in(norm(c["quote"]).rstrip(".,;"), norm(s["abstract"])):
             dropped.append((c, "quote not found verbatim in the abstract")); continue
         nums = re.findall(r"\d+(?:\.\d+)?", str(c["claim"]))
-        if any(n not in str(c["quote"]) for n in nums):
+        # F024 (review 2026-11-22): '0.5' is a substring of '10.5' - a claim number must sit on number edges in the quote
+        if any(not whole_in(n, norm(str(c["quote"]))) for n in nums):
             dropped.append((c, "a number in the claim is not in the quote")); continue
         kept.append(c)
     return kept, dropped
@@ -431,8 +432,8 @@ def decide_claims(q, kept, calls):
 
 REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
 REL_KEEP = 0.3    # a source is read if p >= this; the controls must hold at the same bar. 0.5 with the old instruction kept 10 of
-                  # 26 labelled on-topic sources; instruction REL_ASK at 0.3 kept 21 of 26 at precision 0.913 (5 labelled pools,
-                  # router/review/relevance-control/PLAN-instruction.md, run 44999835217; rule fixed before the run)
+                  26 labelled on-topic sources; instruction REL_ASK at 0.3 kept 21 of 26 at precision 0.913 (5 labelled pools,
+                  router/review/relevance-control/PLAN-instruction.md, run 44999835217; rule fixed before the run)
 REL_ASK = ("Could source {i} give evidence, a method, a result or a counterexample that bears directly on some part of the "
            "QUESTION? Being in the same broad field is not enough.")
 REL_FAIL = []     # why the last relevance() returned None
@@ -669,7 +670,7 @@ def card(repo, out):
     for s_ in d["sources"]:
         kinds[s_["kind"]] = kinds.get(s_["kind"], 0) + 1
     L += [f"Sources read: {len(d['sources'])} ({', '.join(f'{k} {v}' for k, v in sorted(kinds.items()))}). "
-          f"Claims dropped by the script check: {len(rd['script_dropped'])}; by the second model: {len(kept) - len(final)}."]
+          f"Claims dropped by the script check: {len(rd['script_dropped'])}; by the second model: {len(kept) - len(final)}.]"]
     if not final:   # an empty card answers nothing: keep it out of the repo, record why (release test 2, R4; Q59)
         open(os.path.join(out, "empty-card.txt"), "w").write("\n".join(L) + "\n")
         res = {"result": "no claims", "why": ["no claim survived both checks; the card was not written"], "claims": 0, "path": rel, "edits": 0}
