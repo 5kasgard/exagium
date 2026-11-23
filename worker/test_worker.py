@@ -573,7 +573,7 @@ class CodeJob(unittest.TestCase):
         self.assertEqual(QO.job_type(i), "code")
         self.assertTrue(QO.covered(i))
         self.assertFalse(QO.covered(dict(i, touches=[])))
-        self.assertFalse(QO.covered(dict(i, touches=["worker/diagnose.py"]))   # the test file is written too, so it is touched
+        self.assertFalse(QO.covered(dict(i, touches=["worker/diagnose.py"])))   # the test file is written too, so it is touched
 
     def test_tests_failed_is_a_failure(self):
         import transitions as TR
