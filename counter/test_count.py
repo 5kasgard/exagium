@@ -299,5 +299,24 @@ class Counter(unittest.TestCase):
             count.parse_cache("LL=7,8,9")
 
 
+@unittest.skipUnless(shutil.which("ldd"), "the control needs the real ldd; the failure branch hides it")
+class SharedLibsFingerprint(unittest.TestCase):
+    def test_missing_ldd_is_a_refusal_not_an_empty_fingerprint(self):
+        # F014 (review 2026-11-22): with ldd absent the fingerprint was {} - on two ldd-less hosts --check compared
+        # {} == {} and could exit 0 with a swapped .so; an environmental gap is 'cannot compare' (2), never a pass
+        real = shutil.which
+        try:
+            shutil.which = lambda n, **kw: None if n == "ldd" else real(n, **kw)
+            with self.assertRaises(count.Failure) as cm:
+                count.shared_libs(sys.executable)
+        finally:
+            shutil.which = real
+        self.assertIn("ldd", str(cm.exception))
+
+    def test_a_dynamic_program_is_fingerprinted_when_ldd_exists(self):
+        libs = count.shared_libs(sys.executable)
+        self.assertTrue(libs and all(len(v) == 64 for v in libs.values()), libs)
+
+
 if __name__ == "__main__":
     unittest.main()
