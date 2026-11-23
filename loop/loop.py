@@ -290,7 +290,7 @@ def check_confine():
 
 
 def check_bwrap():
-    if not shutil.which("bwrap") and False:
+    if not shutil.which("bwrap"):
         raise Failed("bubblewrap (bwrap) is not installed")
     r = jail(["/bin/sh", "-c", "id -u; grep -E '^Cap(Eff|Prm|Inh|Bnd|Amb)' /proc/self/status"], [], 60, cwd="/")
     if r.returncode:
