@@ -342,7 +342,7 @@ def retry_code(wt, record):
     q = Q.load(wt)
     for i in [x for x in q["items"] if x.get("status") == "escalated" and x.get("code")][:MAX_ITEMS]:
         last = (i.get("runs") or [{}])[-1]
-        why = "; ".join(str(w) for w in (last.get("why") or [])[:3])[:500]
+        why = str(last.get("result") or "")[:500]   # F019 (review 2026-11-22): run records carry 'result', never 'why' - the reason was always empty
         if tier_redos(i) >= MAX_REDOS:   # parked with the reason; the splitter cuts its parent again, smaller
             rc = Q.move(wt, f"tier-{MODEL}", i["id"], "resplit", f"tier: failed after its retry, parked for a smaller split; last: {why}")
             record.setdefault("code_retries", []).append({"id": i["id"], "escalated": True, "rc": rc}); continue

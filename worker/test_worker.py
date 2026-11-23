@@ -122,17 +122,51 @@ class Research(unittest.TestCase):
                                   {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
         self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
         # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
-        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
         c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
         ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
                                   c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
         self.assertEqual((len(ok), len(dropped)), (1, 3))
         self.assertFalse(R.whole_in("training costs up to 1", "training costs up to 1,000 dollars"))
 
+    def test_claim_numbers_must_match_the_quote_on_number_edges(self):
+        # F024 (review 2026-11-22): '0.5' is a substring of '10.5', so a claim of 0.5 passed a quote saying 10.5 - a
+        # magnitude error the cards exist to stop; the number must sit on number edges in the quote
+        src = [{"sid": "S1", "abstract": "Latency drops to 10.5 ms under load, and accuracy reaches 98% on the full test set."}]
+        ok, dropped = R.verified([
+            {"source": "S1", "claim": "latency drops to 0.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "latency drops to 10.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "accuracy reaches 98%", "quote": "accuracy reaches 98% on the full test set", "evidence": "measured"}], src)
+        self.assertEqual([c["claim"] for c in ok], ["latency drops to 10.5 ms", "accuracy reaches 98%"])
+        self.assertEqual([w for _, w in dropped], ["a number in the claim is not in the quote"])
+
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
         for bad in ("http", "<", "@someone", "#12", "](", "\n"):
             self.assertNotIn(bad, t)
+
+
+class TierRetryCode(unittest.TestCase):
+    def test_the_retry_reason_comes_from_the_run_records_result_field(self):
+        # F019 (review 2026-11-22): run records carry 'result', never 'why' - retry_code's reason was always empty and
+        # the escalated coder re-ran blind; the rejection now rides the last run record's 'result'
+        import tier
+        from unittest import mock
+        item = {"id": "K99", "status": "escalated", "code": True, "next": "",
+                "runs": [{"at": "2026-11-23T00:00:00Z", "worker": "tier-x", "outcome": "escalate",
+                          "result": "only part of the item was done"}]}
+        saved = {}
+        with mock.patch.object(tier.Q, "sync"), \
+                mock.patch.object(tier.Q, "load", side_effect=lambda wt: {"items": [json.loads(json.dumps(item))]}), \
+                mock.patch.object(tier.Q, "save", side_effect=lambda wt, q: saved.update(q=q)), \
+                mock.patch.object(tier.Q, "commit_push", return_value=True):
+            rec = {}
+            tier.retry_code("/tmp/wt", rec)
+        it = saved["q"]["items"][0]
+        self.assertIn("PREVIOUS ATTEMPT REJECTED: only part of the item was done", it["next"])
+        self.assertEqual(it["status"], "open")
+        self.assertIn("only part of the item was done", it["runs"][-1]["result"])
+        self.assertEqual(rec["code_retries"], [{"id": "K99", "redo": True}])
 
 
 class DocSafety(unittest.TestCase):
