@@ -1,0 +1,15 @@
+FAILED: prop-45140575122-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 177, in <module>
+    main()
+  File "/w/train.py", line 161, in main
+    params = train_loop(params, tr_X, tr_y, d, E, H, C, epochs, cfg_rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 117, in train_loop
+    grads = backward(params, xb, yb, d, E, H, C, *forward(params, xb, d, E, H, C)[1:])
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 53, in forward
+    x_emb = emb[X.reshape(-1), np.arange(256)].reshape(n, d, E)  # fancy indexing trick
+            ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (1024,) (256,) 
+
