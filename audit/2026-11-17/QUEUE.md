@@ -278,6 +278,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K50 | B3 |  | minor | medium | fix | Record each fallback try's outcome into the calibration registry | In router/slots.py, run(slot, prompt, ask, parse, override) calls calibration record(actor, slot family, ok) for each try it makes, where actor is the filler's pool and model and ok is True when the reply parsed. Accept an optional registry argument and do nothing extra when it is None. Add a test to router/test_router.py: run with a fake ask that fails once then parses records one failure and one success for that filler, and with a None registry the call still returns the same (parsed, last reply, tries) result. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R50 | B1 |  | minor | high | test | How does MLP depth affect accuracy versus computational cost on tabular classification tasks relative to gradient-boosted trees, and what dataset properties pre | Worker job (research): literature card for P5a. Why: It informs task-specific proposals and the accuracy-cost winner rule by grounding when deeper MLPs should beat shallow MLPs or GBDTs. | queue P5a; queue P27 (generator) |
+| R51 | B3 |  | minor | high | test | What statistical procedures best correct for winner’s curse when selecting the best of many model configurations on a dev split, and how should confirmation-set | Worker job (research): literature card for P5b. Why: It identifies established methods for quantifying and guarding against selection-induced optimism and for reporting confirmation-set and accuracy–cost trade-offs. | queue P5b; queue P27 (generator) |
+
 ## Parked (76)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
