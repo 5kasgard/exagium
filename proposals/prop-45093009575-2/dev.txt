@@ -1,0 +1,18 @@
+FAILED: prop-45093009575-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 167, in <module>
+    main()
+  File "/w/train.py", line 142, in main
+    params = train_loop(X_tr, y_tr, params, L, d, h, C, epochs=20, batch_size=BATCH, rng=rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 110, in train_loop
+    grads, _ = loss_and_grad(params, xb, yb, L, D, H, C)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 72, in loss_and_grad
+    logits, hidden, concat, hidden_pre = forward(params, X_idx, L, D, H)
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 62, in forward
+    indices = j * V + X_idx[:, j]
+              ~~~~~~^~~~~~~~~~~~~
+OverflowError: Python integer 260 out of bounds for uint8
+
