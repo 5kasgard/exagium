@@ -274,7 +274,7 @@ def cmd_ingest(a):
 
 def cmd_verify(a):
     chain, verdict_of = load_chain(a.ledger)
-    today = datetime.date.today().isoformat()
+    today = datetime.datetime.now(datetime.timezone.utc).date().isoformat()   # F065: the UTC day, not the local calendar date
     plans = [e for e, _ in chain if e["kind"] == "plan"]
     open_ = [e["seq"] for e in plans if e["seq"] not in verdict_of]
     overdue = [e["seq"] for e in plans if e["seq"] not in verdict_of and e["body"].get("verdict_due", "9999-12-31") < today]
@@ -458,7 +458,9 @@ def cmd_check_anchors(a):
             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
                             "writer_code_changed": _code_changed(a, prev_commit, commit)})
         prev_commit = commit
-    if covered < len(chain):
+    if covered < len(chain) and not (cant and not ranges):
+        # F067 (review 2026-11-22): when every anchor check came back can't-check (missing local tools), ranges is
+        # empty and this complaint would call a tool gap a fault - exit 2, never 1, on can't-check alone.
         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
                       "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))
