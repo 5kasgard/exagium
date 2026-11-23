@@ -55,4 +55,42 @@ def probe(p):
                + urllib.parse.urlencode({"search": p["model"].split("/")[-1], "per_page": 100}))
         return p["model"] in {m.get("name") for m in json.loads(get(url, "CLOUDFLARE_API_TOKEN"))["result"]}
     if k == "hf_dataset_license":
-        return (json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}")))
+        return (json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}"))).get("cardData") or {}).get("license")
+    raise ValueError(f"unknown probe kind {k}")
+
+
+def run(register, status_path, now=None, keyed=False):
+    now = now or dt.datetime.now(dt.timezone.utc)
+    reg = json.load(open(register))
+    st = json.load(open(status_path)) if os.path.exists(status_path) else {}
+    changed, broken = [], []
+    for f in reg["facts"]:
+        if bool(f.get("keyed")) != keyed:
+            continue
+        last = st.get(f["id"], {})
+        if last.get("at"):   # F036: a future 'at' (clock skew or a bad write) has negative age -> due now, never fresh forever
+            age = now - dt.datetime.fromisoformat(last["at"])
+            if age >= dt.timedelta(0) and age < dt.timedelta(days=f.get("recheck_days", 1)):
+                continue
+        try:
+            v = probe(f["probe"])
+        except Exception as e:
+            broken.append(f"{f['id']}: probe failed: {str(e)[:160]}")
+            st[f["id"]] = dict(last, error=str(e)[:200], error_at=now.isoformat())
+            continue
+        same = v == f["value"]
+        st[f["id"]] = {"at": now.isoformat(), "value": v, "same": same}
+        if not same:
+            changed.append(f"{f['id']}: registered {f['value']!r}, now {v!r}; cited by: {'; '.join(f.get('cited_by') or [])}")
+    with open(status_path, "w") as fh:
+        json.dump(st, fh, indent=1)
+    for m in changed:
+        print("CHANGED", m)
+    for m in broken:
+        print("PROBE FAILED", m)
+    print(f"facts: {len(changed)} changed, {len(broken)} probe failures, {sum(bool(f.get('keyed')) == keyed for f in reg['facts'])} registered ({'keyed' if keyed else 'keyless'})")
+    return 2 if changed else 3 if broken else 0
+
+
+if __name__ == "__main__":
+    sys.exit(run(sys.argv[1], sys.argv[2], keyed="--keyed" in sys.argv[3:]))
