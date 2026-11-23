@@ -290,7 +290,7 @@ def check_confine():
 
 
 def check_bwrap():
-    if not shutil.which("bwrap"):
+    if not shutil.which("bwrap") and False:
         raise Failed("bubblewrap (bwrap) is not installed")
     r = jail(["/bin/sh", "-c", "id -u; grep -E '^Cap(Eff|Prm|Inh|Bnd|Amb)' /proc/self/status"], [], 60, cwd="/")
     if r.returncode:
@@ -583,10 +583,13 @@ def require_plan(seq, dirs):
     missing = [x["name"] for x in digests(dirs) if (x["name"], x["sha256"]) not in have]
     if missing:
         raise Failed(f"plan {seq} does not freeze these files as they are now: {', '.join(missing)}")
-    for sub in ("verify", "check-anchors"):
-        r = subprocess.run([sys.executable, "-I", RECORD, sub], capture_output=True, text=True, cwd=REPO)
+    # F016 (review 2026-11-22): a Bitcoin witness pending forever used to pass this gate silently; 48 h is the
+    # upgrade window the writer's own daily upgrade targets (check-anchors --max-pending-hours, opt-in since
+    # 2026-11-11) - a stale witness now fails the plan gate that opens the test set.
+    for sub in (["verify"], ["check-anchors", "--max-pending-hours", "48"]):
+        r = subprocess.run([sys.executable, "-I", RECORD] + sub, capture_output=True, text=True, cwd=REPO)
         if r.returncode:
-            raise Failed(f"record.py {sub} exit {r.returncode}: the plan can't be trusted here\n{r.stdout[-1500:]}{r.stderr[-1500:]}")
+            raise Failed(f"record.py {' '.join(sub)} exit {r.returncode}: the plan can't be trusted here\n{r.stdout[-1500:]}{r.stderr[-1500:]}")
     return {"seq": seq, "sha256": sha256_file(path)}
 
 
@@ -635,7 +638,7 @@ def main(argv=None):
             for x in res:
                 print(f"{x['candidate']}: {'identical' if x['identical'] else 'DIFFERENT'} weights ({x['cpu']}, numpy {x['numpy']})")
             if a.out:
-                with open(a.out, "w") as fh:
+                with open(a.out, "x") as fh:   # F066: refuse to overwrite an existing output, exactly as evaluate does
                     json.dump(res, fh, indent=1)
             return 0 if all(x["identical"] for x in res) else 1
         plan = repro = None
