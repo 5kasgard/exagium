@@ -1,0 +1,9 @@
+FAILED: prop-45202183703-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 96, in <module>
+    main()
+  File "/w/train.py", line 78, in main
+    h_prev = h if t == 0 else np.tanh(W_emb[xb[:, t-1]] + W_pos[t-1] + (h if t==1 else h_prev) @ W_hh + b_h)
+                                                                                       ^^^^^^
+UnboundLocalError: cannot access local variable 'h_prev' where it is not associated with a value
+
