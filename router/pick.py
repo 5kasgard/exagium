@@ -18,6 +18,12 @@ REVIEWERS = [
 ]
 NEURONS_PER_CALL = 600   # the worker's measured projection for one Cloudflare call (max seen 438)
 
+# Equivalent pools for one job type (item K58): route each job to the pool with the most room.
+EQUIVALENT = {
+    "nemotron-120b": ("nvidia", "openrouter"),   # "nvidia" is the NIM pool's name in CAPS and in the ledger
+    "gpt-oss-120b": ("groq", "cloudflare"),
+}
+
 
 def used_fraction(led, pool, rolling=0.0):
     cap, e = CAPS.get(pool, {}), led.get(pool) or {}
@@ -30,6 +36,18 @@ def used_fraction(led, pool, rolling=0.0):
     if cap.get("neurons"):
         f = max(f, (e.get("neurons", 0) + held_neurons + NEURONS_PER_CALL) / cap["neurons"])
     return f
+
+
+def best_pool(led, job, rolling=0.0):
+    """The equivalent pool for job with the lowest used_fraction that still has room, or None if all are full."""
+    best = None
+    for pool in EQUIVALENT.get(job, ()):
+        f = used_fraction(led, pool, rolling)
+        if f > 1.0:
+            continue
+        if best is None or f < best[0]:
+            best = (f, pool)
+    return best[1] if best else None
 
 
 def main(a):
