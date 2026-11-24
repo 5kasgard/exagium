@@ -61,21 +61,25 @@ jobs:
         run: |
           case "$NAME" in *[!a-z0-9_]*|"") echo "bad name"; exit 1 ;; esac
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
-          test -s out/result.json && test -s out/verdict.json || { echo "experiment result/verdict artifact is incomplete; refusing queue transition"; exit 1; }
+          test -s out/verdict.json || { echo "experiment verdict artifact is missing; refusing queue transition"; exit 1; }
           python3 - "$NAME" <<'PY'
           import json, sys
           v = json.load(open("out/verdict.json"))
           if v.get("name") != sys.argv[1] or not isinstance(v.get("verdict"), dict):
               raise SystemExit("verdict metadata does not match dispatched experiment")
-          if v["verdict"].get("verdict") not in ("holds", "fails", "invalid"):
+          outcome = v["verdict"].get("verdict")
+          if outcome not in ("holds", "fails", "invalid"):
               raise SystemExit("invalid experiment verdict")
+          if outcome in ("holds", "fails") and not __import__("os").path.isfile("out/result.json"):
+              raise SystemExit("a substantive verdict requires its result artifact")
           PY
           v=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['verdict'])")
           why=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['why'][:300])")
           echo "verdict: $v ($why)"
           git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
           d="$RUNNER_TEMP/rr/experiments/$NAME/$GITHUB_RUN_ID"; mkdir -p "$d"
-          for f in out/result.json out/verdict.json; do
+          for f in out/verdict.json out/result.json; do
+            [ -f "$f" ] || continue
             [ "$(stat -c %s "$f")" -le 2000000 ] || { echo "$f exceeds 2 MB"; exit 1; }
             cp "$f" "$d/"
           done
