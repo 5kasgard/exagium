@@ -1,0 +1,289 @@
+{
+ "tool": "loop/scale.py",
+ "sizes": [
+  0,
+  956,
+  4096
+ ],
+ "rounds": 2,
+ "seed": 1,
+ "pool": {
+  "source": "first 3/4 of optdigits.tra, originals + copies with 4 pixels moved by 1, distinct",
+  "n": 4096,
+  "sha256": "605968a5bff6baa19064863eed67798e5a100fcdba36bac28f80afe81c536715"
+ },
+ "host": {
+  "cpu": "Intel(R) Xeon(R) 6975P-C",
+  "jail": "bwrap",
+  "versions": {
+   "python": "3.12.3",
+   "numpy": "2.5.3",
+   "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "valgrind": "valgrind-3.22.0",
+   "machine": "x86_64",
+   "cpu": "Intel(R) Xeon(R) 6975P-C",
+   "kernel": "7.0.0-1014-aws"
+  }
+ },
+ "digests": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "645ce80f12a553b391ea58e3bfd03596a2749c75169bec88f193502ee4544e36"
+  },
+  {
+   "name": "loop/timer.c",
+   "sha256": "baf40fdab8ff70b23a15106e676aba3c3aab4a13f70b6d819a69439f56ea9753"
+  },
+  {
+   "name": "loop/confine.c",
+   "sha256": "0b38041e5b16718f95ed289b6c415a4a09d68f6b134707e76c4815067a7b3dd2"
+  },
+  {
+   "name": "loop/seccomp_filter.h",
+   "sha256": "339b5da4af90efc8c5d3c3f913e3d7f90ce06e7dc16b3a51b48eeb4e20ef8582"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "539857dd04d4a3849a27342b5bfac105a5579de793067fff380c4bcb8275ad09"
+  },
+  {
+   "name": "record/record.py",
+   "sha256": "b5090555475480fc56369d661cef48479fad64b9308e56a60727fb0c51a2899e"
+  },
+  {
+   "name": "loop/candidates/mlp16/train.py",
+   "sha256": "f403927fe58bd63f9112b59bf573a4f7eb75b39a9dba54fce180536cc4186bc1"
+  },
+  {
+   "name": "loop/candidates/mlp16/infer.c",
+   "sha256": "aa30ab3243983d6eb9b861048bd47a03670bb68b446488d514e3af5fba42e27d"
+  },
+  {
+   "name": "loop/candidates/mlp16/weights.bin",
+   "sha256": "1f3f035ca9cb3bca1e5130faa11bb16fc1d38830ebce22dab7f4355b3de934b0"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/scale.py",
+   "sha256": "28353a9ce89e7bf2cdb46cfa985c3633381e29e2b47bc32ef86ab500bd402ead"
+  }
+ ],
+ "candidates": {
+  "mlp16": {
+   "fixed_ns_t0": [
+    449698.0,
+    66636.0
+   ],
+   "marginal_ns_per_image_large_n": [
+    104.61417197452229,
+    15.037101910828028
+   ],
+   "marginal_ns_per_image_large_n_median": 104.61417197452229,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      34.10669456066945,
+      68.61924686192468
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      104.61417197452229,
+      15.037101910828028
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      449698.0,
+      66636.0
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      482304.0,
+      1036.0
+     ],
+     "ns_per_image": [
+      504.50209205020917,
+      1.0836820083681857
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      810792.5,
+      46180.5
+     ],
+     "ns_per_image": [
+      197.9473876953125,
+      11.2745361328125
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    34.10669456066945,
+    68.61924686192468
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9872611464968153
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9872611464968153
+   }
+  },
+  "linear": {
+   "fixed_ns_t0": [
+    401976.0,
+    2335.0
+   ],
+   "marginal_ns_per_image_large_n": [
+    182.05111464968152,
+    15.203343949044578
+   ],
+   "marginal_ns_per_image_large_n_median": 182.05111464968152,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      180.47594142259413,
+      7.6035564853556386
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      182.05111464968152,
+      15.203343949044578
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      401976.0,
+      2335.0
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      574511.0,
+      9603.999999999998
+     ],
+     "ns_per_image": [
+      600.9529288702929,
+      10.046025104602506
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      1146151.5,
+      57342.49999999999
+     ],
+     "ns_per_image": [
+      279.8221435546875,
+      13.999633789062498
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    180.47594142259413,
+    7.6035564853556386
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9843949044585987
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9843949044585987
+   }
+  }
+ },
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "mlp16",
+   "marginal_diff_ns": 77.43694267515923,
+   "marginal_diff_se": 30.240445859872608,
+   "ratio_of_means": 1.7402146498279238,
+   "n956_diff_ns": 146.3692468619247,
+   "n956_diff_se": 76.22280334728032
+  }
+ ],
+ "raw_ns": {
+  "mlp16": [
+   {
+    "4096": 764612,
+    "0": 516334,
+    "956": 483340
+   },
+   {
+    "0": 383062,
+    "956": 481268,
+    "4096": 856973
+   }
+  ],
+  "linear": [
+   {
+    "0": 404311,
+    "4096": 1203494,
+    "956": 584115
+   },
+   {
+    "956": 564907,
+    "4096": 1088809,
+    "0": 399641
+   }
+  ]
+ },
+ "problems": [],
+ "provenance": null
+}

@@ -1,0 +1,20 @@
+== confine --ro /proc/self
+   Supported CPUs are:
+   * x86 (practically any; Pentium-I or above), AMD Athlon or above)
+   * AMD Athlon64/Opteron
+   * ARM (armv7)
+   * MIPS (mips32 and above; mips64 and above)
+   * PowerPC (most; ppc405 and above)
+   * System z (64bit only - s390x; z990 and above)
+
+exit 1
+== confine --ro /proc/self --ro /proc/cpuinfo
+--3730--   Considering /usr/lib/debug/.build-id/af/bcb8e525e2026a7dbf410d3afe55205f33cb27.debug ..
+--3730--   .. build-id is valid
+--3730-- Reading syms from /usr/libexec/valgrind/vgpreload_core-arm64-linux.so
+--3730-- Reading syms from /usr/lib/aarch64-linux-gnu/libc.so.6
+--3730--   Considering /usr/lib/debug/.build-id/34/5abad84f89835d724f49349b1a6b92c6ad4ba3.debug ..
+--3730--   .. build-id is valid
+==3730== 
+==3730== I refs:        140,424
+exit 0
