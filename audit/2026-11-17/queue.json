@@ -13245,7 +13245,7 @@
    "id": "K48",
    "title": "Add a calibration registry module (outcomes per actor and task family, Wilson lower bound as the score)",
    "kind": "fix",
-   "status": "parked",
+   "status": "open",
    "origin": "generated",
    "split_from": "P26c",
    "generated_at": "2026-11-21T20:05:39Z",
@@ -13353,6 +13353,12 @@
      "worker": "tier-claude-haiku-5-5",
      "result": "tier: failed after its retry, parked for a smaller split; last: reviewer: reject: The added test for dump/load expects a Wilson lower‑bound of ~0.49 after only 2 successes and 1 failure, which is incorrect and will cause the test suite to fail.",
      "outcome": "resplit"
+    },
+    {
+     "at": "2026-11-24T22:05:22Z",
+     "worker": "claude-chat",
+     "result": "Unparked: PR #66 (K49+K50 combined, reviewed 2026-11-24) records outcomes under 'pool:model' via registry.record(actor, family, ok) and orders fillers by score; this registry is the store it needs (the routing half of the owner's closed loop, 2026-11-25).",
+     "outcome": "decide_open"
     }
    ],
    "work_types": {
@@ -19109,6 +19115,50 @@
    },
    "work_types_key": "dfd012a921c51d53",
    "work_types_at": "2026-11-24T21:22:11Z"
+  },
+  {
+   "id": "P5e",
+   "title": "Staged selection for proposals: successive halving over rotating dev sub-folds with e-value elimination, one pre-registered final comparison, confirmation on a fold the search never touched",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "major",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "runner/proposals/judge.py",
+    "runner/proposals/confirm/",
+    "runner/proposals/stage.py"
+   ],
+   "next": "Owner 2026-11-25 (ideas worked with Gemini: population search and tournaments instead of 1-on-1 A/B; a closed loop where meters and routing scores feed the proposer, with security boundaries intact) and the Z.ai upgrade path 2026-11-22 (Wave 2, Appendix A.1-A.2). Measured now: the proposer is already population search (1,097+ scored proposals, one free call each); what is missing is elimination and control of selection error (winner's curse measured +0.0052 in P5b; dev split n=956; sqrt(k/n) bound vacuous at k=485). Protocol to fix before running (A.1): 16 candidates, folds 60/120/240/480 items, e-process per candidate against label-linear (lambda 0.5, eliminate below 1/10), top half survive, Holm at the final paired McNemar test on a procedural confirmation fold. Rule: keep if, against the one-pass board at equal scored items, it certifies at least as many candidates on the confirmation fold with fewer false 'beats' flags. Needs Z1-F006 (#105) merged for trustworthy records.",
+   "refs": [
+    "exagium-upgrade-path 2026-11-22 Appendix A.1",
+    "audit/notes/2026-11-24/"
+   ],
+   "generated_at": "2026-11-24T22:05:22Z"
+  },
+  {
+   "id": "P5d",
+   "title": "Close the proposer's loop: a telemetry packet in each prompt (parent's compile stderr, instruction and cache counts, failed-item clusters, the niche champion's code) and a bounded repair loop of at most two calls",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "major",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "runner/proposals/packet.py",
+    "runner/proposals/prompt.md"
+   ],
+   "next": "Owner 2026-11-25 (ideas worked with Gemini: population search and tournaments instead of 1-on-1 A/B; a closed loop where meters and routing scores feed the proposer, with security boundaries intact) and the Z.ai upgrade path 2026-11-22 (Wave 2, Appendix A.1-A.2). The proposer is blind today: it never sees a compile error, a count or which items it failed (README, Z.ai audits). Packet assembled by the score job from artifacts that already exist (no keys, read-only token, dev folds only, never the test split; A.2 schema). Measured as a new pre-registered arm against the one-call baseline, which stays: calls per valid candidate (today 1.6-1.7) and valid rate (0.59), rule fixed before the run; keep the repair loop only if its per-call success beats one-third. Security boundary unchanged: the packet is data in the prompt, the code it produces still runs only in the jail.",
+   "refs": [
+    "exagium-upgrade-path 2026-11-22 Appendix A.2"
+   ],
+   "generated_at": "2026-11-24T22:05:22Z"
   }
  ],
  "batches": [
