@@ -32,7 +32,8 @@ def wilson(k, n, z=1.96):
 # Anything else stays "not scored" (F038 kept): timer, jail, checker, compile, OOM kills, imports, disk.
 OWN_FAULT = ("wrote no weights.bin", "used more than one CPU", ": output is malformed",
              "with N = 0 it must write no records", "a timing run's output is malformed",
-             "with the items reordered its per-item scores change")
+             "with the items reordered its per-item scores change",
+             ": timer output limit exceeded")   # #114: a candidate that floods stdout fails on its own output (review 2026-11-24)
 INFER_EXIT = re.compile(r": infer exited (\d+)$")
 INFRA_STATUS = {137, 143}   # SIGKILL/SIGTERM: an OOM kill or a runner stop, not the candidate (review 2026-11-24)
 # a Python exception in train.py that is a programming error, not the environment (ImportError, OSError, MemoryError...)

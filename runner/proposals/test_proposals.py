@@ -168,7 +168,8 @@ class TestOwnFault(unittest.TestCase):
         self.assertIn("train.py exited 1", v["failed_why"])
 
     def test_infer_exit_after_reproduction_is_not_valid(self):
-        for log in ("FAILED: p-1: infer exited 139\n", "FAILED: p-1: output is malformed: 0 records, expected 6513\n"):
+        for log in ("FAILED: p-1: infer exited 139\n", "FAILED: p-1: output is malformed: 0 records, expected 6513\n",
+                    "FAILED: p-1: timer output limit exceeded (16777216 bytes)\n"):
             v = self.run_one(dev_log=log, rep_json=True)
             self.assertEqual(v["extract"], "extracted", log)
             self.assertTrue(v["reproduced"])
