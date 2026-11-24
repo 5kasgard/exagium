@@ -232,6 +232,13 @@ class GuaranteeWords(unittest.TestCase):
         ok, reasons = D.check_edits(item, files, [{"path": "doc.md", "line": 1, "old": old, "new": new}])
         self.assertEqual(reasons, [])
         self.assertEqual(len(ok), 1)
+
+    def test_new_scope_words_are_guarded_and_common_words_are_not(self):
+        self.assertEqual(D.lost_guarantee("Refused, whatever the reason.", "Refused for a stated reason."), ["whatever"])
+        self.assertEqual(D.lost_guarantee("Refused by anybody, no matter who.", "Refused by staff."), ["anybody", "no matter"])
+        self.assertEqual(D.lost_guarantee("Run all suites before merging; did it ever fail? Any order works.",
+                                          "Run the full set of suites before merging; did it fail? Order is free."), [])
+
     def test_lost(self):
         self.assertEqual(D.lost_guarantee("Results can never be changed, by anyone.", "Results cannot be changed."), ["anyone", "never"])
         self.assertEqual(D.lost_guarantee("The cap is 4,000.", "The cap is 5,000."), [])
