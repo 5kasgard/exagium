@@ -6,10 +6,32 @@ import digest  # noqa: E402
 import research_job as R  # noqa: E402
 import doc_job as D  # noqa: E402
 import queue_ops as Q  # noqa: E402
+import ledger as L  # noqa: E402
 import tier as TierModule  # noqa: E402
 
 ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "lines": [2, 3]}]}
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
+
+
+class LedgerRecordIdempotency(unittest.TestCase):
+    def test_recorded_payload_is_idempotent_and_immutable(self):
+        led, calls = {}, [{"engine": "groq", "usage": {"requests": 1}}]
+        self.assertTrue(L.mark_recorded(led, "run-1", calls))
+        self.assertFalse(L.mark_recorded(led, "run-1", calls))
+        with self.assertRaises(ValueError):
+            L.mark_recorded(led, "run-1", [{"engine": "groq", "usage": {"requests": 2}}])
+
+    def test_rerun_with_another_payload_is_still_counted(self):
+        import tempfile, unittest.mock as M
+        with tempfile.TemporaryDirectory() as wt:
+            os.makedirs(os.path.join(wt, "ledger"))
+            calls = os.path.join(wt, "calls.jsonl")
+            for n in (1, 2):   # the same run id twice, different payloads (a GitHub re-run of failed jobs)
+                open(calls, "w").write(json.dumps({"engine": "groq", "usage": {"requests": n}}) + "\n")
+                with M.patch.object(L, "sync"), M.patch.object(L, "push", return_value=True):
+                    L.record(wt, "run-9", calls)
+            led = L.load(L.day_path(wt))
+            self.assertEqual(led["groq"]["calls"], 3)   # both payloads counted, none dropped
 
 
 class TierMergeGuards(unittest.TestCase):
