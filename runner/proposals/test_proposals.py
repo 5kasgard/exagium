@@ -1,9 +1,11 @@
 """Offline tests for the P5 proposer's extractor and judge. Run: python3 -m unittest runner/proposals/test_proposals.py"""
 import json, os, sys, tempfile, unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
+import packet  # noqa: E402
 
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
@@ -193,6 +195,30 @@ class TestOwnFault(unittest.TestCase):
                     "FAILED: output is malformed: 0 records, expected 6513\n", "FAILED: p-1: checker gave 5 scores for 6 items\n", "pip: 503 Service Unavailable\n"):
             v = self.run_one(rep_log=log)
             self.assertEqual(v["extract"], "not scored", log)
+
+
+class Packet(unittest.TestCase):
+    def test_builds_four_keys_and_never_opens_test_split(self):
+        with tempfile.TemporaryDirectory() as d:
+            parent = os.path.join(d, "parent"); os.makedirs(parent)
+            open(os.path.join(parent, "compile_stderr.txt"), "w").write(
+                "\n".join(f"line {i}" for i in range(50)) + "\n")
+            json.dump({"instructions": 123, "cache": 45},
+                      open(os.path.join(parent, "result.json"), "w"))
+            clusters = os.path.join(d, "clusters"); os.makedirs(clusters)
+            json.dump([{"item": "a", "failures": 2}], open(os.path.join(clusters, "clusters.json"), "w"))
+            open(os.path.join(clusters, "test-split.json"), "w").write('{"secret": true}')
+            champion = os.path.join(d, "champion.py")
+            open(champion, "w").write("def champion():\n    pass\n")
+            with mock.patch("builtins.open", wraps=open) as op:
+                out = packet.build(parent, clusters, champion)
+            opened = [str(c.args[0]) for c in op.call_args_list if c.args]
+            self.assertFalse(any("test-split" in p for p in opened))
+            self.assertEqual(set(out), {"stderr_tail", "counts", "clusters", "champion_source"})
+            self.assertEqual(out["stderr_tail"], [f"line {i}" for i in range(10, 50)])
+            self.assertEqual(out["counts"], {"instructions": 123, "cache": 45})
+            self.assertEqual(out["clusters"], [{"item": "a", "failures": 2}])
+            self.assertEqual(out["champion_source"], "def champion():\n    pass\n")
 
 
 if __name__ == "__main__":
