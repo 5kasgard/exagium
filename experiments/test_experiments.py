@@ -10,7 +10,7 @@ class Contract(unittest.TestCase):
     def test_every_experiment_has_plan_run_rule(self):
         for p in glob.glob(os.path.join(HERE, "*.py")):
             n = os.path.basename(p)[:-3]
-            if n in ("run_one",) or n.startswith("test_"):
+            if n in ("run_one", "graph_truth") or n.startswith("test_"):
                 continue
             if n == "claim_roots":
                 import claim_roots
@@ -41,6 +41,36 @@ class Contract(unittest.TestCase):
                     os.remove(p)
         with self.assertRaises(SystemExit):
             run_one.load("../x")
+
+
+class GraphTruth(unittest.TestCase):
+    def test_truth_on_fixture(self):
+        import graph_truth
+        with tempfile.TemporaryDirectory() as d:
+            qp = os.path.join(d, "queue.json")
+            rp = os.path.join(d, "register.json")
+            json.dump({"items": [
+                {"id": "K1", "files": ["worker/split.py"], "blocked_by": []},
+                {"id": "K2", "files": ["router/engines.py"], "blocked_by": ["K1"]},
+                {"id": "K3", "files": ["worker/split.py", "worker/repo_index.py"], "blocked_by": ["K2"], "split_from": "K1"},
+            ]}, open(qp, "w"))
+            json.dump({"findings": [
+                {"id": "F1", "files": ["worker/split.py"]},
+                {"id": "F2", "cites": ["router/engines.py"]},
+            ]}, open(rp, "w"))
+            a = graph_truth.truth(qp, rp)
+            b = graph_truth.truth(qp, rp)
+            self.assertEqual(a, b)
+            self.assertEqual(a["q01"], ["K1", "K3"])
+            self.assertEqual(a["q02"], ["K2"])
+            self.assertEqual(a["q03"], ["K3"])
+            self.assertEqual(a["q04"], ["K2"])
+            self.assertEqual(a["q05"], ["K3"])
+            self.assertEqual(a["q06"], ["K3"])
+            self.assertEqual(a["q07"], 3)
+            self.assertEqual(a["q08"], ["F1"])
+            self.assertEqual(a["q09"], ["F2"])
+            self.assertEqual(a["q10"], 2)
 
 
 if __name__ == "__main__":
