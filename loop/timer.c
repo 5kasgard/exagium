@@ -2,7 +2,8 @@
 // --seccomp (the jail's confine mode): the child installs seccomp_filter.h's filter just before exec, so process
 // creation is refused outright; pids is then -1, since the host's pid namespace can't be counted.
 // Pins itself (and so the child) to one CPU, forks, runs PROG with stdin and stderr on /dev/null and
-// stdout on a pipe, and measures CLOCK_MONOTONIC from just before fork to the child's exit.
+// stdout on a pipe (hard-capped at 16 MiB; overflow kills the child and returns 124), and measures CLOCK_MONOTONIC
+// from just before fork to the child's exit.
 // Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status> <cpu ns> <pids>", where
 // cpu ns is the user+system time of the child and everything it waited for (more than wall time = more than one CPU),
 // and pids is how many pids the pid namespace handed out from just before fork to the child's exit: 1 means the child
