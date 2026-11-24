@@ -17933,7 +17933,7 @@
    "id": "K58",
    "title": "Routing: pick the equivalent pool with most room for each job type",
    "kind": "fix",
-   "status": "review",
+   "status": "parked",
    "origin": "generated",
    "split_from": "P20e",
    "generated_at": "2026-11-24T11:31:01Z",
@@ -18006,6 +18006,12 @@
      "at": "2026-11-24T13:46:22Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T13:47:40Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #128 not merged: files a person merges, or not the item's own: router/pick.py, router/test_pick.py; model verdict: reject; model: best_pool filters with `f <= 1.0`, so a pool exactly at its cap (fraction 1.0) is still treated as available, which contradicts 'ignoring pools that are full'; the all-full test may also fail if used_fraction clamps to 1.0, and the module-loading test depends on pick.py being guarded under `__main__`, which the diff does not show.; parked for a smaller split",
+     "outcome": "resplit"
     }
    ],
    "work_types": {
