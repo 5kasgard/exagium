@@ -1,33 +1,68 @@
-import json, os, sys, unittest
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import json, os, re, sys, unittest
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 import oc_pick as P
 
-CFG = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "models.json")))
+CFG = json.load(open(os.path.join(HERE, "models.json")))
+WF = os.path.join(HERE, "..", ".github", "workflows", "opencode.yml")
 
 
 class Pick(unittest.TestCase):
-    def test_default_is_free(self):
+    def test_default_is_free_and_keyless(self):
         p = P.plan(CFG, "/oc what is ready?")
-        self.assertEqual((p["model"], p["paid"]), ("opencode/deepseek-v4.1-flash-free", False))
+        self.assertEqual((p["model"], p["provider"], p["paid"]), ("opencode/deepseek-v4.1-flash-free", "opencode", False))
         self.assertIn("what is ready?", p["prompt"])
 
-    def test_alias_and_explicit_id(self):
-        self.assertEqual(P.plan(CFG, "/oc model=pickle hi")["model"], "opencode/big-pickle")
-        p = P.plan(CFG, "/oc model=anthropic/claude-opus-5-5 review P36")
-        self.assertEqual((p["model"], p["paid"]), ("anthropic/claude-opus-5-5", True))
+    def test_providers_and_paid_rules(self):
+        cases = {"/oc model=pickle hi": ("opencode", False),
+                 "/oc model=anthropic/claude-opus-5-5 x": ("anthropic", True),
+                 "/oc model=openrouter/qwen/qwen3-coder:free x": ("openrouter", False),
+                 "/oc model=openrouter/openai/gpt-6 x": ("openrouter", True),
+                 "/oc model=groq/openai/gpt-oss-120b x": ("groq", False),
+                 "/oc model=opencode/gpt-6.1-sol x": ("opencode", True)}
+        for c, want in cases.items():
+            p = P.plan(CFG, c)
+            self.assertEqual((p["provider"], p["paid"]), want, c)
 
     def test_paid_refused_when_switched_off(self):
-        with self.assertRaises(ValueError):
-            P.plan(dict(CFG, allow_paid=False), "/oc model=anthropic/claude-opus-5-5 x")
-        self.assertFalse(P.plan(dict(CFG, allow_paid=False), "/oc x")["paid"])   # free still runs
+        off = dict(CFG, allow_paid=False)
+        for c in ("/oc model=anthropic/claude-opus-5-5 x", "/oc model=openrouter/openai/gpt-6 x"):
+            with self.assertRaises(ValueError, msg=c):
+                P.plan(off, c)
+        self.assertFalse(P.plan(off, "/oc model=groq/openai/gpt-oss-120b x")["paid"])   # free still runs
 
-    def test_bad_ids_and_empty_requests_refused(self):
-        for c in ("/oc model=$(id) x", "/oc model=a/b;rm x", "/oc model=--help x", "/oc", "/oc model=free", "hello /oc x"):
+    def test_bad_ids_unknown_providers_and_empty_requests_refused(self):
+        for c in ("/oc model=$(id) x", "/oc model=a/b;rm x", "/oc model=--help x", "/oc", "/oc model=free",
+                  "hello /oc x", "/oc model=evilcorp/m x", "/oc models evilcorp"):
             with self.assertRaises(ValueError, msg=c):
                 P.plan(CFG, c)
 
     def test_models_listing(self):
-        self.assertEqual(P.plan(CFG, "/oc models")["mode"], "models")
+        self.assertEqual((P.plan(CFG, "/oc models")["mode"], P.plan(CFG, "/oc models")["provider"]), ("models", "opencode"))
+        self.assertEqual(P.plan(CFG, "/oc models anthropic")["provider"], "anthropic")
+
+
+class WorkflowMatchesConfig(unittest.TestCase):
+    """Every provider in models.json has exactly one step, which holds exactly its secret under its env name, and no step
+    holds more than one secret (the per-step key rule)."""
+
+    def test_one_step_per_provider_one_secret_each(self):
+        import yaml
+        steps = yaml.safe_load(open(WF))["jobs"]["answer"]["steps"]
+        keyed = {}
+        for s in steps:
+            secrets = [(k, v) for k, v in (s.get("env") or {}).items() if "secrets." in str(v)]
+            self.assertLessEqual(len(secrets), 1, s.get("name"))
+            m = re.search(r"provider == '([a-z0-9-]+)'", str(s.get("if", "")))
+            if secrets:
+                self.assertIsNotNone(m, s.get("name"))
+                keyed.setdefault(m.group(1), []).append(secrets[0])
+        for prov, c in CFG["providers"].items():
+            want = [(c["env"], "${{ secrets.%s }}" % (c.get("secret") or c["paid_secret"]))]
+            self.assertEqual(keyed.get(prov), want, prov)
+        self.assertEqual(set(keyed), set(CFG["providers"]))
+        post = yaml.safe_load(open(WF))["jobs"]["post"]
+        self.assertNotIn("secrets.", str(post).replace("github.token", ""))   # the post job holds no provider key
 
 
 if __name__ == "__main__":
