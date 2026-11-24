@@ -18741,7 +18741,7 @@
    "id": "K64",
    "title": "Fixed 10-question truth set, computed by script from queue.json and the findings register",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P35",
    "generated_at": "2026-11-24T14:32:23Z",
@@ -18762,7 +18762,7 @@
     "experiments/graph_truth.py",
     "experiments/test_experiments.py"
    ],
-   "next": "Create experiments/graph_truth.py (under 80 lines) with QUESTIONS, a fixed list of 10 dependency questions as data (for example: which queue items name a given file in their files list; which items depend on another item; which register findings cite a given file). Add truth(queue_path, register_path) that answers each question by reading the JSON files and returns a dict question id -> answer, with no model call. Test in experiments/test_experiments.py: on a small fixture queue and register, truth() returns the hand-computed answers for all 10 questions, and calling it twice gives identical output.",
+   "next": "Create experiments/graph_truth.py (under 80 lines) with QUESTIONS, a fixed list of 10 dependency questions as data (for example: which queue items name a given file in their files list; which items depend on another item; which register findings cite a given file). Add truth(queue_path, register_path) that answers each question by reading the JSON files and returns a dict question id -> answer, with no model call. Test in experiments/test_experiments.py: on a small fixture queue and register, truth() returns the hand-computed answers for all 10 questions, and calling it twice gives identical output. PREVIOUS ATTEMPT REJECTED: 100 changed lines (over 80); model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P35",
     "worker/split.py"
@@ -18792,6 +18792,12 @@
      "at": "2026-11-24T14:35:21Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T17:30:19Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #133 not merged: 100 changed lines (over 80); model verdict: reject; model: The diff edits the existing contract test in test_experiments.py to exempt graph_truth from the plan/run/rule check, which the item did not ask for and weakens an existing guard, even though the new truth() logic and fixture test look c"
     }
    ],
    "work_types": {
