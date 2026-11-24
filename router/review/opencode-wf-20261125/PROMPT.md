@@ -1,0 +1,68 @@
+You are an independent security reviewer. Attack the GitHub Actions workflow below. Be specific; no politeness.
+
+Context (facts):
+- The repository is PUBLIC. Anyone can open issues and comment. The `main` branch has no branch protection.
+- Other workflows in the repo hold about 27 API keys as repository secrets, each scoped to single steps in other jobs.
+- The pinned action at github-v1.2.28 is a composite action. Its steps: fetch the latest opencode release tag from the
+  GitHub API; actions/cache of ~/.opencode/bin keyed by that version; `curl -fsSL https://opencode.ai/install | bash`
+  on cache miss; then `opencode github run` with the inputs as env vars. With use_github_token=true it uses the
+  GITHUB_TOKEN env var instead of an OIDC exchange. The agent reads the issue thread and may run shell commands in
+  the job, chosen by the model.
+- opencode's free models work with no API key (the client uses a "public" key when OPENCODE_API_KEY is unset).
+- Goal: the owner comments "/oc <question>" on an issue and gets an answer as a comment. Read-only first trial.
+
+The workflow:
+```yaml
+# Issue agent (queue P36, owner 2026-11-24/25): the owner comments "/oc ..." on an issue and the opencode agent answers
+# there, on a free model. First trial: READ-ONLY. It may read the repo and comment on the issue; it cannot push, open
+# PRs or touch main (main has no branch protection, so write access waits for a ruleset; see P36).
+# - Only the repository owner can start it (author_association == OWNER); the repo is public and anyone can comment.
+# - No secret: opencode's free models need no key (packages/core/src/plugin/provider/opencode.ts uses a "public" key
+#   when OPENCODE_API_KEY is unset, measured 2026-11-25). OPENCODE_API_KEY (valid, no credits) is not passed: it would
+#   only unlock paid models and put a secret in a job whose commands a model chooses.
+# - Other people can still comment on an issue the agent reads: their text is untrusted input. Its reach is this
+#   job's token: read the repo, write issue comments and labels. Nothing else.
+# - share: false. The action defaults to sharing the session publicly on public repos.
+# - The action is pinned; opencode itself is installed by the action at its latest release (action.yml: curl | bash).
+# - Model: deepseek-v4.1-flash-free (zero retention, no training, per the OpenCode console docs 2026-11-25).
+name: opencode
+on:
+  issue_comment:   # zizmor: ignore[dangerous-triggers] issues only (no PR head is checked out), owner-only, no secrets, contents: read
+    types: [created]
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: opencode-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  agent:
+    if: >-
+      github.event.issue.pull_request == null &&
+      github.event.comment.author_association == 'OWNER' &&
+      (startsWith(github.event.comment.body, '/oc') || startsWith(github.event.comment.body, '/opencode'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: opencode
+        uses: anomalyco/opencode/github@17b79f4e0c16dcff200b0417567ed22aeb2d7166  # github-v1.2.28
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          model: opencode/deepseek-v4.1-flash-free
+          use_github_token: "true"
+          share: "false"
+```
+
+Answer in this form, under 450 words:
+EXPLOITABLE: each concrete way a non-owner, or text in the issue thread, could make this job do something beyond
+reading the repo and commenting; say exactly how, or "none found" with your reasoning.
+SECRETS: can this job read any repository secret or leak a token with more than the listed permissions? How?
+CACHE/SUPPLY CHAIN: risks from the action's actions/cache step and the unpinned `curl | bash` install, and the
+cheapest mitigation.
+CONDITION: is the `if:` condition sufficient? Give any bypass (edited comments, bots, org members, PR comments).
+VERDICT: SHIP AS IS, SHIP WITH CHANGES (list them), or DO NOT SHIP.
