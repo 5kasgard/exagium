@@ -298,5 +298,105 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class SlotsCalibration(unittest.TestCase):
+    def test_override_returns_exactly_that_filler(self):
+        from router.slots import chain
+        out = chain("drafter", override=("cloudflare", "@cf/openai/gpt-oss-120b"))
+        self.assertEqual(out, [("cloudflare", "@cf/openai/gpt-oss-120b")])
+
+    def test_with_registry_sorts_by_score_descending(self):
+        from router.slots import chain, SLOTS
+        base = chain("reader")
+        first, second = base[0], base[1]
+        key = lambda f: (f"{f[0]}:{f[1]}", "reader")   # the actor key run() records: "pool:model"
+        out = chain("reader", calibration={key(first): 1.0, key(second): 5.0})
+        self.assertEqual(out[:2], [second, first])
+        self.assertEqual(sorted(out), sorted(base))   # a reorder only: nothing added or dropped
+
+    def test_with_no_registry_order_matches_original(self):
+        from router.slots import chain, SLOTS
+        import os
+        paid = os.environ.get("PAID_FALLBACK") == "1"
+        self.assertEqual(chain("reader"), [f for f in SLOTS["reader"] if paid or f[0] != "openrouter_paid"])
+
+    def test_ties_keep_original_order(self):
+        from router.slots import chain
+        base = chain("reader")
+        cal = {(f"{f[0]}:{f[1]}", "reader"): 2.0 for f in base}
+        self.assertEqual(chain("reader", calibration=cal), base)
+
+    """ITEM K50: run records each fallback try's outcome into the calibration registry."""
+
+    def test_recorded_outcomes_reorder_the_chain(self):
+        """#66 + #67 together: what run() records under 'pool:model' is what chain() sorts by."""
+        from router.slots import chain
+        base = chain("reader")
+        scores = {}
+        class Reg:
+            def record(self, actor, slot_family, ok):
+                scores[(actor, slot_family)] = scores.get((actor, slot_family), 0.0) + (1.0 if ok else -1.0)
+        Reg().record(f"{base[0][0]}:{base[0][1]}", "reader", False)
+        Reg().record(f"{base[1][0]}:{base[1][1]}", "reader", True)
+        self.assertEqual(chain("reader", calibration=scores)[0], base[1])
+
+    def test_run_records_failure_then_success(self):
+        from router.slots import run
+        calls = []
+
+        def fake_ask(pool, model, prompt):
+            calls.append((pool, model))
+            if len(calls) == 1:
+                return {"ok": True, "status": 200, "text": "not json"}   # parses to None
+            return {"ok": True, "status": 200, "text": '{"value": 42}'}
+
+        def parse(text):
+            import json
+            try:
+                return json.loads(text)
+            except Exception:
+                return None
+
+        registry_records = []
+        class FakeRegistry:
+            def record(self, actor, slot_family, ok):
+                registry_records.append((actor, slot_family, ok))
+
+        reg = FakeRegistry()
+        got, last, tries = run("drafter", "prompt", fake_ask, parse, registry=reg)
+
+        self.assertEqual(got, {"value": 42})
+        self.assertEqual(len(tries), 2)
+        self.assertEqual(tries[0]["ok"], False)
+        self.assertEqual(tries[1]["ok"], True)
+        self.assertEqual(registry_records, [
+            ("groq:openai/gpt-oss-120b", "drafter", False),
+            ("cloudflare:@cf/openai/gpt-oss-120b", "drafter", True),
+        ])
+
+    def test_run_with_none_registry_returns_same_result(self):
+        from router.slots import run
+        calls = []
+
+        def fake_ask(pool, model, prompt):
+            calls.append((pool, model))
+            if len(calls) == 1:
+                return {"ok": True, "status": 200, "text": "not json"}
+            return {"ok": True, "status": 200, "text": '{"value": 42}'}
+
+        def parse(text):
+            import json
+            try:
+                return json.loads(text)
+            except Exception:
+                return None
+
+        got, last, tries = run("drafter", "prompt", fake_ask, parse, registry=None)
+
+        self.assertEqual(got, {"value": 42})
+        self.assertEqual(len(tries), 2)
+        self.assertEqual(tries[0]["ok"], False)
+        self.assertEqual(tries[1]["ok"], True)
+
+
 if __name__ == "__main__":
     unittest.main()
