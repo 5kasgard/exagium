@@ -18535,7 +18535,7 @@
   },
   {
    "id": "P36",
-   "title": "An interface for the Forge that does not depend on any one AI chat: compare LibreChat, Open WebUI, OpenHands and Goose",
+   "title": "The Forge as a system to work with from one place (an OS layer): event spine, agent threads, key broker, views; not tied to any one AI chat",
    "kind": "build",
    "status": "open",
    "origin": "new",
@@ -18544,14 +18544,17 @@
    "cost": 0,
    "value": "high",
    "blocked_by": [
+    "P37",
     "P33"
    ],
    "touches": [
-    "router/review/interface-20261124/"
+    "router/review/interface-20261124/",
+    "audit/notes/2026-11-25/forge-os.md"
    ],
-   "next": "Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge without one chat product in the middle; Claude usage is scarce), which is the evidence of need. Their cheapest test stands: deploy each candidate with the existing keys and script one queue read and one MCP tool call.",
+   "next": "Owner 2026-11-25 widened the scope: one place to control and see everything, build automations visually or by a main chat, agents and parts talk directly, it evolves, keeps all keys; 'sort of like an OS'. Hypothesis and OS gap map: audit/notes/2026-11-25/forge-os.md. Order: P37 replay (zero calls) -> minimal spine on a free tier (measure requests/day) -> two agents on one thread -> P33 broker -> views. Blind review run 45501864070 (prompt router/review/forge-os-20261125/PROMPT.md on branch review/forge-os-20261125) pending. Earlier: Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge without one chat product in the middle; Claude usage is scarce), which is the evidence of need. Their cheapest test stands: deploy each candidate with the existing keys and script one queue read and one MCP tool call.",
    "refs": [
-    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
+    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md",
+    "audit/notes/2026-11-25/forge-os.md"
    ],
    "generated_at": "2026-11-24T11:36:50Z",
    "runs": [
@@ -18560,6 +18563,12 @@
      "worker": "claude-chat",
      "result": "Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge witho",
      "outcome": "review_applied"
+    },
+    {
+     "at": "2026-11-24T22:31:43Z",
+     "worker": "claude-chat",
+     "result": "Scope widened by the owner; OS gap map and test order written (audit/notes/2026-11-25/forge-os.md); P37 filed as the first test.",
+     "outcome": "rescoped"
     }
    ],
    "work_types": {
@@ -19530,6 +19539,26 @@
    },
    "work_types_key": "56368a15c53cb623",
    "work_types_at": "2026-11-24T22:12:57Z"
+  },
+  {
+   "id": "P37",
+   "title": "Event spine, test 1: rebuild today's queue from an event stream derived from the existing records (zero model calls)",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "audit/spine/"
+   ],
+   "next": "Derive events (item created, claimed, released, moved, review applied) from the queue's runs[] history and the git log of queue.json on pilot/lgn-20261115; fold them with worker/transitions.py; compare to queue.json item for item (status, blocked_by, runs). Pass: equal. Report mismatches by cause. This decides whether the event model fits the Forge before any service is built (P36).",
+   "refs": [
+    "audit/notes/2026-11-25/forge-os.md"
+   ],
+   "generated_at": "2026-11-24T22:31:43Z"
   }
  ],
  "batches": [
