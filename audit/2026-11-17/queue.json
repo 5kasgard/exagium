@@ -17827,6 +17827,88 @@
    ],
    "generated_at": "2026-11-24T11:35:01Z",
    "batch": "B3"
+  },
+  {
+   "id": "P33",
+   "title": "Key broker: keyed steps run only a frozen call layer and the ledger from a pinned main commit; prompt building and parsing run keyless; requests and replies pass as hashed artifacts",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "router/engines.py",
+    "router/slots.py",
+    "worker/ledger.py",
+    ".github/workflows/worker.yml"
+   ],
+   "next": "Data 2026-11-24 (Claude chat): keyed jobs run 51 of 129 .py files; of the other 78, nearly all are tests, graders, scoring or verdict code, so widening MERGE_ALLOW today gains about 2 files. Calls per run (ledger, 3,459 calls): worker median 2 (p90 6), propose 3, tier 6, so 2-3 extra job hops per run. Gain: auto-merge can widen to worker/ and router/ logic; a person is needed only for keys, workflows and gates. First step when kept: list the call sites (engines.call, slots.call, anthropic_call) per job and the hop count each design needs. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "refs": [
+    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
+   ],
+   "generated_at": "2026-11-24T11:36:50Z"
+  },
+  {
+   "id": "P34",
+   "title": "Lean 4 task domain: proof statements checked by the Lean kernel (a deterministic checker that fits the runner's task contract), plus Lean specs for a few trust-core invariants",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "tasks/",
+    "runner/"
+   ],
+   "next": "Owner 2026-11-24 (hypothesis). Check published results first (P7 rule): miniF2F-style suites, Lean version pinning on CI, kernel check time per proof. Rule to fix before running: the domain is kept if a free model's proofs check on at least one held-out statement set within the runner's caps. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "refs": [
+    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
+   ],
+   "generated_at": "2026-11-24T11:36:50Z"
+  },
+  {
+   "id": "P35",
+   "title": "Connection graph of the whole system: queue, findings register, files, runs and cards as nodes; edges marked extracted or inferred; test Graphify against P21's own graph v0",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "audit/2026-11-17/web/"
+   ],
+   "next": "Owner 2026-11-24 ('a graph network like Graphify, honestly'). Graphify (open source, uv tool install graphifyy) gives graph.html, a report and graph.json and labels inferred edges. Test, rule fixed before running: 10 fixed dependency questions about the repo (answers checked by script against queue.json and the register); keep the tool that answers more correctly at lower cost; extracted and inferred edges must stay apart in the view. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "refs": [
+    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
+   ],
+   "generated_at": "2026-11-24T11:36:50Z"
+  },
+  {
+   "id": "P36",
+   "title": "An interface for the Forge that does not depend on any one AI chat: compare LibreChat, Open WebUI, OpenHands and Goose",
+   "kind": "build",
+   "status": "open",
+   "origin": "new",
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [],
+   "next": "Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "refs": [
+    "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
+   ],
+   "generated_at": "2026-11-24T11:36:50Z"
   }
  ],
  "batches": [
