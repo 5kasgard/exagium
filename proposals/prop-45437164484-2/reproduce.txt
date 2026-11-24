@@ -1,0 +1,17 @@
+FAILED: prop-45437164484-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 180, in <module>
+    main()
+  File "/w/train.py", line 156, in main
+    emb, W_out, b_out, val_acc = train_model(
+                                 ^^^^^^^^^^^^
+  File "/w/train.py", line 121, in train_model
+    train_epoch(emb, W_out, b_out, X_tr, y_tr, l2, lr, BATCH, rng, adam_state)
+  File "/w/train.py", line 85, in train_epoch
+    loss, g_emb, g_W, g_b = loss_grad(scores, yb, cat, W_out, l2)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 67, in loss_grad
+    grad_emb = np.zeros_like(emb)
+                             ^^^
+NameError: name 'emb' is not defined
+
