@@ -212,6 +212,41 @@ def pr_files(n):
         return None
     return files or None
 
+def pr_snapshot(n):
+    """Return the current PR state and head SHA; fail closed if GitHub cannot provide a complete snapshot."""
+    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}"], capture_output=True, text=True)
+    if r.returncode:
+        return None
+    try:
+        p = json.loads(r.stdout)
+        return {"head_sha": p["head"]["sha"], "state": p["state"], "draft": p["draft"]}
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def same_reviewed_head(reviewed, current):
+    """Only an open, non-draft PR at the exact reviewed head may be merged."""
+    return bool(reviewed and current and reviewed.get("state") == "open" and not reviewed.get("draft")
+                and current.get("state") == "open" and not current.get("draft")
+                and reviewed.get("head_sha") and reviewed.get("head_sha") == current.get("head_sha"))
+
+
+def queue_authorises_pr(item, number):
+    """The queue must still be in review and still identify this PR as its active code proposal."""
+    if not isinstance(item, dict) or item.get("status") != "review" or not item.get("code"):
+        return False
+    run = next((x for x in reversed(item.get("runs") or []) if x.get("outcome") != "defer"), {})
+    match = re.search(r"/pull/(\d+)", str(run.get("where", "")))
+    return bool(run.get("outcome") == "pr" and match and int(match.group(1)) == number)
+
+
+def queue_still_authorises_pr(wt, item_id, number):
+    """Refresh the queue immediately before merge; owner changes and superseding PRs cancel automation."""
+    Q.sync(wt)
+    item = next((x for x in Q.load(wt)["items"] if x.get("id") == item_id), None)
+    return queue_authorises_pr(item, number)
+
+
 
 def code_prs(q):
     """Review-state items whose last run opened a PR for a code change."""
@@ -253,11 +288,22 @@ def drain_code(wt, ask, record):
         return
     Q.sync(wt)
     for item, n in code_prs(Q.load(wt)):
+        before = pr_snapshot(n)
+        if not before or before["state"] != "open" or before["draft"]:
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                       "why": ["PR is unavailable, closed or draft; no automatic merge"]})
+            continue
         files = pr_files(n)
+        after_files = pr_snapshot(n)
         if files is None:
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
             record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
             continue
+        if not same_reviewed_head(before, after_files):
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                       "why": ["PR head changed while its diff was being fetched; review deferred"]})
+            continue
+        reviewed_head = after_files["head_sha"]
         full = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)
         verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": full[:DIFF_SEEN]}, ask)
         if verdict is None:   # no answer (outage, empty or unparsable reply) is not a judgement: leave it for the next run
@@ -271,7 +317,18 @@ def drain_code(wt, ask, record):
             why.append("files a person merges: the change is too long, or has a file with no diff, for the reviewer to see whole")
         conflict = False
         if ok:
-            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge", "-f", "merge_method=squash"],
+            latest = pr_snapshot(n)
+            if not same_reviewed_head(after_files, latest):
+                record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                           "why": ["PR state or head changed after review; merge refused"]})
+                continue
+            if not queue_still_authorises_pr(wt, item["id"], n):
+                record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                           "why": ["queue no longer authorises this PR; merge refused"]})
+                continue
+            # GitHub's merge endpoint checks this SHA atomically, closing the final review-to-merge TOCTOU window.
+            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge",
+                                "-f", "merge_method=squash", "-f", f"sha={reviewed_head}"],
                                capture_output=True, text=True)
             if m.returncode:
                 st = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", ".mergeable_state"], capture_output=True, text=True)
@@ -342,7 +399,7 @@ def retry_code(wt, record):
     q = Q.load(wt)
     for i in [x for x in q["items"] if x.get("status") == "escalated" and x.get("code")][:MAX_ITEMS]:
         last = (i.get("runs") or [{}])[-1]
-        why = "; ".join(str(w) for w in (last.get("why") or [])[:3])[:500]
+        why = str(last.get("result") or "")[:500]   # F019 (review 2026-11-22): run records carry 'result', never 'why' - the reason was always empty
         if tier_redos(i) >= MAX_REDOS:   # parked with the reason; the splitter cuts its parent again, smaller
             rc = Q.move(wt, f"tier-{MODEL}", i["id"], "resplit", f"tier: failed after its retry, parked for a smaller split; last: {why}")
             record.setdefault("code_retries", []).append({"id": i["id"], "escalated": True, "rc": rc}); continue

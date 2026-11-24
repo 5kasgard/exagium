@@ -2,7 +2,7 @@
 """Run one experiment and apply its own rule (experiments/README.md). python3 -I experiments/run_one.py NAME OUT_DIR
 Exit 0 with OUT_DIR/result.json and verdict.json whatever the verdict; exit 1 if the experiment could not run or its
 rule gave no valid verdict (verdict.json then says invalid, with the reason)."""
-import importlib.util, json, os, re, subprocess, sys, time, traceback
+import hashlib, importlib.util, json, os, re, subprocess, sys, time, traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VERDICTS = ("holds", "fails", "invalid")
@@ -24,8 +24,16 @@ def load(name):
 def main(name, out):
     os.makedirs(out, exist_ok=True)
     m, path = load(name)
+    # F017 (review 2026-11-22): "the rule was fixed before the run" was enforced by nothing - a tracked experiment
+    # edited but not committed could run() and rule() from bytes that differ from its recorded commit. Refuse a
+    # modified tracked file; untracked ad-hoc files cannot be dispatched (the workflow schedules committed
+    # experiments only). content_sha256 below pins the exact bytes that ran either way.
+    st = subprocess.run(["git", "status", "--porcelain", "--", path], capture_output=True, text=True, cwd=HERE).stdout.strip()
+    if st and not st.startswith("??"):
+        raise SystemExit(f"{name}: the experiment file has uncommitted changes ({st[:80]}); commit it before running it")
     commit = subprocess.run(["git", "log", "-1", "--format=%H %cI", "--", path], capture_output=True, text=True, cwd=HERE).stdout.strip()
     meta = {"name": name, "plan": m.PLAN, "file": os.path.relpath(path, os.path.dirname(HERE)), "file_commit": commit,
+            "content_sha256": hashlib.sha256(open(path, "rb").read()).hexdigest(),
             "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     try:
         result = m.run()

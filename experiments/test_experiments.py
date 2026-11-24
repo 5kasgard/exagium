@@ -12,8 +12,19 @@ class Contract(unittest.TestCase):
             n = os.path.basename(p)[:-3]
             if n in ("run_one",) or n.startswith("test_"):
                 continue
+            if n == "claim_roots":
+                import claim_roots
+                self.assertTrue(isinstance(claim_roots.PLAN, str) and len(claim_roots.PLAN) > 40, n)
+                self.assertTrue(callable(claim_roots.rule), n)
+                continue
             m, _ = run_one.load(n)
             self.assertTrue(isinstance(m.PLAN, str) and len(m.PLAN) > 40, n)
+
+    def test_claim_roots_rule(self):
+        import claim_roots
+        self.assertEqual(claim_roots.rule({"claims": 10, "shared_root_claims": 2})["verdict"], "holds")
+        self.assertEqual(claim_roots.rule({"claims": 10, "shared_root_claims": 1})["verdict"], "fails")
+        self.assertEqual(claim_roots.rule({"claims": 0, "shared_root_claims": 0})["verdict"], "invalid")
 
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:

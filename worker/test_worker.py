@@ -6,9 +6,28 @@ import digest  # noqa: E402
 import research_job as R  # noqa: E402
 import doc_job as D  # noqa: E402
 import queue_ops as Q  # noqa: E402
+import tier as TierModule  # noqa: E402
 
 ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "lines": [2, 3]}]}
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
+
+
+class TierMergeGuards(unittest.TestCase):
+    def test_only_same_open_non_draft_head_can_merge(self):
+        reviewed = {"state": "open", "draft": False, "head_sha": "abc"}
+        self.assertTrue(TierModule.same_reviewed_head(reviewed, dict(reviewed)))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": False, "head_sha": "def"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "closed", "draft": False, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": True, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, None))
+
+    def test_queue_must_still_point_to_the_reviewed_pr(self):
+        item = {"status": "review", "code": {"files": ["a.py"]},
+                "runs": [{"outcome": "pr", "where": "https://github.com/5kasgard/exagium/pull/17"}]}
+        self.assertTrue(TierModule.queue_authorises_pr(item, 17))
+        self.assertFalse(TierModule.queue_authorises_pr(item, 18))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, status="escalated"), 17))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, runs=[{"outcome": "redo", "where": item["runs"][0]["where"]}]), 17))
 
 
 class Edits(unittest.TestCase):
@@ -114,10 +133,59 @@ class Research(unittest.TestCase):
         self.assertEqual(len(ok), 1)
         self.assertEqual(len(dropped), 7)
 
+    def test_quote_typography_is_not_a_mismatch(self):
+        # R27/R31 2026-11-21: the reader wrote U+2011 for '-', arXiv kept LaTeX '70\%', and a quote ended with an added '.'
+        src = [{"sid": "S1", "abstract": "routing across a pool of real-world models cuts cost by up to 70\\% on math, and more"}]
+        good = "routing across a pool of real‑world models cuts cost by up to 70% on math."
+        ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
+                                  {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
+        self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
+        # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
+        c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
+        ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
+                                  c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
+        self.assertEqual((len(ok), len(dropped)), (1, 3))
+        self.assertFalse(R.whole_in("training costs up to 1", "training costs up to 1,000 dollars"))
+
+    def test_claim_numbers_must_match_the_quote_on_number_edges(self):
+        # F024 (review 2026-11-22): '0.5' is a substring of '10.5', so a claim of 0.5 passed a quote saying 10.5 - a
+        # magnitude error the cards exist to stop; the number must sit on number edges in the quote
+        src = [{"sid": "S1", "abstract": "Latency drops to 10.5 ms under load, and accuracy reaches 98% on the full test set."}]
+        ok, dropped = R.verified([
+            {"source": "S1", "claim": "latency drops to 0.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "latency drops to 10.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "accuracy reaches 98%", "quote": "accuracy reaches 98% on the full test set", "evidence": "measured"}], src)
+        self.assertEqual([c["claim"] for c in ok], ["latency drops to 10.5 ms", "accuracy reaches 98%"])
+        self.assertEqual([w for _, w in dropped], ["a number in the claim is not in the quote"])
+
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
         for bad in ("http", "<", "@someone", "#12", "](", "\n"):
             self.assertNotIn(bad, t)
+
+
+class TierRetryCode(unittest.TestCase):
+    def test_the_retry_reason_comes_from_the_run_records_result_field(self):
+        # F019 (review 2026-11-22): run records carry 'result', never 'why' - retry_code's reason was always empty and
+        # the escalated coder re-ran blind; the rejection now rides the last run record's 'result'
+        import tier
+        from unittest import mock
+        item = {"id": "K99", "status": "escalated", "code": True, "next": "",
+                "runs": [{"at": "2026-11-23T00:00:00Z", "worker": "tier-x", "outcome": "escalate",
+                          "result": "only part of the item was done"}]}
+        saved = {}
+        with mock.patch.object(tier.Q, "sync"), \
+                mock.patch.object(tier.Q, "load", side_effect=lambda wt: {"items": [json.loads(json.dumps(item))]}), \
+                mock.patch.object(tier.Q, "save", side_effect=lambda wt, q: saved.update(q=q)), \
+                mock.patch.object(tier.Q, "commit_push", return_value=True):
+            rec = {}
+            tier.retry_code("/tmp/wt", rec)
+        it = saved["q"]["items"][0]
+        self.assertIn("PREVIOUS ATTEMPT REJECTED: only part of the item was done", it["next"])
+        self.assertEqual(it["status"], "open")
+        self.assertIn("only part of the item was done", it["runs"][-1]["result"])
+        self.assertEqual(rec["code_retries"], [{"id": "K99", "redo": True}])
 
 
 class DocSafety(unittest.TestCase):
@@ -556,7 +624,7 @@ class TierOutcomes(unittest.TestCase):
     reason other than a conflict, is not a judgement (it closed good PRs and spent their one redo); a change too long for
     the reviewer to see whole goes to a person."""
 
-    def _drain(self, verdict, files, merge_rc=0, state="clean", runs=None):
+    def _drain(self, verdict, files, merge_rc=0, state="clean", runs=None, head_change=False, queue_authorised=True):
         import tier as TI
         from unittest import mock
         item = {"id": "X1", "title": "t", "status": "review", "code": {"files": ["experiments/x.py"], "test": "experiments/test_experiments.py"},
@@ -572,8 +640,12 @@ class TierOutcomes(unittest.TestCase):
             return mock.Mock(returncode=rc, stdout=out, stderr="refused" if rc else "")
         ask = lambda prompt: verdict
         rec = {"code_controls": [], "code_prs": []}
+        snapshot = {"state": "open", "draft": False, "head_sha": "abc"}
+        latest = dict(snapshot, head_sha="def") if head_change else dict(snapshot)
         with mock.patch.object(TI, "CODE_CONTROLS", []), mock.patch.object(TI.Q, "sync"), \
                 mock.patch.object(TI.Q, "load", return_value={"items": [item]}), mock.patch.object(TI, "pr_files", return_value=files), \
+                mock.patch.object(TI, "pr_snapshot", side_effect=[snapshot, snapshot, latest]), \
+                mock.patch.object(TI, "queue_still_authorises_pr", return_value=queue_authorised), \
                 mock.patch.object(TI.subprocess, "run", side_effect=run), \
                 mock.patch.object(TI.Q, "move", side_effect=lambda wt, who, i, outcome, note: moves.append(outcome) or 0), \
                 mock.patch.object(TI, "_redo_with_reason", side_effect=lambda *a: moves.append("redo_with_reason") or 0):
@@ -618,6 +690,16 @@ class TierOutcomes(unittest.TestCase):
     def test_a_conflict_is_redone(self):
         closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state="dirty")
         self.assertEqual((closed, moves), (True, ["redo"]))
+
+    def test_head_change_after_review_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, head_change=True)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("head changed", rec["why"][0])
+
+    def test_queue_cancellation_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, queue_authorised=False)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("queue no longer authorises", rec["why"][0])
 
     def test_a_merge(self):
         self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', self.F)[:2], (False, ["confirm"]))
@@ -699,6 +781,34 @@ class CodeReplyFormat(unittest.TestCase):
         self.assertEqual(r["note"], "added classes()")
         self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
         self.assertIsNone(C.parse_reply("nothing here"))
+
+    def test_new_file_block_does_not_swallow_the_next(self):
+        # K44 run 44953039259: an empty SEARCH (a new file) ran on to the test block's =======, so the new file got the
+        # test's code and the test edit vanished. Each block must stand alone, whatever order the model writes them in.
+        import code_job as C
+        new = "<<<<<<< SEARCH router/analysis/attempt_join.py\n=======\ndef parse_calls(lines):\n    return {}\n>>>>>>> REPLACE\n"
+        test = ('<<<<<<< SEARCH router/test_router.py\nif __name__ == "__main__":\n=======\nclass T(unittest.TestCase):\n'
+                '    pass\n\nif __name__ == "__main__":\n>>>>>>> REPLACE\n')
+        want = [{"path": "router/analysis/attempt_join.py", "old": "", "new": "def parse_calls(lines):\n    return {}"},
+                {"path": "router/test_router.py", "old": 'if __name__ == "__main__":',
+                 "new": 'class T(unittest.TestCase):\n    pass\n\nif __name__ == "__main__":'}]
+        self.assertEqual(C.parse_reply("```\n" + new + "\n" + test + "```\nNOTE: n")["edits"], want)
+        self.assertEqual(C.parse_reply(test + new)["edits"], want[::-1])
+        # a blank line in SEARCH still marks a new file; a block cut off before REPLACE is dropped, not merged on
+        self.assertEqual(C.parse_reply(new.replace("=======", "\n=======", 1))["edits"][0]["old"], "")
+        for cut in ("<<<<<<< SEARCH a.py\nx\n=======\ny\n" + test, "<<<<<<< SEARCH a.py\nx\n" + test, test + "<<<<<<< SEARCH a.py\nx\n"):
+            r = C.parse_reply(cut)
+            self.assertEqual((r["edits"], r["cut"]), (want[1:], ["a.py"]))
+        self.assertEqual(C.parse_reply(new + test)["cut"], [])
+        # review 2026-11-22: text holding a line that looks like a block start is reported as cut (the caller then repairs
+        # or refuses the whole set), never silently dropped while the other blocks land
+        r = C.parse_reply("<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertIsNone(r)   # no whole block: the slot chain moves on to the next model (review 2026-11-22)
+        r = C.parse_reply(test + "<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertEqual((r["edits"], r["cut"]), (want[1:], ["d.md", "path"]))
+        self.assertEqual(C.parse_reply((new + test).replace("\n", "\r\n"))["edits"], want)
+        # a replacement that ends on the marker's line keeps its text
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny>>>>>>> REPLACE")["edits"][0]["new"], "y")
 
 
 class SandboxRefused(unittest.TestCase):
@@ -990,6 +1100,29 @@ class CoderRepair(unittest.TestCase):
         self.assertEqual(r["repair"]["after"], [])
         self.assertIn("import json", r["proposal"]["edits"][0]["new"])
 
+    def test_cut_block_is_repaired_or_refused_never_landed_in_part(self):
+        # review 2026-11-22: a block that ends early must not leave the other blocks to land without it
+        import code_job as C, slots
+        from unittest import mock
+        whole = "<<<<<<< SEARCH b.py\ny = 1\n=======\ny = 2\n>>>>>>> REPLACE\n"
+        part = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n"
+        fine = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n>>>>>>> REPLACE\nNOTE: n"
+        for second, n_edits in ((part, 0), (fine, 2)):
+            replies = iter([part, second])
+            def fake_run(slot, prompt, ask, parse):
+                if slot == "coder":
+                    t = next(replies)
+                    return parse(t), {"text": t}, [{"pool": "p"}]
+                return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+            with tempfile.TemporaryDirectory() as d:
+                json.dump({"item": {"id": "K1", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "b.py": "y = 1\n"},
+                           "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+                with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                    C.draft(d)
+                r = json.load(open(os.path.join(d, "draft.json")))
+            self.assertIn("a.py: a block ended", r["repair"]["before"][0])
+            self.assertEqual(len(r["proposal"]["edits"]), n_edits)
+
 
 class DigestBudgetWindow(unittest.TestCase):
     """F029: --hours other than 24 must read every day's ledger, not just the endpoints."""
@@ -1239,7 +1372,52 @@ class Relevance(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8, 0.2])):
             self.assertEqual(RJ.relevance("q", pool, []), [0.8, 0.2])
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.2, 0.1, 0.8, 0.2])):
-            self.assertIsNone(RJ.relevance("q", pool, []))   # the question itself judged off-topic: not used
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the answering control judged off-topic: not used
+        self.assertIn("controls wrong (answering 0.20", RJ.REL_FAIL[0])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8])):
+            self.assertIsNone(RJ.relevance("q", pool, []))
+        self.assertEqual(RJ.REL_FAIL, ["batch 1 of 1: 1 of 4 answers missing"])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.35, 0.8, 0.2])):
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the unrelated control must stay under the same bar as the sources
+
+    def test_yes_control_is_an_answering_source_not_the_bare_question(self):
+        # 2026-11-22: the bare question scored 0.14-0.48 as its own control (21 of 29 runs failed); replay in
+        # router/review/relevance-control: the answering text 0.655-0.999 on 15 pools
+        import research_job as RJ, io
+        from unittest import mock
+        seen = []
+        class R(io.BytesIO):
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        def fake(req, timeout=None):
+            seen.append(json.loads(req.data))
+            return R(json.dumps({"answers": {f"s{i}": {"noul": p} for i, p in enumerate([0.9, 0.1, 0.8])}}).encode())
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", fake):
+            self.assertEqual(RJ.relevance("Does X beat Y?", [{"title": "a", "abstract": "x"}], []), [0.8])
+        lines = seen[0]["state"].split("SOURCES:\n")[1].splitlines()
+        self.assertEqual(lines[0], "0. " + RJ.REL_CONTROL_YES.format(q="Does X beat Y?"))
+        self.assertNotEqual(lines[0], "0. Does X beat Y?")
+
+    def test_failed_filter_means_no_reader_call_and_a_retry(self):
+        # 2026-11-21: 5 of 8 research runs lost the filter (reason unseen), read unfiltered sources, found nothing, and
+        # each "no claims" went to the paid tier. Now: a recorded model failure (failed_call: the item reopens), no reader call.
+        import research_job as RJ
+        from unittest import mock
+        item = {"id": "R99", "research": {"question": "q"}, "touches": ["research/cards/R99.md"]}
+        d = {"item": item, "sources": [{"sid": "S1", "title": "t", "abstract": "a", "kind": "paper"}], "log": [],
+             "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        def fail(q, pool, calls):
+            RJ.REL_FAIL[:] = ["batch 1 of 1: 1 of 3 answers missing"]
+        with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as repo, \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch.object(RJ, "relevance", fail), \
+                mock.patch.object(RJ.slots, "run", side_effect=AssertionError("reader called")):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, d, "q", [], None)
+            RJ.card(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+        self.assertEqual(res["result"], "failed_call")
+        self.assertEqual(res["why"], ["relevance filter failed: batch 1 of 1: 1 of 3 answers missing"])
 
     def test_nothing_on_topic_means_no_reader_call(self):
         import research_job as RJ
@@ -1314,6 +1492,29 @@ class WorkerSpecCard(unittest.TestCase):
         for name in ("code_job.py", "transitions.py", "tier.py", "generate.py", "split.py", "diagnose.py", "note.py"):
             self.assertIn(name, text)
         self.assertNotIn("**Not yet:** code items", text)
+
+
+class LanesTest(unittest.TestCase):
+    def test_lanes_from_headroom_and_ready_items(self):
+        import lanes
+        self.assertEqual(lanes.lanes(1.0, 0), 0)
+        self.assertEqual(lanes.lanes(0.1, 5), 0)
+        self.assertEqual(lanes.lanes(1.0, 2), 2)
+        self.assertEqual(lanes.lanes(1.0, 10), 4)
+
+
+class Exhaust(unittest.TestCase):
+    """K53: a 429 reply becomes a pool reset time."""
+    def test_reset_time(self):
+        import os as _os, sys as _sys
+        here = _os.path.dirname(_os.path.abspath(__file__))
+        if here not in _sys.path:
+            _sys.path.insert(0, here)
+        import exhaust
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "30"}, 1000), 1030)
+        self.assertEqual(exhaust.reset_time(429, {}, 1000), 1060)
+        self.assertIsNone(exhaust.reset_time(200, {"retry-after": "30"}, 1000))
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
 
 
 if __name__ == "__main__":

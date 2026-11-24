@@ -147,6 +147,10 @@ jobs:
           name: claim
           path: claim
       - name: prompt bundle (doc) or literature search by API scripts (research)
+        env:
+          # a read-only, free search key and nothing else (2026-11-24: Semantic Scholar was skipped on 79 of 79 queries,
+          # handoff 2026-11-22, because the code reads S2_API_KEY and no workflow passed the owner's secret)
+          S2_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context claim/claim.json . job
           elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py context claim/claim.json . job
@@ -361,7 +365,8 @@ jobs:
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: no keeper"; exit 0; fi
           waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
           if [ "$waiting" -gt 0 ]; then echo "a worker keeper is already waiting ($waiting)"; exit 0; fi
-          at=$(date -u -d "tomorrow 00:05" +%s)
+          today=$(date -u +%F)
+          at=$(date -u -d "$today +1 day 00:05" +%s)   # Z1-F009: from the UTC date, not "tomorrow" (a stop between 00:00 and 00:05 skipped a day), as at line ~530
           gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
           echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"
 
@@ -494,7 +499,7 @@ jobs:
       group: worker-chain
       cancel-in-progress: false
     permissions:
-      actions: write     # dispatch the next run and list today's runs
+      actions: write     # dispatch the next run (or a keeper at the cap) and list today's runs
       contents: read     # read worker/PAUSE
     env:
       GH_TOKEN: ${{ github.token }}
@@ -520,6 +525,16 @@ jobs:
           # --paginate: one page held at most 100, so the 200 cap could never fire (GLM F002)
           chained=$(gh api --paginate "repos/$R/actions/workflows/worker.yml/runs?event=workflow_dispatch&created=>=$today&per_page=100" \
             -q '[.workflow_runs[] | select(.triggering_actor.login=="github-actions[bot]")] | length' | awk '{s+=$1} END {print s+0}')
-          if [ "$chained" -ge "$CHAIN_CAP" ]; then echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"; exit 0; fi
+          if [ "$chained" -ge "$CHAIN_CAP" ]; then
+            # the cap resets at 00:00 UTC, but nothing restarted the chain then except the cron, which GitHub dropped:
+            # 2026-11-21 the cap was hit at 23:23Z (211 of 200) and the worker sat idle until a person started it at 02:14Z
+            # with 10 items ready (schedule fired 4 of 24 hours that day). So hand over to a keeper, as the budget stop does.
+            echo "daily cap reached ($chained of $CHAIN_CAP): not chaining"
+            kw=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
+            if [ "$kw" -gt 0 ]; then echo "a worker keeper is already waiting ($kw)"; exit 0; fi
+            at=$(date -u -d "$today +1 day 00:05" +%s)   # from $today, not "tomorrow": a check that crosses midnight would skip a day (review)
+            gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
+            echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"; exit 0
+          fi
           gh workflow run worker.yml -R "$R" --ref main
           echo "chained run $((chained + 1)) of $CHAIN_CAP today (UTC $today)"

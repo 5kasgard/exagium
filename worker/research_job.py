@@ -78,6 +78,12 @@ URL_OK = re.compile(r"^https://([a-z0-9-]+\.)*(doi\.org|arxiv\.org|openalex\.org
                     r"stackexchange\.com|ycombinator\.com|reddit\.com)(/[^\s\[\]()<>\"'`]*)?$")   # whole URL (review N4)
 UNTRUSTED = ("forum", "Q&A", "encyclopedia", "code")   # anyone can write these (review N6); a repo README is its author's own claim
 MAX_QUOTE_WORDS = 40
+# Typography only, the words must still match: 7 of 9 'not found verbatim' drops on R27 and R31 (runs 44947483203,
+# 44950857676, 2026-11-21) were the reader's U+2011 hyphen for the abstract's '-', arXiv's LaTeX '70\%', or a full
+# stop added where the abstract goes on. The other 2 are also typography (a LaTeX '--' dash, a missing space after a
+# full stop in the abstract) and are left dropped: not handled until data shows they matter.
+TYPO = {c: "-" for c in (0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212)} | \
+       {0x2018: "'", 0x2019: "'", 0x201C: '"', 0x201D: '"', 0x00A0: " ", 0x2009: " ", 0x202F: " "}
 
 
 def clean(t, n=300):
@@ -360,11 +366,25 @@ def parse_json(text):
         return None
 
 
+def whole_in(q, a):
+    """q occurs in a and starts and ends on a word or number edge: 'up to 70' does not match inside '70.5%' (review
+    2026-11-22: a plain substring test let a quote stop partway through a number)."""
+    edge = lambda t, i: i < 0 or i >= len(t) or not (t[i].isalnum() or t[i] in ".," and 0 <= i - 1 and i + 1 < len(t)
+                                                      and t[i - 1].isdigit() and t[i + 1].isdigit())   # 70.5, 1,000
+    i = a.find(q)
+    while q and i >= 0:
+        signed = q[0].isdigit() and i > 0 and a[i - 1] == "-"   # '0.5 gain' is not in '-0.5 gain'
+        if (edge(a, i - 1) and not signed or not q[0].isalnum()) and (edge(a, i + len(q)) or not q[-1].isalnum()):
+            return True
+        i = a.find(q, i + 1)
+    return False
+
+
 def verified(claims, sources):
     """Script check: the quote occurs verbatim (whitespace-normalised) in the source's abstract, and every number in
     the claim occurs in the quote. Returns (kept, dropped with reasons)."""
     by = {s["sid"]: s for s in sources}
-    norm = lambda s: " ".join(str(s).split()).lower()
+    norm = lambda s: " ".join(str(s).translate(TYPO).replace("\\%", "%").split()).lower()
     kept, dropped = [], []
     for c in claims if isinstance(claims, list) else []:
         if not isinstance(c, dict) or not {"source", "claim", "quote"} <= set(c) \
@@ -375,10 +395,11 @@ def verified(claims, sources):
         s = by.get(c["source"])
         if not s:
             dropped.append((c, "unknown source")); continue
-        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or norm(c["quote"]) not in norm(s["abstract"]):
+        if not 5 <= len(str(c["quote"]).split()) <= MAX_QUOTE_WORDS or not whole_in(norm(c["quote"]).rstrip(".,;"), norm(s["abstract"])):
             dropped.append((c, "quote not found verbatim in the abstract")); continue
         nums = re.findall(r"\d+(?:\.\d+)?", str(c["claim"]))
-        if any(n not in str(c["quote"]) for n in nums):
+        # F024 (review 2026-11-22): '0.5' is a substring of '10.5' - a claim number must sit on number edges in the quote
+        if any(not whole_in(n, norm(str(c["quote"]))) for n in nums):
             dropped.append((c, "a number in the claim is not in the quote")); continue
         kept.append(c)
     return kept, dropped
@@ -410,21 +431,31 @@ def decide_claims(q, kept, calls):
 
 
 REL_BATCH = 38    # sources per Decisions request, with 2 known-answer controls (40 pairs: the size decide_claims uses)
-REL_KEEP = 0.5    # a source is read only if the decision model says it is about the question
+REL_KEEP = 0.3    # a source is read if p >= this; the controls must hold at the same bar. 0.5 with the old instruction kept 10 of
+                  # 26 labelled on-topic sources; instruction REL_ASK at 0.3 kept 21 of 26 at precision 0.913 (5 labelled pools,
+                  # router/review/relevance-control/PLAN-instruction.md, run 44999835217; rule fixed before the run)
+REL_ASK = ("Could source {i} give evidence, a method, a result or a counterexample that bears directly on some part of the "
+           "QUESTION? Being in the same broad field is not enough.")
+REL_FAIL = []     # why the last relevance() returned None
+# Known-answer YES control: a source that answers the question. It was the bare question text until 2026-11-22, which
+# cannot "answer part of it", so the model scored it 0.14-0.48 and 21 of 29 research runs failed on it. Replay of this
+# exact request on 15 frozen pools (router/review/relevance-control/, run 44998923618 --prod): this text 0.717-1.000 on
+# all 15, the unrelated control 0.001-0.002. It does not show the filter is useful (RESULT.md).
+REL_CONTROL_YES = "{q} An empirical study that answers this question directly: we measure it and report the answer, with numbers and methods."
 REL_CONTROL_NO = ("Ridge regression with Tikhonov regularisation: closed-form estimator and its bias-variance trade-off.",)
 
 
 def relevance(q, pool, calls):
     """Is each candidate source about the QUESTION? One Decisions request per REL_BATCH sources (free decision model).
     Data, 2026-11-21: R23, R24, R25 read pools of Bloom filters, WHOIS, ridge regression, chromatin and music copyright,
-    and returned no claims twice each. Two controls per request: the question's own text must come out relevant and an
-    unrelated abstract must not, or the request is not used. Returns a p per pool entry, or None."""
+    and returned no claims twice each. Two controls per request: a source that answers the question must come out relevant
+    and an unrelated abstract must not, or the request is not used. Returns a p per pool entry, or None."""
     import time, urllib.request, urllib.error
     out = []
     for b in range(0, len(pool), REL_BATCH):
         part = pool[b:b + REL_BATCH]
-        docs = [f"{q}"] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
-        ask = "Is source {i} about the QUESTION itself (not merely the same broad field), so that it could answer part of it?"
+        docs = [REL_CONTROL_YES.format(q=q)] + list(REL_CONTROL_NO) + [f"{x['title']}. {x['abstract'][:600]}" for x in part]
+        ask = REL_ASK
         body = {"model": DECIDER, "state": f"QUESTION: {q}\n\nSOURCES:\n" + "\n".join(f"{i}. {t}" for i, t in enumerate(docs)),
                 "questions": {f"s{i}": {"type": "noul", "instructions": ask.format(i=i)} for i in range(len(docs))}}
         req = urllib.request.Request("https://openrouter.ai/api/alpha/decisions", data=json.dumps(body).encode(), method="POST",
@@ -438,7 +469,12 @@ def relevance(q, pool, calls):
         calls.append({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "engine": "openrouter", "model": DECIDER,
                       "ok": st == 200, "status": st, "latency_s": round(time.time() - t0, 2), "usage": resp.get("usage") or {}})
         ps = [((resp.get("answers") or {}).get(f"s{i}") or {}).get("noul") for i in range(len(docs))] if st == 200 else []
-        if st != 200 or any(not isinstance(p, (int, float)) for p in ps) or not (ps[0] >= 0.5 and ps[1] < 0.5):
+        missing = sum(not isinstance(p, (int, float)) for p in ps)
+        if st != 200 or missing or not (ps[0] >= REL_KEEP and ps[1] < REL_KEEP):
+            # why, kept for the run's record: 5 of 8 research runs on 2026-11-21 failed here unseen (HTTP 200 every time)
+            REL_FAIL[:] = [f"batch {b // REL_BATCH + 1} of {-(-len(pool) // REL_BATCH)}: " + (
+                f"HTTP {st} {str(resp.get('error', ''))[:120]}" if st != 200 else f"{missing} of {len(ps)} answers missing"
+                if missing else f"controls wrong (answering {ps[0]:.2f}, unrelated {ps[1]:.2f})")]
             return None
         out += ps[2:]
     return out
@@ -475,8 +511,20 @@ def read(out):
 def _read(out, d, q, calls, ask):
     rel = None
     if d.get("pool") and os.environ.get("OPENROUTER_API_KEY"):   # read the relevant sources, not the most cited
+        REL_FAIL[:] = []
         ps = relevance(q, d["pool"], calls)
-        if ps is not None:
+        if ps is None:
+            # infrastructure, not evidence: of the 8 research runs on 2026-11-21 with saved records, 5 lost the filter and
+            # read unfiltered sources; all 5 ended with no claim (7 script-checked claims, all rejected by the decision
+            # model at p <= 0.25), and each "no claims" goes to the paid tier. So: no reader call, the reason on record, and
+            # the item reopens (a retry passed the filter once of twice). After MAX_FAILURES in a row it is escalated with
+            # no automatic next step (as failed research runs already were, R16/R17): the handoff lists such items.
+            fail = "relevance filter failed: " + (REL_FAIL[0] if REL_FAIL else "no reason recorded")
+            json.dump({"reading": {"claims": [], "open_questions": [], "error": fail}, "script_kept": [], "script_dropped": [],
+                       "check": None, "model_fail": [fail]}, open(os.path.join(out, "read.json"), "w"), indent=1)
+            print(fail + "; not reading unfiltered sources")
+            return
+        else:
             kinds = list(dict.fromkeys(x["group"] for x in d["pool"]))
             keep = [i for i, p in enumerate(ps) if p >= REL_KEEP]
             pool = [dict(d["pool"][i], relevance=round(ps[i], 3)) for i in keep]

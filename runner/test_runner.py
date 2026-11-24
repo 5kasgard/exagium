@@ -250,5 +250,25 @@ class MarginalGuard(unittest.TestCase):
         self.assertIn("no more than", run.marginal_problem(10, 10))
         self.assertIn("not counts", run.marginal_problem(None, 10))
 
+class ClusteredSE(unittest.TestCase):
+    """K54: writer-clustered SE for the mean, G/(G-1) and (n-1)/(n-k) small-sample factors."""
+    def test_identical_writer_contributions(self):
+        # each writer contributes the same values [0, 1]: every cluster's residual sum is zero, so SE = 0,
+        # while the naive per-item SE over the four items is strictly positive
+        values, writers = [0.0, 1.0, 0.0, 1.0], ["a", "a", "b", "b"]
+        se = records.clustered_se(values, writers)
+        self.assertIsNotNone(se)
+        self.assertAlmostEqual(se, 0.0)
+        import math, statistics
+        self.assertGreater(statistics.stdev(values) / math.sqrt(len(values)), 0.0)
+
+    def test_single_writer_is_none(self):
+        self.assertIsNone(records.clustered_se([1.0, 2.0, 3.0], ["a", "a", "a"]))
+
+    def test_none_writer_raises(self):
+        with self.assertRaises(ValueError):
+            records.clustered_se([1.0, 2.0], ["a", None])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -107,5 +107,92 @@ class TestBoardPending(unittest.TestCase):
             self.assertIn("Distinct designs: 2 (of 3 valid)", text)
 
 
+class TestFrontWholeRun(unittest.TestCase):
+    """2026-11-22 (F054, decided by data): the front ranks whole-run Ir/item; an old result with only the marginal count
+    that the marginal count puts on the front is listed for a rescore, not dropped."""
+    def r(self, name, mean, marg, whole=None, task="t"):
+        v = {"name": name, "task": task, "valid": True, "mean": mean, "se": 0.01, "ir_per_item": marg}
+        return dict(v, ir_per_item_with_startup=whole) if whole else v
+
+    def test_front_uses_whole_run(self):
+        # b is cheaper only at the margin (work moved into startup): it must not dominate a on the whole-run count
+        rs = [self.r("a", 0.90, 500, 600), self.r("b", 0.90, 100, 5000), self.r("c", 0.80, 50, 60)]
+        self.assertEqual(judge.front(rs), {"a", "c"})
+        self.assertEqual(judge.recount(rs), set())
+
+    def test_old_results_compete_by_a_lower_bound(self):
+        # review 2026-11-22: leaving old results out put points on the front that they beat. Startup here is 100/item,
+        # so old's bound is 200 and old2's 150: both beat new (600); new is provisional, not front.
+        rs = [self.r("new", 0.90, 500, 600), self.r("old", 0.90, 100), self.r("old2", 0.95, 50)]
+        self.assertEqual(judge.fronts(rs), (set(), {"new"}, {"old2"}))
+        # a new result beaten by a measured one is neither front nor provisional
+        rs.append(self.r("best", 0.99, 10, 40))
+        self.assertEqual(judge.fronts(rs), ({"best"}, set(), set()))
+
+    def test_old_front_point_listed_for_rescore(self):
+        rs = [self.r("a", 0.90, 500, 600), self.r("old", 0.95, 400), self.r("old2", 0.80, 900)]
+        self.assertEqual(judge.fronts(rs), (set(), {"a"}, {"old"}))   # old's bound 500 beats a's 600
+        with tempfile.TemporaryDirectory() as d:
+            for x in rs:
+                os.makedirs(os.path.join(d, x["name"]))
+                json.dump(dict(x, extract="extracted", extracted=True, reproduced=True, beats_linear=False),
+                          open(os.path.join(d, x["name"], "result.json"), "w"))
+            judge.board(d)
+            text = open(os.path.join(d, "LEADERBOARD.md")).read()
+        self.assertIn("front column 'rescore'): 1 (old). Beaten only by those, so decided by their rescore (front column "
+                      "'provisional'): 1.", text)
+        self.assertIn("| 600 | 500 |  | provisional |", text)
+        self.assertIn("| old | t | True | True | True | 0.9500 ± 0.0100 |  |  | 400 |  | rescore |", text)
+
+
+
+class TestOwnFault(unittest.TestCase):
+    """A missing reproduce/dev json after the candidate's own crash is not valid; an infrastructure gap stays not scored."""
+    def run_one(self, rep_log=None, dev_log=None, rep_json=False):
+        with tempfile.TemporaryDirectory() as d:
+            rep, dev = os.path.join(d, "reproduce.json"), os.path.join(d, "dev.json")
+            if rep_log is not None:
+                open(os.path.join(d, "reproduce.txt"), "w").write(rep_log)
+            if dev_log is not None:
+                open(os.path.join(d, "dev.txt"), "w").write(dev_log)
+            if rep_json:
+                json.dump([{"candidate": "p-1", "identical": True}], open(rep, "w"))
+            return judge.one("p-1", "extracted", rep, dev, "adult")
+
+    def test_train_traceback_is_not_valid(self):
+        log = ('FAILED: p-1 on adult: train.py exited 1:\nTraceback (most recent call last):\n'
+               '  File "/w/train.py", line 69, in main\nIndexError: shape mismatch\n')
+        v = self.run_one(rep_log=log)
+        self.assertEqual(v["extract"], "extracted")
+        self.assertFalse(v["valid"])
+        self.assertIn("train.py exited 1", v["failed_why"])
+
+    def test_infer_exit_after_reproduction_is_not_valid(self):
+        for log in ("FAILED: p-1: infer exited 139\n", "FAILED: p-1: output is malformed: 0 records, expected 6513\n"):
+            v = self.run_one(dev_log=log, rep_json=True)
+            self.assertEqual(v["extract"], "extracted", log)
+            self.assertTrue(v["reproduced"])
+            self.assertFalse(v["valid"])
+
+    def test_long_traceback_and_forged_lines(self):
+        # the frame scrolled out of run.py's 2000-byte tail: the exception line still decides
+        v = self.run_one(rep_log="FAILED: p-1 on adult: train.py exited 1:\n" + "x" * 3000 + "\nIndexError: bad\n")
+        self.assertEqual(v["extract"], "extracted")
+        # the candidate printing a FAILED line inside its own stderr is not read: only the first FAILED line counts
+        v = self.run_one(rep_log="FAILED: p-1: timer failed (exit 1)\nFAILED: p-1: infer exited 1\n")
+        self.assertEqual(v["extract"], "not scored")
+
+    def test_infrastructure_stays_not_scored(self):
+        for log in (None, "", "FAILED: p-1: timer failed (exit 1): jail\n", "FAILED: p-1 on adult: train.py exited 137:\nKilled\n",
+                    "FAILED: p-10: infer exited 3\n", "FAILED: p-1: infer exited 137\n",
+                    "FAILED: p-1: the timer did not filter its child (pids 2)\n",
+                    "FAILED: p-1: checker rejected the output (exit 1): boom\n",
+                    'FAILED: p-1 on adult: train.py exited 1:\n  File "/w/train.py", line 1\nModuleNotFoundError: No module named numpy\n',
+                    'FAILED: p-1 on adult: train.py exited 1:\n  File "/w/train.py", line 1\nMemoryError\n',
+                    "FAILED: output is malformed: 0 records, expected 6513\n", "FAILED: p-1: checker gave 5 scores for 6 items\n", "pip: 503 Service Unavailable\n"):
+            v = self.run_one(rep_log=log)
+            self.assertEqual(v["extract"], "not scored", log)
+
+
 if __name__ == "__main__":
     unittest.main()
