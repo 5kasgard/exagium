@@ -69,42 +69,106 @@ class MergeAllowlist(unittest.TestCase):
         import tier
         return tier
 
-    def _privileged_jobs(self):
+    def _privileged_jobs(self, root=None):
+        """Every job that holds a key or a write token, by parsing the workflow (Z.ai review 2026-11-22 F005: the scan read
+        only each job's own text, so a secret set in the workflow-level env, a reusable-workflow call with 'secrets:',
+        or a local action holding the token was invisible). Unparsed or unknown forms count as privileged."""
         import re
-        for f in sorted(glob.glob(os.path.join(self.ROOT, ".github", "workflows", "*.yml"))):
-            w = yaml.safe_load(open(f))
+        root = root or self.ROOT
+        key = r"secrets\.|secrets\[|github\.token|GH_TOKEN|GITHUB_TOKEN"
+        for f in sorted(glob.glob(os.path.join(root, ".github", "workflows", "*.y*ml"))):
+            w = yaml.safe_load(open(f)) or {}
             top = w.get("permissions")
+            wenv = yaml.dump(w.get("env") or {})          # workflow-level env reaches every job
             for name, job in (w.get("jobs") or {}).items():
-                text = yaml.dump(job)
+                job = job or {}
+                text = yaml.dump(job) + "\n" + wenv + self._local_actions(job, root)
                 perms = job.get("permissions", top)
                 write = perms is None or perms == "write-all" or (isinstance(perms, dict) and "write" in perms.values())
-                if write or re.search(r"secrets\.|github\.token|GH_TOKEN|GITHUB_TOKEN", text):
+                reusable = "uses" in job                     # a called workflow: its own jobs may hold anything
+                if write or reusable or "secrets" in job or re.search(key, text):
                     yield os.path.basename(f), name, text
 
-    def _run_or_imported(self, text):
-        """Python files a job's text names (any path, 'cd DIR && python3 X.py', 'python -m a.b') and everything those
-        import, resolved against every top-level folder and each file's own folder."""
+    def _local_actions(self, job, root):
+        """The text of local composite actions a job uses (uses: ./path), which run in the job with its keys."""
+        out = []
+        for st in job.get("steps") or []:
+            u = str((st or {}).get("uses", ""))
+            if u.startswith("./"):
+                for fn in ("action.yml", "action.yaml"):
+                    p = os.path.join(root, u[2:], fn)
+                    if os.path.isfile(p):
+                        out.append(open(p, errors="replace").read())
+        return "\n".join(out)
+
+    def _run_or_imported(self, text, root=None):
+        """Python files a job's text names (any path, 'cd DIR && python3 X.py', 'python -m a.b'), the shell scripts it runs
+        and what those name in turn (Z.ai F005: a .sh wrapper hid the Python it ran), and everything those import,
+        resolved against every top-level folder and each file's own folder."""
         import re
-        tops = [d for d in os.listdir(self.ROOT) if os.path.isdir(os.path.join(self.ROOT, d)) and not d.startswith(".")]
-        found = {m for m in re.findall(r"[\w./-]+\.py\b", text)}
-        for d, m in re.findall(r"cd\s+([\w./-]+)[^\n]*?python3?\s+(?:-I\s+)?([\w./-]+\.py)", text):
-            found.add(os.path.join(d, m))
-        for m in re.findall(r"python3?\s+(?:-I\s+)?-m\s+([\w.]+)", text):
-            found.add(m.replace(".", "/") + ".py")
-        seen = {os.path.normpath(p) for p in found if os.path.isfile(os.path.join(self.ROOT, p))}
+        root = root or self.ROOT
+        tops = [d for d in os.listdir(root) if os.path.isdir(os.path.join(root, d)) and not d.startswith(".")]
+
+        def named(t, here=""):
+            found = set(re.findall(r"[\w./-]+\.py\b", t))
+            for d, m in re.findall(r"cd\s+([\w./-]+)[^\n]*?python3?\s+(?:-I\s+)?([\w./-]+\.py)", t):
+                found.add(os.path.join(d, m))
+            for m in re.findall(r"python3?\s+(?:-I\s+)?-m\s+([\w.]+)", t):
+                found.add(m.replace(".", "/") + ".py")
+            found |= set(re.findall(r"[\w./-]+\.sh\b", t))
+            out = set()
+            for x in found:
+                for c in (x, os.path.join(here, x)):
+                    c = os.path.normpath(c.lstrip("./") if c.startswith("./") else c)
+                    if os.path.isfile(os.path.join(root, c)):
+                        out.add(c)
+            return out
+
+        seen = named(text)
         todo = list(seen)
         while todo:
             p = todo.pop()
-            src = open(os.path.join(self.ROOT, p), errors="replace").read()
-            names = set()
-            for line in re.findall(r"^\s*(?:import|from)\s+([^\n#]+)", src, re.M):
-                names |= {x.strip().split(" ")[0].split(".")[0] for x in re.split(r"[,\s]+import\s+|,", line) if x.strip()}
-            for n in names:
-                for d in [os.path.dirname(p)] + tops:
-                    c = os.path.normpath(os.path.join(d, n + ".py"))
-                    if os.path.isfile(os.path.join(self.ROOT, c)) and c not in seen:
-                        seen.add(c); todo.append(c)
+            src = open(os.path.join(root, p), errors="replace").read()
+            nxt = set()
+            if p.endswith(".sh"):
+                nxt = named(src, os.path.dirname(p))
+            else:
+                names = set()
+                for line in re.findall(r"^\s*(?:import|from)\s+([^\n#]+)", src, re.M):
+                    names |= {x.strip().split(" ")[0].split(".")[0] for x in re.split(r"[,\s]+import\s+|,", line) if x.strip()}
+                for n in names:
+                    for d in [os.path.dirname(p)] + tops:
+                        c = os.path.normpath(os.path.join(d, n + ".py"))
+                        if os.path.isfile(os.path.join(root, c)):
+                            nxt.add(c)
+            for c in nxt - seen:
+                seen.add(c); todo.append(c)
         return seen
+
+    def test_guard_controls(self):
+        """Known-answer controls for the guard (Z.ai F005): each fixture hides a keyed job that runs experiments/x.py one
+        way the old scan missed. The guard must see every one; a keyless read-only job must stay unprivileged."""
+        import tempfile, textwrap
+        with tempfile.TemporaryDirectory() as root:
+            os.makedirs(os.path.join(root, ".github", "workflows")); os.makedirs(os.path.join(root, "experiments"))
+            os.makedirs(os.path.join(root, "scripts")); os.makedirs(os.path.join(root, ".github", "act"))
+            open(os.path.join(root, "experiments", "x.py"), "w").write("print(1)\n")
+            open(os.path.join(root, "scripts", "wrap.sh"), "w").write("#!/bin/sh\npython3 experiments/x.py\n")
+            open(os.path.join(root, ".github", "act", "action.yml"), "w").write(
+                "runs:\n  using: composite\n  steps:\n    - run: echo ${{ secrets.K }}\n      shell: bash\n")
+            wf = {
+                "env.yml": "on: push\npermissions: {contents: read}\nenv:\n  K: ${{ secrets.K }}\njobs:\n  a:\n    runs-on: x\n    steps:\n      - run: python3 experiments/x.py\n",
+                "inherit.yml": "on: push\npermissions: {contents: read}\njobs:\n  a:\n    uses: ./.github/workflows/env.yml\n    secrets: inherit\n",
+                "wrap.yml": "on: push\npermissions: {contents: read}\njobs:\n  a:\n    runs-on: x\n    env: {K: '${{ secrets.K }}'}\n    steps:\n      - run: sh scripts/wrap.sh\n",
+                "action.yml": "on: push\npermissions: {contents: read}\njobs:\n  a:\n    runs-on: x\n    steps:\n      - uses: ./.github/act\n      - run: python3 experiments/x.py\n",
+                "clean.yml": "on: push\npermissions: {contents: read}\njobs:\n  a:\n    runs-on: x\n    steps:\n      - run: python3 experiments/x.py\n",
+            }
+            for n, t in wf.items():
+                open(os.path.join(root, ".github", "workflows", n), "w").write(textwrap.dedent(t))
+            jobs = {wfn: t for wfn, _, t in self._privileged_jobs(root)}
+            self.assertEqual(sorted(jobs), ["action.yml", "env.yml", "inherit.yml", "wrap.yml"])
+            self.assertIn("experiments/x.py", self._run_or_imported(jobs["wrap.yml"], root))   # through the .sh wrapper
+            self.assertIn("experiments/x.py", self._run_or_imported(jobs["env.yml"], root))
 
     def test_no_privileged_job_runs_a_mergeable_file(self):
         tier = self._tier()
