@@ -351,6 +351,22 @@ def check_sigstore(bundle, digest, repo, workflow, ref):
     return t, st.get("predicate"), commit
 
 
+def ots_block_hash(base, height):
+    """Resolve a block height without treating an explorer's shorter tip as proof of forgery."""
+    bh = _get(f"{base}/block-height/{height}")
+    if bh is not None:
+        return bh.decode().strip()
+    tip = _get(f"{base}/blocks/tip/height")
+    if tip is not None:
+        try:
+            tip_height = int(tip)
+        except (TypeError, ValueError):
+            raise CantCheck(f"{base}: invalid chain tip while resolving block {height}")
+        if height > tip_height:
+            raise CantCheck(f"{base}: explorer tip {tip_height} is below claimed block {height}; stale explorer cannot establish forgery")
+    raise CantCheck(f"{base}: no block at height {height}")
+
+
 def check_ots(proof, entry_raw, explorers):
     """Returns the earliest Bitcoin block time the proof reaches, or None if it's still pending."""
     try:
@@ -372,37 +388,16 @@ def check_ots(proof, entry_raw, explorers):
     for msg, att in atts:
         if not isinstance(att, BitcoinBlockHeaderAttestation):
             continue
-        headers, unavailable = set(), []
+        headers = set()
         for base in explorers:
-            # An explorer's 404 or reported tip is not cryptographic evidence that a timestamp proof is forged.
-            # Keep checking the independent explorer; if either source cannot supply a verifiable header, the
-            # required cross-check is incomplete and the result is CantCheck, never Bad.
-            bh = _get(f"{base}/block-height/{att.height}")
-            if bh is None:
-                tip = _get(f"{base}/blocks/tip/height")
-                detail = f"no block at height {att.height}"
-                if tip is not None:
-                    try:
-                        detail += f" (reported tip {int(tip)})"
-                    except (TypeError, ValueError):
-                        detail += " (invalid tip response)"
-                unavailable.append(f"{base}: {detail}")
-                continue
-            try:
-                bh = bh.decode().strip()
-                hdr = _get(f"{base}/block/{bh}/header")
-                if hdr is None:
-                    unavailable.append(f"{base}: no header for block {bh}")
-                    continue
-                hdr = bytes.fromhex(hdr.decode().strip())
-                if hashlib.sha256(hashlib.sha256(hdr).digest()).digest()[::-1].hex() != bh:
-                    unavailable.append(f"{base}: header doesn't hash to block {bh} (explorer fault)")
-                    continue
-                headers.add(hdr)
-            except (UnicodeDecodeError, ValueError, TypeError) as ex:
-                unavailable.append(f"{base}: malformed explorer response ({type(ex).__name__})")
-        if unavailable:
-            raise CantCheck("; ".join(unavailable))
+            bh = ots_block_hash(base, att.height)
+            hdr = _get(f"{base}/block/{bh}/header")
+            if hdr is None:
+                raise CantCheck(f"{base}: no header for block {bh}")
+            hdr = bytes.fromhex(hdr.decode().strip())
+            if hashlib.sha256(hashlib.sha256(hdr).digest()).digest()[::-1].hex() != bh:
+                raise CantCheck(f"{base}: header doesn't hash to block {bh} (explorer fault)")
+            headers.add(hdr)
         if len(headers) != 1:
             raise CantCheck(f"explorers disagree about block {att.height}")
         hdr = headers.pop()

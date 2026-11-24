@@ -42,7 +42,7 @@ jobs:
           mapfile -t records < <(find ../../runs/ci -maxdepth 1 -type f -name 'count-*.json' -print | sort)
           test "${#records[@]}" -gt 0 || { echo "counter produced no records"; exit 1; }
           for f in "${records[@]}"; do python3 ../count.py --check "$f"; done
-          printf 'validated %s counter records\\n' "${#records[@]}" > ../../runs/ci/check.txt
+          printf 'validated %s counter records\n' "${#records[@]}" > ../../runs/ci/check.txt
           ls ../../runs/ci
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         if: always()
