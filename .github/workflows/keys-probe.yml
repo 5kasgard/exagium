@@ -66,6 +66,7 @@ jobs:
       - name: UPSTASH_API_KEY
         env:
           UPSTASH_API_KEY: ${{ secrets.UPSTASH_API_KEY }}
+          UPSTASH_EMAIL: ${{ secrets.UPSTASH_EMAIL }}   # the Developer API's Basic auth is EMAIL:API_KEY
         run: python3 -I router/keys_probe.py UPSTASH_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
       - name: BENCHLM_API_KEY
         env:

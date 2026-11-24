@@ -21,9 +21,12 @@ PROBES = {
     "E2B_API_KEY": ("https://api.e2b.dev/sandboxes", "x-api-key-e2b", "unverified: list running sandboxes (creates none)"),
     "VAST_API_KEY": ("https://console.vast.ai/api/v0/users/current/", "bearer", "unverified: current user"),
     "VULTR_API_KEY": ("https://api.vultr.com/v2/account", "bearer", "unverified: account info"),
+    "BENCHLM_API_KEY": ("https://data.benchlm.ai/v1/usage", "bearer",
+                        "benchlm.ai/data/access: usage checks do not use a read; free 1,000 reads a month, 30 a minute"),
+    "UPSTASH_API_KEY": ("https://api.upstash.com/v2/redis/databases", "basic-upstash",
+                        "upstash.com/docs/devops/developer-api/authentication: HTTP Basic EMAIL:API_KEY; list only"),
 }
-NOT_PROBED = {"UPSTASH_API_KEY": "the Developer API needs the account email too (HTTP Basic EMAIL:API_KEY): add UPSTASH_EMAIL",
-              "BENCHLM_API_KEY": "no documented endpoint found yet"}
+NOT_PROBED = {}
 KEEP = ("ratelimit", "rate-limit", "remaining", "retry-after", "x-ratelimit")
 
 
@@ -55,6 +58,12 @@ def probe(name, key):
         headers["x-api-key"] = key
     elif how == "x-api-key-e2b":
         headers["X-API-Key"] = key
+    elif how == "basic-upstash":
+        email = os.environ.get("UPSTASH_EMAIL", "")
+        if not email:
+            return {"key": name, "url": url, "status": None, "skipped": "UPSTASH_EMAIL not set", "source": src}
+        import base64
+        headers["Authorization"] = "Basic " + base64.b64encode(f"{email}:{key}".encode()).decode()
     else:
         url = url.format(k=urllib.parse.quote(key, safe=""))
     shown = url.split("?")[0]

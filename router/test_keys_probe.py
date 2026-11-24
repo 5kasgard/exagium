@@ -32,7 +32,7 @@ class T(unittest.TestCase):
 
     def test_missing_and_unprobed(self):
         self.assertEqual(self.run_main("SCALEWAY_API_KEY", {})["skipped"], "secret not set")
-        self.assertIn("UPSTASH_EMAIL", self.run_main("UPSTASH_API_KEY", {"UPSTASH_API_KEY": KEY})["skipped"])
+        self.assertEqual(self.run_main("UPSTASH_API_KEY", {"UPSTASH_API_KEY": KEY})["skipped"], "UPSTASH_EMAIL not set")
 
     def test_every_path_hides_the_key(self):
         seen = []
@@ -46,14 +46,15 @@ class T(unittest.TestCase):
         def crash(req, timeout):
             raise ValueError("boom " + req.full_url)
         for name in K.PROBES:
-            r = self.run_main(name, {name: KEY}, ok)
+            env = {name: KEY, "UPSTASH_EMAIL": "a@b.c"}
+            r = self.run_main(name, env, ok)
             self.assertEqual(r["status"], 200)
             self.assertEqual(r["limits"]["x-ratelimit-remaining"], "9")
             self.assertEqual(r["limits"]["x-ratelimit-echo"], "[dropped: contains the key]")
             self.assertNotRegex(r["limits"]["ratelimit-policy"], r"[|\n]")
-            self.assertEqual(self.run_main(name, {name: KEY}, http_error)["status"], 401)
-            self.assertEqual(self.run_main(name, {name: KEY}, redirect)["status"], 302)
-            self.assertEqual(self.run_main(name, {name: KEY}, crash)["error"], "ValueError")
+            self.assertEqual(self.run_main(name, env, http_error)["status"], 401)
+            self.assertEqual(self.run_main(name, env, redirect)["status"], 302)
+            self.assertEqual(self.run_main(name, env, crash)["error"], "ValueError")
         self.assertTrue(any(urllib.parse.quote(KEY, safe="") in u for u in seen))   # query probes really send the key
 
     def test_redirects_are_refused(self):
@@ -65,6 +66,7 @@ class T(unittest.TestCase):
         self.assertEqual(steps, set(K.PROBES) | set(K.NOT_PROBED))
         for k in steps:   # each secret appears once, in its own step's env
             self.assertEqual(wf.count("secrets." + k), 1, k)
+        self.assertEqual(wf.count("secrets.UPSTASH_EMAIL"), 1)
 
 
 if __name__ == "__main__":
