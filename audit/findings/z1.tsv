@@ -1,0 +1,70 @@
+F001	high	router/bench/grade.py:36	grader trusts the first @@RESULTS@@ line
+F002	high	router/bench4/measure.py:48	tamper scan exempts test_* files
+F003	high	router/bench6/pilot/envcheck.py:143	untrusted Docker images run with network, root, no limits
+F004	high	loop/seccomp_filter.h:85	seccomp denylist with default-allow; mount-API syscalls not denied
+F005	high	tests/test_workflows.py:72	privilege guard string-matches job YAML; misses secrets:inherit, workflow env, wrappers
+F006	high	.github/workflows/experiment.yml:71	experiment verdict push not checked; item moved anyway
+F007	medium	.github/workflows/worker.yml:291	model-drafted doc/research self-merges with no human gate (accepted design)
+F008	medium	.github/workflows/worker.yml:243	land job fetch-depth 5 + rebase degrades merges to PRs on busy days
+F009	medium	.github/workflows/worker.yml:364	wake job keeper time 'tomorrow 00:05' midnight bug
+F010	high	.github/workflows/bench.yml:93	provider key can leak into public bench artifact transcript
+F011	medium	.github/workflows/bench2.yml:35	checkout persists the Actions token in src/.git/config
+F012	high	router/bench6/pilot/envcheck.py:199	attempt-grader reset misses pyproject, sitecustomize, .git hooks
+F013	medium	.github/workflows/worker.yml:215	spawned child can overwrite job/test.json after the trusted write
+F014	high	counter/count.py:119	ldd missing gives empty library fingerprint (fail-open)
+F015	medium	record/record.py:597	monitor parses remote Rekor JSON unguarded (exit 3)
+F016	high	record/record.py:372	pending OTS witness never times out
+F017	high	experiments/run_one.py:27	experiment file never hashed; pre-registration unenforced
+F018	medium	experiments/claim_roots.py:1	claim_roots has no run(); test special-cases it
+F019	medium	worker/tier.py:344	retry_code reads 'why' that no run record carries
+F020	medium	worker/tier.py:112	one corrupt draft artifact kills the tier run
+F021	medium	worker/tier.py:221	'pr' outcome without a PR number is invisible to the tier
+F022	medium	worker/queue_ops.py:127	ready() silently drops malformed items
+F023	medium	worker/queue_ops.py:129	dangling blocked_by blocks an item forever
+F024	medium	worker/research_job.py:400	claim numbers matched by substring (0.5 in 10.5)
+F025	low	worker/exhaust.py:11	HTTP-date Retry-After parsed as 21 seconds
+F026	medium	router/bench3/decide.py:105	one truncated result.json kills leaderboard generation
+F027	medium	router/bench3/measure.py:43	no guard for missing record/ directory
+F028	medium	router/bench3/measure.py:56	'changed since base' keyed to snapshot index 0
+F029	medium	router/bench4/meter.py:90	meter counts failed forwards against the call cap
+F030	medium	audit/periodic/indicators.py:126	weekly auditor hardcodes dated queue path
+F031	medium	audit/periodic/indicators.py:196	empty directory counted as a used connector
+F032	medium	.github/workflows/worker.yml:399	two writers race on facts/status.json; loser swallowed
+F033	medium	.github/workflows/tests.yml:39	privilege guard runs after other suites in one bash -e step
+F034	medium	tests/test_workflows.py:174	paid-allowance guard scans 3 hardcoded workflows
+F035	medium	tests/test_workflows.py:156	PAUSE guard misses triggers; satisfied by the word 'paused'
+F036	medium	facts/check.py:71	future 'at' timestamp looks fresh forever
+F037	medium	router/bench5/decide.py:100	capacity rule counts 0-call faults as served
+F038	high	runner/proposals/judge.py:34	infrastructure step failures counted as invalid proposals
+F039	medium	transfer/tasks.py:50	TLS fallback caches bytes before the hash check
+F040	medium	worker/README.md:48	worker card file list omits a third of the files
+F041	medium	worker/diagnose.py:88	failed-run listing capped at 100, no pagination
+F042	medium	worker/diagnose.py:95	only the first failing job's log is classified
+F043	medium	worker/diagnose.py:54	traceback regex covers 5 of ~12 code roots
+F044	medium	worker/ledger.py:169	unreserved paid call books $0
+F045	medium	worker/ledger.py:73	every budget check re-reads the whole growing ledger
+F046	medium	worker/split.py:193	regate records fabricated decision-model probabilities
+F047	medium	worker/split.py:28	splitter re-buys a paid call on unsplittable parents weekly
+F048	low	router/review.py:1	router/review.py module collides with router/review/ dir
+F049	medium	.github/workflows/router.yml:13	probe job holds 17 secrets + write token, no timeout
+F050	medium	.github/workflows/rerank-arm.yml:57	dispatch inputs interpolated into shell
+F051	medium	.github/workflows/loop.yml:19	24 jobs rely on the 360-minute default timeout
+F052	low	.github/workflows/counter.yml:60	job token embedded in remote URL
+F053	medium	.github/workflows/worker.yml:9	three crons collide on minute :17
+F054	medium	router/bench4/Dockerfile:4	'pinned' image uses moving tags and curl|sh
+F055	low	router/bench5/decide.py:15	bench5 crashes opaquely when bench3 decide.py is absent
+F056	medium	router/bench6/illusion/illusion.py:98	path scrubber misses extension families
+F057	medium	worker/rerank_arm.py:43	arm harnesses have no per-item fault isolation
+F058	medium	worker/reader_bake.py:45	zero baseline makes every reader qualify
+F059	medium	router/review/relevance-control/instr.py:41	failed baseline reads 0.0; variant adopted wrongly
+F060	medium	probe/probe.py:811	--reanalyse host identity is a hostname hash
+F061	low	probe/kernels.c:131	thread counts above 256 silently clamped to 1
+F062	medium	probe/probe.py:405	one timeout discards the whole probe run
+F063	medium	facts/check.py:47	provider listings not paginated
+F064	medium	audit/periodic/indicators.py:22	any git error crashes the weekly audit
+F065	low	record/record.py:277	overdue check uses local date, not UTC
+F066	low	loop/loop.py:637	reproduce --out overwrites evidence ('w' not 'x')
+F067	high	record/record.py:1	check-anchors reports a tool gap as a ledger fault
+F068	medium	README.md:113	README leaderboard numbers stale
+F069	low	worker/exhaust.py:1	429 parser module has no production caller
+F070	medium	worker/research_job.py:275	mis-specified kinds list yields an empty search silently
