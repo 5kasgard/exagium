@@ -2,7 +2,8 @@
 // --seccomp (the jail's confine mode): the child installs seccomp_filter.h's filter just before exec, so process
 // creation is refused outright; pids is then -1, since the host's pid namespace can't be counted.
 // Pins itself (and so the child) to one CPU, forks, runs PROG with stdin and stderr on /dev/null and
-// stdout on a pipe, and measures CLOCK_MONOTONIC from just before fork to the child's exit.
+// stdout on a pipe (hard-capped at 16 MiB; overflow kills the child and returns 124), and measures CLOCK_MONOTONIC
+// from just before fork to the child's exit.
 // Prints the child's output, then a newline and one line "exagium-timer <ns> <exit status> <cpu ns> <pids>", where
 // cpu ns is the user+system time of the child and everything it waited for (more than wall time = more than one CPU),
 // and pids is how many pids the pid namespace handed out from just before fork to the child's exit: 1 means the child
@@ -10,6 +11,8 @@
 // It makes itself non-dumpable first, so the child can't reach its file descriptors through /proc.
 #define _GNU_SOURCE
 #include <fcntl.h>
+#include <errno.h>
+#include <signal.h>
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,6 +23,8 @@
 #include <string.h>
 #include <unistd.h>
 #include "seccomp_filter.h"
+
+#define OUTPUT_LIMIT (16U * 1024U * 1024U)
 
 static long long last_pid(void) {  // the pid namespace's last handed-out pid; the jail gives the timer its own namespace
   FILE *f = fopen("/proc/sys/kernel/ns_last_pid", "r");
@@ -40,8 +45,10 @@ int main(int argc, char **argv) {
   if (pipe2(p, O_CLOEXEC) != 0) return 123;
   int devnull = open("/dev/null", O_RDWR | O_CLOEXEC);
   if (devnull < 0) return 124;
-  size_t cap = 1 << 16, len = 0;
+  size_t cap = OUTPUT_LIMIT, len = 0;
   char *buf = malloc(cap);
+  if (!buf) return 126;
+  pid_t parent = getpid();
   long long pid0 = seccomp ? -1 : last_pid();
   if (pid0 < 0 && !seccomp) return 128;
   struct timespec t0, t1;
@@ -49,21 +56,42 @@ int main(int argc, char **argv) {
   pid_t pid = fork();
   if (pid < 0) return 125;
   if (pid == 0) {
+    if (prctl(PR_SET_PDEATHSIG, SIGKILL) != 0 || getppid() != parent) _exit(126);
     dup2(devnull, 0); dup2(p[1], 1); dup2(devnull, 2);
     if (seccomp && (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) || exagium_seccomp((uint32_t)getpid()))) _exit(125);
     execv(argv[2], argv + 2);
     _exit(127);
   }
   close(p[1]);
+  int overflow = 0;
   for (;;) {
-    if (len == cap) { cap *= 2; buf = realloc(buf, cap); if (!buf) return 126; }
+    if (len == cap) {
+      char extra;
+      ssize_t r = read(p[0], &extra, 1);
+      if (r < 0 && errno == EINTR) continue;
+      if (r != 0) overflow = 1;
+      break;
+    }
     ssize_t r = read(p[0], buf + len, cap - len);
-    if (r <= 0) break;
+    if (r < 0 && errno == EINTR) continue;
+    if (r < 0) { overflow = 1; break; }
+    if (r == 0) break;
     len += (size_t)r;
+  }
+  if (overflow) {
+    kill(pid, SIGKILL);
+    int ignored;
+    struct rusage discarded;
+    while (wait4(pid, &ignored, 0, &discarded) < 0 && errno == EINTR) {}
+    close(p[0]);
+    fprintf(stderr, "exagium-timer: output limit exceeded (%u bytes)\n", OUTPUT_LIMIT);
+    free(buf);
+    return 124;
   }
   int status;
   struct rusage ru;
   if (wait4(pid, &status, 0, &ru) != pid) return 127;
+  close(p[0]);
   clock_gettime(CLOCK_MONOTONIC, &t1);
   long long pids = seccomp ? -1 : last_pid() - pid0;
   if (!seccomp && pid != pid0 + 1) pids = 0;  // the child must be the very next pid, so a pid wrap can't hide anything
