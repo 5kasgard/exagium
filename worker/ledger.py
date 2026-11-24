@@ -176,6 +176,8 @@ def reserve(wt, run, spec):
         except ValueError as ex:
             print(ex, file=sys.stderr)
             return 2
+        if not new:
+            return 0
         why = headroom(led, new, rolling_neurons(wt))
         if why:
             print(why)
@@ -212,15 +214,11 @@ def record(wt, run, calls_path):
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
         log = os.path.join(wt, "ledger", "calls.jsonl")
-        prior = (led.get("_meta", {}).get("recorded_runs") or {}).get(run)
-        digest = calls_digest(calls)
-        if prior is not None:
-            if prior != digest:
-                raise ValueError(f"{run}: a different usage payload was already recorded")
-            return 0
         if not calls and not any(run in (e.get(k) or {}) for e in led.values() if isinstance(e, dict)
                                  for k in ("pending", "pending_calls", "pending_usd")):
             return 0   # nothing made and nothing held: no commit
+        if not mark_recorded(led, run, calls):
+            return 0
         for c in calls:
             e = led.setdefault(c["engine"], {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             u = c.get("usage") or {}
@@ -237,7 +235,6 @@ def record(wt, run, calls_path):
                 (e.get("pending") or {}).pop(run, None)
                 (e.get("pending_calls") or {}).pop(run, None)   # its reserved calls likewise give way to the calls made
                 (e.get("pending_usd") or {}).pop(run, None)
-        led.setdefault("_meta", {}).setdefault("recorded_runs", {})[run] = digest
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         with open(log, "a") as f:
             for c in calls:
