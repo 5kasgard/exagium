@@ -4695,7 +4695,7 @@
    ],
    "next": "Done now (a168a52): P5 applies its own keep/switch rule after 20 and keeps proposing if KEEP. Design (hypothesis): when no item is ready and budget remains, a generator files work of fixed kinds only: (1) research cards from open questions in existing cards and from queue items that cite no outside evidence; (2) reproductions of a random past result on another runner (P10's decay check); (3) source and model health probes (search-probe, P20f); (4) more P5 proposals on the least-covered task. Guards: generated items are labelled origin 'generated', capped per day, never change code on main without a PR, and pass the same checks; the P10 indicator watches generated vs owner/Claude items. TEST, rule fixed now: over 7 days, idle hours (no run while budget remained) fall at least 80% against the week before, generated items' acceptance is not lower than other items', and no generated item is cut by the blind review as useless; else narrow the kinds. Blind review 44518590882 (gpt-oss-120b, sources stripped): DEFER, and named the item most likely born from discussion rather than data: ACCEPTED. No data yet shows idle time from an empty queue (every stop on 2026-11-19 was a cap or wiring fault). Gate added: start only when the daily digest shows at least 2 days with idle hours while budget remained and no item was ready. Its runaway-spend risk is guarded already: billing removed (no paid pool can charge), ledger caps on free calls, chains only after progress, at most one waiting run. Data 2026-11-19 12:45Z: first idle with budget left. The worker's last run (11:11Z, 44512633674) found item=none, stopped=no: the only worker-type items left (R9-R14) wait on P8r's grading, and the hourly cron fired 3 times in about 16 h, so nothing restarts the worker when items become ready. Counts as day 1 toward the gate only if the daily digest shows the idle hours.",
    "severity": "minor",
-   "status": "open",
+   "status": "done",
    "needs": "free",
    "cost": 0,
    "value": "high",
@@ -4704,7 +4704,15 @@
     "already_done": 0.89
    },
    "work_types_key": "aef8cfbb0656b696",
-   "work_types_at": "2026-11-21T04:31:36Z"
+   "work_types_at": "2026-11-21T04:31:36Z",
+   "runs": [
+    {
+     "at": "2026-11-24T11:20:30Z",
+     "worker": "claude-chat",
+     "result": "Built: generator and continuous operation live (a168a52; worker/generate.py; generator commits on the pilot branch daily). Closed by the Claude chat 2026-11-24; evidence re-checked by a separate agent.",
+     "outcome": "decide_done"
+    }
+   ]
   },
   {
    "kind": "build",
