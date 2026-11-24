@@ -19102,7 +19102,7 @@
     "router/review/interface-20261124/",
     "audit/notes/2026-11-25/forge-os.md"
    ],
-   "next": "Owner 2026-11-25 widened the scope: one place to control and see everything, build automations visually or by a main chat, agents and parts talk directly, it evolves, keeps all keys; 'sort of like an OS'. Hypothesis and OS gap map: audit/notes/2026-11-25/forge-os.md. Order: P37 replay (zero calls) -> minimal spine on a free tier (measure requests/day) -> two agents on one thread -> P33 broker -> views. Blind review 45501864070 (gpt-oss-120b; nemotron-3-ultra): both CHANGE the spine (hot store, batched repo snapshot), the broker (free keys only first) and CUT the flow editor for now; threads start as GitHub issues. Revised order in the note: P37b, issue threads + owner-gated opencode, read-only console, hot store measured on 100 items, broker, editor. Earlier: Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge without one chat product in the middle; Claude usage is scarce), which is the evidence of need. Their cheapest test stands: deploy each candidate with the existing keys and script one queue read and one MCP tool call.",
+   "next": "Issue agent PR #146 (owner 2026-11-25: paid/frontier models by the owner's choice; providers connected on the OpenCode Console): /oc [model=...] on any issue; free by default, paid via OPENCODE_API_KEY under agent/models.json allow_paid; read-only model job, script posts; blind reviews 45508009679 (v1 rejected) and 45509281079 (no exploit; queued spend fixed). Live test after merge: /oc models, then a queue question. Owner 2026-11-25 widened the scope: one place to control and see everything, build automations visually or by a main chat, agents and parts talk directly, it evolves, keeps all keys; 'sort of like an OS'. Hypothesis and OS gap map: audit/notes/2026-11-25/forge-os.md. Order: P37 replay (zero calls) -> minimal spine on a free tier (measure requests/day) -> two agents on one thread -> P33 broker -> views. Blind review 45501864070 (gpt-oss-120b; nemotron-3-ultra): both CHANGE the spine (hot store, batched repo snapshot), the broker (free keys only first) and CUT the flow editor for now; threads start as GitHub issues. Revised order in the note: P37b, issue threads + owner-gated opencode, read-only console, hot store measured on 100 items, broker, editor. Earlier: Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge without one chat product in the middle; Claude usage is scarce), which is the evidence of need. Their cheapest test stands: deploy each candidate with the existing keys and script one queue read and one MCP tool call.",
    "refs": [
     "claude/HANDOFF-chat-2026-11-24-queue-closeout.md",
     "audit/notes/2026-11-25/forge-os.md"
@@ -19126,6 +19126,12 @@
      "worker": "claude-chat",
      "result": "Blind review 45501864070 applied; see audit/notes/2026-11-25/forge-os.md",
      "outcome": "review_applied"
+    },
+    {
+     "at": "2026-11-24T23:23:17Z",
+     "worker": "chat-claude",
+     "result": "PR #146 issue agent opened after two blind security reviews",
+     "outcome": null
     }
    ],
    "work_types": {
