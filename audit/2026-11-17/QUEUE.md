@@ -291,6 +291,13 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K50 | B3 |  | minor | medium | fix | Record each fallback try's outcome into the calibration registry | In router/slots.py, run(slot, prompt, ask, parse, override) calls calibration record(actor, slot family, ok) for each try it makes, where actor is the filler's pool and model and ok is True when the reply parsed. Accept an optional registry argument and do nothing extra when it is None. Add a test to router/test_router.py: run with a fake ask that fails once then parses records one failure and one success for that filler, and with a None registry the call still returns the same (parsed, last reply, tries) result. | queue P26c; worker/split.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
 
+## Proposed by the generator (a gate with known-answer controls decides; P27) (2)
+
+| id | batch | unlocks | severity | value | kind | title | next | refs |
+|---|---|---|---|---|---|---|---|---|
+| R61 | B1 |  | minor | high | test | In published benchmarks, do hardware-native learning families—lookup-table/WiSARD, constraint propagation, Tsetlin machines, cellular automata, and event-driven | Worker job (research): literature card for Q54. Why: It directly tests whether native-primitive families retain a cost advantage at matched accuracy outside digits, informing which families to add to the mixed transfer suite. | queue Q54; queue P27 (generator) |
+| R62 | B3 |  | minor | high | test | What evidence exists on the reliability of GitHub Actions scheduled workflows and on keeper, delayed-dispatch, redundant-schedule, or external-scheduler pattern | Worker job (research): literature card for Q58. Why: It compares restart mechanisms and scheduler reliability evidence to choose between delayed dispatch and an independent schedule and identify a fallback for unattended runs. | queue Q58; queue P27 (generator) |
+
 ## Parked (76)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
