@@ -7,6 +7,7 @@ import research_job as R  # noqa: E402
 import doc_job as D  # noqa: E402
 import queue_ops as Q  # noqa: E402
 import ledger as L  # noqa: E402
+import tier as TierModule  # noqa: E402
 
 ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "lines": [2, 3]}]}
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
@@ -19,6 +20,36 @@ class LedgerRecordIdempotency(unittest.TestCase):
         self.assertFalse(L.mark_recorded(led, "run-1", calls))
         with self.assertRaises(ValueError):
             L.mark_recorded(led, "run-1", [{"engine": "groq", "usage": {"requests": 2}}])
+
+    def test_rerun_with_another_payload_is_still_counted(self):
+        import tempfile, unittest.mock as M
+        with tempfile.TemporaryDirectory() as wt:
+            os.makedirs(os.path.join(wt, "ledger"))
+            calls = os.path.join(wt, "calls.jsonl")
+            for n in (1, 2):   # the same run id twice, different payloads (a GitHub re-run of failed jobs)
+                open(calls, "w").write(json.dumps({"engine": "groq", "usage": {"requests": n}}) + "\n")
+                with M.patch.object(L, "sync"), M.patch.object(L, "push", return_value=True):
+                    L.record(wt, "run-9", calls)
+            led = L.load(L.day_path(wt))
+            self.assertEqual(led["groq"]["calls"], 3)   # both payloads counted, none dropped
+
+
+class TierMergeGuards(unittest.TestCase):
+    def test_only_same_open_non_draft_head_can_merge(self):
+        reviewed = {"state": "open", "draft": False, "head_sha": "abc"}
+        self.assertTrue(TierModule.same_reviewed_head(reviewed, dict(reviewed)))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": False, "head_sha": "def"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "closed", "draft": False, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": True, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, None))
+
+    def test_queue_must_still_point_to_the_reviewed_pr(self):
+        item = {"status": "review", "code": {"files": ["a.py"]},
+                "runs": [{"outcome": "pr", "where": "https://github.com/5kasgard/exagium/pull/17"}]}
+        self.assertTrue(TierModule.queue_authorises_pr(item, 17))
+        self.assertFalse(TierModule.queue_authorises_pr(item, 18))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, status="escalated"), 17))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, runs=[{"outcome": "redo", "where": item["runs"][0]["where"]}]), 17))
 
 
 class Edits(unittest.TestCase):
@@ -615,7 +646,7 @@ class TierOutcomes(unittest.TestCase):
     reason other than a conflict, is not a judgement (it closed good PRs and spent their one redo); a change too long for
     the reviewer to see whole goes to a person."""
 
-    def _drain(self, verdict, files, merge_rc=0, state="clean", runs=None):
+    def _drain(self, verdict, files, merge_rc=0, state="clean", runs=None, head_change=False, queue_authorised=True):
         import tier as TI
         from unittest import mock
         item = {"id": "X1", "title": "t", "status": "review", "code": {"files": ["experiments/x.py"], "test": "experiments/test_experiments.py"},
@@ -631,8 +662,12 @@ class TierOutcomes(unittest.TestCase):
             return mock.Mock(returncode=rc, stdout=out, stderr="refused" if rc else "")
         ask = lambda prompt: verdict
         rec = {"code_controls": [], "code_prs": []}
+        snapshot = {"state": "open", "draft": False, "head_sha": "abc"}
+        latest = dict(snapshot, head_sha="def") if head_change else dict(snapshot)
         with mock.patch.object(TI, "CODE_CONTROLS", []), mock.patch.object(TI.Q, "sync"), \
                 mock.patch.object(TI.Q, "load", return_value={"items": [item]}), mock.patch.object(TI, "pr_files", return_value=files), \
+                mock.patch.object(TI, "pr_snapshot", side_effect=[snapshot, snapshot, latest]), \
+                mock.patch.object(TI, "queue_still_authorises_pr", return_value=queue_authorised), \
                 mock.patch.object(TI.subprocess, "run", side_effect=run), \
                 mock.patch.object(TI.Q, "move", side_effect=lambda wt, who, i, outcome, note: moves.append(outcome) or 0), \
                 mock.patch.object(TI, "_redo_with_reason", side_effect=lambda *a: moves.append("redo_with_reason") or 0):
@@ -677,6 +712,16 @@ class TierOutcomes(unittest.TestCase):
     def test_a_conflict_is_redone(self):
         closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state="dirty")
         self.assertEqual((closed, moves), (True, ["redo"]))
+
+    def test_head_change_after_review_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, head_change=True)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("head changed", rec["why"][0])
+
+    def test_queue_cancellation_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, queue_authorised=False)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("queue no longer authorises", rec["why"][0])
 
     def test_a_merge(self):
         self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', self.F)[:2], (False, ["confirm"]))
@@ -1469,6 +1514,15 @@ class WorkerSpecCard(unittest.TestCase):
         for name in ("code_job.py", "transitions.py", "tier.py", "generate.py", "split.py", "diagnose.py", "note.py"):
             self.assertIn(name, text)
         self.assertNotIn("**Not yet:** code items", text)
+
+
+class LanesTest(unittest.TestCase):
+    def test_lanes_from_headroom_and_ready_items(self):
+        import lanes
+        self.assertEqual(lanes.lanes(1.0, 0), 0)
+        self.assertEqual(lanes.lanes(0.1, 5), 0)
+        self.assertEqual(lanes.lanes(1.0, 2), 2)
+        self.assertEqual(lanes.lanes(1.0, 10), 4)
 
 
 class Exhaust(unittest.TestCase):

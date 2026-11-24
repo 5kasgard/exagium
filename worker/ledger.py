@@ -179,8 +179,16 @@ def record(wt, run, calls_path):
         if not calls and not any(run in (e.get(k) or {}) for e in led.values() if isinstance(e, dict)
                                  for k in ("pending", "pending_calls", "pending_usd")):
             return 0   # nothing made and nothing held: no commit
-        if not mark_recorded(led, run, calls):
-            return 0
+        try:
+            if not mark_recorded(led, run, calls):
+                return 0
+        except ValueError:
+            # a re-run of failed jobs reuses the run id with a different payload: count it under its own key rather
+            # than drop it, so the caps never undercount spend (independent review 2026-11-24 of #108: fail-open)
+            alt = f"{run}#{calls_digest(calls)[:12]}"
+            print(f"ledger: {run} already recorded with another payload; recording this one as {alt}", file=sys.stderr)
+            if not mark_recorded(led, alt, calls):
+                return 0
         for c in calls:
             e = led.setdefault(c["engine"], {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             u = c.get("usage") or {}
