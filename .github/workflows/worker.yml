@@ -147,6 +147,10 @@ jobs:
           name: claim
           path: claim
       - name: prompt bundle (doc) or literature search by API scripts (research)
+        env:
+          # a read-only, free search key and nothing else (2026-11-24: Semantic Scholar was skipped on 79 of 79 queries,
+          # handoff 2026-11-22, because the code reads S2_API_KEY and no workflow passed the owner's secret)
+          S2_API_KEY: ${{ secrets.SEMANTIC_SCHOLAR_API_KEY }}
         run: |
           if [ "$TYPE" = doc ]; then python3 -I worker/doc_job.py context claim/claim.json . job
           elif [ "$TYPE" = code ]; then python3 -I worker/code_job.py context claim/claim.json . job
