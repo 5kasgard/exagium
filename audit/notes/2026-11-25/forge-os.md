@@ -63,3 +63,29 @@ request by default; over a free limit, operations fail). Long jobs stay in Actio
 
 n8n (Git sync is a paid tier; Sustainable Use License), Flowise (archived 2026-08-10). Windmill stays a candidate
 for the flow editor only if its flows can live as repo files under review.
+
+## Blind review 45501864070 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45501864070)
+
+| Layer | gpt-oss | nemotron | Applied |
+|---|---|---|---|
+| 1 Spine | CHANGE: committing every event to Git churns | CHANGE: D1/KV hot log, daily snapshot to repo | **Changed**: hot log in a store, batched snapshot to the repo, not one commit per event |
+| 2 Threads | CUT: use GitHub issues/PR comments as threads | CHANGE: typed request/response first, protocols when interop needs them | **Changed**: threads start as one GitHub issue per queue item (free, durable, phone, opencode can act there); A2A only when an outside agent needs it |
+| 3 Broker | CHANGE: off GitHub | CHANGE: one service with 27 keys is the largest blast radius | **Changed**: broker starts with free-tier keys only; paid keys stay in Actions steps. Not applied: "Vault mints short-lived tokens so the broker never sees raw keys" -- provider API keys are not short-lived tokens, so the broker would still hold them |
+| 4 Executors | CHANGE: self-hosted runner | KEEP | Kept; self-hosted runner noted for later |
+| 5 Views | CUT editor | CUT editor; read-only console and CLI chat first | **Changed**: read-only console and chat first; flow editor deferred |
+
+Missing parts they named, kept as candidates: decision-level trace and replay of one agent step; agent identity with
+a track record (K48 calibration registry); disaster recovery (store loss, broker compromise, key rotation); agent
+memory beyond queue items; live messaging.
+
+Their falsifying test, adopted for the store step: 100 real queue items through the spine on the free tier; the
+approach is wrong if it uses more than 50% of the daily free quota or p99 latency exceeds 30 s.
+
+## Revised order
+
+1. P37 replay: done. Fits the state machine (1,356/1,360) but run logs rebuild only 230/339 items.
+2. P37b: every status write emits a structured event (local, free).
+3. Threads as GitHub issues per item, with the owner-gated opencode agent.
+4. Read-only console over the repo and events.
+5. Hot event store on a free tier, measured on 100 real items.
+6. Broker with free keys only. 7. Flow editor last.
