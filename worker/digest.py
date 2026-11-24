@@ -111,7 +111,7 @@ def metrics(queue_wt, since, q):
     results = {}
     for i in q["items"]:
         for r in i.get("runs", []):
-            if r.get("at", "") >= since:
+            if r.get("at", "") >= since and r.get("outcome") != "claim":   # claims are counted from commits above (P37b)
                 results[str(r.get("result"))] = results.get(str(r.get("result")), 0) + 1
     return [f"- claims {claims}, releases {releases}, double claims {len(double)}{': ' + '; '.join(double) if double else ''}, "
             f"lease-expiry commits {expired}",
@@ -150,7 +150,7 @@ def loop_metrics(q, since, ledgers):
     acts, outcomes, landed = {}, {}, 0
     for i in q["items"]:
         for r in i.get("runs", []):
-            if r.get("at", "") >= since:
+            if r.get("at", "") >= since and r.get("outcome") != "claim":   # a claim is not an action taken (P37b)
                 a = actor(r.get("worker"))
                 acts[a] = acts.get(a, 0) + 1
                 o = r.get("outcome") or "none"

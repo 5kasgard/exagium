@@ -1567,3 +1567,53 @@ class Exhaust(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EventLog(unittest.TestCase):
+    """Queue P37b: every status write leaves one structured event, so the run log alone rebuilds the item's status."""
+
+    def run_cycle(self, q, outcomes):
+        import tempfile
+        note = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump({"result": "x"}, note); note.close()
+        out = note.name + ".out"
+        with unittest.mock.patch.object(Q, "sync"), unittest.mock.patch.object(Q, "load", return_value=q), \
+                unittest.mock.patch.object(Q, "save"), unittest.mock.patch.object(Q, "commit_push", return_value=True):
+            for o in outcomes:
+                self.assertEqual(Q.claim("wt", "worker-1", out), 0)
+                Q.release("wt", "worker-1", "A", o, note.name)
+        os.unlink(note.name); os.unlink(out)
+
+    def q(self):
+        return {"items": [{"id": "A", "status": "open", "targets": [{"path": "x.md", "lines": [1, 1]}], "touches": ["x.md"],
+                           "blocked_by": []}]}
+
+    def test_claims_are_events_and_do_not_reset_the_failure_count(self):
+        import transitions as T
+        q = self.q()
+        self.run_cycle(q, ["failed"] * T.MAX_FAILURES)
+        i = q["items"][0]
+        self.assertEqual(i["status"], "escalated")   # a claim between two failures must not reset the count
+        self.assertEqual([r["outcome"] for r in i["runs"]], ["claim", "failed"] * T.MAX_FAILURES)
+
+    def test_the_log_alone_rebuilds_the_status(self):
+        q = self.q()
+        self.run_cycle(q, ["failed", "pr"])
+        i, state = q["items"][0], "open"
+        for r in i["runs"]:
+            self.assertEqual(r["from"], state)   # each event starts where the last one ended
+            state = r["to"]
+        self.assertEqual(state, i["status"])
+
+    def test_move_and_expiry_record_from_and_to(self):
+        import datetime as dt
+        q = {"items": [{"id": "A", "status": "review", "touches": ["x"], "blocked_by": [], "runs": []}]}
+        with unittest.mock.patch.object(Q, "sync"), unittest.mock.patch.object(Q, "load", return_value=q), \
+                unittest.mock.patch.object(Q, "save"), unittest.mock.patch.object(Q, "commit_push", return_value=True):
+            Q.move("wt", "tier-x", "A", "confirm", "ok")
+        self.assertEqual({k: q["items"][0]["runs"][-1][k] for k in ("from", "to", "outcome")},
+                         {"from": "review", "to": "done", "outcome": "confirm"})
+        t = dt.datetime(2026, 11, 25, tzinfo=dt.timezone.utc)
+        j = {"id": "B", "status": "in progress", "claimed_by": "worker-1", "lease_until": "2026-11-24T00:00:00Z", "runs": []}
+        Q.expire({"items": [j]}, t)
+        self.assertEqual((j["runs"][-1]["from"], j["runs"][-1]["to"]), ("in progress", j["status"]))
