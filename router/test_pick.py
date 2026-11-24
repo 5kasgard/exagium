@@ -13,9 +13,7 @@ def run(led, *a):
 
 
 def cap_calls(pool):
-    cap = pick.CAPS.setdefault(pool, {})
-    cap.setdefault("calls", 100)
-    return cap["calls"]
+    return pick.CAPS[pool]["calls"]   # the real caps; a test must not add pools to the module's CAPS
 
 
 def at(pool, frac):
@@ -38,10 +36,16 @@ class Pick(unittest.TestCase):
         self.assertEqual(run(led, "check", "groq:y", "nvidia:z"), ["nvidia:z"])
 
     def test_best_pool_picks_pool_with_most_room(self):
-        """K58: nim at 90% and openrouter at 10% -> openrouter for nemotron-120b."""
+        """K58: nvidia (NIM) at 90% and openrouter at 10% -> openrouter for nemotron-120b."""
         led = {}
-        led.update(at("nim", 0.9))
+        led.update(at("nvidia", 0.9))
         led.update(at("openrouter", 0.1))
+        self.assertEqual(pick.best_pool(led, "nemotron-120b"), "openrouter")
+
+    def test_best_pool_reads_nim_usage_under_its_ledger_name(self):
+        """Review 2026-11-24: NIM usage is recorded under 'nvidia'; a full nvidia entry must not look empty."""
+        led = {"nvidia": {"calls": cap_calls("nvidia")}}
+        led.update(at("openrouter", 0.5))
         self.assertEqual(pick.best_pool(led, "nemotron-120b"), "openrouter")
 
     def test_best_pool_none_when_all_full(self):

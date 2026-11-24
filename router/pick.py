@@ -20,15 +20,13 @@ NEURONS_PER_CALL = 600   # the worker's measured projection for one Cloudflare c
 
 # Equivalent pools for one job type (item K58): route each job to the pool with the most room.
 EQUIVALENT = {
-    "nemotron-120b": ("nim", "openrouter"),
+    "nemotron-120b": ("nvidia", "openrouter"),   # "nvidia" is the NIM pool's name in CAPS and in the ledger
     "gpt-oss-120b": ("groq", "cloudflare"),
 }
 
 
 def used_fraction(led, pool, rolling=0.0):
     cap, e = CAPS.get(pool, {}), led.get(pool) or {}
-    if not cap and pool == "nim":   # item K58 names the NVIDIA NIM pool "nim"; its caps may still be logged as "nvidia"
-        cap = CAPS.get("nvidia", {})
     f = (rolling + NEURONS_PER_CALL) / ROLLING_NEURONS if pool == "cloudflare" else 0.0
     # reservations held by runs in flight count against the cap, as in worker/ledger.py (GLM F037)
     held_calls = sum((e.get("pending_calls") or {}).values())
