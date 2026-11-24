@@ -4,7 +4,7 @@
   /oc model=<alias|provider/model> <question>
   /oc models                         list the models opencode can reach (no inference)
 
-python3 -I agent/pick.py MODELS_JSON OUT_DIR   reads COMMENT, ISSUE_TITLE, ISSUE_BODY from the environment
+python3 -I agent/oc_pick.py MODELS_JSON OUT_DIR   reads COMMENT, ISSUE_TITLE, ISSUE_BODY from the environment
 Writes OUT_DIR/prompt.md and prints GitHub output lines: mode, model, paid. Exit 2 with a reason on a refused request."""
 import json, os, re, sys
 

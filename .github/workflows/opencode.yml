@@ -46,7 +46,7 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.user.login == github.repository_owner && github.event.issue.body || '' }}
         run: |
           set +e
-          python3 -I agent/pick.py agent/models.json "$RUNNER_TEMP/out" >> "$GITHUB_OUTPUT"
+          python3 -I agent/oc_pick.py agent/models.json "$RUNNER_TEMP/out" >> "$GITHUB_OUTPUT"
           rc=$?
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           [ "$rc" -le 2 ]

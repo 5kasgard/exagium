@@ -1,6 +1,6 @@
 import json, os, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import pick as P
+import oc_pick as P
 
 CFG = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "models.json")))
 
