@@ -16,18 +16,18 @@ class TierMergeGuards(unittest.TestCase):
     def test_only_same_open_non_draft_head_can_merge(self):
         reviewed = {"state": "open", "draft": False, "head_sha": "abc"}
         self.assertTrue(TierModule.same_reviewed_head(reviewed, dict(reviewed)))
-        self.assertFalse(Tier.same_reviewed_head(reviewed, {"state": "open", "draft": False, "head_sha": "def"}))
-        self.assertFalse(Tier.same_reviewed_head(reviewed, {"state": "closed", "draft": False, "head_sha": "abc"}))
-        self.assertFalse(Tier.same_reviewed_head(reviewed, {"state": "open", "draft": True, "head_sha": "abc"}))
-        self.assertFalse(Tier.same_reviewed_head(reviewed, None))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": False, "head_sha": "def"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "closed", "draft": False, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": True, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, None))
 
     def test_queue_must_still_point_to_the_reviewed_pr(self):
         item = {"status": "review", "code": {"files": ["a.py"]},
                 "runs": [{"outcome": "pr", "where": "https://github.com/5kasgard/exagium/pull/17"}]}
         self.assertTrue(TierModule.queue_authorises_pr(item, 17))
-        self.assertFalse(Tier.queue_authorises_pr(item, 18))
-        self.assertFalse(Tier.queue_authorises_pr(dict(item, status="escalated"), 17))
-        self.assertFalse(Tier.queue_authorises_pr(dict(item, runs=[{"outcome": "redo", "where": item["runs"][0]["where"]}]), 17))
+        self.assertFalse(TierModule.queue_authorises_pr(item, 18))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, status="escalated"), 17))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, runs=[{"outcome": "redo", "where": item["runs"][0]["where"]}]), 17))
 
 
 class Edits(unittest.TestCase):
