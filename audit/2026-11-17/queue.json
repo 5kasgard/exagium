@@ -18861,7 +18861,7 @@
    "id": "Q82",
    "title": "Seal bench-6's attempt grader: containers without network or extra privileges, and a reset that also restores pyproject.toml, sitecustomize/usercustomize, .pth files and git hooks (register Z1-F003, Z1-F012, both high)",
    "kind": "fix",
-   "status": "waiting on the owner",
+   "status": "open",
    "origin": "follow-up",
    "severity": "major",
    "needs": "free",
@@ -18912,6 +18912,12 @@
      "worker": "tier-claude-haiku-5-5",
      "result": "tier (claude-haiku-5-5): PR #125 not merged: files a person merges, or not the item's own: router/bench6/pilot/envcheck.py, router/bench6/pilot/test_envcheck.py; model: The diff adds exactly the requested seal flags to both docker run calls via one module-level SEAL list, extends the reset basenames with pyproject.toml, sitecustomize.py, usercustomize.py and .pth, prefixes the reset's git calls with core.hooksPath=/dev/null, and adds only the three requested tests, with no new network access, secrets, deletion, subprocess or eval.",
      "outcome": "escalate"
+    },
+    {
+     "at": "2026-11-24T22:55:31Z",
+     "worker": "claude-shift",
+     "result": "Data, not a merge decision: PR #125's bench-6 known-answer controls read 28 of 32 (rule: 32 of 32 before merge), so it cannot merge as is; back to open for a worker redo with the fix in next (warm with network, disconnect before the attempt). Under the owner's delegation of decisions to the data; nothing merged or deleted.",
+     "outcome": "decide_open"
     }
    ]
   },
