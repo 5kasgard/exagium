@@ -1,6 +1,8 @@
 # Run one experiment (experiments/README.md): its own rule decides, by script. The run job has no secrets and a read-only
 # token (experiment code may be model-written); the record job runs no experiment code, saves the result to router-runs
-# and moves the queue item through worker/transitions.py (holds or fails -> done; invalid -> escalated; no result -> open).
+# and moves the queue item through worker/transitions.py (holds or fails -> done; invalid -> escalated). With no verdict,
+# or evidence that could not be saved to router-runs, the record job fails and moves nothing: the item stays scheduled until
+# queue_ops.expire's TTL marks it lost (independent review 2026-11-24 of #105: this header said 'no result -> open').
 name: experiment
 on:
   workflow_dispatch:
