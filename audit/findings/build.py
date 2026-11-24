@@ -63,6 +63,9 @@ for i in q:
     if "GLM" in t or (i["id"].startswith("G") and i.get("origin") == "review"):
         for f in set(re.findall(r"\bF\d{3}\b", t)):
             if f"G1-{f}" in by: by[f"G1-{f}"]["queue"].append(f"{i['id']} ({i['status']})")
+    for rid in set(re.findall(r"\b(?:G1|G2|Z1|GM|D1)-F\d{3}\b", t + " " + " ".join(i.get("refs") or []))):   # series-prefixed refs
+        if rid in by and f"{i['id']} ({i['status']})" not in by[rid]["queue"]:
+            by[rid]["queue"].append(f"{i['id']} ({i['status']})")
 # corrections from the independent audit of 2026-11-24 (sampled 31 rows; scripts in its report)
 notes = {"Z1-F068": ("open", "recurs: README 1,097 vs board 1,239 on 2026-11-24; fix = generate the row from the board"),
          "G1-F106": ("open", "same as Z1-F068"),
