@@ -114,6 +114,53 @@ def check(wt, spec):
     return 2 if why else 0
 
 
+def reservation_delta(led, run, want):
+    """Return only genuinely new per-pool reservations; retries of the same run are idempotent."""
+    new = {}
+    for pool, (n, est) in want.items():
+        e = led.get(pool, {})
+        saved = (e.get("reservation_specs") or {}).get(run)
+        expected = {"calls": n, "neurons_each": est}
+        if saved is not None:
+            if saved != expected:
+                raise ValueError(f"{run}: reservation for {pool} differs from its first reservation")
+            continue
+        # Read old ledgers written before reservation_specs existed without charging them twice.
+        pending_calls = (e.get("pending_calls") or {}).get(run)
+        if pending_calls is not None:
+            if pending_calls != n:
+                raise ValueError(f"{run}: existing pending call count for {pool} differs")
+            if "neurons" in CAPS.get(pool, {}) and (e.get("pending") or {}).get(run) != n * est:
+                raise ValueError(f"{run}: existing pending neuron estimate for {pool} differs")
+            if "usd" in CAPS.get(pool, {}) and abs((e.get("pending_usd") or {}).get(run, 0) - n * est / 1000) > 1e-9:
+                raise ValueError(f"{run}: existing pending dollar estimate for {pool} differs")
+            continue
+        if any(run in (e.get(k) or {}) for k in ("pending", "pending_usd")):
+            raise ValueError(f"{run}: incomplete pending reservation for {pool}")
+        new[pool] = (n, est)
+    return new
+
+
+def calls_digest(calls):
+    raw = json.dumps(calls, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    import hashlib
+    return hashlib.sha256(raw).hexdigest()
+
+
+def mark_recorded(led, run, calls):
+    """Record one immutable payload per run; return False for an exact replay."""
+    meta = led.setdefault("_meta", {})
+    recorded = meta.setdefault("recorded_runs", {})
+    digest = calls_digest(calls)
+    prior = recorded.get(run)
+    if prior is not None:
+        if prior != digest:
+            raise ValueError(f"{run}: a different usage payload was already recorded")
+        return False
+    recorded[run] = digest
+    return True
+
+
 def reserve(wt, run, spec):
     want = parse(spec)
     for _ in range(TRIES):
@@ -121,17 +168,26 @@ def reserve(wt, run, spec):
         p = day_path(wt)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
-        why = headroom(led, want, rolling_neurons(wt))
+        if run in (led.get("_meta", {}).get("recorded_runs") or {}):
+            print(f"{run}: usage is already recorded; refusing a new reservation", file=sys.stderr)
+            return 2
+        try:
+            new = reservation_delta(led, run, want)
+        except ValueError as ex:
+            print(ex, file=sys.stderr)
+            return 2
+        why = headroom(led, new, rolling_neurons(wt))
         if why:
             print(why)
             return 2
-        for pool, (n, est) in want.items():
+        for pool, (n, est) in new.items():
             if pool not in CAPS:
                 print(f"pool {pool} is not a free pool the worker may use", file=sys.stderr)
                 return 2
             e = led.setdefault(pool, {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             cap = CAPS[pool]
             e.setdefault("neurons_reserved", 0)
+            e.setdefault("reservation_specs", {})[run] = {"calls": n, "neurons_each": est}
             e["reserved"] += n   # cumulative, for the record; the cap uses calls made plus pending_calls
             e.setdefault("pending_calls", {})[run] = e.get("pending_calls", {}).get(run, 0) + n
             if "neurons" in cap:
@@ -156,6 +212,12 @@ def record(wt, run, calls_path):
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
         log = os.path.join(wt, "ledger", "calls.jsonl")
+        prior = (led.get("_meta", {}).get("recorded_runs") or {}).get(run)
+        digest = calls_digest(calls)
+        if prior is not None:
+            if prior != digest:
+                raise ValueError(f"{run}: a different usage payload was already recorded")
+            return 0
         if not calls and not any(run in (e.get(k) or {}) for e in led.values() if isinstance(e, dict)
                                  for k in ("pending", "pending_calls", "pending_usd")):
             return 0   # nothing made and nothing held: no commit
@@ -175,6 +237,7 @@ def record(wt, run, calls_path):
                 (e.get("pending") or {}).pop(run, None)
                 (e.get("pending_calls") or {}).pop(run, None)   # its reserved calls likewise give way to the calls made
                 (e.get("pending_usd") or {}).pop(run, None)
+        led.setdefault("_meta", {}).setdefault("recorded_runs", {})[run] = digest
         json.dump(led, open(p, "w"), indent=1, sort_keys=True)
         with open(log, "a") as f:
             for c in calls:
