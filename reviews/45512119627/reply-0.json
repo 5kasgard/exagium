@@ -1,0 +1,31 @@
+{
+ "t": "2026-11-24T23:42:00Z",
+ "engine": "groq",
+ "model": "openai/gpt-oss-120b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 3.45,
+ "usage": {
+  "queue_time": 0.168847412,
+  "prompt_tokens": 561,
+  "prompt_time": 0.023158998,
+  "completion_tokens": 1451,
+  "completion_time": 3.006682832,
+  "total_tokens": 2012,
+  "total_time": 3.02984183,
+  "completion_tokens_details": {
+   "reasoning_tokens": 736
+  }
+ },
+ "finish": "stop",
+ "text": "**NEW RISKS**\n\n1. **Secret\u2011spill via step\u2011level environment** \u2013 Each provider step now injects a single API key as an environment variable. The key is visible to **any process** executed in that step, including `agent/run.sh`. If the script or any downstream tool (e.g., `opencode`) logs its environment, the key can end up in the job log or an artifact and be harvested by a malicious PR author who can influence the *provider* input.  \n2. **Conditional step abuse** \u2013 The `if: provider == '<p>'` guard is a simple string equality. A crafted provider value that contains a newline or other control characters could cause **multiple steps to evaluate true** (e.g., `provider=\"anthropic\\ngoogle\"`), leading to **multiple secrets being present in the same runner** and a single step potentially echoing the wrong key.  \n3. **Paid\u2011vs\u2011free mis\u2011classification** \u2013 Paid\u2011status is derived from a static `models.json`. An attacker can request a paid model that is **listed as free** (e.g., a paid Anthropic model not yet reflected in the JSON) and bypass the `allow_paid` guard. OpenRouter\u2019s rule \u201cpaid unless the id ends with `:free`\u201d can be abused by appending `:free` to a paid model ID, causing a paid call to be treated as free.  \n4. **Supply\u2011chain expansion** \u2013 Adding a step for every provider increases the attack surface of the workflow file itself. A malicious contributor with write\u2011access to the repo could insert a **dummy step** that re\u2011uses an existing secret name and prints it, or modify an existing step to copy the secret to an artifact, bypassing the unit\u2011test that only checks for *exactly one* secret per step.\n\n**MISCLASSIFIED**\n\n* Paid calls can be accepted as free when the static `models.json` is out\u2011of\u2011date or when a provider\u2011specific naming trick (`<model>:free`) is used.  \n* A secret may be delivered to the wrong provider if the `if` expression evaluates true for more than one step (see newline injection) or if the workflow is edited to swap secret names.\n\n**VERDICT**\n\n**SHIP WITH CHANGES** \u2013 the change introduces concrete exposure vectors. Mitigations:\n\n1. **Mask all provider keys**: use `secrets: inherit` at the job level but reference them only via `${{ secrets.<NAME> }}` inside the step; never expose them as plain environment variables.  \n2. **Sanitize `provider` input**: enforce a strict regex (`^[a-z0-9]+$`) before the conditional matrix; reject any value containing whitespace or control characters.  \n3. **Enforce single\u2011secret environment**: add a pre\u2011step that clears any previously set secret variables (`unset ANTHROPIC_API_KEY GOOGLE_API_KEY \u2026`).  \n4. **Dynamic paid\u2011status check**: query the provider\u2019s pricing API or maintain a signed, version\u2011controlled list; reject any model not explicitly marked free in the signed list.  \n5. **Audit logging**: ensure `agent/run.sh` does not `set -x` or otherwise echo the environment; add a step that verifies no secret appears in the log (`grep -q \"$SECRET\"`).  \n\nOnce these safeguards are in place, the workflow can be merged safely.",
+ "limits": {
+  "x-ratelimit-limit-requests": "1000",
+  "x-ratelimit-limit-tokens": "8000",
+  "x-ratelimit-remaining-requests": "999",
+  "x-ratelimit-remaining-tokens": "7077",
+  "x-ratelimit-reset-requests": "1m26.4s",
+  "x-ratelimit-reset-tokens": "6.922s"
+ },
+ "error": null
+}
