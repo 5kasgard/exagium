@@ -296,10 +296,10 @@ def drain_code(wt, ask, record):
             latest_item = next((x for x in Q.load(wt)["items"] if x.get("id") == item["id"]), None)
             latest_run = next((x for x in reversed((latest_item or {}).get("runs") or [])
                                if x.get("outcome") != "defer"), {})
+            latest_match = re.search(r"/pull/(\\d+)", str(latest_run.get("where", "")))
             still_same_item = (latest_item is not None and latest_item.get("status") == "review"
                                and latest_run.get("outcome") == "pr"
-                               and re.search(r"/pull/(\\d+)", str(latest_run.get("where", "")))
-                               and int(re.search(r"/pull/(\\d+)", str(latest_run.get("where", ""))).group(1)) == n)
+                               and latest_match is not None and int(latest_match.group(1)) == n)
             if (not latest_pr or latest_pr["state"] != "open" or latest_pr["base"] != "main"
                     or latest_pr["head"] != reviewed_head or not still_same_item):
                 record["code_prs"].append(_defer(wt, item, n, "PR head or queue state changed during review"))
