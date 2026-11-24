@@ -18328,6 +18328,80 @@
     }
    ],
    "split_tried": "2026-11-24T12:28:39Z"
+  },
+  {
+   "id": "K62",
+   "title": "List the model call sites per file (engines.call, slots.call, anthropic_call) as JSON",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P33",
+   "generated_at": "2026-11-24T12:28:42Z",
+   "code": {
+    "files": [
+     "worker/callsites.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "router/engines.py",
+     "worker/tier.py"
+    ],
+    "new": [
+     "worker/callsites.py"
+    ]
+   },
+   "touches": [
+    "worker/callsites.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Create worker/callsites.py (under 80 lines, stdlib only) with sites(root) that walks the repo's .py files, skips test_*.py and anything under a test/ folder, and returns sorted records {file, line, call} for each line that contains 'engines.call(', 'slots.call(' or 'anthropic_call('. Add a main() that prints the records as JSON and a count per file. Test in worker/test_worker.py (class CallSites): build a temp tree with one module holding one of each call and one test_*.py holding a call; assert sites() returns exactly the three non-test records with the right file and line numbers. Run python3 -m unittest worker/test_worker.py.",
+   "refs": [
+    "queue P33",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K63",
+   "title": "Fixed dependency questions with script-computed ground truth (experiment file)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P35",
+   "generated_at": "2026-11-24T12:28:42Z",
+   "code": {
+    "files": [
+     "experiments/graph_questions.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "experiments/run_one.py",
+     "worker/repo_index.py"
+    ],
+    "new": [
+     "experiments/graph_questions.py"
+    ]
+   },
+   "touches": [
+    "experiments/graph_questions.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/graph_questions.py (under 80 lines) with experiment name graph_questions. PLAN (in words): ten fixed dependency questions about this repo, each with a ground-truth answer computed by script from queue.json and the findings register, so no model text is trusted for the answers. Write the ten questions as a fixed list in the file, for example which items list P21 as a dependency, which items are in review state, and which register findings cite a given file. run() returns a JSON-able dict {question_id: ground_truth_answer} for all ten. Add a test in experiments/test_experiments.py that asserts run() returns exactly ten keys and that every answer is a list or a string, not None.",
+   "refs": [
+    "queue P35",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
