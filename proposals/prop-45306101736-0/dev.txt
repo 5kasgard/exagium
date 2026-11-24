@@ -1,0 +1,12 @@
+FAILED: prop-45306101736-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 159, in <module>
+    main()
+  File "/w/train.py", line 120, in main
+    params, acc = train_fm(Z_train, y_train, Z_val, y_val, epochs=20, lr=lr, l2=L2, fdim=fdim)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 100, in train_fm
+    dV = Zb.T @ dS - (Zb**2).T @ (dinter[:, None] * V) + l2 * V
+                                  ~~~~~~~~~~~~~~~~^~~
+ValueError: operands could not be broadcast together with shapes (64,1) (108,4) 
+
