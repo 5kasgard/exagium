@@ -213,6 +213,19 @@ def pr_files(n):
     return files or None
 
 
+def pr_snapshot(n):
+    """Current PR state, head SHA and base; None when GitHub cannot be queried reliably."""
+    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", "[.state, .head.sha, .base.ref]"],
+                       capture_output=True, text=True)
+    if r.returncode:
+        return None
+    try:
+        state, head, base = json.loads(r.stdout)
+    except (ValueError, TypeError):
+        return None
+    return {"state": state, "head": head, "base": base}
+
+
 def code_prs(q):
     """Review-state items whose last run opened a PR for a code change."""
     out = []
@@ -253,6 +266,11 @@ def drain_code(wt, ask, record):
         return
     Q.sync(wt)
     for item, n in code_prs(Q.load(wt)):
+        reviewed_pr = pr_snapshot(n)
+        if not reviewed_pr or reviewed_pr["state"] != "open" or reviewed_pr["base"] != "main":
+            record["code_prs"].append(_defer(wt, item, n, "PR state/base could not be verified before review"))
+            continue
+        reviewed_head = reviewed_pr["head"]
         files = pr_files(n)
         if files is None:
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
@@ -271,7 +289,23 @@ def drain_code(wt, ask, record):
             why.append("files a person merges: the change is too long, or has a file with no diff, for the reviewer to see whole")
         conflict = False
         if ok:
-            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge", "-f", "merge_method=squash"],
+            # The PR and queue item may change while the model is reviewing. Re-check both, then
+            # pass the reviewed head SHA as GitHub's compare-and-merge precondition.
+            latest_pr = pr_snapshot(n)
+            Q.sync(wt)
+            latest_item = next((x for x in Q.load(wt)["items"] if x.get("id") == item["id"]), None)
+            latest_run = next((x for x in reversed((latest_item or {}).get("runs") or [])
+                               if x.get("outcome") != "defer"), {})
+            still_same_item = (latest_item is not None and latest_item.get("status") == "review"
+                               and latest_run.get("outcome") == "pr"
+                               and re.search(r"/pull/(\\d+)", str(latest_run.get("where", "")))
+                               and int(re.search(r"/pull/(\\d+)", str(latest_run.get("where", ""))).group(1)) == n)
+            if (not latest_pr or latest_pr["state"] != "open" or latest_pr["base"] != "main"
+                    or latest_pr["head"] != reviewed_head or not still_same_item):
+                record["code_prs"].append(_defer(wt, item, n, "PR head or queue state changed during review"))
+                continue
+            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge",
+                                "-f", "merge_method=squash", "-f", f"sha={reviewed_head}"],
                                capture_output=True, text=True)
             if m.returncode:
                 st = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", ".mergeable_state"], capture_output=True, text=True)
