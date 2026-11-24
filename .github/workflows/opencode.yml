@@ -15,8 +15,8 @@ on:
   issue_comment:   # zizmor: ignore[dangerous-triggers] issues only (no PR head checked out), owner-only by login and association; the model job has contents: read and no shell
     types: [created]
 permissions: {}
-concurrency:
-  group: opencode-${{ github.event.issue.number }}
+concurrency:   # one run at a time, repo-wide: GitHub keeps one pending run per group and drops older pending ones,
+  group: opencode   # so a burst of /oc comments cannot queue many paid runs (blind review 45509281079)
   cancel-in-progress: false
 jobs:
   answer:
