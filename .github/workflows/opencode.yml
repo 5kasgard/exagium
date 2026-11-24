@@ -1,43 +1,121 @@
-# Issue agent (queue P36, owner 2026-11-24/25): the owner comments "/oc ..." on an issue and the opencode agent answers
-# there, on a free model. First trial: READ-ONLY. It may read the repo and comment on the issue; it cannot push, open
-# PRs or touch main (main has no branch protection, so write access waits for a ruleset; see P36).
-# - Only the repository owner can start it (author_association == OWNER); the repo is public and anyone can comment.
-# - No secret: opencode's free models need no key (packages/core/src/plugin/provider/opencode.ts uses a "public" key
-#   when OPENCODE_API_KEY is unset, measured 2026-11-25). OPENCODE_API_KEY (valid, no credits) is not passed: it would
-#   only unlock paid models and put a secret in a job whose commands a model chooses.
-# - Other people can still comment on an issue the agent reads: their text is untrusted input. Its reach is this
-#   job's token: read the repo, write issue comments and labels. Nothing else.
-# - share: false. The action defaults to sharing the session publicly on public repos.
-# - The action is pinned; opencode itself is installed by the action at its latest release (action.yml: curl | bash).
-# - Model: deepseek-v4.1-flash-free (zero retention, no training, per the OpenCode console docs 2026-11-25).
+# Issue agent (queue P36, owner 2026-11-24/25): the owner comments "/oc <question>" on an issue and gets an answer
+# there, from the model they pick: "/oc model=<alias or provider/model> <question>"; "/oc models" lists what is reachable.
+# Free models run with no key. Paid models (providers the owner connected on the OpenCode Console) run with
+# OPENCODE_API_KEY, only when agent/models.json says allow_paid. Spend limits belong at each provider and the Console.
+#
+# Two jobs, so that no model ever runs where a write token or a key could be read back out (blind review 45508009679):
+#   answer: contents: read only. The model gets a read-only agent (agent/opencode.json, installed as the system config,
+#           which overrides any repo config): no shell, no edits, no web, no files outside the checkout. It cannot read
+#           its own environment, so it cannot print the key. Only the owner's text reaches it: the comment, and the issue
+#           title and body only when the owner opened the issue. Other people's comments are never sent.
+#   post:   no model. Posts the answer file as a comment with an issues: write token.
+# opencode is pinned through agent/package-lock.json (npm ci checks integrity); no curl | bash, no cache.
 name: opencode
 on:
-  issue_comment:   # zizmor: ignore[dangerous-triggers] issues only (no PR head is checked out), owner-only, no secrets, contents: read
+  issue_comment:   # zizmor: ignore[dangerous-triggers] issues only (no PR head checked out), owner-only by login and association; the model job has contents: read and no shell
     types: [created]
-permissions:
-  contents: read
-  issues: write
+permissions: {}
 concurrency:
   group: opencode-${{ github.event.issue.number }}
   cancel-in-progress: false
 jobs:
-  agent:
+  answer:
     if: >-
       github.event.issue.pull_request == null &&
       github.event.comment.author_association == 'OWNER' &&
+      github.event.comment.user.login == github.repository_owner &&
       (startsWith(github.event.comment.body, '/oc') || startsWith(github.event.comment.body, '/opencode'))
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      model: ${{ steps.pick.outputs.model }}
+      paid: ${{ steps.pick.outputs.paid }}
+      mode: ${{ steps.pick.outputs.mode }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           fetch-depth: 1
           persist-credentials: false
-      - name: opencode
-        uses: anomalyco/opencode/github@17b79f4e0c16dcff200b0417567ed22aeb2d7166  # github-v1.2.28
+      - name: pick (script, no model)
+        id: pick
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT: ${{ github.event.comment.body }}
+          ISSUE_TITLE: ${{ github.event.issue.user.login == github.repository_owner && github.event.issue.title || '' }}
+          ISSUE_BODY: ${{ github.event.issue.user.login == github.repository_owner && github.event.issue.body || '' }}
+        run: |
+          set +e
+          python3 -I agent/pick.py agent/models.json "$RUNNER_TEMP/out" >> "$GITHUB_OUTPUT"
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          [ "$rc" -le 2 ]
+      - name: install opencode (pinned) and the read-only agent as the system config
+        if: steps.pick.outputs.rc == '0'
+        run: |
+          (cd agent && npm ci --no-fund --no-audit)
+          sudo mkdir -p /etc/opencode && sudo cp agent/opencode.json /etc/opencode/opencode.json
+      - name: answer on a free model (no key)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'ask' && steps.pick.outputs.paid == 'false'
+        env:
+          MODEL: ${{ steps.pick.outputs.model }}
+        run: |
+          timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -f "$RUNNER_TEMP/out/prompt.md" \
+            "Answer the request in the attached file. Read the repository files you need and name the paths you used." \
+            > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
+      - name: answer on a paid model (OPENCODE_API_KEY, this step only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'ask' && steps.pick.outputs.paid == 'true'
+        env:
+          MODEL: ${{ steps.pick.outputs.model }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+        run: |
+          timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -f "$RUNNER_TEMP/out/prompt.md" \
+            "Answer the request in the attached file. Read the repository files you need and name the paths you used." \
+            > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
+      - name: list reachable models (no inference)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'models'
+        env:
+          OPENCODE_API_KEY: ${{ steps.pick.outputs.paid == 'true' && secrets.OPENCODE_API_KEY || '' }}
+        run: |
+          timeout 120 agent/node_modules/.bin/opencode models > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" \
+            || echo "Listing failed; see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
+      - name: errors to the log only (never to the comment)
+        if: ${{ !cancelled() }}
+        run: '[ -s "$RUNNER_TEMP/err.txt" ] && tail -n 40 "$RUNNER_TEMP/err.txt" || true'
+      - name: cap the answer
+        if: ${{ !cancelled() }}
+        run: |
+          f="$RUNNER_TEMP/out/answer.md"; [ -s "$f" ] || echo "No answer was produced; see the workflow log." > "$f"
+          head -c 60000 "$f" > "$f.cut" && mv "$f.cut" "$f"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
         with:
-          model: opencode/deepseek-v4.1-flash-free
-          use_github_token: "true"
-          share: "false"
+          name: answer
+          path: ${{ runner.temp }}/out/answer.md
+          retention-days: 7
+  post:
+    needs: answer
+    if: ${{ always() && needs.answer.result != 'skipped' && needs.answer.result != 'cancelled' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: answer
+          path: out
+      - name: comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          MODEL: ${{ needs.answer.outputs.model }}
+          PAID: ${{ needs.answer.outputs.paid }}
+          MODE: ${{ needs.answer.outputs.mode }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          tier=free; [ "$PAID" = true ] && tier=paid
+          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; else echo "**opencode** · [run]($RUN)"; fi
+            echo; cat out/answer.md; } > body.md
+          gh issue comment "$ISSUE" -R "$REPO" --body-file body.md
