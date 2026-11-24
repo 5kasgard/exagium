@@ -1503,6 +1503,19 @@ class LanesTest(unittest.TestCase):
         self.assertEqual(lanes.lanes(1.0, 10), 4)
 
 
+class LoopMetrics(unittest.TestCase):
+    def test_no_human_share(self):
+        import digest
+        since = "2026-01-01T00:00:00Z"
+        q = {"items": [
+            {"id": "Q1", "runs": [{"at": since, "worker": "worker-1", "outcome": "merged"}]},
+            {"id": "Q2", "runs": [{"at": since, "worker": "worker-2", "outcome": "merged"}]},
+            {"id": "Q3", "runs": [{"at": since, "worker": "claude", "outcome": "merged"}]},
+        ]}
+        self.assertEqual(digest.loop_metrics(q, since, {})["no_human_share"], 0.67)
+        self.assertIsNone(digest.loop_metrics({"items": []}, since, {})["no_human_share"])
+
+
 class Exhaust(unittest.TestCase):
     """K53: a 429 reply becomes a pool reset time."""
     def test_reset_time(self):

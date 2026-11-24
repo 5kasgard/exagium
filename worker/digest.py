@@ -145,9 +145,30 @@ def idle_runs(since):
     return n, len(ids)
 
 
+class _Measures(list):
+    """The loop measures as lines, with named fields by key (K61: no_human_share)."""
+    def __init__(self, lines, fields):
+        super().__init__(lines)
+        self._fields = fields
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self._fields[key]
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        return self._fields.get(key, default)
+
+    def __getattr__(self, name):
+        try:
+            return self._fields[name]
+        except KeyError:
+            raise AttributeError(name)
+
+
 def loop_metrics(q, since, ledgers):
     """Throughput, who acted, outcome classes, spend and cost per landed item, idle runs with budget left. By script."""
-    acts, outcomes, landed = {}, {}, 0
+    acts, outcomes, landed, worker_landed = {}, {}, 0, 0
     for i in q["items"]:
         for r in i.get("runs", []):
             if r.get("at", "") >= since:
@@ -155,19 +176,23 @@ def loop_metrics(q, since, ledgers):
                 acts[a] = acts.get(a, 0) + 1
                 o = r.get("outcome") or "none"
                 outcomes[o] = outcomes.get(o, 0) + 1
-                landed += o in LANDED
+                if o in LANDED:
+                    landed += 1
+                    if a == "free worker":
+                        worker_landed += 1
     usd = sum(float((v or {}).get("usd", 0) or 0) for l in ledgers.values() for k, v in l.items() if k in PAID_POOLS)
     calls = {}
     for l in ledgers.values():
         for k, v in l.items():
             calls[k] = calls.get(k, 0) + int((v or {}).get("calls", 0) or 0)
     idle = idle_runs(since)
-    return [f"- items landed (merged, confirmed, solved or decided done): {landed}",
+    return _Measures([f"- items landed (merged, confirmed, solved or decided done): {landed}",
             f"- moves by actor: {', '.join(f'{k} {v}' for k, v in sorted(acts.items())) or 'none'}",
             f"- outcomes: {', '.join(f'{k} {v}' for k, v in sorted(outcomes.items())) or 'none'}",
             f"- paid spend: ${usd:.4f}" + (f" (${usd / landed:.4f} per landed item)" if landed else "")
             + f"; calls by pool: {', '.join(f'{k} {v}' for k, v in sorted(calls.items())) or 'none'}",
-            f"- worker runs that found no ready item with budget left: " + (f"{idle[0]} of {idle[1]}" if idle else "not measured (no GH_TOKEN)")]
+            f"- worker runs that found no ready item with budget left: " + (f"{idle[0]} of {idle[1]}" if idle else "not measured (no GH_TOKEN)")],
+            {"no_human_share": round(worker_landed / landed, 2) if landed else None})
 
 
 def flag(summary):
