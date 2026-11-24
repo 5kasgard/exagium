@@ -26,6 +26,26 @@ class Contract(unittest.TestCase):
         self.assertEqual(claim_roots.rule({"claims": 10, "shared_root_claims": 1})["verdict"], "fails")
         self.assertEqual(claim_roots.rule({"claims": 0, "shared_root_claims": 0})["verdict"], "invalid")
 
+    def test_packet_pilot_no_pilot(self):
+        import packet_pilot
+        self.assertEqual(packet_pilot.rule({"status": "no_pilot"})["verdict"], "invalid")
+
+    def test_packet_pilot_rule(self):
+        import packet_pilot
+        result = {
+            "baseline": {"proposals": 10, "valid": 10, "calls": 10, "correct": 10},
+            "repair": {"proposals": 10, "valid": 10, "calls": 10, "correct": 4},
+        }
+        self.assertEqual(packet_pilot.rule(result)["verdict"], "holds")
+        result["repair"]["correct"] = 3
+        self.assertEqual(packet_pilot.rule(result)["verdict"], "fails")
+
+    def test_packet_pilot_ignores_unrelated_json(self):
+        import packet_pilot
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "unrelated.json"), "w").write(json.dumps({"digests": 554}))
+            self.assertEqual(packet_pilot.run(d), {"status": "no_pilot"})
+
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:
             for name, body, want, rc in (
