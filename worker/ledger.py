@@ -114,33 +114,6 @@ def check(wt, spec):
     return 2 if why else 0
 
 
-def reservation_delta(led, run, want):
-    """Return only genuinely new per-pool reservations; retries of the same run are idempotent."""
-    new = {}
-    for pool, (n, est) in want.items():
-        e = led.get(pool, {})
-        saved = (e.get("reservation_specs") or {}).get(run)
-        expected = {"calls": n, "neurons_each": est}
-        if saved is not None:
-            if saved != expected:
-                raise ValueError(f"{run}: reservation for {pool} differs from its first reservation")
-            continue
-        # Read old ledgers written before reservation_specs existed without charging them twice.
-        pending_calls = (e.get("pending_calls") or {}).get(run)
-        if pending_calls is not None:
-            if pending_calls != n:
-                raise ValueError(f"{run}: existing pending call count for {pool} differs")
-            if "neurons" in CAPS.get(pool, {}) and (e.get("pending") or {}).get(run) != n * est:
-                raise ValueError(f"{run}: existing pending neuron estimate for {pool} differs")
-            if "usd" in CAPS.get(pool, {}) and abs((e.get("pending_usd") or {}).get(run, 0) - n * est / 1000) > 1e-9:
-                raise ValueError(f"{run}: existing pending dollar estimate for {pool} differs")
-            continue
-        if any(run in (e.get(k) or {}) for k in ("pending", "pending_usd")):
-            raise ValueError(f"{run}: incomplete pending reservation for {pool}")
-        new[pool] = (n, est)
-    return new
-
-
 def calls_digest(calls):
     raw = json.dumps(calls, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
     import hashlib
@@ -168,28 +141,17 @@ def reserve(wt, run, spec):
         p = day_path(wt)
         os.makedirs(os.path.dirname(p), exist_ok=True)
         led = load(p)
-        if run in (led.get("_meta", {}).get("recorded_runs") or {}):
-            print(f"{run}: usage is already recorded; refusing a new reservation", file=sys.stderr)
-            return 2
-        try:
-            new = reservation_delta(led, run, want)
-        except ValueError as ex:
-            print(ex, file=sys.stderr)
-            return 2
-        if not new:
-            return 0
-        why = headroom(led, new, rolling_neurons(wt))
+        why = headroom(led, want, rolling_neurons(wt))
         if why:
             print(why)
             return 2
-        for pool, (n, est) in new.items():
+        for pool, (n, est) in want.items():
             if pool not in CAPS:
                 print(f"pool {pool} is not a free pool the worker may use", file=sys.stderr)
                 return 2
             e = led.setdefault(pool, {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             cap = CAPS[pool]
             e.setdefault("neurons_reserved", 0)
-            e.setdefault("reservation_specs", {})[run] = {"calls": n, "neurons_each": est}
             e["reserved"] += n   # cumulative, for the record; the cap uses calls made plus pending_calls
             e.setdefault("pending_calls", {})[run] = e.get("pending_calls", {}).get(run, 0) + n
             if "neurons" in cap:
