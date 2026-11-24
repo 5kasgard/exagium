@@ -20129,7 +20129,7 @@
    "id": "P37b",
    "title": "Every queue status write appends one structured event through queue_ops (claim, release, tier, chat, owner, splitter, audit); a writer that bypasses it fails a test",
    "kind": "fix",
-   "status": "in progress",
+   "status": "review",
    "origin": "follow-up",
    "severity": "major",
    "needs": "free",
@@ -20142,7 +20142,7 @@
     "worker/test_worker.py",
     "audit/spine/replay.py"
    ],
-   "next": "From P37: 109 of 339 items cannot be rebuilt from their run logs; causes only in commit subjects. Event shape {at, actor, from, outcome, to, reason}. Log the claim too. Then rerun audit/spine/replay.py: pass = 100% for items changed after the fix. Gates P36 test 2 (live spine).",
+   "next": "PR #139 (owner merge). Then on the queue branch: drop render's claim exemption (an open -> in progress change must carry a claim event), and rerun audit/spine/replay.py: expect 340/340 to hold as the worker runs. From P37: 109 of 339 items cannot be rebuilt from their run logs; causes only in commit subjects. Event shape {at, actor, from, outcome, to, reason}. Log the claim too. Then rerun audit/spine/replay.py: pass = 100% for items changed after the fix. Gates P36 test 2 (live spine).",
    "refs": [
     "audit/spine/RESULT-2026-11-25.md"
    ],
@@ -20155,10 +20155,16 @@
      "outcome": "claim",
      "from": "open",
      "to": "in progress"
+    },
+    {
+     "at": "2026-11-24T22:45:39Z",
+     "worker": "chat-claude",
+     "result": "Data: since the 2026-11-20 render check, 814 of 814 non-claim status changes carry a run with its outcome; the gaps were 362 unlogged claims, items born in a non-initial state, and 91 legacy items. Done on the queue branch: 97 frozen baselines; replay now rebuilds 340/340. Render (next commit): births must be open/proposed or carry a run whose 'to' is the status; baselines frozen. Main PR #139 (queue_ops: claim is an event; from/to on every entry; claims do not reset the failure count, test bites): pending owner merge. After merge: drop render's claim exemption.",
+     "outcome": "pr",
+     "from": "in progress",
+     "to": "review"
     }
-   ],
-   "claimed_by": "chat-claude",
-   "claimed_at": "2026-11-24T22:46:05Z"
+   ]
   }
  ],
  "batches": [
