@@ -173,7 +173,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (72)
+## Can run now (71)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -211,7 +211,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R33 | B3 |  | minor | high | test | Do two-parameter item response theory models that jointly estimate task difficulty and worker ability predict held-out worker outcomes better than per-worker av | Worker job (research): literature card for P20b. Why: It directly tests whether joint IRT modeling improves held-out prediction over per-worker averages, matching the planned 2PL evaluation. | queue P20b; queue P27 (generator) |
 | R36 | B3 |  | minor | high | test | How can fixed periodic probe outputs be used to detect statistically significant changes in deployed language-model behavior relative to each model's historical | Worker job (research): literature card for P20f. Why: It identifies published methods for setting per-probe historical bounds and flagging silent model changes, directly informing the weekly canary design. | queue P20f; queue P27 (generator) |
 | R37 | B9 |  | minor | high | test | How do queue-ordering heuristics based on information gain per unit cost versus number of downstream items unlocked compare in rank order and in resulting worke | Worker job (research): literature card for P22. Why: It informs whether the two ordering keys should be treated as equivalent or tested by throughput, matching the pre-fixed Kendall-tau and worker-hour comparison rule. | queue P22; queue P27 (generator) |
-| R4 | B7 |  | minor | high | test | Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting? | Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P3 |
 | R40 | B9 |  | minor | high | test | What published evaluations compare claim-level, append-only provenance stores with verbatim source checking against keyword/grep search for answering predefined | Worker job (research): literature card for P25. Why: It informs whether Gnomon's provenance features justify adoption over grep under the fixed 8/10 accuracy and one-day glue-code thresholds. | queue P25; queue P27 (generator) |
 | R46 | B3 |  | minor | high | test | What methods exist for scheduled lightweight probes to detect changes in externally sourced facts and trace each change to dependent workflow artifacts before i | Worker job (research): literature card for P30. Why: It asks whether published probe-and-dependency-tracing methods can justify extending existing daily checks to catch changed facts before they break dependent runs. | queue P30; queue P27 (generator) |
 | R47 | B3 |  | minor | high | test | How reliably can low-cost LLM judges be qualified using known-answer control sets and then used in a cascade that escalates only unsettled decisions to a strong | Worker job (research): literature card for P31. Why: It informs whether the qualified cheap-model judgement tier can safely replace routine review and escalate only edge cases to Claude. | queue P31; queue P27 (generator) |
@@ -276,11 +275,12 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (1)
+## Escalated (a check failed; the next tier takes it) (2)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R22 | B9 |  | minor | high | test | How do dependency-graph and provenance systems model heterogeneous prerequisite links such as hard gates, soft ordering, and parallel constraints, resolve depen | Worker job (research): literature card for P21. Why: It directly informs the next step's need for typed link semantics, cycle resolution, and downstream recheck behavior in a manipulable dependency web. | queue P21; queue P27 (generator) |
+| R4 | B7 |  | minor | high | test | Research card (release test 2): Can prior-fitted networks such as TabPFN run on CPU at about 30,000 rows, and how do they compare with tuned boosting? | Worker job (research) for P3; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P3 |
 
 ## Needs the owner (17)
 
