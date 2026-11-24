@@ -15,6 +15,8 @@ USABLE = ["BerriAI__litellm-15753", "agronholm__anyio-1121", "apache__iceberg-py
           "vprusso__toqito-1484_interface"]
 MODES = {"gold": True, "goldtest": True, "empty": False, "cheat": False}   # known-answer mode -> must read resolved
 LIMIT_S = 1500   # whole check inside the job's 30-minute limit (PLAN.md), leaving time to upload
+SEAL = ["--network", "none", "--cap-drop", "ALL", "--security-opt", "no-new-privileges",
+        "--pids-limit", "512", "--memory", "4g", "--cpus", "2"]
 
 
 def parse_list(v):
@@ -140,7 +142,7 @@ def run(cands, iid, outdir):
         open(os.path.join(work, "test_cmd"), "w").write(c["test_cmd"])
         inner = os.path.join(work, "inner.sh")
         open(inner, "w").write(INNER)
-        rc, log, s = sh(["docker", "run", "--rm", "-v", f"{os.path.abspath(work)}:/w",
+        rc, log, s = sh(["docker", "run", "--rm", *SEAL, "-v", f"{os.path.abspath(work)}:/w",
                          c["docker_image"], "bash", "/w/inner.sh"], left())
         res["steps"]["tests"] = {"rc": rc, "s": s}
         open(os.path.join(outdir, f"log-{iid}.txt"), "w").write(log)
@@ -216,13 +218,13 @@ if step == "synth":
                 open(os.path.join(T, f), "w").write("")
 elif step == "reset":
     # every file the test_patch touches, every conftest.py and the pytest-only config files go back to HEAD; new ones go
-    tracked = set(git("ls-files", "-z", capture_output=True, text=True, check=True).stdout.split("\0"))
-    changed = git("status", "--porcelain=v1", "-z", "--untracked-files=all", capture_output=True, text=True, check=True).stdout.split("\0")
+    tracked = set(git("-c", "core.hooksPath=/dev/null", "ls-files", "-z", capture_output=True, text=True, check=True).stdout.split("\0"))
+    changed = git("-c", "core.hooksPath=/dev/null", "status", "--porcelain=v1", "-z", "--untracked-files=all", capture_output=True, text=True, check=True).stdout.split("\0")
     paths = [c[3:] for c in changed if len(c) > 3]
-    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml", "tox.ini", "setup.cfg")}
+    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml", "tox.ini", "setup.cfg", "pyproject.toml", "sitecustomize.py", "usercustomize.py") or p.endswith(".pth")}
     for f in sorted(pick):
         if f in tracked:
-            git("checkout", "HEAD", "--", f, check=True)
+            git("-c", "core.hooksPath=/dev/null", "checkout", "HEAD", "--", f, check=True)
         elif os.path.lexists(os.path.join(T, f)):
             os.remove(os.path.join(T, f))
 elif step == "test":
@@ -269,7 +271,7 @@ def attempt(cands, iid, diff, outdir):
         open(os.path.join(work, "inner.sh"), "w").write(INNER_ATTEMPT)
         open(os.path.join(work, "helper.py"), "w").write(HELPER)
         open(os.path.join(work, "mode"), "w").write(mode)
-        rc, log, s = sh(["docker", "run", "--rm", "-v", f"{os.path.abspath(work)}:/w", c["docker_image"], "bash", "/w/inner.sh"], left())
+        rc, log, s = sh(["docker", "run", "--rm", *SEAL, "-v", f"{os.path.abspath(work)}:/w", c["docker_image"], "bash", "/w/inner.sh"], left())
         open(os.path.join(outdir, f"attempt-log-{iid}-{mode}.txt"), "w").write(log)
         if "=====FORGE-NOAPPLY=====" in log:
             res.update(resolved=False, reason="the attempt's diff did not apply")

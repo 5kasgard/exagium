@@ -49,6 +49,24 @@ class T(unittest.TestCase):
         self.assertEqual(E.statuses(E.summary(log), ["t.py::a"]), {"t.py::a": "FAILED"})
         self.assertEqual(E.summary("no summary here"), "")
 
+    def test_seal_network_none(self):
+        i = E.SEAL.index("--network")
+        self.assertEqual(E.SEAL[i + 1], "none")
+
+    def test_inner_reset_restores_sealed_config(self):
+        reset = E.HELPER.split('elif step == "reset":', 1)[1].split('elif step == "test":', 1)[0]
+        line = next(l for l in reset.splitlines() if "os.path.basename(p) in (" in l)
+        for name in ("pyproject.toml", "sitecustomize.py", "usercustomize.py"):
+            self.assertIn(f'"{name}"', line)
+        self.assertIn('p.endswith(".pth")', line)
+
+    def test_reset_git_calls_ignore_hooks(self):
+        reset = E.HELPER.split('elif step == "reset":', 1)[1].split('elif step == "test":', 1)[0]
+        lines = [l for l in reset.splitlines() if "git(" in l]
+        self.assertTrue(lines)
+        for l in lines:
+            self.assertIn('git("-c", "core.hooksPath=/dev/null"', l)
+
     def test_grade_attempts_known_answer(self):
         import json, tempfile
 
