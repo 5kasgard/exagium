@@ -17845,11 +17845,19 @@
     "worker/ledger.py",
     ".github/workflows/worker.yml"
    ],
-   "next": "Data 2026-11-24 (Claude chat): keyed jobs run 51 of 129 .py files; of the other 78, nearly all are tests, graders, scoring or verdict code, so widening MERGE_ALLOW today gains about 2 files. Calls per run (ledger, 3,459 calls): worker median 2 (p90 6), propose 3, tier 6, so 2-3 extra job hops per run. Gain: auto-merge can widen to worker/ and router/ logic; a person is needed only for keys, workflows and gates. First step when kept: list the call sites (engines.call, slots.call, anthropic_call) per job and the hop count each design needs. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "next": "Data 2026-11-24 (Claude chat): keyed jobs run 51 of 129 .py files; of the other 78, nearly all are tests, graders, scoring or verdict code, so widening MERGE_ALLOW today gains about 2 files. Calls per run (ledger, 3,459 calls): worker median 2 (p90 6), propose 3, tier 6, so 2-3 extra job hops per run. Gain: auto-merge can widen to worker/ and router/ logic; a person is needed only for keys, workflows and gates. First step when kept: list the call sites (engines.call, slots.call, anthropic_call) per job and the hop count each design needs. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): KEEP from both. Applied: kept; first in line. Their cheapest test: one end-to-end CI run with the broker, keyed jobs touching only the call layer and ledger, and an auto-merge of a worker/ or router/ change succeeding.",
    "refs": [
     "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
    ],
-   "generated_at": "2026-11-24T11:36:50Z"
+   "generated_at": "2026-11-24T11:36:50Z",
+   "runs": [
+    {
+     "at": "2026-11-24T11:39:29Z",
+     "worker": "claude-chat",
+     "result": "Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): KEEP from both. Applied: kept; first in line. Their cheapest test: one end-to-end CI run with the broker, keyed jobs touching only the call layer and ledger, and an auto-merge of a work",
+     "outcome": "review_applied"
+    }
+   ]
   },
   {
    "id": "P34",
@@ -17861,16 +17869,26 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "blocked_by": [],
+   "blocked_by": [
+    "P33"
+   ],
    "touches": [
     "tasks/",
     "runner/"
    ],
-   "next": "Owner 2026-11-24 (hypothesis). Check published results first (P7 rule): miniF2F-style suites, Lean version pinning on CI, kernel check time per proof. Rule to fix before running: the domain is kept if a free model's proofs check on at least one held-out statement set within the runner's caps. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "next": "Owner 2026-11-24 (hypothesis). Check published results first (P7 rule): miniF2F-style suites, Lean version pinning on CI, kernel check time per proof. Rule to fix before running: the domain is kept if a free model's proofs check on at least one held-out statement set within the runner's caps. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): DEFER from both (reasons: unknown Lean toolchain cost on CI; no demonstrated need). Applied: deferred behind P33. The owner's scope includes theorem provers, so the need half is overruled; the cost half stands. First step when started is their cheapest test: one trivial Lean proof checked on CI inside the task contract, with toolchain install time and check time recorded.",
    "refs": [
     "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
    ],
-   "generated_at": "2026-11-24T11:36:50Z"
+   "generated_at": "2026-11-24T11:36:50Z",
+   "runs": [
+    {
+     "at": "2026-11-24T11:39:29Z",
+     "worker": "claude-chat",
+     "result": "Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): DEFER from both (reasons: unknown Lean toolchain cost on CI; no demonstrated need). Applied: deferred behind P33. The owner's scope includes theorem provers, so the need half is overrul",
+     "outcome": "review_applied"
+    }
+   ]
   },
   {
    "id": "P35",
@@ -17886,11 +17904,19 @@
    "touches": [
     "audit/2026-11-17/web/"
    ],
-   "next": "Owner 2026-11-24 ('a graph network like Graphify, honestly'). Graphify (open source, uv tool install graphifyy) gives graph.html, a report and graph.json and labels inferred edges. Test, rule fixed before running: 10 fixed dependency questions about the repo (answers checked by script against queue.json and the register); keep the tool that answers more correctly at lower cost; extracted and inferred edges must stay apart in the view. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "next": "Owner 2026-11-24 ('a graph network like Graphify, honestly'). Graphify (open source, uv tool install graphifyy) gives graph.html, a report and graph.json and labels inferred edges. Test, rule fixed before running: 10 fixed dependency questions about the repo (answers checked by script against queue.json and the register); keep the tool that answers more correctly at lower cost; extracted and inferred edges must stay apart in the view. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): KEEP from both. Applied: kept. Cheapest test as filed: 10 fixed dependency questions, script-checked, Graphify vs P21's v0.",
    "refs": [
     "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
    ],
-   "generated_at": "2026-11-24T11:36:50Z"
+   "generated_at": "2026-11-24T11:36:50Z",
+   "runs": [
+    {
+     "at": "2026-11-24T11:39:29Z",
+     "worker": "claude-chat",
+     "result": "Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): KEEP from both. Applied: kept. Cheapest test as filed: 10 fixed dependency questions, script-checked, Graphify vs P21's v0.",
+     "outcome": "review_applied"
+    }
+   ]
   },
   {
    "id": "P36",
@@ -17902,13 +17928,23 @@
    "needs": "subscription usage",
    "cost": 0,
    "value": "high",
-   "blocked_by": [],
+   "blocked_by": [
+    "P33"
+   ],
    "touches": [],
-   "next": "Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review dispatched 2026-11-24 (review.yml on branch review/2026-11-24-new-items, prompt router/review/new-items-20261124/PROMPT.md); apply its verdict, with reasons, before any work.",
+   "next": "Owner 2026-11-24. Criteria: the existing free provider keys; hosts MCP tools; free hosting (not Oracle) or start/stop on demand; can read and drive the queue. Research first (tiered sources), then a one-run trial of the top two. Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge without one chat product in the middle; Claude usage is scarce), which is the evidence of need. Their cheapest test stands: deploy each candidate with the existing keys and script one queue read and one MCP tool call.",
    "refs": [
     "claude/HANDOFF-chat-2026-11-24-queue-closeout.md"
    ],
-   "generated_at": "2026-11-24T11:36:50Z"
+   "generated_at": "2026-11-24T11:36:50Z",
+   "runs": [
+    {
+     "at": "2026-11-24T11:39:29Z",
+     "worker": "claude-chat",
+     "result": "Blind review 45385736919 (groq gpt-oss-120b; nvidia nemotron-3-ultra; replies on router-runs reviews/45385736919): split, KEEP (gpt-oss) vs CUT (nemotron: 'no evidence of need'). Applied: kept, after P33. The blind prompt left out the owner's recorded requirement (2026-11-20: work on the Forge witho",
+     "outcome": "review_applied"
+    }
+   ]
   }
  ],
  "batches": [
