@@ -17,6 +17,10 @@ REVIEWERS = [
     ("cloudflare", "@cf/openai/gpt-oss-120b"),                # blind reviews since 2026-11-17
 ]
 NEURONS_PER_CALL = 600   # the worker's measured projection for one Cloudflare call (max seen 438)
+EQUIVALENT = {
+    "nemotron-120b": ("nvidia", "openrouter"),
+    "gpt-oss-120b": ("groq", "cloudflare"),
+}
 
 
 def used_fraction(led, pool, rolling=0.0):
@@ -30,6 +34,13 @@ def used_fraction(led, pool, rolling=0.0):
     if cap.get("neurons"):
         f = max(f, (e.get("neurons", 0) + held_neurons + NEURONS_PER_CALL) / cap["neurons"])
     return f
+
+
+def best_pool(led, job, rolling=0.0):
+    """The equivalent pool with the most room: lowest used_fraction that is not full, or None."""
+    cand = [(used_fraction(led, p, rolling), p) for p in EQUIVALENT.get(job, ())]
+    cand = [(f, p) for f, p in cand if f <= 1.0]
+    return min(cand)[1] if cand else None
 
 
 def main(a):

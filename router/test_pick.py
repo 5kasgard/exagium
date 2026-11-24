@@ -1,5 +1,5 @@
 """router/pick.py: least-used pools first, one reviewer per pool, pools over their cap skipped."""
-import json, os, subprocess, sys, tempfile, unittest
+import importlib.util, json, os, subprocess, sys, tempfile, unittest
 
 PICK = os.path.join(os.path.dirname(__file__), "pick.py")
 
@@ -8,6 +8,13 @@ def run(led, *a):
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
         json.dump(led, f)
     return subprocess.run([sys.executable, "-I", PICK, f.name, *a], capture_output=True, text=True).stdout.split()
+
+
+def load_pick():
+    spec = importlib.util.spec_from_file_location("pick_under_test", PICK)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class Pick(unittest.TestCase):
@@ -24,6 +31,16 @@ class Pick(unittest.TestCase):
         """GLM F037: a pool whose headroom runs in flight have reserved is full, though few calls are recorded."""
         led = {"groq": {"calls": 5, "pending_calls": {"r1": 495}}}
         self.assertEqual(run(led, "check", "groq:y", "nvidia:z"), ["nvidia:z"])
+
+    def test_best_pool_picks_most_room(self):
+        p = load_pick()
+        led = {"nvidia": {"calls": 449}, "openrouter": {"calls": 49}}
+        self.assertEqual(p.best_pool(led, "nemotron-120b"), "openrouter")
+
+    def test_best_pool_none_when_all_full(self):
+        p = load_pick()
+        led = {"nvidia": {"calls": 10000}, "openrouter": {"calls": 10000}}
+        self.assertIsNone(p.best_pool(led, "nemotron-120b"))
 
 
 if __name__ == "__main__":
