@@ -325,5 +325,78 @@ class SlotsCalibration(unittest.TestCase):
         cal = {(f"{f[0]}:{f[1]}", "reader"): 2.0 for f in base}
         self.assertEqual(chain("reader", calibration=cal), base)
 
+    """ITEM K50: run records each fallback try's outcome into the calibration registry."""
+
+    def test_recorded_outcomes_reorder_the_chain(self):
+        """#66 + #67 together: what run() records under 'pool:model' is what chain() sorts by."""
+        from router.slots import chain
+        base = chain("reader")
+        scores = {}
+        class Reg:
+            def record(self, actor, slot_family, ok):
+                scores[(actor, slot_family)] = scores.get((actor, slot_family), 0.0) + (1.0 if ok else -1.0)
+        Reg().record(f"{base[0][0]}:{base[0][1]}", "reader", False)
+        Reg().record(f"{base[1][0]}:{base[1][1]}", "reader", True)
+        self.assertEqual(chain("reader", calibration=scores)[0], base[1])
+
+    def test_run_records_failure_then_success(self):
+        from router.slots import run
+        calls = []
+
+        def fake_ask(pool, model, prompt):
+            calls.append((pool, model))
+            if len(calls) == 1:
+                return {"ok": True, "status": 200, "text": "not json"}   # parses to None
+            return {"ok": True, "status": 200, "text": '{"value": 42}'}
+
+        def parse(text):
+            import json
+            try:
+                return json.loads(text)
+            except Exception:
+                return None
+
+        registry_records = []
+        class FakeRegistry:
+            def record(self, actor, slot_family, ok):
+                registry_records.append((actor, slot_family, ok))
+
+        reg = FakeRegistry()
+        got, last, tries = run("drafter", "prompt", fake_ask, parse, registry=reg)
+
+        self.assertEqual(got, {"value": 42})
+        self.assertEqual(len(tries), 2)
+        self.assertEqual(tries[0]["ok"], False)
+        self.assertEqual(tries[1]["ok"], True)
+        self.assertEqual(registry_records, [
+            ("groq:openai/gpt-oss-120b", "drafter", False),
+            ("cloudflare:@cf/openai/gpt-oss-120b", "drafter", True),
+        ])
+
+    def test_run_with_none_registry_returns_same_result(self):
+        from router.slots import run
+        calls = []
+
+        def fake_ask(pool, model, prompt):
+            calls.append((pool, model))
+            if len(calls) == 1:
+                return {"ok": True, "status": 200, "text": "not json"}
+            return {"ok": True, "status": 200, "text": '{"value": 42}'}
+
+        def parse(text):
+            import json
+            try:
+                return json.loads(text)
+            except Exception:
+                return None
+
+        got, last, tries = run("drafter", "prompt", fake_ask, parse, registry=None)
+
+        self.assertEqual(got, {"value": 42})
+        self.assertEqual(len(tries), 2)
+        self.assertEqual(tries[0]["ok"], False)
+        self.assertEqual(tries[1]["ok"], True)
+
+
 if __name__ == "__main__":
     unittest.main()
