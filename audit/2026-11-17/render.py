@@ -45,7 +45,14 @@ def transition_check():
     bad = []
     for i in items:
         o = old.get(i['id'])
-        if not o or o['status'] == i['status']:
+        if not o:   # born: open, or proposed by the generator, else its run log must say how it got here (P37b)
+            last = (i.get('runs') or [{}])[-1]
+            if i['status'] not in ('open', 'proposed') and last.get('to') != i['status']:
+                bad.append(f"{i['id']}: born {i['status']!r} with no run entry whose 'to' is {i['status']!r}")
+            continue
+        if i.get('baseline') != o.get('baseline'):
+            bad.append(f"{i['id']}: baseline changed; baselines were set once (P37b) and are frozen")
+        if o['status'] == i['status']:
             continue
         if o['status'] == 'open' and i['status'] == 'in progress' and i.get('claimed_by'):
             continue
