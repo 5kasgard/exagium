@@ -45,7 +45,7 @@ jobs:
         run: |
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v router/test_router.py
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v audit/periodic/test_indicators.py
-          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py router/bench6/pilot/test_envcheck.py   # were not in CI before 2026-11-20 (Q60 review)
+          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py router/bench6/pilot/test_envcheck.py router/test_keys_probe.py   # were not in CI before 2026-11-20 (Q60 review)
           "$RUNNER_TEMP/venv/bin/python" -I router/review/relevance-control/test_replay.py \
             && "$RUNNER_TEMP/venv/bin/python" -I router/review/relevance-control/test_instr.py \
             && "$RUNNER_TEMP/venv/bin/python" -I router/review/search-breadth/test_breadth.py   # run as files: the folder name has a hyphen, and unittest would import router/review.py
