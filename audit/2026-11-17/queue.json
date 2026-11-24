@@ -18839,6 +18839,70 @@
    },
    "work_types_key": "592e23c36665f5f9",
    "work_types_at": "2026-11-24T14:32:32Z"
+  },
+  {
+   "id": "K65",
+   "title": "Add a pure no-human share helper to digest.py",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P9",
+   "generated_at": "2026-11-24T18:00:28Z",
+   "code": {
+    "files": [
+     "worker/digest.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "worker/digest.py",
+    "worker/test_worker.py"
+   ],
+   "next": "In worker/digest.py, add `no_human_share(actors)` that takes a list of actor values as actor() returns them for landed items, counts those finished by a worker (not a person, using the same classification actor() already makes), and returns {\"landed\": n, \"no_human\": k, \"share\": k/n or None when n is 0}. It must be pure, with no git or GitHub calls. Add a test in the LoopMetrics class in worker/test_worker.py showing a mix of worker and person actors gives the expected counts and share, and that an empty list gives share None.",
+   "refs": [
+    "queue P9",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K66",
+   "title": "Report the no-human share in loop_metrics",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P9",
+   "generated_at": "2026-11-24T18:00:28Z",
+   "code": {
+    "files": [
+     "worker/digest.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "worker/digest.py",
+    "worker/test_worker.py"
+   ],
+   "next": "In loop_metrics(q, since, ledgers) in worker/digest.py, collect the actor of each item landed in the window and pass the list to no_human_share (added in the previous sub-item), then add its result under the key 'no_human' in the dict loop_metrics returns, so the digest shows it. Extend the LoopMetrics test in worker/test_worker.py to assert that the 'no_human' entry is present and that its share matches a fixture with two worker-landed items and one person-landed item.",
+   "refs": [
+    "queue P9",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
