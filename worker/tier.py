@@ -304,10 +304,6 @@ def drain_code(wt, ask, record):
                                        "why": ["PR head changed while its diff was being fetched; review deferred"]})
             continue
         reviewed_head = after_files["head_sha"]
-        if files is None:
-            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
-            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
-            continue
         full = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)
         verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": full[:DIFF_SEEN]}, ask)
         if verdict is None:   # no answer (outage, empty or unparsable reply) is not a judgement: leave it for the next run
