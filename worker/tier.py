@@ -236,7 +236,7 @@ def queue_authorises_pr(item, number):
     if not isinstance(item, dict) or item.get("status") != "review" or not item.get("code"):
         return False
     run = next((x for x in reversed(item.get("runs") or []) if x.get("outcome") != "defer"), {})
-    match = re.search(r"/pull/(\\d+)", str(run.get("where", "")))
+    match = re.search(r"/pull/(\d+)", str(run.get("where", "")))
     return bool(run.get("outcome") == "pr" and match and int(match.group(1)) == number)
 
 
