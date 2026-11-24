@@ -18712,6 +18712,43 @@
    },
    "work_types_key": "70fb430be92a28e0",
    "work_types_at": "2026-11-24T13:56:08Z"
+  },
+  {
+   "id": "K64",
+   "title": "Fixed 10-question truth set, computed by script from queue.json and the findings register",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P35",
+   "generated_at": "2026-11-24T14:32:23Z",
+   "code": {
+    "files": [
+     "experiments/graph_truth.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "worker/split.py",
+     "worker/repo_index.py"
+    ],
+    "new": [
+     "experiments/graph_truth.py"
+    ]
+   },
+   "touches": [
+    "experiments/graph_truth.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/graph_truth.py (under 80 lines) with QUESTIONS, a fixed list of 10 dependency questions as data (for example: which queue items name a given file in their files list; which items depend on another item; which register findings cite a given file). Add truth(queue_path, register_path) that answers each question by reading the JSON files and returns a dict question id -> answer, with no model call. Test in experiments/test_experiments.py: on a small fixture queue and register, truth() returns the hand-computed answers for all 10 questions, and calling it twice gives identical output.",
+   "refs": [
+    "queue P35",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
