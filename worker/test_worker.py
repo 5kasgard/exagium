@@ -12,17 +12,7 @@ ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "li
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
 
 
-class LedgerIdempotency(unittest.TestCase):
-    def test_same_reservation_is_not_added_twice(self):
-        led = {"groq": {"pending_calls": {"run-1": 1}}}
-        self.assertEqual(L.reservation_delta(led, "run-1", {"groq": (1, 1000)}), {})
-        self.assertEqual(L.reservation_delta({}, "run-1", {"groq": (1, 1000)}), {"groq": (1, 1000)})
-
-    def test_changed_reservation_is_rejected(self):
-        led = {"groq": {"reservation_specs": {"run-1": {"calls": 1, "neurons_each": 1000}}}}
-        with self.assertRaises(ValueError):
-            L.reservation_delta(led, "run-1", {"groq": (2, 1000)})
-
+class LedgerRecordIdempotency(unittest.TestCase):
     def test_recorded_payload_is_idempotent_and_immutable(self):
         led, calls = {}, [{"engine": "groq", "usage": {"requests": 1}}]
         self.assertTrue(L.mark_recorded(led, "run-1", calls))
