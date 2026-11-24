@@ -1,0 +1,23 @@
+{
+ "t": "2026-11-24T23:21:47Z",
+ "engine": "nvidia",
+ "model": "nvidia/nemotron-3-ultra-550b-a55b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 42.43,
+ "usage": {
+  "prompt_tokens": 2506,
+  "completion_tokens": 2953,
+  "total_tokens": 5459,
+  "prompt_tokens_details": {
+   "cached_tokens": 0
+  },
+  "completion_tokens_details": {
+   "reasoning_tokens": 2414
+  }
+ },
+ "finish": "stop",
+ "text": "EXPLOITABLE: none found. The `if` gate (`author_association == 'OWNER' && user.login == repository_owner && !pull_request`) is cryptographically bound to GitHub\u2019s identity; a non-owner cannot satisfy it. The model receives only the owner\u2019s comment text and (iff the owner opened the issue) the issue title/body. The system agent config (`/etc/opencode/opencode.json`) denies bash, edit, webfetch, websearch, task, skill, and `external_directory` (blocks `/proc`, `/sys`, etc.); resolved tools are read/glob/grep/list only. The model cannot execute commands, write files, reach the network, or read its own environment. The prompt instructs it to \u201cname the paths you used,\u201d so it may surface repo file contents in the answer, but the repo is public\u2014no new exposure. The post job runs once per workflow, has `issues: write` only, and posts exactly one comment.\n\nKEY: the paid step\u2019s `OPENCODE_API_KEY` cannot leak. It exists only in that step\u2019s `env`; the model runs with no shell, no `env` access, no filesystem write, no network, and `external_directory` deny blocks `/proc/self/environ`. Stdout/stderr are captured by the shell redirection, not by the model. The artifact (`answer.md`) and the post job\u2019s environment contain no key. Workflow logs show only the tailed `err.txt` (opencode stderr), which does not include the key.\n\nSPEND: controls \u2014 owner-only trigger; `models.json` `allow_paid` gate; 15-min (`timeout 900`) hard limit per run; provider/Console spend limits. Missing \u2014 no workflow-level concurrency cap across issues (`cancel-in-progress: false` queues unlimited runs on different issues), no per-run token/cost budget, no alerting. A compromised owner account or a mistaken spam of `/oc` comments on many issues could queue dozens of paid runs sequentially.\n\nRESIDUAL: runaway spend via unbounded queued runs across issues. Cheapest control: change `cancel-in-progress: true` (limits to one active run per issue) and document that the owner must enforce monetary caps at each provider/Console.\n\nVERDICT: SHIP WITH CHANGES\n1. `concurrency.cancel-in-progress: true`\n2. Add a comment in the workflow reminding the owner to set hard spend limits at Anthropic/Google/NVIDIA/HF and in OpenCode Console.",
+ "limits": {},
+ "error": null
+}

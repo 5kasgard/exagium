@@ -1,0 +1,31 @@
+{
+ "t": "2026-11-24T23:21:44Z",
+ "engine": "groq",
+ "model": "openai/gpt-oss-120b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 3.59,
+ "usage": {
+  "queue_time": 0.147948361,
+  "prompt_tokens": 2375,
+  "prompt_time": 0.111008423,
+  "completion_tokens": 1478,
+  "completion_time": 3.088646249,
+  "total_tokens": 3853,
+  "total_time": 3.199654672,
+  "completion_tokens_details": {
+   "reasoning_tokens": 847
+  }
+ },
+ "finish": "stop",
+ "text": "**EXPLOITABLE**  \n*None found.*  \nAll triggers require the comment author to be the repository **owner** (`author_association == 'OWNER' && user.login == repository_owner`). A non\u2011owner cannot start the `answer` job, cannot affect the `post` job, and cannot supply any input that reaches the model except via files already present in the checked\u2011out repository. The model\u2019s agent configuration (`answer`) explicitly denies any shell, edit, web\u2011fetch, web\u2011search, external\u2011directory or write capabilities, leaving it with read\u2011only access to the repository files. Because the model never receives the `OPENCODE_API_KEY` (it is only set as an environment variable in the paid\u2011model step) and never runs code, there is no vector for a malicious commenter to make the workflow perform actions beyond reading the repo and posting a single comment.\n\n**KEY**  \nThe `OPENCODE_API_KEY` is injected only as an environment variable for the paid\u2011model step:\n\n```yaml\nenv:\n  OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}\n```\n\nThe key is **not** written to any file, not echoed to stdout/stderr, and not passed to later steps. The model never receives it (the agent configuration has `read` only, no `env` access). Consequently the key cannot leak to the model, to the answer artifact, or to the `post` job.\n\n**SPEND**  \nRun\u2011time limits (`timeout 900`) cap each inference call to 15\u202fminutes, and the workflow aborts if the process exceeds this limit. The only way to spend money is to request a paid model that is listed in `models.json` with `allow_paid: true`. No additional throttling (per\u2011user, per\u2011run, or monetary ceiling) is enforced by the workflow itself; spend is limited only by the provider\u2011side quotas the owner set in the OpenCode console. If the owner enables many paid models or sets high per\u2011model quotas, a malicious owner could voluntarily drive up costs, but that is an owner\u2011level risk, not a workflow vulnerability.\n\n**RESIDUAL**  \n*Risk:* The owner could be socially engineered into posting many `/oc \u2026` comments (or a malicious bot acting as the owner could be compromised), causing repeated paid\u2011model invocations and unexpected spend.  \n*Cheapest control:* Add a **per\u2011run rate\u2011limit** (e.g., a step that stores the timestamp of the last successful `answer` run in a repository\u2011wide secret or artifact and aborts if a new request occurs within\u202fN\u202fminutes). This limits rapid repeat invocations without altering the core security model.\n\n**VERDICT**  \n**SHIP AS IS** \u2013 the workflow, as written, does not allow a non\u2011owner to elevate privileges, leak the API key, or cause unintended write actions. The only practical risk is owner\u2011initiated spend, which can be mitigated with a simple rate\u2011limit if desired.",
+ "limits": {
+  "x-ratelimit-limit-requests": "1000",
+  "x-ratelimit-limit-tokens": "8000",
+  "x-ratelimit-remaining-requests": "998",
+  "x-ratelimit-remaining-tokens": "5446",
+  "x-ratelimit-reset-requests": "2m52.8s",
+  "x-ratelimit-reset-tokens": "19.154s"
+ },
+ "error": null
+}
