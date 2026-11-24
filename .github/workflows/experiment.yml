@@ -1,6 +1,8 @@
 # Run one experiment (experiments/README.md): its own rule decides, by script. The run job has no secrets and a read-only
 # token (experiment code may be model-written); the record job runs no experiment code, saves the result to router-runs
-# and moves the queue item through worker/transitions.py (holds or fails -> done; invalid -> escalated; no result -> open).
+# and moves the queue item through worker/transitions.py (holds or fails -> done; invalid -> escalated). With no verdict,
+# or evidence that could not be saved to router-runs, the record job fails and moves nothing: the item stays scheduled until
+# queue_ops.expire's TTL marks it lost (independent review 2026-11-24 of #105: this header said 'no result -> open').
 name: experiment
 on:
   workflow_dispatch:
@@ -61,21 +63,51 @@ jobs:
         run: |
           case "$NAME" in *[!a-z0-9_]*|"") echo "bad name"; exit 1 ;; esac
           git config --global user.name exagium-worker; git config --global user.email worker@exagium.invalid
-          v=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['verdict'])" 2>/dev/null || echo none)
-          why=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['why'][:300])" 2>/dev/null || echo "no result")
+          test -s out/verdict.json || { echo "experiment verdict artifact is missing; refusing queue transition"; exit 1; }
+          python3 - "$NAME" <<'PY'
+          import json, sys
+          v = json.load(open("out/verdict.json"))
+          if v.get("name") != sys.argv[1] or not isinstance(v.get("verdict"), dict):
+              raise SystemExit("verdict metadata does not match dispatched experiment")
+          outcome = v["verdict"].get("verdict")
+          if outcome not in ("holds", "fails", "invalid"):
+              raise SystemExit("invalid experiment verdict")
+          if outcome in ("holds", "fails") and not __import__("os").path.isfile("out/result.json"):
+              raise SystemExit("a substantive verdict requires its result artifact")
+          PY
+          v=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['verdict'])")
+          why=$(python3 -c "import json;print(json.load(open('out/verdict.json'))['verdict']['why'][:300])")
           echo "verdict: $v ($why)"
-          if [ -d out ]; then
-            git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
-            d="$RUNNER_TEMP/rr/experiments/$NAME/$GITHUB_RUN_ID"; mkdir -p "$d"
-            for f in out/result.json out/verdict.json; do [ -f "$f" ] && [ "$(stat -c %s "$f")" -le 2000000 ] && cp "$f" "$d/"; done
-            for i in 1 2 3; do
-              (cd "$RUNNER_TEMP/rr" && git add experiments && git commit -qm "experiment $NAME: $v (run $GITHUB_RUN_ID)" && git push -q origin HEAD:router-runs) && break
-              (cd "$RUNNER_TEMP/rr" && git fetch -q origin router-runs && git rebase -q FETCH_HEAD) || true
-            done
-          fi
+          git fetch -q origin router-runs && git worktree add -q --detach "$RUNNER_TEMP/rr" FETCH_HEAD
+          d="$RUNNER_TEMP/rr/experiments/$NAME/$GITHUB_RUN_ID"; mkdir -p "$d"
+          for f in out/verdict.json out/result.json; do
+            [ -f "$f" ] || continue
+            [ "$(stat -c %s "$f")" -le 2000000 ] || { echo "$f exceeds 2 MB"; exit 1; }
+            cp "$f" "$d/"
+          done
+          saved=0
+          for i in 1 2 3; do
+            if (cd "$RUNNER_TEMP/rr" && git add experiments && git commit -qm "experiment $NAME: $v (run $GITHUB_RUN_ID)" && git push -q origin HEAD:router-runs); then saved=1; break; fi
+            (cd "$RUNNER_TEMP/rr" && git fetch -q origin router-runs && git rebase -q FETCH_HEAD) || true
+          done
+          [ "$saved" = 1 ] || { echo "could not persist experiment evidence to router-runs; refusing queue transition"; exit 1; }
           [ -n "$ITEM" ] || exit 0
           case "$ITEM" in *[!A-Za-z0-9._-]*) echo "bad item"; exit 1 ;; esac
           git fetch -q origin pilot/lgn-20261115 && git worktree add -q --detach "$RUNNER_TEMP/q" FETCH_HEAD
+          python3 - "$RUNNER_TEMP/q/audit/2026-11-17/queue.json" "$ITEM" "$NAME" <<'PY'
+          import json, sys
+          q = json.load(open(sys.argv[1]))
+          item = next((x for x in q.get("items", []) if x.get("id") == sys.argv[2]), None)
+          if item is None:
+              raise SystemExit("queue item does not exist")
+          if (item.get("experiment") or {}).get("name") != sys.argv[3]:
+              raise SystemExit("queue item is not registered for this experiment name")
+          if item.get("status") != "scheduled":
+              raise SystemExit("queue item is not in scheduled state")
+          if not any(r.get("worker") == "experiment-dispatch" and r.get("outcome") == "dispatch"
+                     for r in item.get("runs", [])):
+              raise SystemExit("queue item has no matching experiment dispatch record")
+          PY
           case "$v" in holds|fails) o=verdict ;; invalid) o=invalid ;; *) o=lost ;; esac
           url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           python3 -I -c "import sys;sys.path.insert(0,'worker');import queue_ops as Q;sys.exit(Q.move(sys.argv[1],'experiment',sys.argv[2],sys.argv[3],sys.argv[4],allow_failed=True))" \
