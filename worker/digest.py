@@ -129,6 +129,16 @@ def actor(w):
             else "generator" if w.startswith("generator") else "Claude session" if w.startswith("claude") else "owner or chat")
 
 
+NO_HUMAN = ("free worker", "Claude API tier", "generator")
+
+
+def no_human_share(actors):
+    """Pure: from actor values for landed items, the count and share finished without a person."""
+    n = len(actors)
+    k = sum(actor(a) in NO_HUMAN for a in actors)
+    return {"landed": n, "no_human": k, "share": (k / n if n else None)}
+
+
 def idle_runs(since):
     """Worker runs in the window that claimed nothing although not stopped for budget (needs GH_TOKEN; else None)."""
     if not os.environ.get("GH_TOKEN"):

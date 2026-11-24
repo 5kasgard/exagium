@@ -476,6 +476,12 @@ class Tier(unittest.TestCase):
 
 
 class LoopMetrics(unittest.TestCase):
+    def test_no_human_share_counts_workers_not_people(self):
+        import digest
+        self.assertEqual(digest.no_human_share([]), {"landed": 0, "no_human": 0, "share": None})
+        actors = ["worker-1", "worker-2", "tier-1", "generator", "claude-session", "owner or chat"]
+        self.assertEqual(digest.no_human_share(actors), {"landed": 6, "no_human": 4, "share": 4 / 6})
+        self.assertEqual(digest.no_human_share(["worker-1", "owner or chat"]), {"landed": 2, "no_human": 1, "share": 0.5})
     def test_loop(self):
         q = {"items": [{"id": "A", "runs": [{"at": "2026-11-20T01:00:00Z", "worker": "worker-1", "outcome": "merged"},
                                              {"at": "2026-11-20T02:00:00Z", "worker": "tier-claude-haiku-5-5", "outcome": "redo"},
