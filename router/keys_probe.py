@@ -16,7 +16,7 @@ PROBES = {
     "FIREWORKS_API_KEY": ("https://api.fireworks.ai/inference/v1/models", "bearer", "unverified: OpenAI-compatible models list"),
     "HUGGINGFACE_API_KEY": ("https://huggingface.co/api/whoami-v2", "bearer", "unverified: Hub whoami"),
     "OPENALEX_API_KEY": ("https://api.openalex.org/works?per-page=1&search=probe&api_key={k}", "query", "unverified: api_key parameter"),
-    "CORE_API_KEY": ("https://api.core.ac.uk/v3/search/works?q=probe&limit=1", "bearer", "unverified: CORE API v3"),
+    "CORE_API_KEY": ("https://api.core.ac.uk/v3/search/works/?q=probe&limit=1", "bearer", "CORE API v3: the path needs its trailing slash (without it: 301 to the slash form, measured 2026-11-24)"),
     "OPENML_API_KEY": ("https://www.openml.org/api/v1/json/data/list/limit/1?api_key={k}", "query", "unverified: OpenML REST v1"),
     "E2B_API_KEY": ("https://api.e2b.dev/sandboxes", "x-api-key-e2b", "unverified: list running sandboxes (creates none)"),
     "VAST_API_KEY": ("https://console.vast.ai/api/v0/users/current/", "bearer", "unverified: current user"),
