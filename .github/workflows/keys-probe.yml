@@ -1,0 +1,88 @@
+# One free, read-only call per repository key that no other workflow uses (queue Q84, 2026-11-24). Dispatch only.
+# Each key is in the env of its own step only; router/keys_probe.py prints the HTTP status and rate-limit headers,
+# never the key or the response body. Results go to the run summary and the uploaded artifact (no secrets in either).
+name: keys-probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+defaults:
+  run:
+    shell: bash   # explicit bash runs with -o pipefail: a probe that crashes fails its step instead of vanishing from the tee
+jobs:
+  probe:
+    # main only: a dispatch on another branch could run an edited probe with every key (review 2026-11-24)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10   # 13 calls with a 20 s timeout each (router/keys_probe.py) fit in under 5 minutes
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: SCALEWAY_API_KEY
+        env:
+          SCALEWAY_API_KEY: ${{ secrets.SCALEWAY_API_KEY }}
+        run: python3 -I router/keys_probe.py SCALEWAY_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: ARTIFICIALANALYSIS_API_KEY
+        env:
+          ARTIFICIALANALYSIS_API_KEY: ${{ secrets.ARTIFICIALANALYSIS_API_KEY }}
+        run: python3 -I router/keys_probe.py ARTIFICIALANALYSIS_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: DEEPINFRA_API_KEY
+        env:
+          DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+        run: python3 -I router/keys_probe.py DEEPINFRA_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: FIREWORKS_API_KEY
+        env:
+          FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+        run: python3 -I router/keys_probe.py FIREWORKS_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: HUGGINGFACE_API_KEY
+        env:
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+        run: python3 -I router/keys_probe.py HUGGINGFACE_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: OPENALEX_API_KEY
+        env:
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: python3 -I router/keys_probe.py OPENALEX_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: CORE_API_KEY
+        env:
+          CORE_API_KEY: ${{ secrets.CORE_API_KEY }}
+        run: python3 -I router/keys_probe.py CORE_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: OPENML_API_KEY
+        env:
+          OPENML_API_KEY: ${{ secrets.OPENML_API_KEY }}
+        run: python3 -I router/keys_probe.py OPENML_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: E2B_API_KEY
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+        run: python3 -I router/keys_probe.py E2B_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: VAST_API_KEY
+        env:
+          VAST_API_KEY: ${{ secrets.VAST_API_KEY }}
+        run: python3 -I router/keys_probe.py VAST_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: VULTR_API_KEY
+        env:
+          VULTR_API_KEY: ${{ secrets.VULTR_API_KEY }}
+        run: python3 -I router/keys_probe.py VULTR_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: UPSTASH_API_KEY
+        env:
+          UPSTASH_API_KEY: ${{ secrets.UPSTASH_API_KEY }}
+          UPSTASH_EMAIL: ${{ secrets.UPSTASH_EMAIL }}   # the Developer API's Basic auth is EMAIL:API_KEY
+        run: python3 -I router/keys_probe.py UPSTASH_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: BENCHLM_API_KEY
+        env:
+          BENCHLM_API_KEY: ${{ secrets.BENCHLM_API_KEY }}
+        run: python3 -I router/keys_probe.py BENCHLM_API_KEY | tee -a "$RUNNER_TEMP/keys.jsonl"
+      - name: summary
+        if: ${{ !cancelled() }}
+        run: |
+          echo '| key | status | ok | limits / skipped |' >> "$GITHUB_STEP_SUMMARY"
+          echo '|---|---|---|---|' >> "$GITHUB_STEP_SUMMARY"
+          python3 -I -c 'import json,sys
+          for l in open(sys.argv[1]):
+              r=json.loads(l); print("| %s | %s | %s | %s |" % (r["key"], r.get("status"), r.get("ok",""), r.get("skipped") or r.get("error") or r.get("limits")))' "$RUNNER_TEMP/keys.jsonl" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: keys-probe
+          path: ${{ runner.temp }}/keys.jsonl
+          retention-days: 3

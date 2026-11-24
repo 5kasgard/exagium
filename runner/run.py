@@ -120,6 +120,8 @@ def timed(c, inp, n, timer, cpu):
         # the timer forks, so it runs without the filter and adds it to its child, in both jail modes (Q10)
         r = J.jail(["./timer", "--seccomp", str(cpu), "./infer", "weights.bin", "in.rec", str(n)], [(w, "/w", False)],
                    1800, seccomp=False)
+    if r.returncode == 124:
+        raise Failed("%s: timer output limit exceeded (%d bytes)" % (c["name"], L.TIMER_OUTPUT_LIMIT))
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")
     f = tail.split()
     if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \

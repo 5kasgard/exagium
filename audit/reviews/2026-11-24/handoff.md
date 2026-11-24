@@ -27,3 +27,24 @@ No changes were merged to `main`. Three isolated PRs were opened and their GitHu
 3. Owner applies #109 workflow changes, preserving F002 additive reservation semantics with a stable operation ID.
 4. Implement #111's sandbox fault-injection suite before changing resource limits; every new cap must be tied to measured workload requirements.
 5. Reconcile the duplicate R10 PR lifecycle and queue lineage after inspecting both PR diffs; do not close or merge either blindly.
+
+## Update, same day (Claude chat, ~12:40Z)
+
+An independent review was recorded before any merge. A separate agent read every diff of #104, #105, #106, #108, #110, #112, #114 and #115, and ran the touched test suites at each PR head. It used a Sonnet agent, not `review.yml`. It also merged the PRs in order on a scratch branch to find conflicts.
+
+**Merged by the owner after the review:** #110, #106, #114, #115.
+
+**Review fixes, applied as commits on each branch:**
+- **#104:** its `record.py` hunk was dropped. It duplicated #110's tested fix and conflicted with it. The counter check output now gets a real newline.
+- **#105:** the header comment now matches the new behaviour. With no verdict, the item waits in `scheduled` until the TTL expiry marks it lost.
+- **#108:** main is merged in (with #106 there, both test classes are kept). A fail-open is fixed: a re-run with a different payload is now recorded under `run#digest` instead of being dropped. A new test failed on the old code.
+- **#112 (this PR):** main is merged in, both Nov 24 README rows are kept, and this update is added.
+
+**Follow-up PR #126:**
+- A candidate hitting #114's output limit now counts as its own fault.
+- The loop test now expects F016's `--max-pending-hours` message. It failed on main.
+
+**Still open:**
+- #109: stable reservation-operation IDs, and the whole-audit keeper fallback. The workflow parts are in #104 and #105.
+- #111: process-tree kill, confine-mode limits, and the disk quota. The stdout cap is done in #114.
+- No live fault injection has been run.
