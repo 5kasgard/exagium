@@ -1,0 +1,12 @@
+FAILED: prop-45297790424-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 151, in <module>
+    main()
+  File "/w/train.py", line 134, in main
+    w0, w, v, acc = train_fm(X_tr, y_tr, X_val, y_val, K, rng_k, EPOCHS_TUNE)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 56, in train_fm
+    linear = w0 + w[xb].sum(axis=(1,2))  # w indexed by xb (BATCH, d) -> (BATCH, d) -> sum over d
+                  ~^^^^
+IndexError: index 41 is out of bounds for axis 0 with size 14
+
