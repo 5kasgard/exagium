@@ -123,10 +123,43 @@ LANDED = {"merged", "confirm", "solved", "decide_done"}
 PAID_POOLS = ("openrouter_paid", "anthropic")
 
 
+class LoopMetrics(list):
+    """Digest lines for loop_metrics, with named measures readable by key."""
+    def __init__(self, lines, no_human=None):
+        super().__init__(lines)
+        self.no_human = no_human
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            if key == "no_human":
+                return self.no_human
+            raise KeyError(key)
+        return super().__getitem__(key)
+
+    def __contains__(self, item):
+        if isinstance(item, str) and item == "no_human":
+            return True
+        return super().__contains__(item)
+
+    def get(self, key, default=None):
+        return self.no_human if key == "no_human" else default
+
+    def keys(self):
+        return ["no_human"]
+
+
 def actor(w):
     w = str(w or "")
     return ("free worker" if w.startswith("worker-") else "Claude API tier" if w.startswith("tier-")
             else "generator" if w.startswith("generator") else "Claude session" if w.startswith("claude") else "owner or chat")
+
+
+def no_human_share(actors):
+    """Share of landed items whose actor was not a person."""
+    actors = list(actors)
+    if not actors:
+        return None
+    return sum(a != "owner or chat" for a in actors) / len(actors)
 
 
 def idle_runs(since):
@@ -147,7 +180,7 @@ def idle_runs(since):
 
 def loop_metrics(q, since, ledgers):
     """Throughput, who acted, outcome classes, spend and cost per landed item, idle runs with budget left. By script."""
-    acts, outcomes, landed = {}, {}, 0
+    acts, outcomes, landed, landed_actors = {}, {}, 0, []
     for i in q["items"]:
         for r in i.get("runs", []):
             if r.get("at", "") >= since:
@@ -155,19 +188,24 @@ def loop_metrics(q, since, ledgers):
                 acts[a] = acts.get(a, 0) + 1
                 o = r.get("outcome") or "none"
                 outcomes[o] = outcomes.get(o, 0) + 1
-                landed += o in LANDED
+                if o in LANDED:
+                    landed += 1
+                    landed_actors.append(a)
     usd = sum(float((v or {}).get("usd", 0) or 0) for l in ledgers.values() for k, v in l.items() if k in PAID_POOLS)
     calls = {}
     for l in ledgers.values():
         for k, v in l.items():
             calls[k] = calls.get(k, 0) + int((v or {}).get("calls", 0) or 0)
     idle = idle_runs(since)
-    return [f"- items landed (merged, confirmed, solved or decided done): {landed}",
-            f"- moves by actor: {', '.join(f'{k} {v}' for k, v in sorted(acts.items())) or 'none'}",
-            f"- outcomes: {', '.join(f'{k} {v}' for k, v in sorted(outcomes.items())) or 'none'}",
-            f"- paid spend: ${usd:.4f}" + (f" (${usd / landed:.4f} per landed item)" if landed else "")
-            + f"; calls by pool: {', '.join(f'{k} {v}' for k, v in sorted(calls.items())) or 'none'}",
-            f"- worker runs that found no ready item with budget left: " + (f"{idle[0]} of {idle[1]}" if idle else "not measured (no GH_TOKEN)")]
+    share = no_human_share(landed_actors)
+    lines = [f"- items landed (merged, confirmed, solved or decided done): {landed}",
+             f"- moves by actor: {', '.join(f'{k} {v}' for k, v in sorted(acts.items())) or 'none'}",
+             f"- outcomes: {', '.join(f'{k} {v}' for k, v in sorted(outcomes.items())) or 'none'}",
+             f"- paid spend: ${usd:.4f}" + (f" (${usd / landed:.4f} per landed item)" if landed else "")
+             + f"; calls by pool: {', '.join(f'{k} {v}' for k, v in sorted(calls.items())) or 'none'}",
+             f"- worker runs that found no ready item with budget left: " + (f"{idle[0]} of {idle[1]}" if idle else "not measured (no GH_TOKEN)")]
+    lines.append("- no-human share of landed items: " + (f"{share:.2f} ({len(landed_actors)} landed)" if share is not None else "no landed items"))
+    return LoopMetrics(lines, share)
 
 
 def flag(summary):

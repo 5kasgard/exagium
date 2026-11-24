@@ -1517,5 +1517,23 @@ class Exhaust(unittest.TestCase):
         self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
 
 
+class LoopMetricsNoHuman(unittest.TestCase):
+    def test_no_human_share_counts_landed_items(self):
+        import digest as D
+        import datetime as dt
+        from unittest import mock
+        t = D.Q.now()
+        since = D.Q.iso(t - dt.timedelta(hours=24))
+        q = {"items": [
+            {"id": "Q1", "runs": [{"at": D.Q.iso(t), "outcome": "merged", "worker": "worker-1"}]},
+            {"id": "Q2", "runs": [{"at": D.Q.iso(t), "outcome": "solved", "worker": "worker-2"}]},
+            {"id": "Q3", "runs": [{"at": D.Q.iso(t), "outcome": "confirm", "worker": None}]},
+        ]}
+        with mock.patch.object(D, "idle_runs", lambda since: None):
+            m = D.loop_metrics(q, since, {})
+        self.assertIn("no_human", m)
+        self.assertAlmostEqual(m["no_human"], 2 / 3)
+
+
 if __name__ == "__main__":
     unittest.main()
