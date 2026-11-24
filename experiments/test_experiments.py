@@ -43,5 +43,25 @@ class Contract(unittest.TestCase):
             run_one.load("../x")
 
 
+class GraphTruth(unittest.TestCase):
+    def test_truth_first_five_and_deterministic(self):
+        import graph_truth
+        q = {"items": [
+            {"id": "Q59", "next": "see K67", "deps": []},
+            {"id": "K67", "next": "do Q59", "deps": ["Q59"]},
+            {"id": "Q1", "next": "NEXT STEP: Q59 and K67", "deps": ["K67", "Q59"]},
+            {"id": "Q2", "next": "no id", "deps": []},
+        ]}
+        want = {
+            "next_any": ["K67", "Q1", "Q59"],
+            "next_Q59": ["K67", "Q1"],
+            "next_K67": ["Q1", "Q59"],
+            "deps_Q59": ["K67", "Q1"],
+            "deps_K67": ["Q1"],
+        }
+        self.assertEqual(graph_truth.truth(q), want)
+        self.assertEqual(graph_truth.truth(q), graph_truth.truth(q))
+
+
 if __name__ == "__main__":
     unittest.main()
