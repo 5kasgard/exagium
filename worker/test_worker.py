@@ -1461,6 +1461,15 @@ class WorkerSpecCard(unittest.TestCase):
         self.assertNotIn("**Not yet:** code items", text)
 
 
+class LanesTest(unittest.TestCase):
+    def test_lanes_from_headroom_and_ready_items(self):
+        import lanes
+        self.assertEqual(lanes.lanes(1.0, 0), 0)
+        self.assertEqual(lanes.lanes(0.1, 5), 0)
+        self.assertEqual(lanes.lanes(1.0, 2), 2)
+        self.assertEqual(lanes.lanes(1.0, 10), 4)
+
+
 class Exhaust(unittest.TestCase):
     """K53: a 429 reply becomes a pool reset time."""
     def test_reset_time(self):
