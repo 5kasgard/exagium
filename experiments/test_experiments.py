@@ -26,6 +26,17 @@ class Contract(unittest.TestCase):
         self.assertEqual(claim_roots.rule({"claims": 10, "shared_root_claims": 1})["verdict"], "fails")
         self.assertEqual(claim_roots.rule({"claims": 0, "shared_root_claims": 0})["verdict"], "invalid")
 
+    def test_packet_pilot_no_pilot(self):
+        import packet_pilot
+        self.assertEqual(packet_pilot.rule({"status": "no_pilot"})["verdict"], "invalid")
+
+    def test_packet_pilot_rule(self):
+        import packet_pilot
+        def arm(calls, correct):
+            return {"proposals": 10, "valid": 5, "calls": calls, "correct": correct}
+        self.assertEqual(packet_pilot.rule({"baseline": arm(10, 4), "packet_repair": arm(10, 4)})["verdict"], "holds")
+        self.assertEqual(packet_pilot.rule({"baseline": arm(10, 4), "packet_repair": arm(10, 3)})["verdict"], "fails")
+
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:
             for name, body, want, rc in (
