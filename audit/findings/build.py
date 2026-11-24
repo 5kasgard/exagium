@@ -72,7 +72,7 @@ notes = {"Z1-F068": ("open", "recurs: README 1,097 vs board 1,239 on 2026-11-24;
          "G1-F073": ("open", "partly fixed: check_sigstore reads integratedTime from verified bytes; monitor's logIndex still from the unsigned wrapper"),
          "G2-F118": ("needs-read", "covered() treats the test file as optional since af002bba; old-items half unverified"),
          "G2-F117": ("fixed", "315802b2"),
-         "Z1-F005": ("pending-pr", "open PR #117: guard parses workflow env, reusable calls, local actions, .sh wrappers; known-answer controls 4 of 4 (old guard 1 of 4)")}
+         "Z1-F005": ("fixed", "#117 merged 2026-11-24: guard parses workflow env, reusable calls, local actions, .sh wrappers; known-answer controls 4 of 4 (old guard 1 of 4)")}
 for k, (st, ev) in notes.items():
     by[k]["status"], by[k]["evidence"] = st, ev
 for k in ("G1-F063","G1-F032","G1-F088","G1-F016","G1-F019","G1-F069","G1-F010","G1-F043","G1-F008","Z1-F036","G2-F124","G2-F115","GM-F011","GM-F012",
