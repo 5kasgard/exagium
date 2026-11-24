@@ -18198,7 +18198,7 @@
    "id": "K61",
    "title": "Add the no-human share (landed items finished by a worker, not a person) to loop_metrics",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P9",
    "generated_at": "2026-11-24T11:31:01Z",
@@ -18214,7 +18214,7 @@
     "worker/digest.py",
     "worker/test_worker.py"
    ],
-   "next": "In worker/digest.py, loop_metrics(q, since, ledgers) already reports who acted through actor(w). Add a field 'no_human_share' to its returned dict: the number of landed items whose actor is a worker divided by the number of landed items in the window, rounded to 2 decimals, or None when nothing landed. Use the same actor classification the function already uses; do not change any other field. Add a test in class LoopMetrics in worker/test_worker.py: a window with 3 landed items, 2 finished by workers and 1 by a person, gives no_human_share == 0.67; a window with no landed items gives None. Run python3 -m unittest worker/test_worker.py and check it passes.",
+   "next": "In worker/digest.py, loop_metrics(q, since, ledgers) already reports who acted through actor(w). Add a field 'no_human_share' to its returned dict: the number of landed items whose actor is a worker divided by the number of landed items in the window, rounded to 2 decimals, or None when nothing landed. Use the same actor classification the function already uses; do not change any other field. Add a test in class LoopMetrics in worker/test_worker.py: a window with 3 landed items, 2 finished by workers and 1 by a person, gives no_human_share == 0.67; a window with no landed items gives None. Run python3 -m unittest worker/test_worker.py and check it passes. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: worker/digest.py, worker/test_worker.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P9",
     "worker/split.py"
@@ -18257,6 +18257,12 @@
      "at": "2026-11-24T14:25:37Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T14:26:54Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #131 not merged: files a person merges, or not the item's own: worker/digest.py, worker/test_worker.py; model verdict: reject; model: The diff goes beyond the item: it replaces the list return of loop_metrics with a new _Measures list subclass that adds custom __getitem__, get and __getattr__ behaviour, and the"
     }
    ],
    "work_types": {
