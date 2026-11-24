@@ -18986,6 +18986,43 @@
    },
    "work_types_key": "616461086d1c6de4",
    "work_types_at": "2026-11-24T18:00:40Z"
+  },
+  {
+   "id": "K67",
+   "title": "Truth set part 1: 5 queue dependency questions computed by script",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P35",
+   "generated_at": "2026-11-24T18:12:07Z",
+   "code": {
+    "files": [
+     "experiments/graph_truth.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "experiments/queue_drift.py",
+     "experiments/run_one.py"
+    ],
+    "new": [
+     "experiments/graph_truth.py"
+    ]
+   },
+   "touches": [
+    "experiments/graph_truth.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/graph_truth.py (new, under 80 lines) with PLAN (fixed 10-question dependency truth set, built before any tool is run; this part holds the first 5 questions about queue items: which items' NEXT STEP names another item ID, and which items list a given item as a dependency), and a function truth(queue) that reads queue.json and returns a dict of question id -> sorted list of item IDs. Only the first 5 questions go in this part. Add a test to experiments/test_experiments.py that builds a small in-memory queue fixture, checks that truth() returns the expected sorted IDs for each of the 5 questions, and checks that the output is identical on two calls (deterministic).",
+   "refs": [
+    "queue P35",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
