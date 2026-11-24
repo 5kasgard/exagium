@@ -32,7 +32,8 @@ def main():
     c = cands("text"); base = c["label-linear"]
     a["Q1"] = sorted([[k, r4(paired(v, base)[0]), r4(paired(v, base)[1])] for k, v in c.items()
                       if k != "label-linear" and acc(v) > acc(base)])
-    a["Q2"] = sorted(subprocess.run(["git", "grep", "-l", RUN], capture_output=True, text=True).stdout.split())
+    a["Q2"] = sorted(f for f in subprocess.run(["git", "grep", "-l", RUN], capture_output=True, text=True).stdout.split()
+                     if not f.startswith("store/gnomon-trial/"))
     q3, q9 = {}, {}
     for t in ("optdigits", "text", "adult"):
         c = cands(t)

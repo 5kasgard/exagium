@@ -15,7 +15,7 @@ A list is correct when it has the same members. "I cannot answer from the store"
 
 1. On P3 step 1's text task, which candidates have higher dev accuracy than label-linear, and by how much (paired
    difference and its SE over the 6,000 items)?
-2. Which files in the repo cite Actions run 44486290814?
+2. Which files in the repo, outside store/gnomon-trial/, cite Actions run 44486290814?
 3. When Q54 was weakened (P3 step 1, rule 3), what was label-wisard's paired accuracy difference and SE against the
    better of label-linear and label-mlp16 on each task, and its instructions per item against that candidate's?
 4. In transfer step 1, which family pairs change their accuracy order from one task to another?
