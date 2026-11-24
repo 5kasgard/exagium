@@ -14,30 +14,57 @@ import collections, importlib.util, json, subprocess, sys
 WORKER_OUTCOMES = None
 
 
+NEXT = None
+SKIP_COUNT = ("budget", "retry", "dispatch", "late_result", "defer")
+
+
 def load_table(path):
+    global NEXT
     spec = importlib.util.spec_from_file_location("transitions", path)
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
+    NEXT = m.next_status
     return m.TABLE, set(m.WORKER)
 
 
 def fold(item, table, worker):
-    """Return (predicted status, list of refused (state, outcome)). A worker outcome seen in 'open' implies the claim
-    that the runs log does not record."""
-    outs = [r.get("outcome") for r in item.get("runs", [])]
-    state = "proposed" if outs and outs[0] in ("accept", "reject") else "open"
-    refused, skipped = [], 0
-    for o in outs:
+    """Return (predicted status, list of refused (state, outcome), entries without an outcome). Start: the item's
+    baseline (status written before events were enforced, P37b) if it has one, else the first event's 'from', else
+    'proposed' for a generated item, else 'open'. An event that carries 'to' is trusted for its target (the writer
+    applied the full rule); one without is folded through the table. A worker outcome seen in 'open' implies the
+    claim that older logs did not record."""
+    runs = item.get("runs", [])
+    base = item.get("baseline")
+    if base:
+        state, runs = base["status"], [r for r in runs if r.get("at", "") > base["at"]]
+    elif runs and runs[0].get("from"):
+        state = runs[0]["from"]
+    else:
+        outs = [r.get("outcome") for r in runs]
+        state = "proposed" if item.get("origin") == "generated" or (outs and outs[0] in ("accept", "reject")) else "open"
+    refused, skipped, fails = [], 0, 0
+    for r in runs:
+        o = r.get("outcome")
+        res = str(r.get("result", ""))
         if o is None:
             skipped += 1
             continue
+        if r.get("to"):
+            if r.get("from") and r["from"] != state:
+                refused.append((state, f"{o} (event says from {r['from']})"))
+            state = r["to"]
+            continue
+        # consecutive failures, as worker/queue_ops.failures counts them: a crash loop climbs a tier
+        if o in ("failed", "lost", "lease_expired") or res == "lease expired":
+            fails += 1
+        elif o not in SKIP_COUNT and o != "claim" and not res.startswith("not started"):
+            fails = 0
         if state == "open" and o in worker:
             state = "in progress"
-        nxt = table.get((state, o))
-        if nxt is None:
+        if (state, o) not in table:
             refused.append((state, o))
             continue
-        state = nxt
+        state = NEXT(state, o, fails) if NEXT else table[(state, o)]
     return state, refused, skipped
 
 
@@ -52,10 +79,10 @@ def check_runs(q, table, worker):
         rep["runs_without_outcome"] += skipped
         for r in refused:
             refused_all[f"{r[0]} + {r[1]}"] += 1
-        if not i.get("runs"):
+        if not i.get("runs") and not i.get("baseline"):
             rep["no_runs"] += 1
             key = "no events, status " + i["status"]
-            if i["status"] != "open":
+            if i["status"] != ("proposed" if i.get("origin") == "generated" else "open"):
                 mism[key] += 1
                 examples.setdefault(key, i["id"])
             else:
