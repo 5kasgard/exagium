@@ -361,7 +361,8 @@ jobs:
           if gh api "repos/$R/contents/worker/PAUSE?ref=main" >/dev/null 2>&1; then echo "paused: no keeper"; exit 0; fi
           waiting=$(gh api "repos/$R/actions/workflows/keeper.yml/runs?per_page=20" -q '[.workflow_runs[] | select(.status!="completed" and (.display_title | contains("worker.yml")))] | length')
           if [ "$waiting" -gt 0 ]; then echo "a worker keeper is already waiting ($waiting)"; exit 0; fi
-          at=$(date -u -d "tomorrow 00:05" +%s)
+          today=$(date -u +%F)
+          at=$(date -u -d "$today +1 day 00:05" +%s)   # Z1-F009: from the UTC date, not "tomorrow" (a stop between 00:00 and 00:05 skipped a day), as at line ~530
           gh workflow run keeper.yml -R "$R" --ref main -f at="$at" -f workflow=worker.yml
           echo "keeper started: worker resumes at $(date -u -d "@$at" +%FT%TZ)"
 
