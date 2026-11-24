@@ -26,6 +26,20 @@ class Contract(unittest.TestCase):
         self.assertEqual(claim_roots.rule({"claims": 10, "shared_root_claims": 1})["verdict"], "fails")
         self.assertEqual(claim_roots.rule({"claims": 0, "shared_root_claims": 0})["verdict"], "invalid")
 
+    def test_graph_truth(self):
+        import graph_truth
+        q = {"items": [
+            {"id": "K67", "next": "NEXT STEP: see K66 and K65"},
+            {"id": "K66", "depends_on": ["K67"]},
+            {"id": "K65", "dependencies": [{"id": "K67"}, "K66"]},
+            {"id": "K64", "next_step": "wait for K67", "depends_on": "K65"},
+            {"id": "K63", "next": "no id here", "deps": ["K64"]},
+        ]}
+        want = {"q1": ["K64", "K67"], "q2": ["K65", "K66"], "q3": ["K65"],
+                "q4": ["K64"], "q5": ["K63"]}
+        self.assertEqual(graph_truth.truth(q), want)
+        self.assertEqual(graph_truth.truth(q), graph_truth.truth(q))
+
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:
             for name, body, want, rc in (
