@@ -123,7 +123,7 @@ def parse_json(text):
         return None
 
 
-GUARANTEE = re.compile(r"\b(never|cannot|can't|anyone|no one|always|must|every|only)\b", re.I)
+GUARANTEE = re.compile(r"\b(never|cannot|can't|anyone|anybody|no one|always|must|every|only|whatever|no matter)\b", re.I)   # not any/all/ever: too common, they would refuse harmless edits (review 2026-11-24)
 
 
 def lost_guarantee(old, new):

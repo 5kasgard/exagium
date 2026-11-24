@@ -303,6 +303,32 @@ class RejectedNotOffered(unittest.TestCase):
 
 
 class GuaranteeWords(unittest.TestCase):
+    def test_e3_scope_words_dropped_is_rejected(self):
+        import doc_job as D
+        old = "Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given."
+        new = "Results cannot be changed or deleted once recorded."
+        item = {"targets": [{"path": "doc.md", "lines": [1, 1]}]}
+        files = {"doc.md": old}
+        ok, reasons = D.check_edits(item, files, [{"path": "doc.md", "line": 1, "old": old, "new": new}])
+        self.assertEqual(ok, [])
+        self.assertTrue(reasons)
+
+    def test_scope_words_kept_is_accepted(self):
+        import doc_job as D
+        old = "Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given."
+        new = "Results can never be changed or deleted after they are written down, by anyone at all, whatever the reason given."
+        item = {"targets": [{"path": "doc.md", "lines": [1, 1]}]}
+        files = {"doc.md": old}
+        ok, reasons = D.check_edits(item, files, [{"path": "doc.md", "line": 1, "old": old, "new": new}])
+        self.assertEqual(reasons, [])
+        self.assertEqual(len(ok), 1)
+
+    def test_new_scope_words_are_guarded_and_common_words_are_not(self):
+        self.assertEqual(D.lost_guarantee("Refused, whatever the reason.", "Refused for a stated reason."), ["whatever"])
+        self.assertEqual(D.lost_guarantee("Refused by anybody, no matter who.", "Refused by staff."), ["anybody", "no matter"])
+        self.assertEqual(D.lost_guarantee("Run all suites before merging; did it ever fail? Any order works.",
+                                          "Run the full set of suites before merging; did it fail? Order is free."), [])
+
     def test_lost(self):
         self.assertEqual(D.lost_guarantee("Results can never be changed, by anyone.", "Results cannot be changed."), ["anyone", "never"])
         self.assertEqual(D.lost_guarantee("The cap is 4,000.", "The cap is 5,000."), [])
