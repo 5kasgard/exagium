@@ -1,0 +1,31 @@
+{
+ "t": "2026-11-24T23:12:59Z",
+ "engine": "groq",
+ "model": "openai/gpt-oss-120b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 3.71,
+ "usage": {
+  "queue_time": 0.2259265,
+  "prompt_tokens": 1137,
+  "prompt_time": 0.275319849,
+  "completion_tokens": 1448,
+  "completion_time": 3.024108526,
+  "total_tokens": 2585,
+  "total_time": 3.299428375,
+  "completion_tokens_details": {
+   "reasoning_tokens": 600
+  }
+ },
+ "finish": "stop",
+ "text": "**EXPLOITABLE**  \n1. **Model\u2011driven command injection** \u2013 The `opencode` binary runs arbitrary shell commands supplied by the LLM. The LLM sees the full issue thread, which is attacker\u2011controlled. It can be coaxed (prompt injection) into executing `gh api -X POST /repos/${{github.repository}}/dispatches \u2026` or `git push` (the token has `contents: read` only, but a push can be done via the GitHub REST API using the `pulls` permission? No \u2013 token lacks `write` on `contents`. Still it can create a new issue comment containing a malicious URL that later triggers other workflows). More concretely, the model can run `curl -X POST -H \"Authorization: token $GITHUB_TOKEN\" https://api.github.com/repos/owner/repo/actions/workflows/other.yml/dispatches \u2026` to start a workflow that *does* have secret access, achieving privilege escalation.  \n\n2. **Recursive trigger / DoS** \u2013 The agent can post a comment that itself begins with \u201c/oc \u2026\u201d. That spawns another run, which can repeat indefinitely until the concurrency group limit is hit, exhausting the runner quota.  \n\n3. **Cache\u2011poisoning execution** \u2013 If an attacker can cause the `actions/cache` step to restore a malicious `~/.opencode/bin/opencode` binary (by publishing a malicious release of the **opencode** tool with the same version tag), the subsequent `opencode github run` will execute attacker code with the same token.  \n\n4. **Exfiltration via issue comments** \u2013 The model can embed stolen repository files (read via the token) into a comment, leaking source code or any files that the repo owner has made readable (including other secret\u2011containing files accidentally left in the repo).  \n\n**SECRETS**  \nNo secrets are passed explicitly. The only token is `GITHUB_TOKEN` with `contents: read` and `issues: write`. The model can read any file in the repository (including accidentally committed secrets) and dump them in a comment, effectively leaking them. It cannot directly read other repository\u2011wide secrets because those are not exposed to the runner.  \n\n**CACHE / SUPPLY\u2011CHAIN**  \n- **actions/cache** caches `~/.opencode/bin` keyed by the *opencode* release tag fetched from the public GitHub API. An attacker who can publish a malicious release (or compromise the upstream release assets) can inject a trojan binary that will be restored from cache and executed.  \n- **`curl https://opencode.ai/install | bash`** is an unpinned, unsanitized install script. If the host site is compromised or a DNS hijack occurs, arbitrary code can be run before any caching.  \n\n*Cheapest mitigation*: Pin the install script to a specific SHA (download the script, store it in the repo, and `bash ./install.sh`). Also pin the cached version by using a fixed version tag rather than \u201clatest\u201d.  \n\n**CONDITION**  \n`author_association == 'OWNER'` blocks most attackers, but a malicious GitHub App installed with **owner** permission can post comments that appear as \u201cOWNER\u201d. Additionally, a compromised personal access token belonging to the owner could be used to post comments via the API, bypassing the check. Edited comments are ignored, so an attacker cannot change a non\u2011triggering comment to trigger later.  \n\n**VERDICT**  \n**SHIP WITH CHANGES**  \n\n- Pin the `opencode` install script (store a copy, reference by SHA).  \n- Replace the \u201clatest release\u201d cache key with a static, vetted version.  \n- Add a secondary check: require `github.event.comment.user.login == github.repository_owner`.  \n- Rate\u2011limit recursion: abort if a comment created by the bot contains the trigger prefix.  \n- Consider restricting the token scope further (remove `contents: read` if not needed).  \n\nThese mitigations close the most realistic privilege\u2011escalation and supply\u2011chain vectors.",
+ "limits": {
+  "x-ratelimit-limit-requests": "1000",
+  "x-ratelimit-limit-tokens": "8000",
+  "x-ratelimit-remaining-requests": "997",
+  "x-ratelimit-remaining-tokens": "6598",
+  "x-ratelimit-reset-requests": "4m19.2s",
+  "x-ratelimit-reset-tokens": "10.514s"
+ },
+ "error": null
+}
