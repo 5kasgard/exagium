@@ -351,6 +351,22 @@ def check_sigstore(bundle, digest, repo, workflow, ref):
     return t, st.get("predicate"), commit
 
 
+def ots_block_hash(base, height):
+    """Resolve a block height without treating an explorer's shorter tip as proof of forgery."""
+    bh = _get(f"{base}/block-height/{height}")
+    if bh is not None:
+        return bh.decode().strip()
+    tip = _get(f"{base}/blocks/tip/height")
+    if tip is not None:
+        try:
+            tip_height = int(tip)
+        except (TypeError, ValueError):
+            raise CantCheck(f"{base}: invalid chain tip while resolving block {height}")
+        if height > tip_height:
+            raise CantCheck(f"{base}: explorer tip {tip_height} is below claimed block {height}; stale explorer cannot establish forgery")
+    raise CantCheck(f"{base}: no block at height {height}")
+
+
 def check_ots(proof, entry_raw, explorers):
     """Returns the earliest Bitcoin block time the proof reaches, or None if it's still pending."""
     try:
@@ -374,13 +390,7 @@ def check_ots(proof, entry_raw, explorers):
             continue
         headers = set()
         for base in explorers:
-            bh = _get(f"{base}/block-height/{att.height}")
-            if bh is None:  # 404: either the block doesn't exist (a forged height) or the explorer is behind
-                tip = _get(f"{base}/blocks/tip/height")
-                if tip is not None and att.height > int(tip):
-                    raise Bad(f"{name}: claims block {att.height}, beyond the chain tip {int(tip)}")
-                raise CantCheck(f"{base}: no block at height {att.height}")
-            bh = bh.decode().strip()
+            bh = ots_block_hash(base, att.height)
             hdr = _get(f"{base}/block/{bh}/header")
             if hdr is None:
                 raise CantCheck(f"{base}: no header for block {bh}")
