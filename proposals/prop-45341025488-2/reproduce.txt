@@ -1,0 +1,12 @@
+FAILED: prop-45341025488-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 124, in <module>
+    main()
+  File "/w/train.py", line 48, in main
+    idx = featurize(X, d, D)  # (n, 31)
+          ^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 32, in featurize
+    idx[:, p] = (p * 256 + X[:, p]) % D
+                ~~~~~~~~~~~~~~~~~~~~^~~
+OverflowError: Python integer 2048 out of bounds for uint8
+
