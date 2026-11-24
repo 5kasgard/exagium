@@ -1,0 +1,31 @@
+{
+ "t": "2026-11-24T11:36:39Z",
+ "engine": "groq",
+ "model": "openai/gpt-oss-120b",
+ "ok": true,
+ "status": 200,
+ "latency_s": 2.34,
+ "usage": {
+  "queue_time": 0.086912562,
+  "prompt_tokens": 605,
+  "prompt_time": 0.061225556,
+  "completion_tokens": 973,
+  "completion_time": 2.044872645,
+  "total_tokens": 1578,
+  "total_time": 2.106098201,
+  "completion_tokens_details": {
+   "reasoning_tokens": 645
+  }
+ },
+ "finish": "stop",
+ "text": "[\n  {\n    \"item\": \"A\",\n    \"verdict\": \"KEEP\",\n    \"reason\": \"Isolating API\u2011key handling in its own job directly mitigates the current security breach while adding only a few cheap job hops.\",\n    \"cheapest_test\": \"Run a CI build with a minimal key\u2011broker job and verify that no keyed\u2011job files are edited by model\u2011generated code.\"\n  },\n  {\n    \"item\": \"B\",\n    \"verdict\": \"DEFER\",\n    \"reason\": \"Adding a Lean 4 toolchain introduces unknown build\u2011time and dependency costs that are not demonstrated yet.\",\n    \"cheapest_test\": \"Add a single trivial Lean proof task to the CI and confirm the kernel can run and produce a verified record.\"\n  },\n  {\n    \"item\": \"C\",\n    \"verdict\": \"KEEP\",\n    \"reason\": \"Comparing an external graph tool to the repo\u2019s own graph is low\u2011risk and can immediately show whether the tool adds value.\",\n    \"cheapest_test\": \"Run Graphify on a small subset of the repo and check that it answers a fixed set of 10 dependency questions correctly.\"\n  },\n  {\n    \"item\": \"D\",\n    \"verdict\": \"KEEP\",\n    \"reason\": \"Evaluating alternative UI front\u2011ends does not affect the secured key workflow and can be done on free hosting.\",\n    \"cheapest_test\": \"Deploy each candidate UI on a cheap free host and script a simple queue\u2011read/write operation to verify integration.\"\n  }\n]",
+ "limits": {
+  "x-ratelimit-limit-requests": "1000",
+  "x-ratelimit-limit-tokens": "8000",
+  "x-ratelimit-remaining-requests": "998",
+  "x-ratelimit-remaining-tokens": "7241",
+  "x-ratelimit-reset-requests": "2m52.8s",
+  "x-ratelimit-reset-tokens": "5.692s"
+ },
+ "error": null
+}
