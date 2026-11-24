@@ -22,7 +22,7 @@ by = {i['id']: i for i in items}
 
 def transition_check():
     """Every status change against the last commit must be a move worker/transitions.py allows, recorded as a run with its
-    outcome (Q60: chat edits used to bypass the table). A claim (open -> in progress with claimed_by) needs no run entry."""
+    outcome (Q60: chat edits used to bypass the table). A claim is an event too (P37b, after PR #139): open -> in progress needs a run entry with outcome 'claim'."""
     import os, subprocess, importlib.util
     here = os.path.dirname(os.path.abspath(sys.argv[1]))
     rel = subprocess.run(['git', '-C', here, 'ls-files', '--full-name', os.path.basename(sys.argv[1])], capture_output=True, text=True).stdout.strip()
@@ -53,8 +53,6 @@ def transition_check():
         if i.get('baseline') != o.get('baseline'):
             bad.append(f"{i['id']}: baseline changed; baselines were set once (P37b) and are frozen")
         if o['status'] == i['status']:
-            continue
-        if o['status'] == 'open' and i['status'] == 'in progress' and i.get('claimed_by'):
             continue
         last = (i.get('runs') or [{}])[-1]
         oc = last.get('outcome')
