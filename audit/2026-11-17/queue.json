@@ -18582,7 +18582,7 @@
    "id": "K62",
    "title": "List the model call sites per file (engines.call, slots.call, anthropic_call) as JSON",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "P33",
    "generated_at": "2026-11-24T12:28:42Z",
@@ -18633,6 +18633,12 @@
      "at": "2026-11-24T14:28:59Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T17:30:11Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "tier (claude-haiku-5-5): PR #132 not merged: files a person merges, or not the item's own: worker/callsites.py, worker/test_worker.py; model: The diff creates a stdlib-only callsites.py under 80 lines with sites(), skipping test_*.py and test/ folders, and a main() that prints records and per-file counts as the item asks, plus a CallSites test that matches the specified fixture. The only unrequested behavior is skipping .git and __pycache__ directories, which is benign and touches no network, secrets, deletion, subprocess, or e",
+     "outcome": "escalate"
     }
    ],
    "work_types": {
