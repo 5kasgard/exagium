@@ -1517,5 +1517,45 @@ class Exhaust(unittest.TestCase):
         self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
 
 
+class FullText(unittest.TestCase):
+    def test_arxiv_url(self):
+        import fulltext
+        self.assertEqual(fulltext.arxiv_html_url("2401.12345"), "https://arxiv.org/html/2401.12345")
+
+    def test_results_section_only(self):
+        import fulltext
+        html = """<html><body>
+        <h1>Title</h1>
+        <p>Intro</p>
+        <h2>1 Introduction</h2>
+        <p>Intro text</p>
+        <h2>2 Related Work</h2>
+        <p>Related stuff</p>
+        <h2>3 Results</h2>
+        <p>We achieved 90%.</p>
+        <h3>3.1 Experiment</h3>
+        <p>More.</p>
+        <h2>4 Conclusion</h2>
+        <p>Bye.</p>
+        </body></html>"""
+        out = fulltext.results_text(html, 1000)
+        self.assertIn("We achieved 90%.", out)
+        self.assertIn("More.", out)
+        self.assertNotIn("Related stuff", out)
+        self.assertNotIn("Bye.", out)
+        self.assertNotIn("Intro text", out)
+
+    def test_cap(self):
+        import fulltext
+        html = "<h2>Results</h2><p>" + "word " * 100 + "</p>"
+        out = fulltext.results_text(html, 20)
+        self.assertLessEqual(len(out), 20)
+
+    def test_no_matching_heading(self):
+        import fulltext
+        html = "<h2>Introduction</h2><p>Nothing.</p><h2>Conclusion</h2><p>Done.</p>"
+        self.assertEqual(fulltext.results_text(html, 1000), "")
+
+
 if __name__ == "__main__":
     unittest.main()
