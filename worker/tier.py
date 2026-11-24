@@ -296,7 +296,7 @@ def drain_code(wt, ask, record):
             latest_item = next((x for x in Q.load(wt)["items"] if x.get("id") == item["id"]), None)
             latest_run = next((x for x in reversed((latest_item or {}).get("runs") or [])
                                if x.get("outcome") != "defer"), {})
-            latest_match = re.search(r"/pull/(\\d+)", str(latest_run.get("where", "")))
+            latest_match = re.search(r"/pull/(\d+)", str(latest_run.get("where", "")))
             still_same_item = (latest_item is not None and latest_item.get("status") == "review"
                                and latest_run.get("outcome") == "pr"
                                and latest_match is not None and int(latest_match.group(1)) == n)
