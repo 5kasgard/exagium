@@ -18850,7 +18850,7 @@
    "id": "K65",
    "title": "Add a pure no-human share helper to digest.py",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P9",
    "generated_at": "2026-11-24T18:00:28Z",
@@ -18866,7 +18866,7 @@
     "worker/digest.py",
     "worker/test_worker.py"
    ],
-   "next": "In worker/digest.py, add `no_human_share(actors)` that takes a list of actor values as actor() returns them for landed items, counts those finished by a worker (not a person, using the same classification actor() already makes), and returns {\"landed\": n, \"no_human\": k, \"share\": k/n or None when n is 0}. It must be pure, with no git or GitHub calls. Add a test in the LoopMetrics class in worker/test_worker.py showing a mix of worker and person actors gives the expected counts and share, and that an empty list gives share None.",
+   "next": "In worker/digest.py, add `no_human_share(actors)` that takes a list of actor values as actor() returns them for landed items, counts those finished by a worker (not a person, using the same classification actor() already makes), and returns {\"landed\": n, \"no_human\": k, \"share\": k/n or None when n is 0}. It must be pure, with no git or GitHub calls. Add a test in the LoopMetrics class in worker/test_worker.py showing a mix of worker and person actors gives the expected counts and share, and that an empty list gives share None. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: worker/digest.py, worker/test_worker.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P9",
     "worker/split.py"
@@ -18896,6 +18896,12 @@
      "at": "2026-11-24T18:02:41Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T18:03:38Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #134 not merged: files a person merges, or not the item's own: worker/digest.py, worker/test_worker.py; model verdict: reject; model: The spec says the input is already actor() output, but no_human_share calls actor(a) again on each value, so classified inputs like \"free worker\" would be reclassified; the test "
     }
    ],
    "work_types": {
