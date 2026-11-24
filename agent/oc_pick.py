@@ -20,8 +20,8 @@ def is_paid(cfg, provider, name):
     if provider == "opencode":
         return name not in p.get("free_models", [])
     rule = p.get("paid", True)
-    if rule == "unless_free_suffix":
-        return not name.endswith(":free")
+    if rule == "unless_listed":
+        return name not in p.get("free_models", [])
     return rule is not False
 
 

@@ -16,13 +16,19 @@ class Pick(unittest.TestCase):
     def test_providers_and_paid_rules(self):
         cases = {"/oc model=pickle hi": ("opencode", False),
                  "/oc model=anthropic/claude-opus-5-5 x": ("anthropic", True),
-                 "/oc model=openrouter/qwen/qwen3-coder:free x": ("openrouter", False),
+                 "/oc model=openrouter/qwen/qwen3-coder:free x": ("openrouter", True),   # a suffix is not proof
+
                  "/oc model=openrouter/openai/gpt-6 x": ("openrouter", True),
                  "/oc model=groq/openai/gpt-oss-120b x": ("groq", False),
                  "/oc model=opencode/gpt-6.1-sol x": ("opencode", True)}
         for c, want in cases.items():
             p = P.plan(CFG, c)
             self.assertEqual((p["provider"], p["paid"]), want, c)
+
+    def test_listed_openrouter_model_is_free(self):
+        cfg = json.loads(json.dumps(CFG))
+        cfg["providers"]["openrouter"]["free_models"] = ["qwen/qwen3-coder:free"]
+        self.assertFalse(P.plan(cfg, "/oc model=openrouter/qwen/qwen3-coder:free x")["paid"])
 
     def test_paid_refused_when_switched_off(self):
         off = dict(CFG, allow_paid=False)
@@ -67,3 +73,15 @@ class WorkflowMatchesConfig(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Scrub(unittest.TestCase):
+    def test_key_values_are_removed(self):
+        import subprocess, tempfile
+        f = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False)
+        f.write("ok sk-ant-SECRETVALUE123 and again sk-ant-SECRETVALUE123\n"); f.close()
+        env = dict(os.environ, ANTHROPIC_API_KEY="sk-ant-SECRETVALUE123")
+        r = subprocess.run([sys.executable, "-I", os.path.join(HERE, "scrub.py"), f.name], env=env, capture_output=True, text=True)
+        self.assertIn("2 key value", r.stdout)
+        self.assertNotIn("SECRETVALUE", open(f.name).read())
+        os.unlink(f.name)
