@@ -309,6 +309,30 @@ int main(int c, char **v){ long n = atol(v[3]); char *out = malloc(n + 1); int p
         else:  # confine: fork itself is refused, so the program gives up
             self.assertRegex(msg, "exited 3|counter failed")
 
+    def test_timer_kills_candidate_when_stdout_exceeds_hard_limit(self):
+        source = r"""#include <stdio.h>
+#include <string.h>
+int main(void) {
+    char block[65536];
+    memset(block, 'x', sizeof block);
+    for (int i = 0; i < 257; i++) if (fwrite(block, 1, sizeof block, stdout) != sizeof block) return 2;
+    return 0;
+}
+"""
+        w = os.path.join(self.tmp, "timer-output")
+        os.makedirs(w)
+        src, exe, timer = (os.path.join(w, n) for n in ("infer.c", "infer", "timer"))
+        open(src, "w").write(source)
+        built = subprocess.run(["gcc", "-O2", "-std=c11", "-o", exe, src], capture_output=True)
+        self.assertEqual(built.returncode, 0, built.stderr.decode())
+        loop.build(loop.TIMER, timer)
+        sc = ["--seccomp"] if MODE == "confine" else []
+        cpu = sorted(os.sched_getaffinity(0))[-1]
+        r = loop.jail(["./timer", *sc, str(cpu), "./infer"], [(w, "/w", False)], 60, seccomp=not sc)
+        self.assertEqual(r.returncode, 124, r.stderr.decode(errors="replace"))
+        self.assertIn(b"output limit exceeded", r.stderr)
+        self.assertLessEqual(len(r.stdout), loop.TIMER_OUTPUT_LIMIT)
+
     def test_jail_has_no_privilege(self):
         if MODE == "bwrap":
             r = loop.jail(["/bin/sh", "-c", "id -u; grep CapEff /proc/self/status"], [], 60, cwd="/")

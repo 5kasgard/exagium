@@ -50,6 +50,7 @@ TASK = {"train": os.path.join(HERE, "task", "optdigits.tra"), "test": os.path.jo
 COUNT = os.path.join(REPO, "counter", "count.py")
 RECORD = os.path.join(REPO, "record", "record.py")
 TIMER = os.path.join(HERE, "timer.c")
+TIMER_OUTPUT_LIMIT = 16 << 20
 CONFINE = os.path.join(HERE, "confine.c")
 SECCOMP = os.path.join(HERE, "seccomp_filter.h")
 FILES = ("train.py", "infer.c", "weights.bin")
@@ -389,6 +390,8 @@ def timed(c, rows, timer, cpu):
         sc = ["--seccomp"] if JAIL["mode"] == "confine" else []
         r = jail(["./timer", *sc, str(cpu), "./infer", "weights.bin", "x.bin", str(len(rows))], [(w, "/w", False)], 600,
                  seccomp=not sc)
+    if r.returncode == 124:
+        raise Failed("%s: timer output limit exceeded (%d bytes)" % (c["name"], TIMER_OUTPUT_LIMIT))
     out, sep, tail = r.stdout.rpartition(b"\nexagium-timer ")  # the timer's own line is always last
     f = tail.split()
     if r.returncode or not sep or len(f) != 4 or not tail.endswith(b"\n") or not all(x.isdigit() for x in f[:3]) \

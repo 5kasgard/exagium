@@ -3,7 +3,7 @@ python3 -I judge.py one NAME EXTRACT_STATUS REPRODUCE.json DEV.json OUT.json [TA
 python3 -I judge.py board DIR                                                 -> DIR/LEADERBOARD.md from DIR/*/result.json
 Valid: extracted, trained twice to identical weights, and dev accuracy above the floor by at least 3 SE (paired with the
 floor's items). Beats a baseline: above label-linear by more than 2 paired SE."""
-import glob, hashlib, json, math, os, sys
+import glob, hashlib, json, math, os, re, sys
 
 
 def paired(a, b):
@@ -26,12 +26,56 @@ def wilson(k, n, z=1.96):
     return max(0.0, c - h), min(1.0, c + h)
 
 
+# runner/run.py's Failed messages that only the candidate's own code causes. A missing reproduce.json or dev.json after
+# one of these is the proposal failing, not the scoring job (2026-11-24: 59 of the 63 "not scored" rows on the proposals
+# branch were train.py tracebacks or infer exit 3/139, so model crashes had left the valid rate's denominator since F038).
+# Anything else stays "not scored" (F038 kept): timer, jail, checker, compile, OOM kills, imports, disk.
+OWN_FAULT = ("wrote no weights.bin", "used more than one CPU", ": output is malformed",
+             "with N = 0 it must write no records", "a timing run's output is malformed",
+             "with the items reordered its per-item scores change")
+INFER_EXIT = re.compile(r": infer exited (\d+)$")
+INFRA_STATUS = {137, 143}   # SIGKILL/SIGTERM: an OOM kill or a runner stop, not the candidate (review 2026-11-24)
+# a Python exception in train.py that is a programming error, not the environment (ImportError, OSError, MemoryError...)
+CODE_ERRORS = re.compile(r"^(IndexError|ValueError|TypeError|KeyError|ZeroDivisionError|AttributeError|NameError|"
+                         r"UnboundLocalError|AssertionError|SyntaxError|IndentationError|OverflowError|FloatingPointError|"
+                         r"struct\.error|numpy\.linalg\.LinAlgError|LinAlgError|StopIteration|RecursionError|NotImplementedError)\b")
+
+
+def own_fault(log_path, name):
+    """The candidate's own failure line from a step's log (reproduce.txt / dev.txt next to its json), or None.
+    Only the first FAILED line is read: run.py prints one and exits, and anything after it is the candidate's own
+    stderr quoted inside the message. That quoted text can at worst turn a crash into "not scored", which is how
+    every crash was counted before this check (review 2026-11-24, 6)."""
+    try:
+        with open(log_path, errors="replace") as f:
+            lines = f.read(200_000).splitlines()
+    except OSError:
+        return None
+    first = next((i for i, l in enumerate(lines) if l.startswith("FAILED: ")), None)
+    if first is None:
+        return None
+    line = lines[first]
+    if not (line.startswith(f"FAILED: {name}:") or line.startswith(f"FAILED: {name} on ")):
+        return None
+    if line.endswith(": train.py exited 1:"):   # an uncaught Python exception; its type is the stderr's last line
+        last = next((l for l in reversed(lines[first + 1:]) if l.strip() and not l.startswith("exit ")), "")
+        return line[:300] if CODE_ERRORS.match(last) else None
+    m = INFER_EXIT.search(line)
+    if m:
+        return line[:300] if int(m.group(1)) not in INFRA_STATUS else None
+    return line[:300] if any(k in line for k in OWN_FAULT) else None
+
+
 def one(name, extract_status, rep_path, dev_path, task=""):
     v = {"name": name, "task": task, "extracted": extract_status == "extracted", "extract": extract_status,
          "reproduced": False, "valid": False, "beats_linear": False}
     if not v["extracted"]:
         return v
     if not os.path.exists(rep_path):
+        why = own_fault(os.path.splitext(rep_path)[0] + ".txt", name)
+        if why:   # the proposal's own code failed: not reproduced, counted as not valid
+            v["failed_why"] = why
+            return v
         # F038 (review 2026-11-22): the reproduce step never wrote its output (valgrind or the jail failed mid-job);
         # that is infrastructure, not the proposal - not scored, so infra faults cannot lower the valid rate
         v["extract"] = "not scored"
@@ -42,6 +86,10 @@ def one(name, extract_status, rep_path, dev_path, task=""):
     if not v["reproduced"]:
         return v
     if not os.path.exists(dev_path):
+        why = own_fault(os.path.splitext(dev_path)[0] + ".txt", name)
+        if why:
+            v["failed_why"] = why
+            return v
         v["extract"] = "not scored"   # F038: dev.json missing is the same class: infrastructure, not the proposal
         v["not_scored_why"] = "dev.json missing"
         return v

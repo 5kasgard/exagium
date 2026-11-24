@@ -33,7 +33,7 @@ jobs:
           - {name: Z, model: "none"}   # control: no agent, grade the untouched base
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-        with: {fetch-depth: 0, path: src}
+        with: {fetch-depth: 0, path: src, persist-credentials: false}   # Z1-F011: no token left in src/.git/config
       - name: refuse paid models
         run: |
           m="${{ matrix.arm.model }}"

@@ -5,6 +5,27 @@ import record as R
 PLAN = {"by": "proposer-agent", "claim": "mlp beats linear", "test": "count.py ...", "decision_rule": "Ir lower by > 2 SE"}
 
 
+class OpenTimestampExplorer(unittest.TestCase):
+    def test_short_explorer_tip_is_uncheckable_not_forgery(self):
+        from unittest import mock
+        with mock.patch.object(R, "_get", side_effect=[None, b"100"]):
+            with self.assertRaises(R.CantCheck):
+                R.ots_block_hash("https://stale.example", 101)
+
+    def test_missing_block_at_or_below_tip_is_also_uncheckable(self):
+        from unittest import mock
+        with mock.patch.object(R, "_get", side_effect=[None, b"200"]):
+            with self.assertRaises(R.CantCheck):
+                R.ots_block_hash("https://explorer.example", 101)
+
+    def test_unparseable_tip_is_uncheckable(self):
+        from unittest import mock
+        with mock.patch.object(R, "_get", side_effect=[None, b"not-a-height"]):
+            with self.assertRaises(R.CantCheck):
+                R.ots_block_hash("https://broken.example", 101)
+
+
+
 class Ledger(unittest.TestCase):
     def setUp(self):
         self.d = tempfile.mkdtemp()
