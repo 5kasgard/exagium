@@ -42,6 +42,15 @@ class Contract(unittest.TestCase):
         with self.assertRaises(SystemExit):
             run_one.load("../x")
 
+    def test_graph_questions_ten_script_answers(self):
+        import graph_questions
+        r = graph_questions.run()
+        self.assertEqual(len(r), 10)
+        for k, v in r.items():
+            self.assertIsNotNone(v, k)
+            self.assertIsInstance(v, (list, str), k)
+        self.assertEqual(graph_questions.rule(r)["verdict"], "holds")
+
 
 if __name__ == "__main__":
     unittest.main()
