@@ -305,35 +305,25 @@ class SlotsCalibration(unittest.TestCase):
         self.assertEqual(out, [("cloudflare", "@cf/openai/gpt-oss-120b")])
 
     def test_with_registry_sorts_by_score_descending(self):
-        from router.slots import chain
-        # filler B (nvidia) has higher score than filler A (cloudflare)
-        cal = {("cloudflare", "reader"): 1.0, ("nvidia", "reader"): 5.0}
-        out = chain("reader", calibration=cal)
-        # nvidia should come before cloudflare
-        self.assertEqual(out[0], ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"))
-        self.assertEqual(out[1], ("cloudflare", "@cf/openai/gpt-oss-120b"))
+        from router.slots import chain, SLOTS
+        base = chain("reader")
+        first, second = base[0], base[1]
+        key = lambda f: (f"{f[0]}:{f[1]}", "reader")   # the actor key run() records: "pool:model"
+        out = chain("reader", calibration={key(first): 1.0, key(second): 5.0})
+        self.assertEqual(out[:2], [second, first])
+        self.assertEqual(sorted(out), sorted(base))   # a reorder only: nothing added or dropped
 
     def test_with_no_registry_order_matches_original(self):
-        from router.slots import chain
-        out = chain("reader")
-        # original SLOTS["reader"] order, minus paid if PAID_FALLBACK not set
+        from router.slots import chain, SLOTS
         import os
         paid = os.environ.get("PAID_FALLBACK") == "1"
-        expected = [f for f in [
-            ("cloudflare", "@cf/openai/gpt-oss-120b"),
-            ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"),
-            ("openrouter_paid", "z-ai/glm-5.3-flash"),
-            ("openrouter_paid", "deepseek/deepseek-v4.1-flash-1017"),
-        ] if paid or f[0] != "openrouter_paid"]
-        self.assertEqual(out, expected)
+        self.assertEqual(chain("reader"), [f for f in SLOTS["reader"] if paid or f[0] != "openrouter_paid"])
 
     def test_ties_keep_original_order(self):
         from router.slots import chain
-        # Same score for both -> original order preserved (stable sort)
-        cal = {("cloudflare", "reader"): 2.0, ("nvidia", "reader"): 2.0}
-        out = chain("reader", calibration=cal)
-        self.assertEqual(out[0], ("cloudflare", "@cf/openai/gpt-oss-120b"))
-        self.assertEqual(out[1], ("nvidia", "nvidia/nemotron-3-ultra-550b-a55b"))
+        base = chain("reader")
+        cal = {(f"{f[0]}:{f[1]}", "reader"): 2.0 for f in base}
+        self.assertEqual(chain("reader", calibration=cal), base)
 
 if __name__ == "__main__":
     unittest.main()

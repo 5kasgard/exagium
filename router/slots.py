@@ -57,15 +57,16 @@ def call(engines, pool, model, prompt):
 def chain(slot, override=None, calibration=None):
     """The fillers to try, in order. override (pool, model) pins one filler (arm tests).
     If calibration is provided (a mapping (actor, slot_family) -> score), fillers are sorted
-    by that score descending, stable for ties. actor is the pool; slot_family is the slot name."""
+    by that score descending, stable for ties. actor is "pool:model", the same key run() records through a
+    registry (review 2026-11-24: the two used different keys); slot_family is the slot name."""
     if override:
         return [tuple(override)]
     paid = os.environ.get("PAID_FALLBACK") == "1"
     fillers = [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
     if calibration is None:
         return fillers
-    # Stable sort by calibration score descending; pool is the actor, slot is the family
-    return sorted(fillers, key=lambda fm: calibration.get((fm[0], slot), 0.0), reverse=True)
+    # Stable sort by calibration score descending; "pool:model" is the actor, slot is the family
+    return sorted(fillers, key=lambda fm: calibration.get((f"{fm[0]}:{fm[1]}", slot), 0.0), reverse=True)
 
 
 def run(slot, prompt, ask, parse, override=None):
