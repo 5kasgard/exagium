@@ -18544,7 +18544,7 @@
    "cost": 0,
    "value": "high",
    "blocked_by": [
-    "P37",
+    "P37b",
     "P33"
    ],
    "touches": [
@@ -19544,7 +19544,7 @@
    "id": "P37",
    "title": "Event spine, test 1: rebuild today's queue from an event stream derived from the existing records (zero model calls)",
    "kind": "build",
-   "status": "open",
+   "status": "done",
    "origin": "new",
    "severity": "minor",
    "needs": "free",
@@ -19558,7 +19558,38 @@
    "refs": [
     "audit/notes/2026-11-25/forge-os.md"
    ],
-   "generated_at": "2026-11-24T22:31:43Z"
+   "generated_at": "2026-11-24T22:31:43Z",
+   "runs": [
+    {
+     "at": "2026-11-24T22:34:28Z",
+     "worker": "claude-chat",
+     "result": "Replay done (audit/spine/RESULT-2026-11-25.md). Git history: 1356 of 1360 status changes follow the state machine (fits). Run logs: 230 of 339 items rebuild (68%); 109 changed without a structured event (worker 37, chat/owner 25, audit 22, tier 10, other 15). Strict criterion failed on the recording, not the model. P37b filed.",
+     "outcome": "decide_done"
+    }
+   ]
+  },
+  {
+   "id": "P37b",
+   "title": "Every queue status write appends one structured event through queue_ops (claim, release, tier, chat, owner, splitter, audit); a writer that bypasses it fails a test",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "major",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    "worker/queue_ops.py",
+    "worker/transitions.py",
+    "worker/test_worker.py",
+    "audit/spine/replay.py"
+   ],
+   "next": "From P37: 109 of 339 items cannot be rebuilt from their run logs; causes only in commit subjects. Event shape {at, actor, from, outcome, to, reason}. Log the claim too. Then rerun audit/spine/replay.py: pass = 100% for items changed after the fix. Gates P36 test 2 (live spine).",
+   "refs": [
+    "audit/spine/RESULT-2026-11-25.md"
+   ],
+   "generated_at": "2026-11-24T22:34:28Z"
   }
  ],
  "batches": [

@@ -1,0 +1,55 @@
+{
+ "A_runs_fold": {
+  "counts": {
+   "items": 339,
+   "runs_without_outcome": 57,
+   "no_runs": 125,
+   "equal": 230
+  },
+  "mismatch": {
+   "replay open != now done": 42,
+   "no events, status done": 34,
+   "no events, status parked": 18,
+   "replay open != now parked": 10,
+   "no events, status waiting on the owner": 3,
+   "replay open != now in progress": 1,
+   "no events, status proposed": 1
+  },
+  "example": {
+   "no events, status parked": "Q01",
+   "no events, status done": "Q04",
+   "replay open != now done": "Q06",
+   "no events, status waiting on the owner": "Q29",
+   "replay open != now parked": "G2",
+   "replay open != now in progress": "K69",
+   "no events, status proposed": "K71"
+  },
+  "refused_transitions": {
+   "open + redo": 28,
+   "open + resplit": 10,
+   "open + review_applied": 6,
+   "open + solved": 5,
+   "open + progress": 2,
+   "open + rescoped": 1
+  }
+ },
+ "B_git_history": {
+  "counts": {
+   "changes": 1360,
+   "allowed": 1356,
+   "created": 287,
+   "unreadable_snapshot": 1,
+   "not_in_table": 4,
+   "snapshots": 1552
+  },
+  "not_in_table": {
+   "waiting on the owner -> escalated": 4
+  },
+  "by_actor": {
+   "queue": 4
+  },
+  "example": {
+   "waiting on the owner -> escalated": "R4 @ 3af65f3 (queue: Q60 state machine; render knows review/escalated; one)"
+  }
+ }
+}
