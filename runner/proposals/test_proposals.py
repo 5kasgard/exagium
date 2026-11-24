@@ -4,6 +4,7 @@ import json, os, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
+import staged  # noqa: E402
 
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
@@ -193,6 +194,19 @@ class TestOwnFault(unittest.TestCase):
                     "FAILED: output is malformed: 0 records, expected 6513\n", "FAILED: p-1: checker gave 5 scores for 6 items\n", "pip: 503 Service Unavailable\n"):
             v = self.run_one(rep_log=log)
             self.assertEqual(v["extract"], "not scored", log)
+
+
+class TestStaged(unittest.TestCase):
+    """K72: staged_select eliminates a worse candidate early and returns the best survivor."""
+    def test_elimination_and_survivor(self):
+        scores = {"best": [1.0] * 480, "worst": [-1.0] * 480}
+        for k in range(14):
+            scores[f"pad{k}"] = [0.0] * 480
+        out = staged.staged_select(scores)
+        self.assertEqual(out["survivors"], ["best"])
+        self.assertIn("worst", out["eliminated_at"])
+        self.assertLess(out["eliminated_at"]["worst"], 3)
+        self.assertLess(out["scored_items"], 16 * 480)
 
 
 if __name__ == "__main__":
