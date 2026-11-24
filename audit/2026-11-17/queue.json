@@ -17982,6 +17982,29 @@
      "outcome": "review_applied"
     }
    ]
+  },
+  {
+   "id": "Q84",
+   "title": "Probe and route the 13 repository secrets no workflow uses, and drop the 6 secret names workflows reference that do not exist",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "major",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "touches": [
+    ".github/workflows/keys-probe.yml",
+    "router/keys_probe.py",
+    ".github/workflows/router.yml",
+    "facts/register.json"
+   ],
+   "next": "Audit 2026-11-24 (Claude chat, by grep of .github/workflows and *.py at main 70fa790): unused secrets ARTIFICIALANALYSIS_API_KEY, BENCHLM_API_KEY, CORE_API_KEY, DEEPINFRA_API_KEY, E2B_API_KEY, FIREWORKS_API_KEY, HUGGINGFACE_API_KEY, OPENALEX_API_KEY, OPENML_API_KEY, SCALEWAY_API_KEY, UPSTASH_API_KEY, VAST_API_KEY, VULTR_API_KEY (SEMANTIC_SCHOLAR_API_KEY is wired by PR #120). Referenced but absent: COHERE_API_KEY, CROWLLM_API_KEY, CROWLLM_BASE_URL, INFERBASE_API_KEY, MISTRAL_API_KEY, SAMBANOVA_API_KEY (router.yml probe). Step 1: a dispatch-only keys-probe workflow (merged by the owner; contents: read; one step per key, the key only in that step's env) making one documented, read-only, no-cost call per key (list models / account / quota), recording status code and any published allowance headers, never the key or the body. Each endpoint and its free allowance cited from the provider's docs first (AGENTS.md: limits cite sources). Step 2: a role per key by data (hypotheses, unverified): inference pools DEEPINFRA, FIREWORKS, SCALEWAY, HUGGINGFACE (router engines, after P33); research sources OPENALEX (api_key param), CORE (open-access full text, P7f); evidence about models ARTIFICIALANALYSIS, BENCHLM (worker cards P20a; weigh published results before paying to test); task data OPENML (new task domains, P3); sandboxes E2B (jailed code runs, compare with the bubblewrap jail); store UPSTASH (P11 candidate); compute VAST, VULTR (paid: only with a cost case against free runners). Step 3: register each in facts/register.json so a changed allowance escalates.",
+   "refs": [
+    "audit/notes/2026-11-24/HANDOFF-chat-2026-11-24.md"
+   ],
+   "generated_at": "2026-11-24T11:46:30Z"
   }
  ],
  "batches": [
