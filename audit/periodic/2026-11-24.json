@@ -1,0 +1,579 @@
+{
+ "tool": "audit/periodic/indicators.py",
+ "commit": "2d64e6b3564cf2a5a4ff83fc06417cb96bd1e649",
+ "date": "2026-11-24T05:30Z",
+ "tracked_files": 626,
+ "size": {
+  "(root)": {
+   "docs": 261
+  },
+  ".github": {
+   "workflows": 3620
+  },
+  "audit": {
+   "data": 477,
+   "docs": 173,
+   "code": 350
+  },
+  "counter": {
+   "docs": 194,
+   "code": 1024,
+   "data": 96
+  },
+  "experiments": {
+   "docs": 16,
+   "code": 188
+  },
+  "facts": {
+   "code": 169,
+   "data": 272
+  },
+  "ledger": {
+   "data": 8
+  },
+  "loop": {
+   "docs": 238,
+   "code": 2731,
+   "data": 8310
+  },
+  "probe": {
+   "docs": 146,
+   "data": 4167,
+   "code": 1579
+  },
+  "record": {
+   "docs": 807,
+   "code": 1730,
+   "data": 946
+  },
+  "research": {
+   "docs": 881
+  },
+  "router": {
+   "code": 4226,
+   "docs": 7646,
+   "data": 21115
+  },
+  "runner": {
+   "docs": 549,
+   "code": 3229,
+   "data": 923119
+  },
+  "runs": {
+   "data": 4630
+  },
+  "tasks": {
+   "data": 341,
+   "code": 155
+  },
+  "tests": {
+   "docs": 47,
+   "code": 193
+  },
+  "transfer": {
+   "docs": 172,
+   "code": 925,
+   "data": 3572
+  },
+  "verifications": {
+   "docs": 209,
+   "data": 29027,
+   "code": 284
+  },
+  "worker": {
+   "docs": 280,
+   "code": 5880
+  }
+ },
+ "duplication": {
+  "function_lines": 14418,
+  "duplicated_lines": 330,
+  "share": 0.0229,
+  "groups": [
+   [
+    "runner/candidates/label-linear/train.py:main",
+    "runner/candidates/label-mlp16/train.py:main"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:fit",
+    "loop/candidates/mlp32/train.py:fit",
+    "loop/candidates/mlp64/train.py:fit"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:main",
+    "loop/candidates/mlp32/train.py:main",
+    "loop/candidates/mlp64/train.py:main"
+   ],
+   [
+    "loop/baselines/linear/train.py:fit",
+    "loop/baselines/thermo/train.py:fit"
+   ],
+   [
+    "router/bench3/decide.py:interval",
+    "router/bench4/decide.py:interval"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:quantize",
+    "loop/candidates/mlp32/train.py:quantize",
+    "loop/candidates/mlp64/train.py:quantize"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:exp_neg",
+    "loop/candidates/mlp32/train.py:exp_neg",
+    "loop/candidates/mlp64/train.py:exp_neg"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:predict_q",
+    "loop/candidates/mlp32/train.py:predict_q",
+    "loop/candidates/mlp64/train.py:predict_q"
+   ],
+   [
+    "runner/candidates/label-gbdt/train.py:records",
+    "runner/candidates/label-knn/train.py:records",
+    "runner/candidates/label-linear/train.py:records",
+    "runner/candidates/label-mlp16/train.py:records",
+    "runner/candidates/label-mlp2l/train.py:records",
+    "runner/candidates/label-wisard/train.py:records"
+   ],
+   [
+    "router/bench3/decide.py:solve",
+    "router/bench4/decide.py:solve"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:mm",
+    "loop/candidates/mlp32/train.py:mm",
+    "loop/candidates/mlp64/train.py:mm"
+   ],
+   [
+    "loop/candidates/mlp16/train.py:mtm",
+    "loop/candidates/mlp32/train.py:mtm",
+    "loop/candidates/mlp64/train.py:mtm"
+   ],
+   [
+    "runner/candidates/label-linear/train.py:sg",
+    "runner/candidates/label-mlp16/train.py:sg"
+   ]
+  ]
+ },
+ "unreferenced": {
+  "count": 0,
+  "files": []
+ },
+ "cannot_fail": {
+  "count": 66,
+  "lines": [
+   ".github/workflows/anchor-test.yml:34: continue-on-error: true",
+   ".github/workflows/anchor-test.yml:45: cp \"${{ steps.att.outputs.bundle-path }}\" out/attestation.jsonl 2>/dev/null || true",
+   ".github/workflows/bench.yml:68: git -C ws add -A >/dev/null 2>&1; diffstat=$(git -C ws diff --cached --shortstat base 2>/dev/null ||",
+   ".github/workflows/bench2.yml:78: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench2.yml:79: git -C \"$WS\" add -A >/dev/null 2>&1; d=$(git -C \"$WS\" diff --cached --shortstat HEAD 2>/dev/null || ",
+   ".github/workflows/bench2.yml:83: git -C \"$WS\" diff --cached HEAD > \"$RUNNER_TEMP/out/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:139: echo \"CHECK_DROPS=$(sudo dmesg | grep -c 'B3DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench3.yml:158: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:160: $G -C \"$WS\" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true",
+   ".github/workflows/bench3.yml:161: $G -C \"$WS\" diff --cached HEAD > \"$O/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench3.yml:162: all=$(sudo dmesg | grep -c 'B3DROP ' || true)",
+   ".github/workflows/bench3.yml:163: sudo dmesg | grep 'B3DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/bench4.yml:117: echo \"DROPS0=$(sudo dmesg | grep -c 'B4DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench4.yml:140: all=$(sudo dmesg | grep -c 'B4DROP ' || true)",
+   ".github/workflows/bench4.yml:141: sudo dmesg | grep 'B4DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/bench4.yml:143: sudo chown -R \"$(id -u)\" \"$WS\" \"$O\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:149: echo \"CHECK_DROPS=$(sudo dmesg | grep -c 'B5DROP ' || true)\" >> \"$GITHUB_ENV\"",
+   ".github/workflows/bench5.yml:173: sudo chown -R \"$(id -u)\" \"$WS\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:175: $G -C \"$WS\" add -A -- . ':(exclude)conversations' >/dev/null 2>&1 || true",
+   ".github/workflows/bench5.yml:176: $G -C \"$WS\" diff --cached HEAD > \"$O/agent.diff\" 2>/dev/null || true",
+   ".github/workflows/bench5.yml:177: all=$(sudo dmesg | grep -c 'B5DROP ' || true)",
+   ".github/workflows/bench5.yml:178: sudo dmesg | grep 'B5DROP ' | grep -o 'DST=[0-9.]* .*DPT=[0-9]*' | sed 's/ LEN.*PROTO/ PROTO/; s/ SP",
+   ".github/workflows/counter.yml:39: for n in 1000 0; do python3 ../count.py --reps 3 --input mlp --out-dir ../../runs/ci --keep-raw ../.",
+   ".github/workflows/counter.yml:40: for n in 20 0; do python3 ../count.py --reps 3 --input mlp.py --out-dir ../../runs/ci --keep-raw ../",
+   ".github/workflows/decisions-probe.yml:44: python3 -I router/review/search-breadth/breadth.py out/breadth.json $dry || true",
+   ".github/workflows/digest.yml:89: continue-on-error: true",
+   ".github/workflows/experiment.yml:35: git fetch -q origin pilot/lgn-20261115:refs/remotes/origin/pilot/lgn-20261115 || true",
+   ".github/workflows/experiment.yml:53: continue-on-error: true",
+   ".github/workflows/experiment.yml:73: (cd \"$RUNNER_TEMP/rr\" && git fetch -q origin router-runs && git rebase -q FETCH_HEAD) || true",
+   ".github/workflows/loop.yml:8: #      and the upload still run). Until 2026-11-18 every step ended in `|| true`, so CI could not fa",
+   ".github/workflows/loop.yml:42: grep -m1 -E 'model name|CPU part' /proc/cpuinfo >> out/host.txt || true",
+   ".github/workflows/loop.yml:104: mkdir -p out && { uname -r; id -u; grep -m1 -E 'model name|CPU part' /proc/cpuinfo || true; grep Sec",
+   ".github/workflows/loop.yml:105: { bwrap --unshare-all --ro-bind / / true 2>&1; echo \"bwrap exit $?\"; } >> out/host.txt || true",
+   ".github/workflows/loop.yml:106: /opt/venv/bin/python -c \"import sys; sys.path.insert(0, 'loop'); import loop; loop.check_jail(); pri",
+   ".github/workflows/loop.yml:116: done 2>&1 | tee out/valgrind-confine.txt || true",
+   ".github/workflows/make-work.yml:36: python3 -I worker/split.py \"$RUNNER_TEMP/gq\" . \"$RUNNER_TEMP/split\" | tee \"$RUNNER_TEMP/split.log\" |",
+   ".github/workflows/make-work.yml:39: acc=$((acc + $(grep -c \"'accept')\" \"$RUNNER_TEMP/split.log\" || true)))",
+   ".github/workflows/make-work.yml:42: python3 -I worker/generate.py \"$RUNNER_TEMP/gq\" \"$RUNNER_TEMP/gen\" | tee \"$RUNNER_TEMP/gen.log\" || t",
+   ".github/workflows/make-work.yml:44: acc=$((acc + $(grep -c \"'accept')\" \"$RUNNER_TEMP/gen.log\" || true)))",
+   ".github/workflows/make-work.yml:48: python3 -I worker/classify.py \"$RUNNER_TEMP/gq\" \"$RUNNER_TEMP/cls\" 24 || true",
+   ".github/workflows/make-work.yml:52: [ \"$acc\" -gt 0 ] && gh workflow run worker.yml -R \"$GITHUB_REPOSITORY\" --ref main && echo \"worker st",
+   ".github/workflows/propose.yml:129: st=$(python3 -I runner/proposals/extract.py \"out/$k/reply.md\" \"runner/candidates/$name\" | tail -1) |",
+   ".github/workflows/propose.yml:134: --out \"out/$k/reproduce.json\" > \"out/$k/reproduce.txt\" 2>&1 || true",
+   ".github/workflows/propose.yml:136: --split dev --rounds 3 --out \"out/$k/dev.json\" --records \"out/$k/records\" > \"out/$k/dev.txt\" 2>&1 ||",
+   ".github/workflows/propose.yml:137: tail -n 5 \"out/$k/reproduce.txt\" \"out/$k/dev.txt\" || true",
+   ".github/workflows/propose.yml:159: continue-on-error: true",
+   ".github/workflows/propose.yml:165: continue-on-error: true",
+   ".github/workflows/propose.yml:199: [ -f \"$src/$k/$f\" ] && [ \"$(stat -c %s \"$src/$k/$f\")\" -le 2000000 ] && cp \"$src/$k/$f\" \"$d/\" || true",
+   ".github/workflows/propose.yml:202: [ -f \"$r\" ] && [ \"$(stat -c %s \"$r\")\" -le 2000000 ] && mkdir -p \"$d/records\" && cp \"$r\" \"$d/records/",
+   ".github/workflows/propose.yml:218: verdict=$(grep -oE \"KEEP|SWITCH\" \"$P/proposals/LEADERBOARD.md\" | head -1 || true)",
+   ".github/workflows/reader-bake.yml:75: cp \"$RUNNER_TEMP/bake.log\" \"$RUNNER_TEMP/bake/\" 2>/dev/null || true",
+   ".github/workflows/record.yml:145: for f in ledger/anchors/*.ots; do ots upgrade \"$f\" || true; done",
+   ".github/workflows/rerank-arm.yml:56: cp \"$RUNNER_TEMP/arm.log\" \"$RUNNER_TEMP/arm/\" 2>/dev/null || true",
+   ".github/workflows/worker.yml:115: ready=$(python3 -I worker/queue_ops.py ready \"$RUNNER_TEMP/q\" | grep -c . || true)",
+   ".github/workflows/worker.yml:193: run: echo \"sums=$(cd job && { sha256sum draft.json bundle.json 2>/dev/null || true; } | sha256sum | ",
+   ".github/workflows/worker.yml:217: python3 -m venv \"$RUNNER_TEMP/venv\" && \"$RUNNER_TEMP/venv/bin/pip\" install -q numpy 2>/dev/null || t",
+   ".github/workflows/worker.yml:245: continue-on-error: true",
+   ".github/workflows/worker.yml:251: continue-on-error: true",
+   ".github/workflows/worker.yml:268: got=$(cd job && { sha256sum draft.json bundle.json 2>/dev/null || true; } | sha256sum | cut -c1-64)",
+   ".github/workflows/worker.yml:289: python3 -I worker/note.py note.json \"lease lost before landing: nothing pushed\" \"\" \"$RUN_URL\" job/re",
+   ".github/workflows/worker.yml:296: git rebase --abort 2>/dev/null || true; sleep 5",
+   ".github/workflows/worker.yml:300: python3 -I worker/note.py note.json merged \"main $(git rev-parse --short HEAD)\" \"$RUN_URL\" job/resul",
+   ".github/workflows/worker.yml:309: python3 -I worker/note.py note.json \"failed: the change conflicts with today's main\" \"\" \"$RUN_URL\" j",
+   ".github/workflows/worker.yml:314: echo \"OUTCOME=pr\" >> \"$GITHUB_ENV\"; python3 -I worker/note.py note.json pr \"$url\" \"$RUN_URL\" job/res",
+   ".github/workflows/worker.yml:316: echo \"OUTCOME=pr_not_created\" >> \"$GITHUB_ENV\"; python3 -I worker/note.py note.json \"pr not created;",
+   ".github/workflows/worker.yml:431: n=$(grep -c \"'accept')\" \"$RUNNER_TEMP/split.log\" 2>/dev/null || true); n=${n:-0}   # grep -c prints "
+  ]
+ },
+ "ci_7d": {
+  "counter cross-host": {
+   "runs": 1,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 1
+   }
+  },
+  "digest": {
+   "runs": 2,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 2
+   }
+  },
+  "loop": {
+   "runs": 1,
+   "not_success": 1,
+   "share": 1.0,
+   "conclusions": {
+    "failure": 1
+   }
+  },
+  "propose": {
+   "runs": 84,
+   "not_success": 1,
+   "share": 0.012,
+   "conclusions": {
+    "success": 83,
+    "failure": 1
+   }
+  },
+  "record": {
+   "runs": 1,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 1
+   }
+  },
+  "tests": {
+   "runs": 19,
+   "not_success": 5,
+   "share": 0.263,
+   "conclusions": {
+    "success": 14,
+    "failure": 5
+   }
+  },
+  "tier": {
+   "runs": 11,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 11
+   }
+  },
+  "wiring": {
+   "runs": 5,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 5
+   }
+  },
+  "worker": {
+   "runs": 173,
+   "not_success": 0,
+   "share": 0.0,
+   "conclusions": {
+    "success": 172,
+    "cancelled": 1
+   }
+  }
+ },
+ "queue": {
+  "by_status": {
+   "parked": 76,
+   "done": 127,
+   "open": 77,
+   "waiting on the owner": 25,
+   "review": 6,
+   "escalated": 2
+  },
+  "open_age_hours": {
+   "Q09": 153.8,
+   "Q25": 153.8,
+   "Q28": 153.8,
+   "Q29": 153.8,
+   "Q36": 153.8,
+   "Q38": 153.8,
+   "Q44": 153.8,
+   "Q54": 145.1,
+   "P3": 145.1,
+   "P5": 145.1,
+   "P6": 145.1,
+   "P7": 142.2,
+   "P8": 142.1,
+   "P9": 141.9,
+   "P10": 141.9,
+   "P7b": 138.4,
+   "P7c": 138.4,
+   "P7d": 138.4,
+   "P7e": 129.5,
+   "P11": 129.3,
+   "P12": 129.3,
+   "P13": 129.3,
+   "P14": 129.3,
+   "P15": 129.3,
+   "P16": 129.3,
+   "P17": 129.3,
+   "P18": 129.2,
+   "P19": 126.8,
+   "R4": 119.8,
+   "P20": 119.6,
+   "P20a": 119.5,
+   "P20b": 119.5,
+   "P20c": 119.5,
+   "P20d": 119.5,
+   "P20e": 119.5,
+   "P20f": 119.5,
+   "P21": 119.3,
+   "P22": 119.3,
+   "P23": 119.3,
+   "R10": 118.9,
+   "P24": 118.9,
+   "Q58": 118.2,
+   "P5a": 115.8,
+   "P5c": 92.7,
+   "P7f": 113.9,
+   "P25": 113.7,
+   "P26": 113.7,
+   "P27": 113.7,
+   "P28": 112.9,
+   "P29": 112.9,
+   "Q59": 105.5,
+   "R15": 105.3,
+   "P30": 104.0,
+   "P5b": 103.4,
+   "Q61": 103.4,
+   "Q62": 103.4,
+   "P31": 102.0,
+   "P32": 98.1,
+   "R21": 90.6,
+   "R22": 90.6,
+   "G8": 80.7,
+   "K18": 79.8,
+   "P26a": 79.5,
+   "P26b": 79.5,
+   "P26c": 79.5,
+   "P26d": 79.5,
+   "P26e": 79.5,
+   "P26g": 79.5,
+   "Q63": 79.4,
+   "Q64": 79.4,
+   "Q65": 79.4,
+   "Q66": 79.4,
+   "Q67": 79.4,
+   "Q68": 79.4,
+   "Q69": 79.4,
+   "Q70": 79.4,
+   "Q71": 79.4,
+   "Q72": 79.4,
+   "Q73": 79.4,
+   "Q74": 79.4,
+   "Q75": 79.4,
+   "Q76": 79.4,
+   "Q77": 79.4,
+   "Q78": 79.4,
+   "Q79": 79.4,
+   "Q80": 79.4,
+   "Q81": 79.4,
+   "K20": 79.1,
+   "K25": 78.9,
+   "R24": 77.3,
+   "K49": 57.4,
+   "K50": 57.4,
+   "R26": 56.9,
+   "R28": 56.5,
+   "R29": 56.5,
+   "R30": 56.5,
+   "R32": 56.4,
+   "K53": 55.3,
+   "R33": 50.4,
+   "R36": 50.2,
+   "R37": 49.7,
+   "R40": 49.7,
+   "R43": 29.4,
+   "R46": 29.2,
+   "R47": 28.8,
+   "R53": 4.9,
+   "R55": 4.7,
+   "R57": 4.6,
+   "R61": 4.3,
+   "R62": 4.3
+  },
+  "claims": []
+ },
+ "stale_branches": [
+  "anchor-test (18 days)",
+  "e2e-main (18 days)",
+  "q2-main (18 days)",
+  "q2-shadow (18 days)"
+ ],
+ "claims_without_evidence": {
+  "count": 3,
+  "lines": [
+   "README.md:33: | Nov 15\u201317 | Why mlp16 is slow: 6 causes ruled out by at least two independent runs (two other models' report",
+   "README.md:60: | mlp16 (the best small MLP) | 0.980 | 1\u00d7 | 104 ns (mlp16_chunked: 83) |",
+   "README.md:61: | lgn_d (logic-gate network) | 0.973 | 0.45\u00d7 | 55 ns (read by block: 31) |"
+  ]
+ },
+ "churn_7d": {
+  "worker": {
+   "code": 7120,
+   "docs": 322,
+   "data": 4
+  },
+  "runner": {
+   "code": 3635,
+   "docs": 579,
+   "data": 923119
+  },
+  "router": {
+   "code": 2128,
+   "docs": 7024,
+   "data": 13574
+  },
+  "transfer": {
+   "code": 949,
+   "docs": 196,
+   "data": 3644
+  },
+  "loop": {
+   "code": 781,
+   "docs": 102,
+   "data": 8442
+  },
+  "audit": {
+   "docs": 173,
+   "data": 1229,
+   "code": 384
+  },
+  "facts": {
+   "code": 291,
+   "data": 310
+  },
+  "tests": {
+   "code": 231,
+   "docs": 101
+  },
+  "experiments": {
+   "code": 190,
+   "docs": 16
+  },
+  "tasks": {
+   "data": 347,
+   "code": 157
+  },
+  "record": {
+   "code": 107,
+   "docs": 6,
+   "data": 690
+  },
+  "counter": {
+   "code": 21
+  },
+  "research": {
+   "docs": 881
+  },
+  "(root)": {
+   "docs": 264
+  },
+  ".github": {
+   "workflows": 2786
+  }
+ },
+ "flow_7d": {
+  "window_days": 7,
+  "arrived": 313,
+  "arrived_by_origin": {
+   "unknown": 74,
+   "follow-up": 79,
+   "new": 33,
+   "generated": 104,
+   "review": 23
+  },
+  "closed": 127,
+  "closed_per_day": 18.14,
+  "median_hours_to_done": 0.9,
+  "open_now": 110,
+  "littles_wait_days": 6.1
+ },
+ "connectors": {
+  "used": 5,
+  "total": 11,
+  "by_connector": {
+   "task contract and checkers (runner, tasks)": "used",
+   "jail (rlimits, seccomp, jailed compile)": "used",
+   "meters (instructions, native ns, large-N cost)": "used",
+   "cross-task comparison": "used",
+   "free worker (claim, draft, check, land)": "used",
+   "results recorded in the ledger": "not yet",
+   "free proposer (a part not designed by Claude)": "not yet",
+   "knowledge store and spec cards": "not yet",
+   "composition (cascades, ensembles, routing)": "not yet",
+   "distillation": "not yet",
+   "outside results as baselines": "not yet"
+  }
+ },
+ "change": {
+  "duplication_share": {
+   "was": 0.038,
+   "now": 0.0229
+  },
+  "cannot_fail_lines": {
+   "was": 34,
+   "now": 66
+  },
+  "stale_branches": {
+   "was": 0,
+   "now": 4
+  },
+  "code_lines": {
+   "was": 13778,
+   "now": 22663
+  },
+  "ci_not_success_runs": {
+   "was": 13,
+   "now": 7
+  },
+  "open_items": {
+   "was": 27,
+   "now": 77
+  },
+  "littles_wait_days": {
+   "was": null,
+   "now": 6.1
+  },
+  "connectors_used": {
+   "was": null,
+   "now": 5
+  }
+ }
+}
