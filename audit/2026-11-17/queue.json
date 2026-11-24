@@ -18522,7 +18522,7 @@
    "id": "K63",
    "title": "Fixed dependency questions with script-computed ground truth (experiment file)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P35",
    "generated_at": "2026-11-24T12:28:42Z",
@@ -18543,7 +18543,7 @@
     "experiments/graph_questions.py",
     "experiments/test_experiments.py"
    ],
-   "next": "Create experiments/graph_questions.py (under 80 lines) with experiment name graph_questions. PLAN (in words): ten fixed dependency questions about this repo, each with a ground-truth answer computed by script from queue.json and the findings register, so no model text is trusted for the answers. Write the ten questions as a fixed list in the file, for example which items list P21 as a dependency, which items are in review state, and which register findings cite a given file. run() returns a JSON-able dict {question_id: ground_truth_answer} for all ten. Add a test in experiments/test_experiments.py that asserts run() returns exactly ten keys and that every answer is a list or a string, not None.",
+   "next": "Create experiments/graph_questions.py (under 80 lines) with experiment name graph_questions. PLAN (in words): ten fixed dependency questions about this repo, each with a ground-truth answer computed by script from queue.json and the findings register, so no model text is trusted for the answers. Write the ten questions as a fixed list in the file, for example which items list P21 as a dependency, which items are in review state, and which register findings cite a given file. run() returns a JSON-able dict {question_id: ground_truth_answer} for all ten. Add a test in experiments/test_experiments.py that asserts run() returns exactly ten keys and that every answer is a list or a string, not None. PREVIOUS ATTEMPT REJECTED: 83 changed lines (over 80). Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P35",
     "worker/split.py"
@@ -18573,6 +18573,12 @@
      "at": "2026-11-24T12:33:15Z",
      "lost_lease": false,
      "outcome": "pr"
+    },
+    {
+     "at": "2026-11-24T13:47:49Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #127 not merged: 83 changed lines (over 80); model: The diff adds only the requested graph_questions.py (about 74 lines, reading only repo-local JSON with no network, subprocess, eval, or deletion) and a test asserting ten keys with list or string answers; minor concern: missing source files silently yield empt"
     }
    ],
    "work_types": {
