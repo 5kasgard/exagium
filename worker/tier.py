@@ -116,6 +116,8 @@ def artifact(run_url, dest):
     return True
 
 
+MAX_DEFERS = 6      # tier runs every 3 h: about 18 h of no verdict or refused merges, then the owner
+DIFF_SEEN = 20000   # characters of the diff the reviewing model is shown; a longer change goes to a person
 MAX_REDOS = 1   # 2026-11-20: R4 was narrowed twice in a row; a second "no claims" after this tier's redo goes to the owner
 
 
@@ -137,6 +139,33 @@ def candidates(q):
 # reviewer approved, this model approves after its own controls, the diff is small, and no file is a gate or money path.
 MERGE_MAX_LINES = 80
 MERGE_REFUSE = re.compile(CJ.REFUSE.pattern + r"|^worker/(tier|generate|research_job|doc_job)\.py$|^router/(slots|engines|pick)\.py$|^facts/", re.I)
+# Audit 2026-11-21 (R1 F1, A F1, B F1; the first version of this fix was rejected by review): a refuse list let
+# model-written code merge into files that jobs holding keys run (router/probe.py #19, worker/digest.py #15,
+# router/decisions_route.py #14, router/bench6/illusion/illusion.py #42 merged on 2026-11-21; each diff read since: none
+# harmful). Auto-merge now takes only experiment modules: they run in experiment.yml's run job, which has no secrets and
+# a read-only token. Not taken, because something with keys, a write token or the scores reads them: .md files (prompts
+# for keyed agents: runner/CONTRACT.md, router/bench/tasks/*.md, router/review/**; plans; READMEs agents are sent to),
+# transfer/ (built into the scoring jobs by tasks/build.py), runner/, worker/, router/, tests. A person merges those.
+# Also refused: experiments/run_one.py (it writes the verdict the record job trusts) and a
+# name that shadows a standard-library module (audit R2 F2: worker/datetime.py was imported by an unchanged keyed script).
+MERGE_ALLOW = re.compile(r"experiments/[a-z][a-z0-9_]*\.py")
+MERGE_ALLOW_NOT = {"experiments/run_one.py", "experiments/__init__.py"}
+
+
+def merge_allowed(path):
+    """A path the tier may merge without a person (see above). tests/test_workflows.py checks that no job holding a
+    secret or a write token runs or imports one."""
+    if not isinstance(path, str) or not MERGE_ALLOW.fullmatch(path) or path in MERGE_ALLOW_NOT or MERGE_REFUSE.search(path):
+        return False
+    name = os.path.basename(path)[:-3]   # no standard-library or installed name: it would shadow it (gate review 2026-11-21)
+    import importlib.util
+    try:
+        spec = importlib.util.find_spec(name)
+    except (ImportError, ValueError):
+        spec = None
+    other = spec is not None and not str(getattr(spec, "origin", "") or "").replace(os.sep, "/").endswith("/" + path)
+    return name not in sys.stdlib_module_names and name not in sys.builtin_module_names and not other
+
 
 CODE_PROMPT = """You review a code change before it is merged into main without a person. Approve only if it does exactly what
 the item asks, changes nothing else, and adds no network access, secrets, file deletion, subprocess or eval that the
@@ -171,22 +200,59 @@ def code_verdict(ctx, ask):
 def pr_files(n):
     """The PR's files, or None when they could not be fetched (GLM review F024: a failed fetch returned [], and an empty
     diff passed every size and path check vacuously, so an 'approve' could merge files nobody saw)."""
-    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}/files", "-q", "[.[] | {filename, additions, deletions, patch}]"],
-                       capture_output=True, text=True)
+    # every page (a PR's file list stops at 30 per page), and status and previous_filename, so a rename is judged on both
+    # names (gate review 2026-11-21)
+    r = subprocess.run(["gh", "api", "--paginate", f"repos/{REPO}/pulls/{n}/files", "-q",
+                        ".[] | {filename, additions, deletions, patch, status, previous_filename}"], capture_output=True, text=True)
     if r.returncode:
         return None
     try:
-        files = json.loads(r.stdout)
+        files = [json.loads(x) for x in r.stdout.splitlines() if x.strip()]
     except json.JSONDecodeError:
         return None
-    return files if isinstance(files, list) and files else None
+    return files or None
+
+def pr_snapshot(n):
+    """Return the current PR state and head SHA; fail closed if GitHub cannot provide a complete snapshot."""
+    r = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}"], capture_output=True, text=True)
+    if r.returncode:
+        return None
+    try:
+        p = json.loads(r.stdout)
+        return {"head_sha": p["head"]["sha"], "state": p["state"], "draft": p["draft"]}
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def same_reviewed_head(reviewed, current):
+    """Only an open, non-draft PR at the exact reviewed head may be merged."""
+    return bool(reviewed and current and reviewed.get("state") == "open" and not reviewed.get("draft")
+                and current.get("state") == "open" and not current.get("draft")
+                and reviewed.get("head_sha") and reviewed.get("head_sha") == current.get("head_sha"))
+
+
+def queue_authorises_pr(item, number):
+    """The queue must still be in review and still identify this PR as its active code proposal."""
+    if not isinstance(item, dict) or item.get("status") != "review" or not item.get("code"):
+        return False
+    run = next((x for x in reversed(item.get("runs") or []) if x.get("outcome") != "defer"), {})
+    match = re.search(r"/pull/(\d+)", str(run.get("where", "")))
+    return bool(run.get("outcome") == "pr" and match and int(match.group(1)) == number)
+
+
+def queue_still_authorises_pr(wt, item_id, number):
+    """Refresh the queue immediately before merge; owner changes and superseding PRs cancel automation."""
+    Q.sync(wt)
+    item = next((x for x in Q.load(wt)["items"] if x.get("id") == item_id), None)
+    return queue_authorises_pr(item, number)
+
 
 
 def code_prs(q):
     """Review-state items whose last run opened a PR for a code change."""
     out = []
     for i in q["items"]:
-        r = (i.get("runs") or [{}])[-1]
+        r = next((x for x in reversed(i.get("runs") or []) if x.get("outcome") != "defer"), {})   # past this tier's deferrals
         if i.get("status") == "review" and i.get("code") and r.get("outcome") == "pr":
             m = re.search(r"/pull/(\d+)", str(r.get("where", "")))
             if m:
@@ -204,7 +270,8 @@ def merge_decision(item, files, verdict):
         why.append(f"{lines} changed lines (over {MERGE_MAX_LINES})")
     own = (item.get("code") or {}).get("files", []) + [(item.get("code") or {}).get("test")]
     import doc_job
-    bad = [f["filename"] for f in files if MERGE_REFUSE.search(f["filename"]) or f["filename"] not in own
+    bad = [f["filename"] for f in files if not merge_allowed(f["filename"]) or f["filename"] not in own
+           or f.get("status", "modified") not in ("added", "modified") or f.get("previous_filename")
            or (f["filename"].endswith(".md") and not doc_job.merge_ok(f["filename"]))]   # agent-facing texts: a person merges
     if bad:
         why.append(f"files a person merges, or not the item's own: {', '.join(bad)}")
@@ -221,22 +288,56 @@ def drain_code(wt, ask, record):
         return
     Q.sync(wt)
     for item, n in code_prs(Q.load(wt)):
+        before = pr_snapshot(n)
+        if not before or before["state"] != "open" or before["draft"]:
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                       "why": ["PR is unavailable, closed or draft; no automatic merge"]})
+            continue
         files = pr_files(n)
+        after_files = pr_snapshot(n)
         if files is None:
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
             record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
             continue
-        diff = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)[:20000]
-        verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": diff}, ask)
+        if not same_reviewed_head(before, after_files):
+            record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                       "why": ["PR head changed while its diff was being fetched; review deferred"]})
+            continue
+        reviewed_head = after_files["head_sha"]
+        full = "\n".join(f"--- {f['filename']}\n{f.get('patch', '')}" for f in files)
+        verdict, reason = code_verdict({"title": item["title"], "next": item.get("next", "")[:1500], "diff": full[:DIFF_SEEN]}, ask)
+        if verdict is None:   # no answer (outage, empty or unparsable reply) is not a judgement: leave it for the next run
+            # audit 2026-11-21 (A F3, GLM F115): this closed good PRs and spent the redo
+            record["code_prs"].append(_defer(wt, item, n, "no verdict from the reviewing model"))
+            continue
         ok, why = merge_decision(item, files, verdict)
+        unseen = len(full) > DIFF_SEEN or any(not f.get("patch") for f in files)
+        if unseen and verdict == "approve":   # the reviewer could not see it whole (audit R2 F3: a payload after 20,000 characters)
+            ok = False   # (a rejection stands as it is: what was seen was enough to reject, and its reason goes to the coder)
+            why.append("files a person merges: the change is too long, or has a file with no diff, for the reviewer to see whole")
+        conflict = False
         if ok:
-            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge", "-f", "merge_method=squash"],
+            latest = pr_snapshot(n)
+            if not same_reviewed_head(after_files, latest):
+                record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                           "why": ["PR state or head changed after review; merge refused"]})
+                continue
+            if not queue_still_authorises_pr(wt, item["id"], n):
+                record["code_prs"].append({"id": item["id"], "pr": n, "merged": False,
+                                           "why": ["queue no longer authorises this PR; merge refused"]})
+                continue
+            # GitHub's merge endpoint checks this SHA atomically, closing the final review-to-merge TOCTOU window.
+            m = subprocess.run(["gh", "api", "-X", "PUT", f"repos/{REPO}/pulls/{n}/merge",
+                                "-f", "merge_method=squash", "-f", f"sha={reviewed_head}"],
                                capture_output=True, text=True)
             if m.returncode:
-                why.append("merge refused by GitHub: " + (m.stderr or m.stdout)[-200:])
-                ok = False
+                st = subprocess.run(["gh", "api", f"repos/{REPO}/pulls/{n}", "-q", ".mergeable_state"], capture_output=True, text=True)
+                if st.stdout.strip() != "dirty":   # refused for another reason (checks pending, head moved, GitHub down): retry later
+                    record["code_prs"].append(_defer(wt, item, n, "merge refused by GitHub, not a conflict: " + (m.stderr or m.stdout)[-160:]))
+                    continue
+                why.append("merge conflicts with today's main: " + (m.stderr or m.stdout)[-160:])
+                ok, conflict = False, True
         note = f"tier ({MODEL}): PR #{n} " + ("merged" if ok else "not merged: " + "; ".join(why)) + f"; model: {reason}"[:400]
-        conflict = not ok and len(why) == 1 and "merge conflicts" in why[0]
         if conflict:   # approved, but another merged PR touched the same lines: redone on today's main, not escalated
             subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{REPO}/pulls/{n}", "-f", "state=closed"], capture_output=True, text=True)
         person = not ok and verdict == "approve" and any("files a person merges" in w for w in why)
@@ -250,6 +351,27 @@ def drain_code(wt, ask, record):
             rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
                         note + ("; closed for a redo on today's main" if conflict else ""))
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
+
+
+def defers(item):
+    """Tier runs that could not judge this item's current PR (no verdict, merge refused), since the run that opened it."""
+    n = 0
+    for r in reversed(item.get("runs") or []):
+        if r.get("outcome") == "pr":
+            break
+        n += r.get("outcome") == "defer"
+    return n
+
+
+def _defer(wt, item, n, why):
+    """Keep the PR open for the next tier run, counted on the item; after MAX_DEFERS it goes to the owner, PR still open
+    (review 2026-11-22: uncounted, a PR the tier can never judge sat in review for ever and held one of MAX_PRS slots)."""
+    note = f"tier ({MODEL}): PR #{n} not judged: {why}"[:400]
+    if defers(item) + 1 >= MAX_DEFERS:
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note + f"; {MAX_DEFERS} tier runs could not judge it: to the owner, PR open")
+    else:
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "defer", note + "; left for the next tier run")
+    return {"id": item["id"], "pr": n, "merged": False, "why": [why], "deferred": True, "rc": rc}
 
 
 def _redo_with_reason(wt, item_id, why, note):
@@ -277,7 +399,7 @@ def retry_code(wt, record):
     q = Q.load(wt)
     for i in [x for x in q["items"] if x.get("status") == "escalated" and x.get("code")][:MAX_ITEMS]:
         last = (i.get("runs") or [{}])[-1]
-        why = "; ".join(str(w) for w in (last.get("why") or [])[:3])[:500]
+        why = str(last.get("result") or "")[:500]   # F019 (review 2026-11-22): run records carry 'result', never 'why' - the reason was always empty
         if tier_redos(i) >= MAX_REDOS:   # parked with the reason; the splitter cuts its parent again, smaller
             rc = Q.move(wt, f"tier-{MODEL}", i["id"], "resplit", f"tier: failed after its retry, parked for a smaller split; last: {why}")
             record.setdefault("code_retries", []).append({"id": i["id"], "escalated": True, "rc": rc}); continue

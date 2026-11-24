@@ -25,14 +25,7 @@ def field(d, path):
 def probe(p):
     k = p["kind"]
     if k == "sha256_url":
-        try:
-            data = get(p["url"])
-        except Exception as e:   # the hash is the fact; transport trust is a separate fact (tls_valid)
-            if not isinstance(getattr(e, "reason", None), ssl.SSLCertVerificationError):
-                raise
-            with urllib.request.urlopen(p["url"], timeout=TIMEOUT, context=ssl._create_unverified_context()) as r:
-                data = r.read()
-        return hashlib.sha256(data).hexdigest()
+        return hashlib.sha256(get(p["url"])).hexdigest()
     if k == "tls_valid":
         try:
             with socket.create_connection((p["host"], 443), timeout=TIMEOUT) as s, \
@@ -62,7 +55,8 @@ def probe(p):
                + urllib.parse.urlencode({"search": p["model"].split("/")[-1], "per_page": 100}))
         return p["model"] in {m.get("name") for m in json.loads(get(url, "CLOUDFLARE_API_TOKEN"))["result"]}
     if k == "hf_dataset_license":
-        return (json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}")).get("cardData") or {}).get("license")
+        card = json.loads(get(f"https://huggingface.co/api/datasets/{p['dataset']}"))
+        return (card.get("cardData") or {}).get("license")
     raise ValueError(f"unknown probe kind {k}")
 
 
@@ -75,8 +69,10 @@ def run(register, status_path, now=None, keyed=False):
         if bool(f.get("keyed")) != keyed:
             continue
         last = st.get(f["id"], {})
-        if last.get("at") and now - dt.datetime.fromisoformat(last["at"]) < dt.timedelta(days=f.get("recheck_days", 1)):
-            continue
+        if last.get("at"):   # F036: a future 'at' (clock skew or a bad write) has negative age -> due now, never fresh forever
+            age = now - dt.datetime.fromisoformat(last["at"])
+            if age >= dt.timedelta(0) and age < dt.timedelta(days=f.get("recheck_days", 1)):
+                continue
         try:
             v = probe(f["probe"])
         except Exception as e:
@@ -86,7 +82,7 @@ def run(register, status_path, now=None, keyed=False):
         same = v == f["value"]
         st[f["id"]] = {"at": now.isoformat(), "value": v, "same": same}
         if not same:
-            changed.append(f"{f['id']}: registered {f['value']!r}, now {v!r}; cited by: {'; '.join(f['cited_by'])}")
+            changed.append(f"{f['id']}: registered {f['value']!r}, now {v!r}; cited by: {'; '.join(f.get('cited_by') or [])}")
     with open(status_path, "w") as fh:
         json.dump(st, fh, indent=1)
     for m in changed:

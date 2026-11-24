@@ -170,11 +170,33 @@ def claude_cost(model, inp, out):
     return round((inp * pi + out * po) / 1e6, 6)
 
 
+_PAID_USED = {}
+
+
+def paid_slot(pool):
+    """Take one paid request from this run's allowance, set by the workflow next to its ledger reservation as
+    ROUTER_PAID_CALLS="anthropic:19,openrouter_paid:3". None set, or used up: False, and the request is not sent.
+    Audit 2026-11-21 (R3 F1): the daily caps were checked only when a run reserved, on an estimate; nothing tied the
+    requests a run made to what it reserved (tier reserved 5 Claude calls and made up to 15, split 2 and up to 6)."""
+    caps = {}
+    for x in os.environ.get("ROUTER_PAID_CALLS", "").split(","):
+        k, _, v = x.strip().partition(":")
+        if k and v.isdigit():
+            caps[k] = int(v)
+    if _PAID_USED.get(pool, 0) >= caps.get(pool, 0):
+        return False
+    _PAID_USED[pool] = _PAID_USED.get(pool, 0) + 1
+    return True
+
+
 def anthropic_call(model, prompt, max_tokens=2000, system=None):
     """One Messages API call. Only models with a known price are allowed, so every call's cost can be recorded."""
     if model not in CLAUDE_PRICES:
         raise ValueError(f"no price recorded for {model}: add it to CLAUDE_PRICES with its source first")
     t0 = time.time()
+    if not paid_slot("anthropic"):
+        return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": "anthropic", "model": model, "ok": False,
+                "status": None, "latency_s": 0, "usage": {}, "text": None, "error": "run's paid-call allowance used up or not set (ROUTER_PAID_CALLS)"}
     body = {"model": model, "max_tokens": max_tokens, "messages": [{"role": "user", "content": prompt}]}
     if system:
         body["system"] = system
@@ -199,6 +221,16 @@ def _scrub(s):
     return re.sub(r"(account|org|organization|user)(_?id)?(['\"]?\s*[:=]?\s*['\"])[^'\"]{6,}(['\"])", r"\1\2\3***\4", s, flags=re.I) if s else s
 
 
+def _two_requests(a, b):
+    """One usage record for two billed requests: token counts and costs summed (None when neither reported a cost)."""
+    out = {"requests": 2}
+    for k in ("prompt_tokens", "completion_tokens", "total_tokens", "cost"):
+        vals = [u[k] for u in (a, b) if isinstance(u.get(k), (int, float))]
+        if vals and (k != "cost" or len(vals) == 2):   # one cost missing: leave it out, so the ledger books 2 estimates
+            out[k] = round(sum(vals), 6) if k == "cost" else sum(vals)
+    return out
+
+
 def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, reasoning=None):
     if engine in ("nvidia", "groq") and system is None:   # free pools the worker uses; router/pick.py spreads reviews to them (2026-11-20)
         return compat_call(engine, model, prompt, max_tokens=max_tokens)
@@ -213,10 +245,30 @@ def call(engine, model, prompt, system=None, max_tokens=2000, allow_paid=False, 
         body = {"model": model, "messages": msgs, "max_tokens": max_tokens}
         if reasoning:   # e.g. {"effort": "low"}: paid reasoning models spent all 8,000 tokens thinking on code jobs (2026-11-20)
             body["reasoning"] = reasoning
+        paid = not model.endswith(":free")
+        if paid and not paid_slot("openrouter_paid"):
+            return {"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": engine, "model": model, "ok": False,
+                    "status": None, "latency_s": 0, "usage": None, "text": None,
+                    "error": "run's paid-call allowance used up or not set (ROUTER_PAID_CALLS)"}
         st, j = _post("https://openrouter.ai/api/v1/chat/completions", body,
                       {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
         if st == 200 and j.get("choices"):
             text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
+        if st == 200 and not text and j.get("provider") and paid and paid_slot("openrouter_paid"):   # the retry is a request too
+            # 2026-11-21: 17 of 49 paid DeepSeek calls came back 200 with no text (one seen: provider Cohere); one retry that
+            # skips the provider which returned nothing (OpenRouter provider routing), so a paid call is not wasted
+            bad = j.get("provider")
+            first = usage if isinstance(usage, dict) else {}
+            st, j = _post("https://openrouter.ai/api/v1/chat/completions", dict(body, provider={"ignore": [bad]}),
+                          {"Authorization": "Bearer " + os.environ["OPENROUTER_API_KEY"]})
+            usage = None
+            if st == 200 and j.get("choices"):
+                text, usage = j["choices"][0]["message"].get("content"), j.get("usage")
+            # both requests are billed: the returned record carries both, so the ledger counts 2 calls and their summed
+            # cost (audit 2026-11-21, R3 F2; the record callers write to calls.jsonl keeps only usage, so it goes there)
+            usage = _two_requests(first, usage if isinstance(usage, dict) else {})
+            if not text:
+                j = dict(j, _skipped_provider=bad)
     elif engine == "cloudflare":
         acct = os.environ["CLOUDFLARE_ACCOUNT_ID"]
         st, j = _post(f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{model}",

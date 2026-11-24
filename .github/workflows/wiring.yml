@@ -21,7 +21,11 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0  # zizmor: ignore[artipacked] pushes the status file with the checkout token; no artifact
         with:
           fetch-depth: 1
+      - name: pause switch (worker/PAUSE stops every keyed run that starts itself; audit 2026-11-21, R1 F4)
+        id: pause
+        run: if [ -f worker/PAUSE ]; then echo "paused by worker/PAUSE"; echo "paused=1" >> "$GITHUB_OUTPUT"; fi
       - name: keyed facts
+        if: steps.pause.outputs.paused != '1'
         id: facts
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -38,6 +42,6 @@ jobs:
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
           cd "$RUNNER_TEMP/fr" && git add facts/status-keyed.json && { git diff --cached --quiet || { git commit -qm "facts (keyed): run $GITHUB_RUN_ID (rc $rc)" && git push -q origin HEAD:worker-runs || echo "status push failed"; }; }
       - name: a changed or unreachable fact fails the run
-        if: steps.facts.outputs.rc != '0'
+        if: steps.pause.outputs.paused != '1' && steps.facts.outputs.rc != '0'
         run: |
           echo "::error::a provider fact changed or could not be checked (rc ${{ steps.facts.outputs.rc }}): see the step above"; exit 1

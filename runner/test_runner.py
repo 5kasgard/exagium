@@ -209,9 +209,65 @@ class KnnWiderGrid(unittest.TestCase):
         self.assertTrue(all(r == 8 and q == 2 for r, q, _ in calls))
 
 
+class KnnInferKGreaterThanN(unittest.TestCase):
+    """GLM F072: infer accepts k > n and clamps to the training-set size, like train.py's predict."""
+    def test_k_greater_than_n_is_clamped(self):
+        import struct
+        src = os.path.join(HERE, "candidates", "label-knn", "infer.c")
+
+        def weights(k):
+            d, n, C = 1, 2, 2
+            return (struct.pack("<5i", 0x314E4E4B, d, n, C, k)
+                    + bytes(2 * d * 65536) + bytes([0, 1]) + bytes([0, 1]))
+
+        with tempfile.TemporaryDirectory() as d:
+            exe = os.path.join(d, "infer")
+            subprocess.run([os.environ.get("CC", "cc"), "-O2", "-o", exe, src], check=True)
+            inp = os.path.join(d, "in.rec")
+            open(inp, "wb").write(records.pack([b"\x00"]))
+            outs = []
+            for k in (2, 5):
+                w = os.path.join(d, "w%d.bin" % k)
+                open(w, "wb").write(weights(k))
+                r = subprocess.run([exe, w, inp, "1"], capture_output=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                outs.append(r.stdout)
+            self.assertEqual(outs[0], outs[1])
+
+
 def mock_task(R):
     from unittest import mock
     return mock.patch.object(R, "task", return_value={"name": "t"})
+
+
+
+class MarginalGuard(unittest.TestCase):
+    """Audit 2026-11-21 (R4 F2): atk-n0burn burned 240M instructions only when N = 0 and was accepted at -250,724 Ir/item."""
+    def test_marginal_problem(self):
+        import run
+        self.assertIsNone(run.marginal_problem(444_175 + 240_136_328, 240_136_328))
+        self.assertIn("no more than", run.marginal_problem(444_175, 240_136_328))   # the audit's numbers
+        self.assertIn("no more than", run.marginal_problem(10, 10))
+        self.assertIn("not counts", run.marginal_problem(None, 10))
+
+class ClusteredSE(unittest.TestCase):
+    """K54: writer-clustered SE for the mean, G/(G-1) and (n-1)/(n-k) small-sample factors."""
+    def test_identical_writer_contributions(self):
+        # each writer contributes the same values [0, 1]: every cluster's residual sum is zero, so SE = 0,
+        # while the naive per-item SE over the four items is strictly positive
+        values, writers = [0.0, 1.0, 0.0, 1.0], ["a", "a", "b", "b"]
+        se = records.clustered_se(values, writers)
+        self.assertIsNotNone(se)
+        self.assertAlmostEqual(se, 0.0)
+        import math, statistics
+        self.assertGreater(statistics.stdev(values) / math.sqrt(len(values)), 0.0)
+
+    def test_single_writer_is_none(self):
+        self.assertIsNone(records.clustered_se([1.0, 2.0, 3.0], ["a", "a", "a"]))
+
+    def test_none_writer_raises(self):
+        with self.assertRaises(ValueError):
+            records.clustered_se([1.0, 2.0], ["a", None])
 
 
 if __name__ == "__main__":

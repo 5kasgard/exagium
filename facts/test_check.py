@@ -55,6 +55,15 @@ class Check(unittest.TestCase):
             self.assertEqual(check.run(r, os.path.join(d, "s2.json"), keyed=True), 2)     # keyed run: only k, and it changed
         self.assertEqual(seen, ["x", "y", "z"])
 
+    def test_sha256_url_does_not_fall_back_on_bad_certificate(self):
+        import ssl, urllib.error
+        err = urllib.error.URLError(ssl.SSLCertVerificationError("certificate verify failed"))
+        with mock.patch.object(check, "get", side_effect=err), \
+             mock.patch.object(check.urllib.request, "urlopen") as urlopen:
+            with self.assertRaises(urllib.error.URLError):
+                check.probe({"kind": "sha256_url", "url": "https://bad"})
+            urlopen.assert_not_called()
+
     def test_field(self):
         self.assertEqual(check.field({"a": {"b": 3}}, "a.b"), 3)
 

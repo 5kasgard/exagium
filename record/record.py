@@ -274,7 +274,7 @@ def cmd_ingest(a):
 
 def cmd_verify(a):
     chain, verdict_of = load_chain(a.ledger)
-    today = datetime.date.today().isoformat()
+    today = datetime.datetime.now(datetime.timezone.utc).date().isoformat()   # F065: the UTC day, not the local calendar date
     plans = [e for e, _ in chain if e["kind"] == "plan"]
     open_ = [e["seq"] for e in plans if e["seq"] not in verdict_of]
     overdue = [e["seq"] for e in plans if e["seq"] not in verdict_of and e["body"].get("verdict_due", "9999-12-31") < today]
@@ -351,6 +351,22 @@ def check_sigstore(bundle, digest, repo, workflow, ref):
     return t, st.get("predicate"), commit
 
 
+def ots_block_hash(base, height):
+    """Resolve a block height without treating an explorer's shorter tip as proof of forgery."""
+    bh = _get(f"{base}/block-height/{height}")
+    if bh is not None:
+        return bh.decode().strip()
+    tip = _get(f"{base}/blocks/tip/height")
+    if tip is not None:
+        try:
+            tip_height = int(tip)
+        except (TypeError, ValueError):
+            raise CantCheck(f"{base}: invalid chain tip while resolving block {height}")
+        if height > tip_height:
+            raise CantCheck(f"{base}: explorer tip {tip_height} is below claimed block {height}; stale explorer cannot establish forgery")
+    raise CantCheck(f"{base}: no block at height {height}")
+
+
 def check_ots(proof, entry_raw, explorers):
     """Returns the earliest Bitcoin block time the proof reaches, or None if it's still pending."""
     try:
@@ -374,13 +390,7 @@ def check_ots(proof, entry_raw, explorers):
             continue
         headers = set()
         for base in explorers:
-            bh = _get(f"{base}/block-height/{att.height}")
-            if bh is None:  # 404: either the block doesn't exist (a forged height) or the explorer is behind
-                tip = _get(f"{base}/blocks/tip/height")
-                if tip is not None and att.height > int(tip):
-                    raise Bad(f"{name}: claims block {att.height}, beyond the chain tip {int(tip)}")
-                raise CantCheck(f"{base}: no block at height {att.height}")
-            bh = bh.decode().strip()
+            bh = ots_block_hash(base, att.height)
             hdr = _get(f"{base}/block/{bh}/header")
             if hdr is None:
                 raise CantCheck(f"{base}: no header for block {bh}")
@@ -458,7 +468,9 @@ def cmd_check_anchors(a):
             changes.append({"entries": f"{lo}-{hi}", "from_commit": prev_commit, "to_commit": commit,
                             "writer_code_changed": _code_changed(a, prev_commit, commit)})
         prev_commit = commit
-    if covered < len(chain):
+    if covered < len(chain) and not (cant and not ranges):
+        # F067 (review 2026-11-22): when every anchor check came back can't-check (missing local tools), ranges is
+        # empty and this complaint would call a tool gap a fault - exit 2, never 1, on can't-check alone.
         bad.append(f"entries {covered + 1}-{len(chain)} were never attested by the writer")
     print(json.dumps({"anchors": rows, "entries": len(chain), "writer_attested_through": covered,
                       "writer_runs": changes, "wrong": bad, "could_not_check": cant}, indent=1))

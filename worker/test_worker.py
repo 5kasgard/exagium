@@ -6,9 +6,28 @@ import digest  # noqa: E402
 import research_job as R  # noqa: E402
 import doc_job as D  # noqa: E402
 import queue_ops as Q  # noqa: E402
+import tier as TierModule  # noqa: E402
 
 ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "lines": [2, 3]}]}
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
+
+
+class TierMergeGuards(unittest.TestCase):
+    def test_only_same_open_non_draft_head_can_merge(self):
+        reviewed = {"state": "open", "draft": False, "head_sha": "abc"}
+        self.assertTrue(TierModule.same_reviewed_head(reviewed, dict(reviewed)))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": False, "head_sha": "def"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "closed", "draft": False, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, {"state": "open", "draft": True, "head_sha": "abc"}))
+        self.assertFalse(TierModule.same_reviewed_head(reviewed, None))
+
+    def test_queue_must_still_point_to_the_reviewed_pr(self):
+        item = {"status": "review", "code": {"files": ["a.py"]},
+                "runs": [{"outcome": "pr", "where": "https://github.com/5kasgard/exagium/pull/17"}]}
+        self.assertTrue(TierModule.queue_authorises_pr(item, 17))
+        self.assertFalse(TierModule.queue_authorises_pr(item, 18))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, status="escalated"), 17))
+        self.assertFalse(TierModule.queue_authorises_pr(dict(item, runs=[{"outcome": "redo", "where": item["runs"][0]["where"]}]), 17))
 
 
 class Edits(unittest.TestCase):
@@ -114,10 +133,59 @@ class Research(unittest.TestCase):
         self.assertEqual(len(ok), 1)
         self.assertEqual(len(dropped), 7)
 
+    def test_quote_typography_is_not_a_mismatch(self):
+        # R27/R31 2026-11-21: the reader wrote U+2011 for '-', arXiv kept LaTeX '70\%', and a quote ended with an added '.'
+        src = [{"sid": "S1", "abstract": "routing across a pool of real-world models cuts cost by up to 70\\% on math, and more"}]
+        good = "routing across a pool of real‑world models cuts cost by up to 70% on math."
+        ok, dropped = R.verified([{"source": "S1", "claim": "cuts cost up to 70%", "quote": good, "evidence": "measured"},
+                                  {"source": "S1", "claim": "x", "quote": good.replace("pool", "set"), "evidence": "measured"}], src)
+        self.assertEqual((len(ok), [w for _, w in dropped]), (1, ["quote not found verbatim in the abstract"]))
+        # review 2026-11-22: more typography kept; a quote cut inside a number, or missing a minus sign, still dropped
+        src = [{"sid": "S1", "abstract": "Gains of −0.5 to 1–2 points with “small” models, and up to 70.5% on math."}]
+        c = lambda q: {"source": "S1", "claim": "x", "quote": q, "evidence": "reported"}
+        ok, dropped = R.verified([c('Gains of -0.5 to 1-2 points with "small" models'),
+                                  c("of 0.5 to 1-2 points with"), c("models, and up to 70"), c("models, and up to 70.")], src)
+        self.assertEqual((len(ok), len(dropped)), (1, 3))
+        self.assertFalse(R.whole_in("training costs up to 1", "training costs up to 1,000 dollars"))
+
+    def test_claim_numbers_must_match_the_quote_on_number_edges(self):
+        # F024 (review 2026-11-22): '0.5' is a substring of '10.5', so a claim of 0.5 passed a quote saying 10.5 - a
+        # magnitude error the cards exist to stop; the number must sit on number edges in the quote
+        src = [{"sid": "S1", "abstract": "Latency drops to 10.5 ms under load, and accuracy reaches 98% on the full test set."}]
+        ok, dropped = R.verified([
+            {"source": "S1", "claim": "latency drops to 0.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "latency drops to 10.5 ms", "quote": "Latency drops to 10.5 ms under load", "evidence": "measured"},
+            {"source": "S1", "claim": "accuracy reaches 98%", "quote": "accuracy reaches 98% on the full test set", "evidence": "measured"}], src)
+        self.assertEqual([c["claim"] for c in ok], ["latency drops to 10.5 ms", "accuracy reaches 98%"])
+        self.assertEqual([w for _, w in dropped], ["a number in the claim is not in the quote"])
+
     def test_clean(self):
         t = R.clean("see https://evil.example <script>x</script> @someone fixes #12 [a](b)\nnext")
         for bad in ("http", "<", "@someone", "#12", "](", "\n"):
             self.assertNotIn(bad, t)
+
+
+class TierRetryCode(unittest.TestCase):
+    def test_the_retry_reason_comes_from_the_run_records_result_field(self):
+        # F019 (review 2026-11-22): run records carry 'result', never 'why' - retry_code's reason was always empty and
+        # the escalated coder re-ran blind; the rejection now rides the last run record's 'result'
+        import tier
+        from unittest import mock
+        item = {"id": "K99", "status": "escalated", "code": True, "next": "",
+                "runs": [{"at": "2026-11-23T00:00:00Z", "worker": "tier-x", "outcome": "escalate",
+                          "result": "only part of the item was done"}]}
+        saved = {}
+        with mock.patch.object(tier.Q, "sync"), \
+                mock.patch.object(tier.Q, "load", side_effect=lambda wt: {"items": [json.loads(json.dumps(item))]}), \
+                mock.patch.object(tier.Q, "save", side_effect=lambda wt, q: saved.update(q=q)), \
+                mock.patch.object(tier.Q, "commit_push", return_value=True):
+            rec = {}
+            tier.retry_code("/tmp/wt", rec)
+        it = saved["q"]["items"][0]
+        self.assertIn("PREVIOUS ATTEMPT REJECTED: only part of the item was done", it["next"])
+        self.assertEqual(it["status"], "open")
+        self.assertIn("only part of the item was done", it["runs"][-1]["result"])
+        self.assertEqual(rec["code_retries"], [{"id": "K99", "redo": True}])
 
 
 class DocSafety(unittest.TestCase):
@@ -448,6 +516,48 @@ class LoopMetrics(unittest.TestCase):
         self.assertIn("not measured", out[4])
 
 
+class GenerateThroughput(unittest.TestCase):
+    """2026-11-22 (owner: break the open items down on free compute, following the data): the research cap counted the
+    splitter's code items, so it was spent before the generator ran; and a run tried every candidate until one passed."""
+
+    def test_cap_counts_research_items_only(self):
+        import generate as G
+        day = "2026-11-21"
+        q = {"items": [{"id": f"K{n}", "origin": "generated", "generated_at": day + "T01:00:00Z", "code": {}} for n in range(25)]
+             + [{"id": "R1", "origin": "generated", "generated_at": day + "T02:00:00Z", "research": {"question": "q"}}]}
+        self.assertEqual(G.today_count(q, day), 1)
+
+    def test_a_run_makes_at_most_max_tries_draft_calls(self):
+        import generate as G
+        from unittest import mock
+        q = {"items": [{"id": f"P{n}", "status": "open", "kind": "build", "title": "t" * 20, "next": "n"} for n in range(20)]}
+        tried = []
+        with tempfile.TemporaryDirectory() as out, mock.patch.object(G.Q, "sync"), mock.patch.object(G.Q, "load", return_value=q), \
+                mock.patch.object(G, "regate", return_value=[]):
+            G.run("wt", out, draft_fn=lambda prompt: tried.append(1) or None, decide_fn=lambda p: ([], None))
+        self.assertEqual(len(tried), G.MAX_TRIES)
+
+    def test_calls_fit_the_reservation(self):
+        """Regate decide + MAX_TRIES drafts + final decide <= the workflows' openrouter:4 (review 2026-11-22: 5 before)."""
+        import generate as G, re
+        wf = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "worker.yml")).read()
+        self.assertEqual(int(re.search(r'"gen-\$GITHUB_RUN_ID" "openrouter:(\d+)"', wf).group(1)), 1 + G.MAX_TRIES + 1)
+
+    def test_regate_takes_only_todays_room(self):
+        import generate as G
+        from unittest import mock
+        day = G.dt.datetime.now(G.dt.timezone.utc).strftime("%Y-%m-%d")
+        q = {"items": [{"id": "P1", "status": "open", "kind": "build", "title": "a parent item", "next": "n"}]
+             + [{"id": f"R{n}", "title": "a research question", "status": "proposed", "generated_from": "P1", "origin": "generated", "research": {"question": "q"},
+                 "generated_at": "2026-01-01T00:00:00Z"} for n in range(15)]
+             + [{"id": f"R{n}", "status": "done", "origin": "generated", "research": {"question": "q"}, "generated_at": day + "T00:00:00Z"}
+                for n in range(100, 100 + G.MAX_PER_DAY - 2)]}
+        seen = []
+        with tempfile.TemporaryDirectory() as out, mock.patch.object(G.Q, "sync"), mock.patch.object(G.Q, "load", return_value=q):
+            G.run("wt", out, draft_fn=lambda p: None, decide_fn=lambda pairs: seen.append(len(pairs) - 2) or (None, "x"))
+        self.assertEqual(seen[0], 2)   # 2 of today's 10 left: 2 re-gated, not 10
+
+
 class GenerateControls(unittest.TestCase):
     def test_frozen_controls(self):
         import generate as G
@@ -518,12 +628,13 @@ class CodeJob(unittest.TestCase):
 class TierMerge(unittest.TestCase):
     def test_merge_gate(self):
         import tier as TI
-        item = {"code": {"files": ["worker/diagnose.py"]}}
-        ok, why = TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 5, "deletions": 0}], "approve")
+        item = {"code": {"files": ["experiments/x.py"]}}
+        ok, why = TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 5, "deletions": 0}], "approve")
         self.assertTrue(ok)
-        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 90, "deletions": 0}], "approve")[0])
-        self.assertFalse(TI.merge_decision(item, [{"filename": "worker/diagnose.py", "additions": 1, "deletions": 0}], "reject")[0])
-        for f in ("worker/tier.py", "router/slots.py", ".github/workflows/x.yml", "worker/other.py"):
+        self.assertFalse(TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 90, "deletions": 0}], "approve")[0])
+        self.assertFalse(TI.merge_decision(item, [{"filename": "experiments/x.py", "additions": 1, "deletions": 0}], "reject")[0])
+        # worker/diagnose.py was mergeable here before the audit of 2026-11-21: tier.yml runs it with keys
+        for f in ("worker/tier.py", "router/slots.py", ".github/workflows/x.yml", "worker/other.py", "worker/diagnose.py"):
             self.assertFalse(TI.merge_decision({"code": {"files": [f]}} if f != "worker/other.py" else item,
                                                [{"filename": f, "additions": 1, "deletions": 0}], "approve")[0], f)
 
@@ -532,6 +643,102 @@ class TierMerge(unittest.TestCase):
         q = {"items": [{"id": "K1", "status": "review", "code": {"files": ["a"]}, "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/9"}]},
                        {"id": "K2", "status": "review", "runs": [{"outcome": "pr", "where": "https://github.com/x/y/pull/10"}]}]}
         self.assertEqual([(i["id"], n) for i, n in TI.code_prs(q)], [("K1", 9)])
+
+
+class TierOutcomes(unittest.TestCase):
+    """Audit 2026-11-21 (A F3, GLM F115, R2 F3), driven through drain_code: no verdict, or GitHub refusing a merge for a
+    reason other than a conflict, is not a judgement (it closed good PRs and spent their one redo); a change too long for
+    the reviewer to see whole goes to a person."""
+
+    def _drain(self, verdict, files, merge_rc=0, state="clean", runs=None, head_change=False, queue_authorised=True):
+        import tier as TI
+        from unittest import mock
+        item = {"id": "X1", "title": "t", "status": "review", "code": {"files": ["experiments/x.py"], "test": "experiments/test_experiments.py"},
+                "runs": [{"outcome": "pr", "where": "https://github.com/o/r/pull/7"}]}
+        if runs:
+            item["runs"] = [dict(runs[0], where="https://github.com/o/r/pull/7")] + runs[1:]
+        calls, moves = [], []
+
+        def run(cmd, **k):
+            calls.append(cmd)
+            out = state if cmd[-1] == ".mergeable_state" else ""
+            rc = merge_rc if "PUT" in cmd else 0
+            return mock.Mock(returncode=rc, stdout=out, stderr="refused" if rc else "")
+        ask = lambda prompt: verdict
+        rec = {"code_controls": [], "code_prs": []}
+        snapshot = {"state": "open", "draft": False, "head_sha": "abc"}
+        latest = dict(snapshot, head_sha="def") if head_change else dict(snapshot)
+        with mock.patch.object(TI, "CODE_CONTROLS", []), mock.patch.object(TI.Q, "sync"), \
+                mock.patch.object(TI.Q, "load", return_value={"items": [item]}), mock.patch.object(TI, "pr_files", return_value=files), \
+                mock.patch.object(TI, "pr_snapshot", side_effect=[snapshot, snapshot, latest]), \
+                mock.patch.object(TI, "queue_still_authorises_pr", return_value=queue_authorised), \
+                mock.patch.object(TI.subprocess, "run", side_effect=run), \
+                mock.patch.object(TI.Q, "move", side_effect=lambda wt, who, i, outcome, note: moves.append(outcome) or 0), \
+                mock.patch.object(TI, "_redo_with_reason", side_effect=lambda *a: moves.append("redo_with_reason") or 0):
+            TI.drain_code("wt", ask, rec)
+        closed = any("state=closed" in c for c in calls)
+        return closed, moves, rec["code_prs"][0]
+
+    F = [{"filename": "experiments/x.py", "additions": 2, "deletions": 0, "patch": "+a\n+b", "status": "modified"}]
+
+    def test_no_verdict_leaves_the_pr_for_the_next_run(self):
+        for reply in (None, "", "not json", '{"verdict": "maybe"}'):
+            closed, moves, rec = self._drain(reply, self.F)
+            self.assertEqual((closed, moves), (False, ["defer"]), repr(reply))
+            self.assertIn("no verdict", rec["why"][0])
+
+    def test_a_refused_merge_that_is_not_a_conflict_is_retried(self):
+        for state in ("blocked", "behind", "unknown", ""):
+            closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state=state)
+            self.assertEqual((closed, moves), (False, ["defer"]), state)
+
+    def test_deferrals_are_bounded(self):
+        import tier as TI
+        runs = [{"outcome": "pr"}] + [{"outcome": "defer"}] * (TI.MAX_DEFERS - 1)
+        closed, moves, rec = self._drain(None, self.F, runs=runs)
+        self.assertEqual((closed, moves), (False, ["escalate"]))   # to the owner, PR still open
+        self.assertEqual(TI.defers({"runs": [{"outcome": "defer"}, {"outcome": "pr"}, {"outcome": "defer"}]}), 1)   # since the PR
+        deferred = {"id": "X2", "status": "review", "code": {"files": ["a.py"]},
+                    "runs": [{"outcome": "pr", "where": "https://github.com/o/r/pull/9"}, {"outcome": "defer"}]}
+        self.assertEqual([(i["id"], n) for i, n in TI.code_prs({"items": [deferred]})], [("X2", 9)])   # still reviewed next run
+
+    def test_a_deferral_does_not_reset_the_failure_count(self):
+        import queue_ops as QO, transitions as T
+        self.assertEqual(QO.failures({"runs": [{"outcome": "failed"}, {"outcome": "defer"}, {"outcome": "failed"}]}), 2)
+        self.assertEqual(T.next_status("review", "defer"), "review")
+
+    def test_a_rejection_of_an_unseen_change_is_a_plain_rejection(self):
+        long = [dict(self.F[0], patch="+" + "x" * 25000)]
+        closed, moves, rec = self._drain('{"verdict": "reject", "reason": "wrong"}', long)
+        self.assertEqual((closed, moves), (True, ["redo_with_reason"]))
+        self.assertFalse(any("person" in w for w in rec["why"]))
+
+    def test_a_conflict_is_redone(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, merge_rc=1, state="dirty")
+        self.assertEqual((closed, moves), (True, ["redo"]))
+
+    def test_head_change_after_review_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, head_change=True)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("head changed", rec["why"][0])
+
+    def test_queue_cancellation_prevents_merge(self):
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', self.F, queue_authorised=False)
+        self.assertEqual((closed, moves), (False, []))
+        self.assertIn("queue no longer authorises", rec["why"][0])
+
+    def test_a_merge(self):
+        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', self.F)[:2], (False, ["confirm"]))
+
+    def test_a_rejection_on_merit_still_closes_and_redoes(self):
+        self.assertEqual(self._drain('{"verdict": "reject", "reason": "wrong"}', self.F)[:2], (True, ["redo_with_reason"]))
+
+    def test_a_change_too_long_to_see_whole_goes_to_a_person(self):
+        long = [dict(self.F[0], patch="+" + "x" * 25000)]
+        closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', long)
+        self.assertEqual((closed, moves), (False, ["escalate"]))
+        nodiff = [dict(self.F[0], patch=None)]
+        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', nodiff)[:2], (False, ["escalate"]))
 
 
 class TierRedoCap(unittest.TestCase):
@@ -601,6 +808,34 @@ class CodeReplyFormat(unittest.TestCase):
         self.assertEqual(C.parse_reply('{"edits": [], "note": "x"}')["note"], "x")
         self.assertIsNone(C.parse_reply("nothing here"))
 
+    def test_new_file_block_does_not_swallow_the_next(self):
+        # K44 run 44953039259: an empty SEARCH (a new file) ran on to the test block's =======, so the new file got the
+        # test's code and the test edit vanished. Each block must stand alone, whatever order the model writes them in.
+        import code_job as C
+        new = "<<<<<<< SEARCH router/analysis/attempt_join.py\n=======\ndef parse_calls(lines):\n    return {}\n>>>>>>> REPLACE\n"
+        test = ('<<<<<<< SEARCH router/test_router.py\nif __name__ == "__main__":\n=======\nclass T(unittest.TestCase):\n'
+                '    pass\n\nif __name__ == "__main__":\n>>>>>>> REPLACE\n')
+        want = [{"path": "router/analysis/attempt_join.py", "old": "", "new": "def parse_calls(lines):\n    return {}"},
+                {"path": "router/test_router.py", "old": 'if __name__ == "__main__":',
+                 "new": 'class T(unittest.TestCase):\n    pass\n\nif __name__ == "__main__":'}]
+        self.assertEqual(C.parse_reply("```\n" + new + "\n" + test + "```\nNOTE: n")["edits"], want)
+        self.assertEqual(C.parse_reply(test + new)["edits"], want[::-1])
+        # a blank line in SEARCH still marks a new file; a block cut off before REPLACE is dropped, not merged on
+        self.assertEqual(C.parse_reply(new.replace("=======", "\n=======", 1))["edits"][0]["old"], "")
+        for cut in ("<<<<<<< SEARCH a.py\nx\n=======\ny\n" + test, "<<<<<<< SEARCH a.py\nx\n" + test, test + "<<<<<<< SEARCH a.py\nx\n"):
+            r = C.parse_reply(cut)
+            self.assertEqual((r["edits"], r["cut"]), (want[1:], ["a.py"]))
+        self.assertEqual(C.parse_reply(new + test)["cut"], [])
+        # review 2026-11-22: text holding a line that looks like a block start is reported as cut (the caller then repairs
+        # or refuses the whole set), never silently dropped while the other blocks land
+        r = C.parse_reply("<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertIsNone(r)   # no whole block: the slot chain moves on to the next model (review 2026-11-22)
+        r = C.parse_reply(test + "<<<<<<< SEARCH d.md\nOld\n=======\nlike\n<<<<<<< SEARCH path\nthen\n>>>>>>> REPLACE\n")
+        self.assertEqual((r["edits"], r["cut"]), (want[1:], ["d.md", "path"]))
+        self.assertEqual(C.parse_reply((new + test).replace("\n", "\r\n"))["edits"], want)
+        # a replacement that ends on the marker's line keeps its text
+        self.assertEqual(C.parse_reply("<<<<<<< SEARCH a.py\nx\n=======\ny>>>>>>> REPLACE")["edits"][0]["new"], "y")
+
 
 class SandboxRefused(unittest.TestCase):
     def test_sandbox_paths(self):
@@ -650,7 +885,8 @@ class GLMReview20261120(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             repo, out = os.path.join(d, "r"), os.path.join(d, "o"); os.makedirs(repo); os.makedirs(out)
             open(os.path.join(repo, "a.py"), "w").write("x = 1\n")
-            json.dump({"files": {"a.py": "x = 1\n"}, "test": "t"}, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"files": {"a.py": "x = 1\n"}, "test": "t", "item": {"id": "K1", "touches": ["a.py"], "code": {"files": ["a.py"], "test": "t"}}},
+                      open(os.path.join(out, "bundle.json"), "w"))
             json.dump({"proposal": {"edits": [{"path": "a.py", "old": "x = 1", "new": "x = 2"}]}, "review": {"reason": "?"}},
                       open(os.path.join(out, "draft.json"), "w"))
             json.dump({"passed": True}, open(os.path.join(out, "test.json"), "w"))
@@ -687,6 +923,29 @@ class GLMReview20261120(unittest.TestCase):
             push.reset_mock()
             self.assertEqual(LG.record(wt, "gen-2", os.path.join(wt, "missing.jsonl")), 0)   # nothing held: no commit
             push.assert_not_called()
+
+    def test_paid_retry_counts_both_requests_in_the_ledger(self):
+        """Audit 2026-11-21 (R3 F2): a paid reply that came back empty is billed, then retried; the ledger the dollar cap
+        reads must count both requests and both costs. Driven through the path the worker uses: call() -> write_calls ->
+        ledger.record."""
+        import ledger as LG, engines, doc_job
+        from unittest import mock
+        replies = [(200, {"provider": "Cohere", "choices": [{"message": {"content": ""}}], "usage": {"cost": 0.004, "total_tokens": 10}}),
+                   (200, {"provider": "Other", "choices": [{"message": {"content": "ok"}}], "usage": {"cost": 0.003, "total_tokens": 7}})]
+        with mock.patch.object(engines, "_post", lambda u, b, h: replies.pop(0)), mock.patch.object(engines, "paid_guard"), \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": "openrouter_paid:2"}), \
+                mock.patch.object(engines, "_PAID_USED", {}):
+            r = dict(engines.call("openrouter", "deepseek/x", "hi", allow_paid=True), engine="openrouter_paid")
+        self.assertEqual(r["text"], "ok")
+        with tempfile.TemporaryDirectory() as wt, mock.patch.object(LG, "sync"), mock.patch.object(LG, "push", return_value=True):
+            doc_job.write_calls(wt, [r])
+            p = LG.day_path(wt); os.makedirs(os.path.dirname(p))
+            json.dump({"openrouter_paid": {"reserved": 3, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": [], "pending_calls": {"run-1": 3},
+                                           "pending_usd": {"run-1": 0.024}}}, open(p, "w"))
+            LG.record(wt, "run-1", os.path.join(wt, "calls.jsonl"))
+            e = json.load(open(p))["openrouter_paid"]
+        self.assertEqual((e["calls"], e["usd"], e["tokens"]), (2, 0.007, 17))
+
     def test_f036_exception_moves_down_the_chain(self):
         import slots
         seen = []
@@ -726,7 +985,9 @@ class IntakeReview(unittest.TestCase):
         import intake_review as IR
         from unittest import mock
         with tempfile.TemporaryDirectory() as d:
-            rows = {"F1": "worker/digest.py", "F2": ".github/workflows/x.yml", "F3": "record/record.py", "F4": "worker/digest.py"}
+            # F5: worker/digest.py runs with keys (digest.yml), so it goes to a person (audit 2026-11-21; it was filed before)
+            rows = {"F1": "experiments/queue_drift.py", "F2": ".github/workflows/x.yml", "F3": "record/record.py",
+                    "F4": "experiments/queue_drift.py", "F5": "worker/digest.py", "F6": "transfer/meter.py"}
             with open(os.path.join(d, "findings.jsonl"), "w") as f:
                 for k, p in rows.items():
                     f.write(json.dumps({"id": k, "file": p, "lines": [1, 2], "body": {"kind": "bug", "claim": "c " + k, "evidence": "e"}}) + "\n")
@@ -735,12 +996,68 @@ class IntakeReview(unittest.TestCase):
             open(os.path.join(d, "RESPONSE.md"), "w").write("## Fixed\n| F4 | high | abc1234 | |\n## Not changed\n## Open\n")
             items, skipped = IR.candidates(d)
             self.assertEqual([x["review"].split(":")[1] for x in items], ["F1"])
-            self.assertEqual(items[0]["test"], "worker/test_worker.py")
-            self.assertEqual(skipped, {"F2": "workflow or refused path", "F3": "a person merges this path", "F4": "closed"})
+            self.assertEqual(items[0]["test"], "experiments/test_experiments.py")
+            self.assertEqual(skipped, {"F2": "workflow or refused path", "F3": "a person merges this path", "F4": "closed",
+                                       "F5": "a person merges this path", "F6": "a person merges this path"})
             q = {"items": [{"id": "G1", "review": items[0]["review"], "status": "open"}]}
             with mock.patch.object(IR.Q, "sync"), mock.patch.object(IR.Q, "load", return_value=q):
                 self.assertEqual(IR.file_items(d, items), [])   # filed once already: nothing new
 
+
+
+class ExperimentLoop(unittest.TestCase):
+    """Audit 2026-11-21 (A F4, R2 F5, GLM F117, F123): an experiment that never yields a verdict must climb a tier, not
+    bounce open -> scheduled -> open forever; and a 'scheduled' item whose run was cancelled must not sit there forever."""
+
+    def test_lost_runs_escalate_through_dispatches(self):
+        import queue_ops as QO, transitions as T
+        i = {"id": "X1", "status": "open", "experiment": {"name": "x"}, "runs": []}
+        seen = []
+        for n in range(8):
+            i["status"] = T.next_status(i["status"], "dispatch")
+            i["runs"].append({"outcome": "dispatch", "result": "started"})
+            i["runs"].append({"outcome": "lost", "result": "no result"})
+            i["status"] = T.next_status("scheduled", "lost", QO.failures(i))
+            seen.append(i["status"])
+            if i["status"] != "open":
+                break
+        self.assertEqual(seen[-1], "escalated")
+        self.assertLessEqual(len(seen), T.MAX_FAILURES)
+
+    def test_scheduled_with_no_run_expires_as_lost(self):
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        old = {"id": "X2", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=QO.SCHEDULED_TTL_H + 1)), "outcome": "dispatch"}]}
+        new = {"id": "X3", "status": "scheduled", "experiment": {"name": "x"}, "runs": [{"at": QO.iso(t - dt.timedelta(hours=1)), "outcome": "dispatch"}]}
+        self.assertEqual(QO.expire({"items": [old, new]}, t), ["X2"])
+        self.assertEqual((old["status"], old["runs"][-1]["outcome"], new["status"]), ("open", "lost", "scheduled"))
+
+    def test_owner_scheduled_items_wait(self):
+        """Review 2026-11-21: 'scheduled' is also the owner's decide_scheduled; days-old ones must stay put."""
+        import queue_ops as QO, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X5", "status": "scheduled", "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        j = {"id": "X6", "status": "scheduled", "experiment": {"name": "x"},
+             "runs": [{"at": QO.iso(t - dt.timedelta(days=2)), "outcome": "decide_scheduled"}]}
+        self.assertEqual(QO.expire({"items": [i, j]}, t), [])
+
+    def test_a_late_result_is_recorded_not_moved(self):
+        import queue_ops as QO
+        from unittest import mock
+        q = {"items": [{"id": "X7", "status": "open", "experiment": {"name": "x"}, "runs": []}]}
+        with mock.patch.object(QO, "sync"), mock.patch.object(QO, "load", return_value=q), mock.patch.object(QO, "save"), \
+                mock.patch.object(QO, "commit_push", return_value=True):
+            self.assertEqual(QO.move("wt", "experiment", "X7", "verdict", "holds"), 0)
+        self.assertEqual((q["items"][0]["status"], q["items"][0]["runs"][-1]["outcome"]), ("open", "late_result"))
+        # and it does not reset the failure count (review 2026-11-21: it did, so the loop came back, slower)
+        self.assertEqual(QO.failures({"runs": [{"outcome": "lost"}, {"outcome": "late_result"}, {"outcome": "dispatch"}, {"outcome": "lost"}]}), 2)
+
+    def test_in_progress_with_no_claim_counts_toward_escalation(self):
+        import queue_ops as QO, transitions as T, datetime as dt
+        t = dt.datetime(2026, 11, 21, 12, tzinfo=dt.timezone.utc)
+        i = {"id": "X4", "status": "in progress", "runs": [{"outcome": "lease_expired", "result": "no claim held"}] * (T.MAX_FAILURES - 1)}
+        QO.expire({"items": [i]}, t)
+        self.assertEqual(i["status"], "escalated")
 
 
 class NewFiles(unittest.TestCase):
@@ -809,6 +1126,29 @@ class CoderRepair(unittest.TestCase):
         self.assertEqual(r["repair"]["after"], [])
         self.assertIn("import json", r["proposal"]["edits"][0]["new"])
 
+    def test_cut_block_is_repaired_or_refused_never_landed_in_part(self):
+        # review 2026-11-22: a block that ends early must not leave the other blocks to land without it
+        import code_job as C, slots
+        from unittest import mock
+        whole = "<<<<<<< SEARCH b.py\ny = 1\n=======\ny = 2\n>>>>>>> REPLACE\n"
+        part = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n"
+        fine = whole + "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 3\n>>>>>>> REPLACE\nNOTE: n"
+        for second, n_edits in ((part, 0), (fine, 2)):
+            replies = iter([part, second])
+            def fake_run(slot, prompt, ask, parse):
+                if slot == "coder":
+                    t = next(replies)
+                    return parse(t), {"text": t}, [{"pool": "p"}]
+                return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+            with tempfile.TemporaryDirectory() as d:
+                json.dump({"item": {"id": "K1", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "b.py": "y = 1\n"},
+                           "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+                with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                    C.draft(d)
+                r = json.load(open(os.path.join(d, "draft.json")))
+            self.assertIn("a.py: a block ended", r["repair"]["before"][0])
+            self.assertEqual(len(r["proposal"]["edits"]), n_edits)
+
 
 class DigestBudgetWindow(unittest.TestCase):
     """F029: --hours other than 24 must read every day's ledger, not just the endpoints."""
@@ -845,7 +1185,9 @@ class SecondDraft(unittest.TestCase):
             t = "import unittest\nfrom pkg import m\nclass T(unittest.TestCase):\n    def test(self):\n        self.assertEqual(m.X, 2)\n"
             open(os.path.join(repo, "pkg", "test_m.py"), "w").write(t)
             files = {"pkg/m.py": "X = 1\n", "pkg/test_m.py": t}
-            json.dump({"files": files, "test": "pkg/test_m.py"}, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"files": files, "test": "pkg/test_m.py", "item": {"id": "K1", "touches": list(files),
+                       "code": {"files": [p for p in files if p != "pkg/test_m.py"], "test": "pkg/test_m.py"}}},
+                      open(os.path.join(out, "bundle.json"), "w"))
             bad = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 3"}]}
             good = {"edits": [{"path": "pkg/m.py", "old": "X = 1", "new": "X = 2"}]}
             json.dump({"proposal": bad, "review": {"verdict": "approve"}, "arm": "two",
@@ -927,8 +1269,41 @@ class MergeAgentTexts(unittest.TestCase):
         ok, why = TI.merge_decision(item, [{"filename": "AGENTS.md", "additions": 1, "deletions": 0}], "approve")
         self.assertFalse(ok)
         ok, _ = TI.merge_decision(item, [{"filename": "README.md", "additions": 1, "deletions": 0}], "approve")
-        self.assertTrue(ok)
+        self.assertFalse(ok)   # gate review 2026-11-21: AGENTS.md sends agents to the README, so a person merges it too
 
+
+
+class LandRechecksBundle(unittest.TestCase):
+    """Audit 2026-11-21 (B F2, R1 F2): model code runs in the test job, whose artifact was unpacked over draft.json and
+    bundle.json in the land job. The workflow now unpacks it apart (tests/test_workflows.py); apply() also re-checks."""
+
+    def _run(self, bundle, env_item="K1"):
+        import code_job as C
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as d:
+            repo, out = os.path.join(d, "r"), os.path.join(d, "o")
+            os.makedirs(os.path.join(repo, "worker")); os.makedirs(out)
+            for p, t in bundle["files"].items():
+                os.makedirs(os.path.dirname(os.path.join(repo, p)) or repo, exist_ok=True); open(os.path.join(repo, p), "w").write(t)
+            json.dump(bundle, open(os.path.join(out, "bundle.json"), "w"))
+            json.dump({"proposal": {"edits": [{"path": p, "old": t, "new": t + "# x\n"} for p, t in bundle["files"].items()]},
+                       "review": {"verdict": "approve"}}, open(os.path.join(out, "draft.json"), "w"))
+            json.dump({"passed": True, "runs": []}, open(os.path.join(out, "test.json"), "w"))
+            with mock.patch.dict(os.environ, {"ITEM": env_item}):
+                C.apply(repo, out)
+            return json.load(open(os.path.join(out, "result.json")))["result"]
+
+    def test_bundle_must_match_the_item(self):
+        item = {"id": "K1", "touches": ["worker/a.py"], "code": {"files": ["worker/a.py"], "test": "worker/test_a.py"}}
+        ok = {"item": item, "files": {"worker/a.py": "x = 1\n", "worker/test_a.py": "# t\n"}}
+        self.assertEqual(self._run(ok), "pr")
+        forged = dict(ok, files=dict(ok["files"], **{"worker/tier.py": "y = 1\n"}))        # a file the item does not own
+        self.assertEqual(self._run(forged), "guard_blocked")
+        wf = dict(ok, item=dict(item, touches=item["touches"] + [".github/workflows/x.yml"],
+                                code={"files": ["worker/a.py", ".github/workflows/x.yml"], "test": "worker/test_a.py"}),
+                  files=dict(ok["files"], **{".github/workflows/x.yml": "on: push\n"}))      # a refused path, even if listed
+        self.assertEqual(self._run(wf), "guard_blocked")
+        self.assertEqual(self._run(ok, env_item="K2"), "guard_blocked")                    # another item's bundle
 
 
 class SplitTypes(unittest.TestCase):
@@ -973,6 +1348,24 @@ class OnlyTestEdits(unittest.TestCase):
                 C.draft(d)
             r = json.load(open(os.path.join(d, "draft.json")))
         self.assertIn("only the test file", r["repair"]["before"][0])
+
+    def test_no_test_edit_is_a_problem(self):
+        import code_job as C, slots
+        from unittest import mock
+        code_only = "<<<<<<< SEARCH a.py\nx = 1\n=======\nx = 2\n>>>>>>> REPLACE\nNOTE: n"
+        replies = iter([code_only, code_only + "\n<<<<<<< SEARCH t/test_a.py\n# t\n=======\n# t2\n>>>>>>> REPLACE"])
+        def fake_run(slot, prompt, ask, parse):
+            if slot == "coder":
+                t = next(replies)
+                return parse(t), {"text": t}, [{"pool": "p"}]
+            return {"verdict": "approve", "reason": "ok"}, {"text": ""}, []
+        with tempfile.TemporaryDirectory() as d:
+            json.dump({"item": {"id": "K2", "title": "t", "next": "n"}, "files": {"a.py": "x = 1\n", "t/test_a.py": "# t\n"},
+                       "test": "t/test_a.py", "prompt": "P"}, open(os.path.join(d, "bundle.json"), "w"))
+            with mock.patch.object(slots, "run", fake_run), mock.patch.object(C, "arm", lambda i: "one"):
+                C.draft(d)
+            r = json.load(open(os.path.join(d, "draft.json")))
+        self.assertIn("add no test", r["repair"]["before"][0])
         self.assertEqual(len(r["proposal"]["edits"]), 2)
 
 
@@ -1005,7 +1398,52 @@ class Relevance(unittest.TestCase):
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8, 0.2])):
             self.assertEqual(RJ.relevance("q", pool, []), [0.8, 0.2])
         with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.2, 0.1, 0.8, 0.2])):
-            self.assertIsNone(RJ.relevance("q", pool, []))   # the question itself judged off-topic: not used
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the answering control judged off-topic: not used
+        self.assertIn("controls wrong (answering 0.20", RJ.REL_FAIL[0])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.1, 0.8])):
+            self.assertIsNone(RJ.relevance("q", pool, []))
+        self.assertEqual(RJ.REL_FAIL, ["batch 1 of 1: 1 of 4 answers missing"])
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", self._fake([0.9, 0.35, 0.8, 0.2])):
+            self.assertIsNone(RJ.relevance("q", pool, []))   # the unrelated control must stay under the same bar as the sources
+
+    def test_yes_control_is_an_answering_source_not_the_bare_question(self):
+        # 2026-11-22: the bare question scored 0.14-0.48 as its own control (21 of 29 runs failed); replay in
+        # router/review/relevance-control: the answering text 0.655-0.999 on 15 pools
+        import research_job as RJ, io
+        from unittest import mock
+        seen = []
+        class R(io.BytesIO):
+            status = 200
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        def fake(req, timeout=None):
+            seen.append(json.loads(req.data))
+            return R(json.dumps({"answers": {f"s{i}": {"noul": p} for i, p in enumerate([0.9, 0.1, 0.8])}}).encode())
+        with mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch("urllib.request.urlopen", fake):
+            self.assertEqual(RJ.relevance("Does X beat Y?", [{"title": "a", "abstract": "x"}], []), [0.8])
+        lines = seen[0]["state"].split("SOURCES:\n")[1].splitlines()
+        self.assertEqual(lines[0], "0. " + RJ.REL_CONTROL_YES.format(q="Does X beat Y?"))
+        self.assertNotEqual(lines[0], "0. Does X beat Y?")
+
+    def test_failed_filter_means_no_reader_call_and_a_retry(self):
+        # 2026-11-21: 5 of 8 research runs lost the filter (reason unseen), read unfiltered sources, found nothing, and
+        # each "no claims" went to the paid tier. Now: a recorded model failure (failed_call: the item reopens), no reader call.
+        import research_job as RJ
+        from unittest import mock
+        item = {"id": "R99", "research": {"question": "q"}, "touches": ["research/cards/R99.md"]}
+        d = {"item": item, "sources": [{"sid": "S1", "title": "t", "abstract": "a", "kind": "paper"}], "log": [],
+             "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        def fail(q, pool, calls):
+            RJ.REL_FAIL[:] = ["batch 1 of 1: 1 of 3 answers missing"]
+        with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as repo, \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch.object(RJ, "relevance", fail), \
+                mock.patch.object(RJ.slots, "run", side_effect=AssertionError("reader called")):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, d, "q", [], None)
+            RJ.card(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+        self.assertEqual(res["result"], "failed_call")
+        self.assertEqual(res["why"], ["relevance filter failed: batch 1 of 1: 1 of 3 answers missing"])
 
     def test_nothing_on_topic_means_no_reader_call(self):
         import research_job as RJ
@@ -1016,6 +1454,93 @@ class Relevance(unittest.TestCase):
                 mock.patch.object(RJ.slots, "run", side_effect=AssertionError("reader called")):
             RJ._read(out, d, "q", [], None)
             self.assertIn("no relevant sources", json.load(open(os.path.join(out, "read.json")))["error"])
+
+    def test_nothing_on_topic_reaches_a_recorded_outcome(self):
+        """Audit 2026-11-21 (A F2, GLM F113): the test above stopped at read.json; card() then crashed on 'script_kept'.
+        Driven through card() this time."""
+        import research_job as RJ
+        from unittest import mock
+        item = {"id": "R99", "research": {"question": "q"}, "touches": ["research/cards/R99.md"]}
+        d = {"item": item, "sources": [], "log": [], "pool": [{"title": "a", "abstract": "x", "group": "papers"}]}
+        with tempfile.TemporaryDirectory() as out, tempfile.TemporaryDirectory() as repo, \
+                mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), mock.patch.object(RJ, "relevance", lambda q, pool, calls: [0.1]):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, d, "q", [], None)
+            RJ.card(repo, out)
+            res = json.load(open(os.path.join(out, "result.json")))
+        self.assertEqual((res["result"], res["claims"]), ("no claims", 0))
+
+    def test_card_checks_claims_against_the_sources_read(self):
+        """Audit 2026-11-21 (A F2, GLM F112): the filter re-picked sources (new S-ids) in memory only; card() re-checked
+        quotes against the old citation-picked list in search.json."""
+        import research_job as RJ
+        from unittest import mock
+        pool = [{"title": f"t{i}", "abstract": f"abstract {i}", "group": "papers", "kind": "paper", "via": "x", "year": 2020,
+                 "cited_by": 100 - i, "url": "https://x/" + str(i)} for i in range(3)]
+        d = {"item": {"id": "R98", "research": {"question": "q"}}, "sources": RJ.pick(pool, ["papers"]), "log": [], "pool": pool}
+        with tempfile.TemporaryDirectory() as out, mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k"}), \
+                mock.patch.object(RJ, "relevance", lambda q, p, calls: [0.1, 0.1, 0.9]), \
+                mock.patch.object(RJ.slots, "run", return_value=(None, {"ok": False}, [])):
+            json.dump(d, open(os.path.join(out, "search.json"), "w"))
+            RJ._read(out, dict(d), "q", [], None)
+            saved = json.load(open(os.path.join(out, "search.json")))["sources"]
+        self.assertEqual([s["title"] for s in saved], ["t2"])   # what the reader was given is what card() checks against
+
+
+class RunnerTypesDoc(unittest.TestCase):
+    """F107: README must not call matrix job slots runner types."""
+    def test_readme_reports_runner_types_and_job_slots(self):
+        p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "README.md")
+        text = open(p).read()
+        self.assertNotIn("loop on 6 runner types, counter on 8", text)
+        self.assertIn("2 runner types", text)
+        self.assertIn("job slots", text)
+
+
+
+class NewFileSearchIgnored(unittest.TestCase):
+    def test_new_file_takes_replacement_whatever_search_says(self):
+        import code_job as C
+        files = {"experiments/x.py": ""}
+        e = [{"path": "experiments/x.py", "old": "# placeholder", "new": "PLAN = 1"}]
+        ok, why = C.check_edits(files, e)
+        self.assertEqual((len(ok), why), (1, []))
+        self.assertEqual(C.apply_edits(files, ok)["experiments/x.py"], "PLAN = 1\n")
+
+
+class WorkerSpecCard(unittest.TestCase):
+    """G8/F035: the worker spec card matches the running subsystem."""
+    def test_f035_spec_card_current(self):
+        text = open(os.path.join(os.path.dirname(__file__), "README.md")).read()
+        self.assertIn("2026-11-20", text)
+        self.assertNotIn("Paid pools can't be reserved", text)
+        self.assertIn("Paid pools are reserved", text)
+        for name in ("code_job.py", "transitions.py", "tier.py", "generate.py", "split.py", "diagnose.py", "note.py"):
+            self.assertIn(name, text)
+        self.assertNotIn("**Not yet:** code items", text)
+
+
+class LanesTest(unittest.TestCase):
+    def test_lanes_from_headroom_and_ready_items(self):
+        import lanes
+        self.assertEqual(lanes.lanes(1.0, 0), 0)
+        self.assertEqual(lanes.lanes(0.1, 5), 0)
+        self.assertEqual(lanes.lanes(1.0, 2), 2)
+        self.assertEqual(lanes.lanes(1.0, 10), 4)
+
+
+class Exhaust(unittest.TestCase):
+    """K53: a 429 reply becomes a pool reset time."""
+    def test_reset_time(self):
+        import os as _os, sys as _sys
+        here = _os.path.dirname(_os.path.abspath(__file__))
+        if here not in _sys.path:
+            _sys.path.insert(0, here)
+        import exhaust
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "30"}, 1000), 1030)
+        self.assertEqual(exhaust.reset_time(429, {}, 1000), 1060)
+        self.assertIsNone(exhaust.reset_time(200, {"retry-after": "30"}, 1000))
+        self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
 
 
 if __name__ == "__main__":

@@ -126,7 +126,38 @@ def related(repo, item, skip, k=5):
         return f"(index unavailable: {type(e).__name__})"
 
 
-BLOCK = re.compile(r"<<<<<<< SEARCH[ \t]+(\S+)[ \t]*\n(?:(.*?)\n)?=======[ \t]*\n(.*?)\n?>>>>>>> REPLACE", re.S)
+HEAD = re.compile(r"^<<<<<<< SEARCH[ \t]+(\S+)[ \t]*$")
+SEP = re.compile(r"^=======[ \t]*$")
+END = re.compile(r">>>>>>> REPLACE[ \t]*$")
+
+
+def blocks_in(text):
+    """(path, old, new) for each search/replace block, read line by line so no block can reach into the next. The
+    regex this replaces let an empty SEARCH (a new file) run on to the NEXT block's =======: the new file got the test's
+    replacement and the test edit vanished (13 of 39 'no edits' code runs 2026-11-20/21, e.g. K44 run 44953039259;
+    no new-file item had landed). Returns (blocks, cut): cut lists the path of each block that ended before its REPLACE
+    line (or whose text holds a line that looks like a block start), so the caller reports it instead of dropping it."""
+    out, cut, cur, part = [], [], None, None
+    for line in text.replace("\r\n", "\n").split("\n"):
+        if cur is None:
+            m = HEAD.match(line)
+            if m:
+                cur, part = (m.group(1), [], []), 1
+            continue
+        if part == 1 and SEP.match(line):
+            part = 2
+        elif part == 2 and END.search(line):
+            head = line[:END.search(line).start()]
+            out.append((cur[0], "\n".join(cur[1]), "\n".join(cur[2] + ([head] if head else []))))
+            cur = None
+        elif HEAD.match(line):   # a block cut off before its REPLACE is reported as cut, and this line starts a new one
+            cut.append(cur[0])
+            cur, part = (HEAD.match(line).group(1), [], []), 1
+        else:
+            cur[part].append(line)
+    if cur is not None:
+        cut.append(cur[0])
+    return out, cut
 
 
 def parse_reply(text):
@@ -134,10 +165,11 @@ def parse_reply(text):
     live code jobs, 2026-11-20), or the older JSON form. Returns {"edits": [...], "note": ...} or None."""
     if not text:
         return None
-    blocks = BLOCK.findall(text)
-    if blocks:
+    blocks, cut = blocks_in(text)
+    if blocks:   # a reply with no whole block (cut off by an output limit) falls through, so the slot tries the next model
         note = re.search(r"^NOTE:\s*(.+)$", text, re.M)
-        return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else ""}
+        return {"edits": [{"path": p, "old": o, "new": n} for p, o, n in blocks], "note": note.group(1) if note else "",
+                "cut": cut}
     j = D.parse_json(text)
     return j if isinstance(j, dict) else None
 
@@ -151,7 +183,9 @@ def check_edits(files, edits):
             why.append(f"malformed edit {str(e)[:100]}"); continue
         if e["path"] not in files:
             why.append(f"{e['path']}: not a file this item may change"); continue
-        n = files[e["path"]].count(e["old"]) if e["old"] else (1 if files[e["path"]] == "" else 0)   # empty old: a new file
+        # a new (empty) file takes the replacement as its whole text, whatever the model put in SEARCH: 4 of 4 new-file
+        # items on 2026-11-21 (K29, K35, K37, K40) failed with "'old' occurs 0 times" because the coder searched for text
+        n = 1 if files[e["path"]] == "" else files[e["path"]].count(e["old"]) if e["old"] else 0
         if n != 1:
             why.append(f"{e['path']}: 'old' occurs {n} times (must be exactly once)"); continue
         if e["old"] == e["new"]:
@@ -165,7 +199,7 @@ def apply_edits(files, edits):
     in one file could misapply); a conflicting edit raises, which the callers treat as no usable change."""
     new = dict(files)
     for e in edits:
-        if not e["old"] and new[e["path"]] == "":   # writing a new file
+        if new[e["path"]] == "" and files[e["path"]] == "":   # writing a new file (its SEARCH text is ignored)
             new[e["path"]] = e["new"] if e["new"].endswith("\n") else e["new"] + "\n"
             continue
         if not e["old"] or new[e["path"]].count(e["old"]) != 1:
@@ -254,12 +288,18 @@ def draft(out):
             except ValueError as x:
                 n, e, w = None, [], w + [str(x)]
             only_test = bool(e) and {x["path"] for x in e} <= {b.get("test")} and any(p != b.get("test") for p in b["files"])
-            return e, w, n, (w if not e else []) + static_problems(b["files"], n) + (
+            no_test = bool(e) and b.get("test") in b["files"] and b.get("test") not in {x["path"] for x in e} \
+                and not b.get("test", "").startswith("experiments/")   # K28, K39: the reviewer rejects a change with no test
+            return e, w, n, (w if not e else []) + [
+                f"{p}: a block ended before its >>>>>>> REPLACE line (or its text holds a line starting '<<<<<<< SEARCH'), "
+                f"so it was not used; send every block whole" for p in prop.get("cut") or []] + static_problems(b["files"], n) + (
                 [f"the edits change only the test file {b.get('test')}; the item needs the change itself in "
-                 f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else [])
+                 f"{', '.join(p for p in b['files'] if p != b.get('test'))}, with the test showing it"] if only_test else []) + (
+                [f"the edits add no test: add one to {b.get('test')} that fails on the current code and passes with the change"]
+                if no_test else [])
         edits, why, new, problems = checked(proposal)
         repaired = None
-        if problems and proposal.get("edits"):   # one repair round with the problems written in (owner 2026-11-21: code lands least)
+        if problems and (proposal.get("edits") or proposal.get("cut")):   # one repair round with the problems written in (owner 2026-11-21: code lands least)
             text = (d or {}).get("text") or ""
             fixed, d2, t2 = slots.run("coder", REPAIR.format(prompt=b["prompt"], reply=text[-12000:], problems="\n".join(problems[:20])),
                                       ask, parse_reply)
@@ -359,6 +399,16 @@ def apply(repo, out):
     t = json.load(open(os.path.join(out, "test.json"))) if os.path.exists(os.path.join(out, "test.json")) else {}
     if t.get("chosen") == "second" and d.get("alt"):   # the second draft passed where the first did not
         d = dict(d, proposal=d["alt"]["proposal"], review=d["alt"]["review"])
+    # defence in depth for refused paths and the item id (audit 2026-11-21, B F2): the bundle carries its own item, so
+    # this cannot catch a whole forged bundle; the land job's hash check against the draft job's outputs does that
+    it = b.get("item") or {}
+    c = it.get("code") or {}
+    own = set(c.get("files") or []) | ({c["test"]} if c.get("test") else set())
+    bad = [p for p in b.get("files", {}) if not allowed(p) or p not in own or (p != c.get("test") and p not in it.get("touches", []))]
+    if bad or not b.get("files") or (os.environ.get("ITEM") and str(it.get("id")) != os.environ["ITEM"]):
+        res = {"result": "guard_blocked", "why": [f"bundle does not match the item: {bad or it.get('id')}"[:300]], "edits": 0}
+        json.dump(res, open(os.path.join(out, "result.json"), "w"), indent=1)
+        print(json.dumps(res)); return 0
     files = {p: open(os.path.join(repo, p), encoding="utf-8").read() if os.path.isfile(os.path.join(repo, p)) else ""
              for p in b["files"]}   # a file the item creates is still absent here (and must be: else it is stale)
     if files != b["files"]:

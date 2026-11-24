@@ -36,10 +36,16 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           cd probe && "$RUNNER_TEMP/venv/bin/python" -m unittest test_probe
+      - name: workflow guards (privilege, pause, paid allowance; runs even if another suite failed, Z1-F033)
+        if: ${{ !cancelled() }}
+        run: |
+          python3 -m unittest -v tests/test_workflows.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
       - name: router tests (offline, no keys, no network)
         if: ${{ !cancelled() }}
         run: |
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v router/test_router.py
           "$RUNNER_TEMP/venv/bin/python" -m unittest -v audit/periodic/test_indicators.py
-          python3 -m unittest -v tests/test_workflows.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
-          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py   # were not in CI before 2026-11-20 (Q60 review)
+          "$RUNNER_TEMP/venv/bin/python" -m unittest -v worker/test_worker.py worker/test_transitions.py runner/proposals/test_proposals.py facts/test_check.py runner/proposals/confirm/test_decide.py router/test_pick.py experiments/test_experiments.py router/bench6/pilot/test_envcheck.py router/test_keys_probe.py   # were not in CI before 2026-11-20 (Q60 review)
+          "$RUNNER_TEMP/venv/bin/python" -I router/review/relevance-control/test_replay.py \
+            && "$RUNNER_TEMP/venv/bin/python" -I router/review/relevance-control/test_instr.py \
+            && "$RUNNER_TEMP/venv/bin/python" -I router/review/search-breadth/test_breadth.py   # run as files: the folder name has a hyphen, and unittest would import router/review.py
