@@ -15,6 +15,11 @@ USABLE = ["BerriAI__litellm-15753", "agronholm__anyio-1121", "apache__iceberg-py
           "vprusso__toqito-1484_interface"]
 MODES = {"gold": True, "goldtest": True, "empty": False, "cheat": False}   # known-answer mode -> must read resolved
 LIMIT_S = 1500   # whole check inside the job's 30-minute limit (PLAN.md), leaving time to upload
+# Q82: the attempt's container is sealed (no extra privileges, bounded resources). The network is cut only after a warm-up
+# on the unfixed code: two tasks fetch at test time (iceberg-python: uv build requirements; aqua: Natural Earth data), and
+# --network none from the start read 28 of 32 controls (audit/notes/2026-11-24/q82-seal-controls.md). The attempt's diff
+# is applied only after `docker network disconnect`, and inner.sh refuses to grade if the container can still connect.
+SEAL = ["--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--pids-limit", "512", "--memory", "4g", "--cpus", "2"]
 
 
 def parse_list(v):
@@ -140,7 +145,7 @@ def run(cands, iid, outdir):
         open(os.path.join(work, "test_cmd"), "w").write(c["test_cmd"])
         inner = os.path.join(work, "inner.sh")
         open(inner, "w").write(INNER)
-        rc, log, s = sh(["docker", "run", "--rm", "-v", f"{os.path.abspath(work)}:/w",
+        rc, log, s = sh(["docker", "run", "--rm", *SEAL, "-v", f"{os.path.abspath(work)}:/w",   # no attempt code here: network kept
                          c["docker_image"], "bash", "/w/inner.sh"], left())
         res["steps"]["tests"] = {"rc": rc, "s": s}
         open(os.path.join(outdir, f"log-{iid}.txt"), "w").write(log)
@@ -177,6 +182,20 @@ echo "=====FORGE-POSITIVE====="; run
 """
 
 
+# Q82 warm-up, with network, before any attempt code is in the container: the task's own tests once on the unfixed code
+# with the test_patch (caches build requirements and test data), then the test_patch is reversed; the tree must be clean.
+INNER_WARM = r"""
+set -u
+[ -f /opt/miniconda3/bin/activate ] && . /opt/miniconda3/bin/activate testbed 2>/dev/null
+[ -d /testbed ] || { echo "no /testbed"; exit 3; }
+cd /
+git -C /testbed apply /w/test_patch.diff >/dev/null 2>&1 || { echo "test_patch did not apply (warm)"; exit 4; }
+python -I /w/helper.py test >/dev/null 2>&1
+git -C /testbed apply -R /w/test_patch.diff >/dev/null 2>&1 || { echo "test_patch did not reverse (warm)"; exit 4; }
+[ -z "$(git -C /testbed status --porcelain --untracked-files=no)" ] || { echo "warm-up left tracked changes"; exit 4; }
+echo "=====FORGE-WARM====="
+"""
+
 # Step 2 (PLAN.md): grade one attempt. The attempt's diff is applied to the unfixed code, every file the test_patch writes
 # is put back as at HEAD (or removed if new), the test_patch is applied, and the task's own tests run once.
 INNER_ATTEMPT = r"""
@@ -184,6 +203,7 @@ set -u
 [ -f /opt/miniconda3/bin/activate ] && . /opt/miniconda3/bin/activate testbed 2>/dev/null
 [ -d /testbed ] || { echo "no /testbed"; exit 3; }
 cd /   # helpers run with -I from /, so nothing the attempt adds under /testbed is imported by them (review 2026-11-21)
+python -I -c "import socket; s = socket.socket(); s.settimeout(3); s.connect(('1.1.1.1', 53))" >/dev/null 2>&1 && { echo "=====FORGE-ONLINE====="; exit 9; }
 if [ -s /w/attempt.diff ]; then git -C /testbed apply -v /w/attempt.diff >/dev/null 2>&1 || { echo "=====FORGE-NOAPPLY====="; exit 6; }; fi
 python -I /w/helper.py synth || { echo "synthetic edit failed"; exit 8; }
 python -I /w/helper.py reset || { echo "reset failed"; exit 7; }
@@ -216,13 +236,13 @@ if step == "synth":
                 open(os.path.join(T, f), "w").write("")
 elif step == "reset":
     # every file the test_patch touches, every conftest.py and the pytest-only config files go back to HEAD; new ones go
-    tracked = set(git("ls-files", "-z", capture_output=True, text=True, check=True).stdout.split("\0"))
-    changed = git("status", "--porcelain=v1", "-z", "--untracked-files=all", capture_output=True, text=True, check=True).stdout.split("\0")
+    tracked = set(git("-c", "core.hooksPath=/dev/null", "ls-files", "-z", capture_output=True, text=True, check=True).stdout.split("\0"))
+    changed = git("-c", "core.hooksPath=/dev/null", "status", "--porcelain=v1", "-z", "--untracked-files=all", capture_output=True, text=True, check=True).stdout.split("\0")
     paths = [c[3:] for c in changed if len(c) > 3]
-    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml", "tox.ini", "setup.cfg")}
+    pick = set(files) | {p for p in paths if os.path.basename(p) in ("conftest.py", "pytest.ini", ".pytest.ini", "pytest.toml", "tox.ini", "setup.cfg", "pyproject.toml", "sitecustomize.py", "usercustomize.py") or p.endswith(".pth")}
     for f in sorted(pick):
         if f in tracked:
-            git("checkout", "HEAD", "--", f, check=True)
+            git("-c", "core.hooksPath=/dev/null", "checkout", "HEAD", "--", f, check=True)
         elif os.path.lexists(os.path.join(T, f)):
             os.remove(os.path.join(T, f))
 elif step == "test":
@@ -269,9 +289,12 @@ def attempt(cands, iid, diff, outdir):
         open(os.path.join(work, "inner.sh"), "w").write(INNER_ATTEMPT)
         open(os.path.join(work, "helper.py"), "w").write(HELPER)
         open(os.path.join(work, "mode"), "w").write(mode)
-        rc, log, s = sh(["docker", "run", "--rm", "-v", f"{os.path.abspath(work)}:/w", c["docker_image"], "bash", "/w/inner.sh"], left())
+        open(os.path.join(work, "warm.sh"), "w").write(INNER_WARM)
+        rc, log, s = sealed_run(c["docker_image"], work, f"forge-{os.getpid()}-{re.sub('[^a-z0-9]', '-', iid.lower())}", left)
         open(os.path.join(outdir, f"attempt-log-{iid}-{mode}.txt"), "w").write(log)
-        if "=====FORGE-NOAPPLY=====" in log:
+        if "=====FORGE-ONLINE=====" in log or rc == "sealfail":
+            res.update(resolved=None, reason=f"the seal did not hold (network still up or not cut): {log[-300:]}")
+        elif "=====FORGE-NOAPPLY=====" in log:
             res.update(resolved=False, reason="the attempt's diff did not apply")
         elif "=====FORGE-ATTEMPT=====" not in log or rc == "timeout":
             res.update(resolved=None, reason=f"grader did not reach the tests (rc {rc}): {log[-300:]}")
@@ -283,6 +306,29 @@ def attempt(cands, iid, diff, outdir):
     json.dump(res, open(os.path.join(outdir, f"attempt-{iid}-{mode}.json"), "w"), indent=1)
     print(json.dumps({k: res[k] for k in ("id", "diff", "resolved", "reason", "seconds")}))
     return 0
+
+
+def sealed_run(image, work, name, left):
+    """Q82: start the sealed container with network, warm it on the unfixed code, cut the network, then grade.
+    Returns (rc, log, seconds) like sh(); rc 'sealfail' if the warm-up or the disconnect failed. Always removes the container."""
+    t = time.time()
+    vol = ["-v", f"{os.path.abspath(work)}:/w"]
+    log = ""
+    try:
+        rc, out, _ = sh(["docker", "run", "-d", "--name", name, *SEAL, *vol, "--entrypoint", "sleep", image, "infinity"], left())
+        if rc != 0:
+            return "sealfail", out, round(time.time() - t, 1)
+        rc, out, _ = sh(["docker", "exec", name, "bash", "/w/warm.sh"], left())
+        log += out
+        if rc != 0 or "=====FORGE-WARM=====" not in out:
+            return "sealfail", log, round(time.time() - t, 1)
+        rc, out, _ = sh(["docker", "network", "disconnect", "bridge", name], left())
+        if rc != 0:
+            return "sealfail", log + out, round(time.time() - t, 1)
+        rc, out, _ = sh(["docker", "exec", name, "bash", "/w/inner.sh"], left())
+        return rc, log + out, round(time.time() - t, 1)
+    finally:
+        sh(["docker", "rm", "-f", name], 60)
 
 
 def grade_attempts(d):

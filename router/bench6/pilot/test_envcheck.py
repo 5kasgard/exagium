@@ -71,5 +71,51 @@ class T(unittest.TestCase):
             self.assertEqual(E.grade_attempts(d), 1)   # nothing graded is not a pass
 
 
+class Seal(unittest.TestCase):
+    """Q82: sealed containers; the network is cut after the warm-up and before the attempt's diff is applied."""
+
+    def test_seal_flags(self):
+        for f in ("--cap-drop", "ALL", "no-new-privileges", "--pids-limit", "--memory", "--cpus"):
+            self.assertIn(f, E.SEAL)
+
+    def test_reset_restores_more_and_skips_hooks(self):
+        for b in ("pyproject.toml", "sitecustomize.py", "usercustomize.py", '.endswith(".pth")'):
+            self.assertIn(b, E.HELPER)
+        reset = E.HELPER.split('step == "reset"', 1)[1].split("elif step", 1)[0]
+        self.assertEqual(reset.count("git("), reset.count('git("-c", "core.hooksPath=/dev/null"'))
+
+    def _run(self, fail=None):
+        calls = []
+        def fake(cmd, timeout):
+            calls.append(cmd)
+            if fail and fail in cmd:
+                return 1, "", 0.0
+            return 0, "=====FORGE-WARM=====\n" if "/w/warm.sh" in cmd else "", 0.0
+        orig = E.sh
+        E.sh = fake
+        try:
+            rc = E.sealed_run("img", "/tmp/w", "forge-x", lambda: 100)[0]
+        finally:
+            E.sh = orig
+        return rc, calls
+
+    def test_disconnect_before_diff_is_applied(self):
+        rc, calls = self._run()
+        kinds = [c[1] if c[1] != "exec" else c[-1] for c in calls]
+        self.assertEqual(kinds, ["run", "/w/warm.sh", "network", "/w/inner.sh", "rm"])
+        self.assertNotIn("none", calls[0])                               # the warm-up has network
+        self.assertTrue(set(E.SEAL) <= set(calls[0]))                    # every other seal flag from the start
+        self.assertIn("disconnect", calls[2])
+        self.assertIn("attempt.diff", E.INNER_ATTEMPT)                   # inner.sh is what applies the diff
+        self.assertNotIn("attempt.diff", E.INNER_WARM)                   # the warm-up never sees it
+        self.assertLess(E.INNER_ATTEMPT.index("FORGE-ONLINE"), E.INNER_ATTEMPT.index("attempt.diff"))
+
+    def test_failed_disconnect_never_grades(self):
+        rc, calls = self._run(fail="disconnect")
+        self.assertEqual(rc, "sealfail")
+        self.assertNotIn("/w/inner.sh", [c[-1] for c in calls])
+        self.assertEqual(calls[-1][:3], ["docker", "rm", "-f"])        # the container is always removed
+
+
 if __name__ == "__main__":
     unittest.main()
