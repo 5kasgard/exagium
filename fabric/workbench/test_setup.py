@@ -120,7 +120,7 @@ class Setup(unittest.TestCase):
             if method == "GET":
                 return 200, {"result": []}
             return 200, {"result": {}}
-        with unittest.mock.patch.object(D, "call", fake):
+        with unittest.mock.patch.object(D, "call", fake), unittest.mock.patch.object(D, "resolves_to_vercel", lambda h: False):
             self.assertIn("created", D.upsert("workbench.exagium.xyz", "t"))
         self.assertEqual(seen[-1][2]["proxied"], False)
         self.assertEqual(seen[-1][2]["content"], "cname.vercel-dns.com")
@@ -128,8 +128,12 @@ class Setup(unittest.TestCase):
             if path.startswith("/zones?"):
                 return 200, {"result": [{"id": "z"}]}
             return 200, {"result": [{"type": "A", "id": "r"}]}
-        with unittest.mock.patch.object(D, "call", fake_a), self.assertRaises(SystemExit):
+        with unittest.mock.patch.object(D, "call", fake_a), unittest.mock.patch.object(D, "resolves_to_vercel", lambda h: False), \
+                self.assertRaises(SystemExit):
             D.upsert("workbench.exagium.xyz", "t")
+        with unittest.mock.patch.object(D, "call", lambda *a, **k: self.fail("no API call when DNS is already right")), \
+                unittest.mock.patch.object(D.socket, "gethostbyname_ex", lambda h: ("cname.vercel-dns.com", [h], ["1.2.3.4"])):
+            self.assertIn("no change", D.upsert("workbench.exagium.xyz", "t"))
 
 
 if __name__ == "__main__":

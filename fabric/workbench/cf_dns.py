@@ -3,7 +3,7 @@ Cloudflare must not proxy it). Upserts one record; prints only the host and what
 
   python3 -I fabric/workbench/cf_dns.py HOST        # reads CLOUDFLARE_API_TOKEN
 """
-import json, os, sys, urllib.error, urllib.request
+import json, os, socket, sys, urllib.error, urllib.request
 
 CF = "https://api.cloudflare.com/client/v4"
 TARGET = "cname.vercel-dns.com"
@@ -22,7 +22,18 @@ def call(path, token, method="GET", body=None):
             return e.code, {}
 
 
+def resolves_to_vercel(host):
+    """Public DNS already shows the CNAME (the owner may add it by hand; the token can then lack DNS rights)."""
+    try:
+        name, aliases, _ = socket.gethostbyname_ex(host)
+    except OSError:
+        return False
+    return TARGET in [name, *aliases]
+
+
 def upsert(host, token):
+    if resolves_to_vercel(host):
+        return f"{host}: already points at {TARGET} (public DNS); no change"
     zone_name = ".".join(host.split(".")[-2:])
     st, j = call(f"/zones?name={zone_name}", token)
     zones = j.get("result") or []
