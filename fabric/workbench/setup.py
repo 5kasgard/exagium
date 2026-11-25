@@ -225,7 +225,7 @@ def main(a):
             sys.exit(f"no production deployment (HTTP {st})")
         path = f"/v1/projects/{pid}/deployments/{deps[0]['uid']}/runtime-logs" + (f"?teamId={TEAM}" if TEAM else "")
         req = urllib.request.Request(VERCEL + path, headers={"Authorization": f"Bearer {token}"})
-        rows, end = [], time.time() + float(a[1] if len(a) > 1 else 25)
+        rows, end, seen, paths = [], time.time() + float(a[1] if len(a) > 1 else 25), 0, {}
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
                 while time.time() < end:
@@ -233,15 +233,21 @@ def main(a):
                     if not line:
                         break
                     try:
-                        row = log_row(json.loads(line))
+                        rec = json.loads(line)
+                        row = log_row(rec)
                     except ValueError:
                         continue
+                    seen += 1   # every request, by path and status: shows whether the stream sees traffic at all
+                    k = f"{(rec.get('requestPath') or '').split('?')[0][:60]} {rec.get('responseStatusCode') or ''}"
+                    paths[k] = paths.get(k, 0) + 1
                     if row:
                         rows.append(row)
         except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
             if not rows and not isinstance(e, (socket.timeout, TimeoutError)):
                 sys.exit(f"runtime logs: {redact(str(e))[:160]}")
-        print(f"deployment state {deps[0].get('state')}; {len(rows)} warning/error rows")
+        print(f"deployment state {deps[0].get('state')}; {seen} log records; {len(rows)} warning/error rows")
+        for k, n in sorted(paths.items(), key=lambda kv: -kv[1])[:30]:
+            print(f"  {n:4d}  {redact(k)}")
         print("\n".join(rows[-80:]))
         return 0
     if a[0] == "set":
