@@ -4,6 +4,7 @@ import json, os, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
+import staged  # noqa: E402
 
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
@@ -76,6 +77,17 @@ class Judge(unittest.TestCase):
         self.assertAlmostEqual(lo, 0.664, places=2)
 
 
+
+
+class TestStaged(unittest.TestCase):
+    def test_eliminates_dip_per_item(self):
+        scores = {'dip': [-1.0]*10 + [1.0]*50 + [0.0]*420,
+                  'flat': [0.0]*480}
+        out = staged.staged_select(scores, [60, 120, 240, 480])
+        self.assertNotIn('dip', out['survivors'])
+        self.assertIn('flat', out['survivors'])
+        self.assertEqual(out['eliminated_at'].get('dip'), 0)
+        self.assertLess(out['scored_items'], 16 * 480)
 
 
 class TestBoardPending(unittest.TestCase):
