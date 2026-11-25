@@ -5,6 +5,8 @@
   python3 -I fabric/workbench/setup.py env NAME FROM_VAR [--build]  # upsert a Vercel env var from an env var (skipped if empty)
   python3 -I fabric/workbench/setup.py gen NAME KIND      # generate once and keep (KIND: secret32 | jwks)
   python3 -I fabric/workbench/setup.py set NAME VALUE     # a plain, non-secret value
+  python3 -I fabric/workbench/setup.py domain HOST        # attach a custom domain to the project; prints its status
+  python3 -I fabric/workbench/setup.py url                # the address, and whether the build is what serves it
 
 Kinds: provider keys and generated secrets are "sensitive" (runtime only: `vercel pull` cannot read them, so the
 build and its third-party scripts never see them); DATABASE_URL is "encrypted" because the build runs migrations.
@@ -13,6 +15,7 @@ Reads VERCEL_API_KEY (and NEON_API_KEY for `neon`). Values are never printed: on
 import base64, json, os, secrets, subprocess, sys, urllib.error, urllib.request
 
 PROJECT = "forge-workbench"
+DOMAIN = "workbench.exagium.xyz"   # forge-workbench.vercel.app served another site (owner, 2026-11-25: 404s)
 NEON_REGION = "aws-ap-southeast-2"   # Sydney, nearest to the owner
 VERCEL = "https://api.vercel.com"
 NEON = "https://console.neon.tech/api/v2"
@@ -157,10 +160,20 @@ def main(a):
         put_env(token, pid, a[1], v)
         print(f"{a[1]}: generated and set")
         return 0
-    if a[0] == "url":   # only the project-named address: other aliases carry the account's name (public logs)
+    if a[0] == "domain":
+        st, j = call(VERCEL, f"/v10/projects/{pid}/domains", token, "POST", {"name": a[1]})
+        if st not in (200, 201, 409):
+            sys.exit(f"vercel domain {a[1]}: HTTP {st} {str(j.get('error', {}).get('message', ''))[:160]}")
+        st, j = call(VERCEL, f"/v9/projects/{pid}/domains/{a[1]}", token)
+        print(f"{a[1]}: attached, verified={j.get('verified')}")
+        return 0
+    if a[0] == "url":   # never prints other aliases: they carry the account's name (public logs)
         st, j = call(VERCEL, f"/v9/projects/{pid}", token)
-        al = [x for x in ((j.get("targets") or {}).get("production") or {}).get("alias", []) if x == f"{PROJECT}.vercel.app"]
-        print(f"https://{al[0]}" if al else "address: see the Vercel dashboard (the project-named alias is not assigned)")
+        prod = (j.get("targets") or {}).get("production") or {}
+        al = prod.get("alias") or []
+        print(f"latest production deployment: {prod.get('readyState')}")
+        print(f"{PROJECT}.vercel.app points at this project: {'yes' if f'{PROJECT}.vercel.app' in al else 'no'}")
+        print(f"https://{DOMAIN}" if DOMAIN in al else f"{DOMAIN} is not yet on the latest deployment")
         return 0
     if a[0] == "set":
         put_env(token, pid, a[1], a[2], kind="plain")
