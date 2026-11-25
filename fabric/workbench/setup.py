@@ -18,7 +18,12 @@ VERCEL = "https://api.vercel.com"
 NEON = "https://console.neon.tech/api/v2"
 
 
+TEAM = None   # Vercel Hobby accounts live in a personal team; API calls must name it (first run: 403 on create)
+
+
 def call(base, path, token, method="GET", body=None):
+    if base == VERCEL and TEAM:
+        path += ("&" if "?" in path else "?") + "teamId=" + TEAM
     req = urllib.request.Request(base + path, method=method, data=None if body is None else json.dumps(body).encode(),
                                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
     try:
@@ -46,7 +51,8 @@ def project_id(token):
         sys.exit(f"vercel project lookup: HTTP {st} {str(j.get('error', {}).get('message', ''))[:120]}")
     st, j = call(VERCEL, "/v11/projects", token, "POST", {"name": PROJECT, "framework": "nextjs"})
     if st not in (200, 201):
-        sys.exit(f"vercel project create: HTTP {st} {str(j.get('error', {}).get('message', ''))[:120]}")
+        sys.exit(f"vercel project create: HTTP {st} {str(j.get('error', {}).get('message', ''))[:120]}"
+                 + (" (team resolved)" if TEAM else " (no team found: check the token's scope covers the account)"))
     return j["id"], True
 
 
@@ -91,8 +97,21 @@ def neon_url(ntoken):
     return j["uri"], False
 
 
+def resolve_team(token):
+    """The account's one team, if it has exactly one; its id and slug are never printed (they can carry a name)."""
+    global TEAM
+    st, j = call(VERCEL, "/v2/teams", token)
+    teams = j.get("teams", []) if st == 200 else []
+    if len(teams) == 1:
+        TEAM = teams[0]["id"]
+    elif len(teams) > 1:
+        sys.exit(f"{len(teams)} Vercel teams: set VERCEL_TEAM_ID to choose one")
+    TEAM = os.environ.get("VERCEL_TEAM_ID") or TEAM
+
+
 def main(a):
     token = vtoken()
+    resolve_team(token)
     pid, made = project_id(token)
     if a[0] == "project":
         print(f"vercel project {PROJECT}: {'created' if made else 'exists'}")

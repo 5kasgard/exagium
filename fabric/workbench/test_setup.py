@@ -4,6 +4,29 @@ import setup as S
 
 
 class Setup(unittest.TestCase):
+    def setUp(self):
+        S.TEAM = None
+        self._rt = unittest.mock.patch.object(S, "resolve_team", lambda t: None)
+        self._rt.start()
+
+    def tearDown(self):
+        self._rt.stop()
+
+    def test_team_id_is_added_to_vercel_calls(self):
+        S.TEAM = "team_x"
+        seen = []
+        class R:
+            status = 200
+            def read(self): return b"{}"
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        with unittest.mock.patch.object(S.urllib.request, "urlopen", lambda req, timeout=0: seen.append(req.full_url) or R()):
+            S.call(S.VERCEL, "/v9/projects/x", "t")
+            S.call(S.VERCEL, "/v10/projects/p/env?upsert=true", "t")
+            S.call(S.NEON, "/projects", "t")
+        self.assertEqual(seen, ["https://api.vercel.com/v9/projects/x?teamId=team_x",
+                                "https://api.vercel.com/v10/projects/p/env?upsert=true&teamId=team_x",
+                                "https://console.neon.tech/api/v2/projects"])
     def test_jwks_is_a_private_rs256_key_set(self):
         k = json.loads(S.jwks())["keys"][0]
         self.assertEqual((k["kty"], k["alg"], k["use"]), ("RSA", "RS256", "sig"))
