@@ -76,16 +76,30 @@ def check(d):
 def candidates(q):
     used = {i.get("generated_from") for i in q["items"] if i.get("generated_from")}
     out = [i for i in q["items"] if i.get("status") == "open" and i.get("kind") in KINDS and not i.get("research")
-           and i["id"] not in used and i.get("needs") != "the owner"]
+           and i["id"] not in used and i.get("needs") != "the owner" and not recently_tried(i)]
     return sorted(out, key=lambda i: ({"high": 0, "medium": 1, "low": 2}.get(i.get("value"), 3), i["id"]))
+
+
+def is_literature(i):
+    """An item whose whole job is reading published work (worker/classify.py's top type is literature). Its question is
+    attached to the item itself, so the card the worker writes finishes the backlog item (P38, 2026-11-25: R items made
+    from such items landed while the item stayed open; Q73 given a job by hand was done in 3 minutes)."""
+    wt = i.get("work_types") or {}
+    return bool(wt) and max(wt, key=wt.get) == "literature" and wt["literature"] >= 0.5
+
+
+def recently_tried(i, days=7):
+    t = i.get("research_tried")
+    return bool(t) and dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(t.replace("Z", "+00:00")) < dt.timedelta(days=days)
 
 
 def today_count(q, day):
     """Research items this generator made today. It counted every generated item, the splitter's code sub-items too: on
     2026-11-21 the splitter made 25, so the research cap was spent before the generator ran (owner 2026-11-22: break the
     open items down, on free compute, following the data)."""
-    return sum(1 for i in q["items"] if i.get("origin") == "generated" and i.get("research")
-               and str(i.get("generated_at", "")).startswith(day))
+    return sum(1 for i in q["items"] if (i.get("origin") == "generated" and i.get("research")
+                                          and str(i.get("generated_at", "")).startswith(day))
+               or str(i.get("research_attached_at", "")).startswith(day))
 
 
 def next_rid(q):
@@ -158,6 +172,42 @@ def move_all(wt, ids, outcomes, ps):
     return moved
 
 
+def attach_jobs(wt, attach, outcomes, ps):
+    """Literature items: an accepted question becomes the item's own research job, with its touches narrowed to its card
+    (a research job writes only that file; bare-directory touches overlapped every live research claim, so ready()
+    skipped the item). The old touches are kept as the item's scope. A rejected question, or a withheld gate, changes
+    nothing but a note and research_tried, so the item is not drafted again for 7 days. No status changes here."""
+    done = []
+    for _ in range(Q.TRIES):
+        Q.sync(wt)
+        q = Q.load(wt)
+        by = {i["id"]: i for i in q["items"]}
+        done = []
+        for k, src, d in attach:
+            i = by.get(src["id"])
+            if not i or i.get("status") != "open" or i.get("research"):
+                continue
+            o = outcomes[k] if outcomes is not None else None
+            note = (f"decision model p={ps[k + 2]:.3f}; controls {ps[0]:.3f}/{ps[1]:.3f}" if o else "gate withheld (controls)")
+            i["research_tried"] = Q.iso(Q.now())
+            if o == "accept":
+                card = f"research/cards/{i['id']}.md"
+                i["scope"] = i.get("scope") or [t for t in i.get("touches", []) if t != card]
+                i["touches"] = [card]
+                i["research"] = {"question": d["question"], "queries": d["queries"]}
+                i["research_attached_at"] = Q.iso(Q.now())
+            i.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": "generator", "outcome": None,
+                                             "result": (f"research job attached ({note})" if o == "accept" else
+                                                        f"research question not attached: {o or 'no decision'} ({note})")})
+            done.append((i["id"], o or "withheld"))
+        if not done:
+            return []
+        Q.save(wt, q)
+        if Q.commit_push(wt, f"generator: research jobs on literature items {', '.join(f'{a}:{b}' for a, b in done)} (P38)"):
+            return done
+    return []
+
+
 def gate_outcomes(ps, n):
     """Controls first: the useful pair must pass and the off-topic pair must fail, or nothing is decided (None)."""
     if ps is None or len(ps) != n + 2 or not (ps[0] >= 0.5 and ps[1] < 0.5):
@@ -224,6 +274,17 @@ def _run(wt, out, calls, draft_fn=None, decide_fn=None):
     outcomes = gate_outcomes(ps, len(drafts))
     controls_ok = outcomes is not None
     gate = {"controls_ok": controls_ok, "p": ps, "error": err}
+    attach = [(k, s, d) for k, (s, d) in enumerate(drafts) if is_literature(s)]
+    attached = attach_jobs(wt, attach, outcomes, ps) if attach else []
+    keep = [k for k in range(len(drafts)) if k not in {a[0] for a in attach}]
+    drafts = [drafts[k] for k in keep]
+    if outcomes is not None:
+        outcomes = [outcomes[k] for k in keep]
+        ps = ps[:2] + [ps[k + 2] for k in keep]
+    if not drafts:
+        json.dump({"log": log, "gate": gate, "attached": attached}, open(os.path.join(out, "generate.json"), "w"), indent=1)
+        print(f"generate: attached {attached}; gate {'ran' if controls_ok else 'withheld'}")
+        return 0
     # write: born proposed, then moved by the gate through the transition table (two commits keep render's check exact)
     for _ in range(Q.TRIES):
         Q.sync(wt)
@@ -247,7 +308,7 @@ def _run(wt, out, calls, draft_fn=None, decide_fn=None):
     else:
         print("generate: could not push"); return 1
     moved = move_all(wt, made, outcomes, ps) if controls_ok else []
-    json.dump({"log": log, "gate": gate, "made": made, "moved": moved}, open(os.path.join(out, "generate.json"), "w"), indent=1)
+    json.dump({"log": log, "gate": gate, "made": made, "moved": moved, "attached": attached}, open(os.path.join(out, "generate.json"), "w"), indent=1)
     _write_calls(out, calls)
     print(f"generate: proposed {made}; gate {'ran' if controls_ok else 'withheld (controls: ' + str(ps) + ', ' + str(err) + ')'}; moved {moved}")
     return 0
