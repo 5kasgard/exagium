@@ -20252,7 +20252,7 @@
    "id": "K73",
    "title": "Replay the existing scored proposal log through the staged protocol",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P5e",
    "generated_at": "2026-11-24T22:12:33Z",
@@ -20272,7 +20272,7 @@
     "runner/proposals/replay.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "Create runner/proposals/replay.py (under 80 lines, stdlib only, no model calls) with replay(log_rows) that takes the scored proposal rows already on disk (per-item correctness for each candidate and for label-linear, as judge.py reads them). Each candidate's per-item differences go through staged_select from runner/proposals/staged.py. Also run one-pass scoring on the same rows at equal scored items. Return {'staged_items': int, 'onepass_items': int, 'certified_staged': int, 'certified_onepass': int, 'false_beats_staged': int, 'false_beats_onepass': int}. A 'beat' is a candidate whose final paired mean is positive. Add a test in test_proposals.py that builds a small in-memory log and checks that staged_items is below onepass_items for the same candidate set.",
+   "next": "Create runner/proposals/replay.py (under 80 lines, stdlib only, no model calls) with replay(log_rows) that takes the scored proposal rows already on disk (per-item correctness for each candidate and for label-linear, as judge.py reads them). Each candidate's per-item differences go through staged_select from runner/proposals/staged.py. Also run one-pass scoring on the same rows at equal scored items. Return {'staged_items': int, 'onepass_items': int, 'certified_staged': int, 'certified_onepass': int, 'false_beats_staged': int, 'false_beats_onepass': int}. A 'beat' is a candidate whose final paired mean is positive. Add a test in test_proposals.py that builds a small in-memory log and checks that staged_items is below onepass_items for the same candidate set. PREVIOUS ATTEMPT REJECTED: no accepted edit. Do the whole item, with a test.",
    "refs": [
     "queue P5e",
     "worker/split.py"
@@ -20336,6 +20336,12 @@
      "from": "in progress",
      "escalated": "failed 2 times in a row",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-25T01:59:52Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no accepted edit"
     }
    ],
    "work_types": {
