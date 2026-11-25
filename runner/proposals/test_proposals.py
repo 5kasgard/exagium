@@ -238,5 +238,19 @@ class TestOwnFault(unittest.TestCase):
             self.assertEqual(v["extract"], "not scored", log)
 
 
+class TestReplayLog(unittest.TestCase):
+    def test_aligned_items_drop_missing_for_all(self):
+        import json, os, struct, tempfile
+        import replay_log
+        def rec(obj):
+            b = json.dumps(obj).encode()
+            return struct.pack("<I", len(b)) + b
+        with tempfile.TemporaryDirectory() as d:
+            open(os.path.join(d, "log.bin"), "wb").write(
+                rec({"candidate": "a", "items": [{"id": "i1", "score": 1}, {"id": "i2", "score": 0}, {"id": "i3", "score": 1}]})
+                + rec({"candidate": "b", "items": [{"id": "i1", "score": 0}, {"id": "i3", "score": 1}]}))
+            self.assertEqual(replay_log.load(d), {"a": [1, 1], "b": [0, 1]})
+
+
 if __name__ == "__main__":
     unittest.main()
