@@ -1,6 +1,9 @@
-# Sandbox measurement for #191 (audit/fabric/sandbox-decision-2026-11-25.md sec. 5), E2B first: create once (jail and
-# CPU checks, a ticking process), then every 3 h resume it from a fresh client and check files, tools and the process,
-# then pause. Stops itself after 10 cycles (kills the sandbox). State: sandbox/e2b-eval.json on the fabric-data branch.
+# Sandbox measurement for #191 (audit/fabric/sandbox-decision-2026-11-25.md sec. 5): create once (jail and CPU checks,
+# a ticking process), then every 3 h resume it from a fresh client and check files, tools and the process, then pause.
+# Each provider stops itself after 10 cycles. State on the fabric-data branch:
+#   E2B                    sandbox/e2b-eval.json (fabric/sandbox/e2b_eval.py)
+#   Cloudflare Containers  sandbox/cf-eval.json  (fabric/sandbox/cf_eval.py through the forge-cfbox Worker, fabric/cfbox;
+#                          added 2026-11-26 once the owner took Workers Paid; deploy cfbox-deploy.yml first)
 name: sandbox-eval
 on:
   schedule:
@@ -8,26 +11,33 @@ on:
   workflow_dispatch:
     inputs:
       mode: {description: "create, check or kill", default: check, type: choice, options: [create, check, kill]}
+      provider: {description: "which provider", default: both, type: choice, options: [both, e2b, cf]}
 permissions:
   contents: write    # the state file on fabric-data only
 concurrency: {group: fabric-data, cancel-in-progress: false}
 jobs:
   eval:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35   # two creates on the smallest size can take ~10 min each (review 2026-11-26)
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           ref: main
           persist-credentials: false
-      - name: measure
+      - name: measure (e2b)
+        if: inputs.provider != 'cf'
         env:
           E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
           MODE: ${{ inputs.mode || 'check' }}
         run: |
           if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
           mkdir -p "$RUNNER_TEMP/data"
-          if git fetch -q --depth 1 origin fabric-data 2>/dev/null; then git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- . ; fi
+          if [ ! -f "$RUNNER_TEMP/fetched" ]; then   # once per job: the second step must not overwrite the first one's state
+            rc=0; git ls-remote --exit-code --heads origin fabric-data > /dev/null 2>&1 || rc=$?
+            if [ "$rc" = 0 ]; then git fetch -q --depth 1 origin fabric-data && git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- .
+            elif [ "$rc" != 2 ]; then echo "cannot read fabric-data (rc $rc): stopping before anything could overwrite it"; exit 1; fi
+            touch "$RUNNER_TEMP/fetched"
+          fi
           S="$RUNNER_TEMP/data/sandbox/e2b-eval.json"; mkdir -p "$(dirname "$S")"
           if [ "$MODE" = check ]; then
             [ -f "$S" ] || { echo "no sandbox under test"; exit 0; }
@@ -40,8 +50,36 @@ jobs:
           set -o pipefail
           "$RUNNER_TEMP/v/bin/python" -I fabric/sandbox/e2b_eval.py "$MODE" "$S" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "changed=1" >> "$GITHUB_ENV"
+      - name: measure (cloudflare containers)
+        if: always() && inputs.provider != 'e2b'
+        env:
+          CFBOX_TOKEN: ${{ secrets.FORGE_BOX_TOKEN }}
+          MODE: ${{ inputs.mode || 'check' }}
+        run: |
+          if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
+          [ -n "$CFBOX_TOKEN" ] || { echo "FORGE_BOX_TOKEN not set"; exit 0; }
+          mkdir -p "$RUNNER_TEMP/data"
+          if [ ! -f "$RUNNER_TEMP/fetched" ]; then   # once per job: the second step must not overwrite the first one's state
+            rc=0; git ls-remote --exit-code --heads origin fabric-data > /dev/null 2>&1 || rc=$?
+            if [ "$rc" = 0 ]; then git fetch -q --depth 1 origin fabric-data && git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- .
+            elif [ "$rc" != 2 ]; then echo "cannot read fabric-data (rc $rc): stopping before anything could overwrite it"; exit 1; fi
+            touch "$RUNNER_TEMP/fetched"
+          fi
+          S="$RUNNER_TEMP/data/sandbox/cf-eval.json"; mkdir -p "$(dirname "$S")"
+          if [ "$MODE" = check ]; then
+            [ -f "$S" ] || { echo "no cloudflare sandbox under test"; exit 0; }
+            if grep -q killed_at "$S"; then echo "cloudflare: already ended"; exit 0; fi
+            # 10 cycles that measured something, or 15 calls in all if the service keeps failing
+            n=$(python3 -c "import json;c=json.load(open('$S'))['snap']['cycles'];print(10 if len(c)>=15 else sum(not x.get('infra_error') for x in c))")
+            if [ "$n" -ge 10 ]; then MODE=kill; fi
+          fi
+          if [ "$MODE" = kill ] && [ ! -f "$S" ]; then echo "no cloudflare state to kill"; exit 0; fi
+          if [ "$MODE" = create ] && [ -f "$S" ] && ! grep -q killed_at "$S"; then echo "a cloudflare sandbox is already under test"; exit 1; fi
+          set -o pipefail
+          python3 -I fabric/sandbox/cf_eval.py "$MODE" "$S" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "changed=1" >> "$GITHUB_ENV"
       - name: publish state to fabric-data
-        if: env.changed == '1'
+        if: always() && env.changed == '1'
         env: {GH_TOKEN: "${{ github.token }}"}
         run: |
           cd "$RUNNER_TEMP/data"

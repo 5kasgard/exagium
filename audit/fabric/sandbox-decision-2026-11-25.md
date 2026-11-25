@@ -110,3 +110,23 @@ The tiers are decided separately. The workbench (persistent box) is decided by Â
 - **Cloudflare:** the account is not on Workers Paid now; the owner is willing to pay the $5/mo if the data favours it.
 - First measurement started: `sandbox-eval.yml` runs section 5 on E2B (the keyed candidate) with the key checked live
   (keys-probe 2026-11-26: HTTP 200). This measures E2B; it does not choose it. Other Stage B candidates follow Stage A.
+
+## 8. Cloudflare added to the measurement (2026-11-26, Claude Opus 5.5; dated entry)
+- **Plan:** the owner took Workers Paid ($5/mo) on 2026-11-26. The account's Containers API answers (GET
+  `/accounts/{id}/containers/applications`: 0 apps, via the Cloudflare connector), so the section 6 question is closed.
+- **What changed upstream since section 3 was written:** `@cloudflare/sandbox` 1.0.3 is now the npm `latest` (checked
+  2026-11-26). In 1.x a sandbox is a Durable Object driving `ctx.container` directly; the package only adds file, mount
+  and backup helpers. The measurement therefore uses the platform API (`container.exec`, `snapshotContainer`,
+  `setInactivityTimeout`) with no SDK dependency; the result holds for the SDK too, since it runs on the same calls.
+- **Two carry-over modes, both scored** (fabric/cfbox/worker.js, fabric/sandbox/cf_eval.py, sandbox-eval.yml):
+  - `snap`: after setup, snapshot the whole container disk and stop; every check starts from the last snapshot. This
+    is the E2B pause/resume analogue. Expected (hypothesis, from the docs): files and installed tools carry over, the
+    running process does not.
+  - `native`: leave the container alone; it stops after 10 idle minutes (Cloudflare's default sleepAfter). Expected:
+    the container is stopped at each check and files are gone. Measured, not assumed.
+- **Size:** `lite` (the cheapest, per step 1). Its CPU share is small, so its benchmark is not comparable with E2B's
+  default size on speed; both record `nproc` and timings so the cost-per-work comparison can be made later.
+- **Same cycle count and cadence as E2B** (10 cycles, every 3 h through the shared workflow), not the 20 cycles of step
+  3: the E2B run already uses 10, and comparing like with like matters more here than the count.
+- **Cost guard:** each check runs a `lite` instance for about a minute; 10 cycles plus setup is well inside the 375
+  vCPU-min included in Workers Paid (section 3 table). Snapshot storage is billed; its size is recorded per cycle.
