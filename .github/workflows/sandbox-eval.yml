@@ -1,0 +1,49 @@
+# Sandbox measurement for #191 (audit/fabric/sandbox-decision-2026-11-25.md sec. 5), E2B first: create once (jail and
+# CPU checks, a ticking process), then every 3 h resume it from a fresh client and check files, tools and the process,
+# then pause. Stops itself after 10 cycles (kills the sandbox). State: sandbox/e2b-eval.json on the fabric-data branch.
+name: sandbox-eval
+on:
+  schedule:
+    - cron: "17 */3 * * *"
+  workflow_dispatch:
+    inputs:
+      mode: {description: "create, check or kill", default: check, type: choice, options: [create, check, kill]}
+permissions:
+  contents: write    # the state file on fabric-data only
+concurrency: {group: fabric-data, cancel-in-progress: false}
+jobs:
+  eval:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+      - name: measure
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+          MODE: ${{ inputs.mode || 'check' }}
+        run: |
+          if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
+          mkdir -p "$RUNNER_TEMP/data"
+          if git fetch -q --depth 1 origin fabric-data 2>/dev/null; then git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- . ; fi
+          S="$RUNNER_TEMP/data/sandbox/e2b-eval.json"; mkdir -p "$(dirname "$S")"
+          if [ "$MODE" = check ]; then
+            [ -f "$S" ] || { echo "no sandbox under test"; exit 0; }
+            python3 -c "import json,sys;r=json.load(open('$S'));sys.exit(0 if 'killed_at' not in r else 1)" || { echo "already ended"; exit 0; }
+            n=$(python3 -c "import json;print(len(json.load(open('$S'))['cycles']))")
+            if [ "$n" -ge 10 ]; then MODE=kill; fi
+          fi
+          if [ "$MODE" = create ] && [ -f "$S" ] && ! grep -q killed_at "$S"; then echo "a sandbox is already under test"; exit 1; fi
+          pip install -q --break-system-packages e2b==2.46.0
+          python3 -I fabric/sandbox/e2b_eval.py "$MODE" "$S" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "changed=1" >> "$GITHUB_ENV"
+      - name: publish state to fabric-data
+        if: env.changed == '1'
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git init -q && git checkout -q -b fabric-data && git add -A
+          git -c user.name=forge-dash -c user.email=forge-dash@users.noreply.github.com commit -q -m "sandbox eval (run $GITHUB_RUN_ID)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fabric-data
