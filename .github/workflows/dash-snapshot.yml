@@ -1,0 +1,37 @@
+# The Forge dashboard's data (owner 2026-11-25: "I can't visually see the system"). Hourly on the free runner: counts
+# the queue's runs, PRs, workflow runs and the live services into dash.json on the fabric-data branch, which the
+# owner's page at https://chat.exagium.xyz/dash reads. No secrets beyond this job's own GITHUB_TOKEN.
+name: dash-snapshot
+on:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write    # push dash.json to the fabric-data branch only
+  pull-requests: read
+  actions: read
+concurrency: {group: fabric-data, cancel-in-progress: false}
+jobs:
+  snapshot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+      - name: build dash.json
+        env: {GITHUB_TOKEN: "${{ github.token }}"}
+        run: |
+          git fetch -q --depth 1 origin pilot/lgn-20261115
+          git show FETCH_HEAD:audit/2026-11-17/queue.json > "$RUNNER_TEMP/queue.json"
+          mkdir -p "$RUNNER_TEMP/data"
+          if git fetch -q --depth 1 origin fabric-data 2>/dev/null; then git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- . ; fi
+          python3 -I fabric/dash/snapshot.py "$RUNNER_TEMP/queue.json" "$RUNNER_TEMP/data/dash.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: publish to fabric-data
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git init -q && git checkout -q -b fabric-data
+          git add -A && git -c user.name=forge-dash -c user.email=forge-dash@users.noreply.github.com commit -q -m "dash snapshot (run $GITHUB_RUN_ID)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fabric-data   # one-commit branch: data, not history

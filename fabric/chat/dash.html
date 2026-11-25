@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge dashboard</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1b1b1b;--mute:#6b6b6b;--line:#e4e4e0;--ok:#2f7d4f;--bad:#b3412e;--a:#2f6fb0;--b:#8fb6dd;--c:#c9c9c4;--d:#d98a6c}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--ink:#eee;--mute:#9a9a9a;--line:#2e2e2e;--c:#4a4a4a}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink)}
+main{max-width:980px;margin:auto;padding:14px}h1{font-size:20px;margin:4px 0}h2{font-size:15px;margin:0 0 8px}
+.sub{color:var(--mute);font-size:13px}.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpis{display:flex;gap:16px;flex-wrap:wrap}.kpi b{display:block;font-size:22px}.kpi span{color:var(--mute);font-size:12px}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;margin:2px;border:1px solid var(--line)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}table{width:100%;border-collapse:collapse;font-size:13px}
+td,th{padding:4px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mute);font-weight:500}
+.num{text-align:right;font-variant-numeric:tabular-nums}.legend span{margin-right:10px;font-size:12px;color:var(--mute)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+a{color:var(--a)}.scroll{max-height:340px;overflow:auto}
+</style></head><body><main>
+<h1>Forge</h1><div class="sub" id="gen">loading…</div>
+<div class="card" style="margin:12px 0"><div class="kpis" id="kpis"></div></div>
+<div class="grid">
+ <div class="card"><h2>Live services</h2><div id="svc"></div></div>
+ <div class="card"><h2>Queue by status</h2><div id="status"></div></div>
+ <div class="card" style="grid-column:1/-1"><h2>Runs per day (14 days)</h2>
+  <div class="legend"><span><i class="sw" style="background:var(--a)"></i>finished</span><span><i class="sw" style="background:var(--b)"></i>PR opened</span><span><i class="sw" style="background:var(--d)"></i>failed</span><span><i class="sw" style="background:var(--c)"></i>kept nothing</span></div>
+  <svg id="daily" width="100%" height="170" role="img" aria-label="runs per day"></svg></div>
+ <div class="card"><h2>Who did what (7 days)</h2><div class="scroll" id="workers"></div></div>
+ <div class="card"><h2>Waiting on you</h2><div class="scroll" id="owner"></div></div>
+ <div class="card"><h2>Open PRs</h2><div class="scroll" id="prs"></div></div>
+ <div class="card"><h2>Workflows (24 h)</h2><div class="scroll" id="wf"></div></div>
+ <div class="card" id="modelsCard" style="grid-column:1/-1;display:none"><h2>Models by job</h2><div class="scroll" id="models"></div></div>
+ <div class="card" style="grid-column:1/-1"><h2>Recent events</h2><div class="scroll" id="events"></div></div>
+</div>
+<p class="sub">Counted from the queue's run log and the GitHub API by fabric/dash/snapshot.py; records name their recorder. Refreshes hourly.</p>
+</main><script>
+const $=(id)=>document.getElementById(id), esc=(s)=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ago=(t)=>{const m=(Date.now()-Date.parse(t))/6e4;return m<60?Math.round(m)+" min ago":m<2880?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
+const table=(head,rows)=>rows.length?`<table><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr>${rows.map(r=>`<tr>${r.map((c,i)=>`<td${typeof c==="number"?' class="num"':""}>${c}</td>`).join("")}</tr>`).join("")}</table>`:'<span class="sub">none</span>';
+fetch("/api/dash").then(r=>r.json()).then(d=>{
+ const q=d.queue,g=d.github||{},days=q.daily_14d,last=days[days.length-1],week=days.slice(-7);
+ const sum=(k,a=week)=>a.reduce((s,x)=>s+x[k],0);
+ $("gen").textContent=`Data from ${ago(d.generated_at)} (${d.generated_at})`;
+ $("kpis").innerHTML=[["open",q.status_counts.open||0],["waiting on you",q.status_counts["waiting on the owner"]||0],["finished, 7 d",sum("finished")],["by free workers, 7 d",sum("free_finished")],["PRs merged, 7 d",g.merged_7d??"?"],["open PRs",(g.open_prs||[]).length]].map(([k,v])=>`<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+ $("svc").innerHTML=Object.entries(d.services).map(([k,s])=>`<div><span class="${s.ok?"ok":"bad"}">${s.ok?"●":"▲"}</span> ${esc(k)} <span class="sub">HTTP ${s.http}, ${s.ms} ms</span></div>`).join("");
+ const sc=Object.entries(q.status_counts).sort((a,b)=>b[1]-a[1]),mx=Math.max(...sc.map(x=>x[1]));
+ $("status").innerHTML=sc.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin:3px 0"><span style="width:130px">${esc(k)}</span><span style="height:10px;background:var(--a);border-radius:2px;width:${Math.max(2,v/mx*55)}%"></span><span class="num">${v}</span></div>`).join("");
+ const W=Math.max(320,$("daily").clientWidth||640),H=150,bw=W/days.length,top=Math.max(1,...days.map(x=>x.finished+x.prs+x.failed+x.empty));
+ let svg="";days.forEach((x,i)=>{let y=H;[["finished","var(--a)"],["prs","var(--b)"],["failed","var(--d)"],["empty","var(--c)"]].forEach(([k,c])=>{const h=x[k]/top*(H-14);y-=h;svg+=`<rect x="${i*bw+2}" y="${y}" width="${bw-4}" height="${h}" fill="${c}"><title>${x.day} ${k}: ${x[k]}</title></rect>`});
+  if(i%2==days.length%2)svg+=`<text x="${i*bw+bw/2}" y="${H+14}" font-size="10" text-anchor="middle" fill="currentColor" opacity=".6">${x.day.slice(5)}</text>`});
+ $("daily").setAttribute("viewBox",`0 0 ${W} ${H+18}`);$("daily").innerHTML=svg;
+ $("workers").innerHTML=table(["who","runs","main outcomes"],Object.entries(q.workers_7d).map(([k,v])=>[esc(k),Object.values(v).reduce((a,b)=>a+b,0),Object.entries(v).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([o,n])=>`${esc(o)} ${n}`).join(", ")]));
+ $("owner").innerHTML=table(["item","what"],q.waiting_on_owner.map(i=>[esc(i.id),esc(i.title)]));
+ $("prs").innerHTML=table(["#","title","by","opened"],(g.open_prs||[]).map(p=>[`<a href="https://github.com/5kasgard/exagium/pull/${p.n}">${p.n}</a>`,esc(p.title),esc(p.by),ago(p.at)]));
+ $("wf").innerHTML=table(["workflow","results"],Object.entries(g.workflows_24h||{}).map(([k,v])=>[esc(k),Object.entries(v).map(([o,n])=>`<span class="${o==="failure"?"bad":o==="success"?"ok":""}">${esc(o)} ${n}</span>`).join(", ")]))+((g.latest_failures||[]).length?`<p class="sub">Latest failures: ${g.latest_failures.slice(0,5).map(f=>`<a href="${esc(f.url)}">${esc(f.workflow)}</a> (${ago(f.at)})`).join(", ")}</p>`:"");
+ if(d.models){$("modelsCard").style.display="";$("models").innerHTML=Object.entries(d.models.by_job||{}).map(([job,list])=>`<h2 style="margin-top:8px">${esc(job)}</h2>`+table(["model","score","reach","price $/M"],list.slice(0,8).map(m=>[esc(m.name),m.score??"",esc(m.reach),m.price??""]))).join("")+`<p class="sub">${esc(d.models.note||"")}</p>`}
+ $("events").innerHTML=table(["when","item","who","outcome","note"],q.recent_events.map(e=>[ago(e.at),esc(e.item),esc(e.who),esc(e.outcome),esc(e.note)]));
+}).catch(e=>{$("gen").textContent="could not load data: "+e});
+</script></body></html>
