@@ -1626,6 +1626,53 @@ class CallSites(unittest.TestCase):
                           ("mod.py", 3, "anthropic_call")])
 
 
+class PrSync(unittest.TestCase):
+    """P38: a merged or closed PR moves its waiting item; an open one, an unfetched one or a review item does not."""
+
+    def item(self, status, runs):
+        return {"id": "K1", "status": status, "runs": runs}
+
+    def test_decide(self):
+        import pr_sync as S
+        runs = [{"outcome": "pr", "where": "https://github.com/o/r/pull/7"}, {"outcome": "escalate"}]
+        it = self.item("waiting on the owner", runs)
+        self.assertEqual(S.pr_number(it), 7)
+        self.assertEqual(S.decide(it, {"number": 7, "state": "closed", "merged": True, "sha": "abc1234ff"})[0], "decide_done")
+        self.assertEqual(S.decide(it, {"number": 7, "state": "closed", "merged": False})[0], "park")
+        self.assertIsNone(S.decide(it, {"number": 7, "state": "open", "merged": False}))
+        self.assertIsNone(S.decide(it, None))   # a failed fetch changes nothing
+        self.assertIsNone(S.decide(self.item("review", runs), {"number": 7, "state": "closed", "merged": True}))
+        self.assertIsNone(S.pr_number(self.item("escalated", [{"outcome": "failed", "where": "x/pull/3"}])))
+
+    def test_latest_pr_wins(self):
+        import pr_sync as S
+        it = self.item("escalated", [{"outcome": "pr", "where": "/pull/3"}, {"outcome": "pr", "where": "/pull/9"}])
+        seen = []
+        q = {"items": [it, self.item("open", [{"outcome": "pr", "where": "/pull/4"}])]}
+        out = S.plan(q, lambda n: seen.append(n) or {"number": n, "state": "closed", "merged": False})
+        self.assertEqual(seen, [9])
+        self.assertEqual([o[:3] for o in out], [("K1", 9, "park")])
+
+    def test_pr_is_history_after_redo(self):
+        """Review 2026-11-25: tier.py closes a rejected PR and sends the item back; a later escalation must not park it."""
+        import pr_sync as S
+        runs = [{"outcome": "pr", "where": "/pull/5"}, {"outcome": "redo"}, {"outcome": "claim"}, {"outcome": "failed"},
+                {"outcome": "escalate"}]
+        self.assertIsNone(S.pr_number(self.item("escalated", runs)))
+        reopened = [{"outcome": "pr", "where": "/pull/5"}, {"outcome": "decide_open"}]
+        self.assertIsNone(S.decide(self.item("waiting on the owner", reopened), {"number": 5, "merged": True}))
+
+    def test_write_time_recheck(self):
+        import pr_sync as S
+        q = {"items": [self.item("in progress", [{"outcome": "pr", "where": "/pull/5"}])]}
+        mock = unittest.mock
+        with mock.patch.object(S.Q, "sync"), mock.patch.object(S.Q, "load", return_value=q), \
+                mock.patch.object(S.Q, "save") as save, mock.patch.object(S.Q, "commit_push") as push:
+            self.assertIsNone(S.apply("wt", "K1", 5, "park", "r"))
+        save.assert_not_called(); push.assert_not_called()
+        self.assertEqual(q["items"][0]["status"], "in progress")
+
+
 if __name__ == "__main__":
     unittest.main()
 
