@@ -225,12 +225,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| R72 | B3 |  | minor | medium | test | How can per-actor, per-task-family success calibration with Wilson lower confidence bounds be maintained and used to route tasks across heterogeneous workers, a | Worker job (research): literature card for P26c. Why: It informs whether RabbitHole should port only the calibration registry and use measured success bounds to replace hand-kept qualification comments when routing. | queue P26c; queue P27 (generator) |
-
 ## Needs the owner (20)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
@@ -371,7 +365,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (166)
+## Done (167)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -544,6 +538,7 @@ same artifact scores differently through the runner than through a direct run (t
 | Q73 | B3 |  | minor | medium | build | Weight-space programming (Tracr, ALTA) as ground-truth baselines and hybrid parts | From HANDOFF-item4-loop open list item 7 (never filed): compile programs straight into transformer weights, as ground truth for distillation (P19) and as hybrid parts. Start as literature: what compiles today, at what size and cost. | owner 2026-11-21: every item ever mentioned; claude/forge-tool-fit-register.md |
 | Q77 | B3 |  | minor | medium | build | Training on execution traces (ground meaning in effects on machine state) | From HANDOFF-item4-loop open list item 6 and the 4 Nov vision chat, never filed: train small models on machine-level execution traces rather than bytes. Start as literature: what has been tried, at what size, and what a first Forge-sized test would measure. | owner 2026-11-21: every item ever mentioned |
 | R71 | B3 |  | minor | medium | test | How can per-model API behavior monitors use success-rate and latency baselines to distinguish known endpoint retirements such as HTTP 410 from silent model chan | Worker job (research): literature card for P26b. Why: It informs how to set and validate drift rules that separate known retirement signals from silent model changes with few false flags. | queue P26b; queue P27 (generator) |
+| R72 | B3 |  | minor | medium | test | How can per-actor, per-task-family success calibration with Wilson lower confidence bounds be maintained and used to route tasks across heterogeneous workers, a | Worker job (research): literature card for P26c. Why: It informs whether RabbitHole should port only the calibration registry and use measured success bounds to replace hand-kept qualification comments when routing. | queue P26c; queue P27 (generator) |
 | Q08 |  |  | minor | low | fix | review.yml copies a dispatcher-chosen path onto a public branch | Done (main 05328a4): review.yml copies only a tracked regular file under router/review/ (no '..', no symlink); refusals checked by the pre-merge reviewer. | A-security m3; main:.github/workflows/review.yml:33-34 |
 | Q11 |  |  | minor | low | fix | Committed unused ELF loop/confine (20,712 B) | Done (main 05328a4): loop/confine deleted; loop.py builds its own copy. | A-security m6; C-structure F10; S2 confirmed |
 | Q18 |  |  | minor | low | fix | Single unretried pushes to router-runs / ci-runs | Done (main 05328a4): pushes to router-runs (router.yml) and ci-runs (loop, counter, record orphan step) retry 5 times on the newest tip, then fail; race and all-fail cases tested locally. Bench pushes left alone (benches complete, dispatch only). | B F8; E E-08 |
