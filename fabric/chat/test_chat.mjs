@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
-writeFileSync(join(here, ".test_worker.mjs"), readFileSync(join(here, "worker.js"), "utf8").replace('import PAGE from "./page.html";', 'const PAGE = "";'));
+writeFileSync(join(here, ".test_worker.mjs"), readFileSync(join(here, "worker.js"), "utf8").replace('import PAGE from "./page.html";', 'const PAGE = "";').replace('import DASH from "./dash.html";', 'const DASH = "";'));
 process.on("exit", () => { try { unlinkSync(join(here, ".test_worker.mjs")); } catch {} });
 const { verifyAccess, chat } = await import("./.test_worker.mjs");
 const assert=(c,m)=>{if(!c){console.log("FAIL",m);process.exitCode=1}else console.log("ok",m)};

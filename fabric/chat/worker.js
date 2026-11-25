@@ -4,6 +4,8 @@
 // API call re-verifies the Access JWT (RS256 against the team's certs, audience ACCESS_AUD, email OWNER_EMAIL).
 // Keys are Worker secrets, set by .github/workflows/chat-deploy.yml from the repo's secrets; the browser never sees them.
 import PAGE from "./page.html";
+import DASH from "./dash.html";   // the Forge dashboard (fabric/dash): owner-only like the chat
+const DASH_DATA = "https://raw.githubusercontent.com/5kasgard/exagium/fabric-data/dash.json";
 
 const CONNECTOR = "https://connector.exagium.xyz/mcp";
 // provider -> OpenAI-compatible base URL and the secret holding its key
@@ -115,6 +117,13 @@ export default {
     if (!(await verifyAccess(request, env))) return new Response("forbidden", { status: 403 });
     if (url.pathname === "/" && request.method === "GET")
       return new Response(PAGE, { headers: { "content-type": "text/html; charset=utf-8" } });
+    if (url.pathname === "/dash" && request.method === "GET")
+      return new Response(DASH, { headers: { "content-type": "text/html; charset=utf-8" } });
+    if (url.pathname === "/api/dash") {
+      const r = await fetch(DASH_DATA, { cf: { cacheTtl: 120 } });
+      return new Response(r.ok ? r.body : JSON.stringify({ error: `dash.json: HTTP ${r.status}` }),
+        { status: r.ok ? 200 : 502, headers: { "content-type": "application/json", "cache-control": "no-store" } });
+    }
     if (url.pathname === "/api/models") return Response.json({ models: MODELS, allow_paid: env.ALLOW_PAID === "true" });
     if (url.pathname === "/api/chat" && request.method === "POST") {
       const raw = await request.text();
