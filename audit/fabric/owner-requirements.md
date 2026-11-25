@@ -36,3 +36,11 @@
 - Wants a chat interface with a custom connector he controls, highly customised to the Forge.
 - Free hosting (24/7 or run-up/run-down persisted through files); not Oracle Cloud.
 - Ideas raised, not decisions: bandits, population search or tournaments instead of sequential A/B; one closed-loop control plane across proposer, meters, worker and router with security boundaries intact; Lean 4 for parts; a connection graph.
+
+## 2026-11-26 (owner, relayed by Claude Opus 5.5 in the claude.ai chat)
+- Purpose of the fabric work: it is not the Forge project itself; it automates it, and gives the owner his own chat,
+  built mainly to get around usage limits and to have as much ability as possible.
+- Own agentic OS vs adopting LobeHub as the screen: to be decided by data, not preference ("if we follow the data we
+  can find it").
+- Sandboxes also serve hardware variety (different hardware and architectures to compute on); tiers and machines in
+  several places are fine. Use is 5 to 6 h a day at minimum. Processes surviving a resume preferred (gut call).
