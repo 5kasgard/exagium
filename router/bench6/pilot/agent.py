@@ -140,12 +140,15 @@ def run(cands, stmts, iid, agent, outdir, hdir, gw, port, seal_sh, model="", cap
                                            os.path.join(outdir, f"meter-{iid}.jsonl"), model, str(cap)], env=menv,
                                           stdout=open(os.path.join(outdir, f"meter-{iid}.out"), "w"), stderr=subprocess.STDOUT))
             time.sleep(3)
-            cmd = ["docker", "exec", "-e", f"BENCH4_BASE=http://{gw}:{port}", "-e", f"BENCH4_MODEL={model}", "-e", "HOME=/tmp",
-                   name, "sh", "-c", "ln -sfn /testbed /workspace && cd /workspace && "
-                   f"/opt/oh/bin/python /opt/bench4/run_openhands.py /out/task.md {int(maxit)} > /out/harness.out 2> /out/harness.err"]
+            # bench-4's own launcher, unchanged: the same environment, iteration limit and output files as bench-4's base arm
+            cmd = ["docker", "exec", "-e", f"BENCH4_BASE=http://{gw}:{port}", "-e", f"BENCH4_MODEL={model}",
+                   name, "sh", "-c", "ln -sfn /testbed /workspace && sh /opt/bench4/run_in_container.sh openhands /out/task.md /out"]
             rc, log, s = sh(cmd, int(wall))
             ending = "timeout" if rc == "timeout" else "exited"
-            res["harness_rc"] = rc
+            try:
+                res["harness_rc"] = int(open(os.path.join(hout, "rc")).read().strip())
+            except (OSError, ValueError):
+                res["harness_rc"] = None
             try:
                 res["harness_end"] = json.loads(open(os.path.join(hout, "harness.out")).read().rsplit("@@END@@", 1)[1].splitlines()[0])
             except (OSError, IndexError, ValueError):
