@@ -23,7 +23,7 @@ export const MODELS = [
   { id: "anthropic:claude-sonnet-5-5", paid: true },
   { id: "anthropic:claude-opus-5-5", paid: true },
 ];
-const MAX_STEPS = 8, MAX_TOKENS = 4000;
+const MAX_STEPS = 8, MAX_TOKENS = 4000, MAX_REQUEST = 200000;   // bytes of conversation per request
 const SYSTEM = "You are a model the owner of the Forge (repo 5kasgard/exagium) is chatting with, through his own app. " +
   "Tools give a read-only view of the Forge's queue, events, findings and notes. Records name who made them; you are " +
   "not that recorder, and you act as yourself. Cite item ids and file paths, and say when something is not in the data.";
@@ -44,14 +44,23 @@ export async function verifyAccess(request, env, fetchImpl = fetch) {
   const key = await crypto.subtle.importKey("jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]);
   const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, b64u(s), new TextEncoder().encode(`${h}.${p}`));
   const aud = Array.isArray(body.aud) ? body.aud : [body.aud];
-  return ok && aud.includes(env.ACCESS_AUD) && body.exp * 1000 > Date.now() &&
+  const now = Date.now() / 1000;
+  return ok && body.iss === `https://${env.ACCESS_TEAM}.cloudflareaccess.com` && aud.includes(env.ACCESS_AUD) &&
+    body.exp > now && (body.nbf === undefined || body.nbf <= now + 60) &&
     String(body.email || "").toLowerCase() === String(env.OWNER_EMAIL).toLowerCase();
 }
 
+export class ConnectorError extends Error {}
 async function mcp(method, params, fetchImpl) {
+  // errors surface instead of turning into empty tools or empty results (review in PR #157)
   const r = await fetchImpl(CONNECTOR, { method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }) });
-  return (await r.json()).result;
+  if (r.ok === false) throw new ConnectorError(`connector HTTP ${r.status}`);
+  let j;
+  try { j = await r.json(); } catch { throw new ConnectorError("connector reply was not JSON"); }
+  if (j.error) throw new ConnectorError(`connector error ${j.error.code}: ${String(j.error.message).slice(0, 200)}`);
+  if (!j.result) throw new ConnectorError("connector reply had no result");
+  return j.result;
 }
 
 export async function chat(env, { model, messages }, fetchImpl = fetch) {
@@ -61,7 +70,11 @@ export async function chat(env, { model, messages }, fetchImpl = fetch) {
   const [prov, name] = [model.slice(0, model.indexOf(":")), model.slice(model.indexOf(":") + 1)];
   const p = PROVIDERS[prov], key = env[p.key];
   if (!key) return { error: `no key for ${prov} (${p.key} is not set on the Worker)` };
-  const tools = ((await mcp("tools/list", {}, fetchImpl)) || { tools: [] }).tools.map((t) =>
+  if (!Array.isArray(messages) || messages.some((x) => !x || !["user", "assistant"].includes(x.role) || typeof x.content !== "string"))
+    return { error: "messages must be a list of {role: user|assistant, content: string}" };
+  const listed = (await mcp("tools/list", {}, fetchImpl)).tools || [];
+  const allowed = new Set(listed.map((t) => t.name));   // the model may call only what the connector lists
+  const tools = listed.map((t) =>
     ({ type: "function", function: { name: t.name, description: t.description, parameters: t.inputSchema } }));
   const convo = [{ role: "system", content: SYSTEM }, ...messages.slice(-40)];
   const trace = [];
@@ -78,11 +91,18 @@ export async function chat(env, { model, messages }, fetchImpl = fetch) {
     convo.push(msg);
     if (!msg.tool_calls?.length) return { reply: msg.content || "", trace, usage, model, paid: m.paid };
     for (const c of msg.tool_calls) {
-      let args = {};
-      try { args = JSON.parse(c.function.arguments || "{}"); } catch {}
-      const res = await mcp("tools/call", { name: c.function.name, arguments: args }, fetchImpl);
-      const text = (res?.content || []).map((x) => x.text).join("\n").slice(0, 30000);
-      trace.push({ tool: c.function.name, args });
+      const name = c.function?.name;
+      let args = null, text;
+      try { args = JSON.parse(c.function?.arguments || "{}"); } catch { args = null; }
+      if (!allowed.has(name)) text = `refused: ${name} is not a listed tool`;
+      else if (args === null || typeof args !== "object" || Array.isArray(args)) text = "refused: tool arguments were not a JSON object";
+      else {
+        try {
+          const res = await mcp("tools/call", { name, arguments: args }, fetchImpl);
+          text = (res.content || []).map((x) => x.text).join("\n").slice(0, 30000);
+        } catch (e) { text = `tool failed: ${e.message}`; }
+      }
+      trace.push({ tool: name, args, ok: !text.startsWith("refused") && !text.startsWith("tool failed") });
       convo.push({ role: "tool", tool_call_id: c.id, content: text });
     }
   }
@@ -97,7 +117,11 @@ export default {
       return new Response(PAGE, { headers: { "content-type": "text/html; charset=utf-8" } });
     if (url.pathname === "/api/models") return Response.json({ models: MODELS, allow_paid: env.ALLOW_PAID === "true" });
     if (url.pathname === "/api/chat" && request.method === "POST") {
-      try { return Response.json(await chat(env, await request.json())); }
+      const raw = await request.text();
+      if (raw.length > MAX_REQUEST) return Response.json({ error: `request over ${MAX_REQUEST} bytes` }, { status: 413 });
+      let body;
+      try { body = JSON.parse(raw); } catch { return Response.json({ error: "request was not JSON" }, { status: 400 }); }
+      try { return Response.json(await chat(env, body)); }
       catch (e) { return Response.json({ error: String(e).slice(0, 300) }, { status: 500 }); }
     }
     return new Response("not found", { status: 404 });
