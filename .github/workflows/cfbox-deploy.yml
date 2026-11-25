@@ -28,7 +28,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx --no-install wrangler deploy > "$RUNNER_TEMP/deploy.txt" 2>&1 || {
-            grep -iE "error|fail|permission|auth|container" "$RUNNER_TEMP/deploy.txt" | grep -v -iE "workers\.dev|https?://" | tail -n 25; exit 1; }
+            grep -iE -A6 "error|fail|permission|auth|code:" "$RUNNER_TEMP/deploy.txt" | sed -E 's#https?://[^ ]*#<url>#g; s#[a-z0-9-]+\.workers\.dev#<workers.dev>#g' | tail -n 40; exit 1; }
           grep -iE "container|image|uploaded|deployed" "$RUNNER_TEMP/deploy.txt" | grep -v -iE "workers\.dev|https?://" | tail -n 10
       - name: secret BOX_TOKEN
         working-directory: fabric/cfbox
