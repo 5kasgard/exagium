@@ -140,6 +140,11 @@ def run(cands, stmts, iid, agent, outdir, hdir, gw, port, seal_sh, model="", cap
                                            os.path.join(outdir, f"meter-{iid}.jsonl"), model, str(cap)], env=menv,
                                           stdout=open(os.path.join(outdir, f"meter-{iid}.out"), "w"), stderr=subprocess.STDOUT))
             time.sleep(3)
+            # bench-4's seal check, from inside the agent's own container: the meter is reachable, the outside is not
+            probe = lambda host, prt: sh(["docker", "exec", name, "timeout", "8", "bash", "-c", f"echo > /dev/tcp/{host}/{prt}"], 30)[0]
+            res["seal"] = {"meter": probe(gw, port) == 0, "outside": "reached" if probe("1.1.1.1", 443) == 0 else "blocked"}
+            if not res["seal"]["meter"] or res["seal"]["outside"] != "blocked":
+                return finish(res, outdir, "seal_failed", json.dumps(res["seal"]), t0)
             # bench-4's own launcher, unchanged: the same environment, iteration limit and output files as bench-4's base arm
             cmd = ["docker", "exec", "-e", f"BENCH4_BASE=http://{gw}:{port}", "-e", f"BENCH4_MODEL={model}",
                    name, "sh", "-c", "ln -sfn /testbed /workspace && sh /opt/bench4/run_in_container.sh openhands /out/task.md /out"]
