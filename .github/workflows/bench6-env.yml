@@ -15,6 +15,14 @@ on:
         description: "env (step 1 check), or a step 2 known-answer mode: gold, goldtest, empty, cheat"
         required: false
         default: env
+      cap:
+        description: "agent modes: call cap (bench-4's base: 80)"
+        required: false
+        default: "80"
+      wall:
+        description: "agent modes: wall seconds (bench-4's base: 2100)"
+        required: false
+        default: "2100"
       model:
         description: "agent-model only: OpenRouter model (free only); bench-4's base default"
         required: false
@@ -49,7 +57,7 @@ jobs:
   check:
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ startsWith(github.event.inputs.mode, 'agent-') && 75 || 30 }}   # PLAN.md; an attempt: bench-4's 2100 s wall + grading
+    timeout-minutes: ${{ startsWith(github.event.inputs.mode, 'agent-') && 110 || 30 }}   # PLAN.md; an attempt: bench-4's 2100 s wall + grading
     permissions:
       contents: read
     strategy:
@@ -87,6 +95,8 @@ jobs:
           ID: ${{ matrix.id }}
           MODE: ${{ github.event.inputs.mode }}
           AMODEL: ${{ github.event.inputs.model }}
+          ACAP: ${{ github.event.inputs.cap }}
+          AWALL: ${{ github.event.inputs.wall }}
         run: |
           case "$MODE" in
             env|'') python3 -I router/bench6/pilot/envcheck.py run router/bench6/pilot/candidates.json "$ID" "$RUNNER_TEMP/out" ;;
@@ -95,7 +105,7 @@ jobs:
               GW=$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'); mkdir -p "$RUNNER_TEMP/harness" "$RUNNER_TEMP/out"
               BENCH4_KEY_FILE="$RUNNER_TEMP/meter.key" python3 -I router/bench6/pilot/agent_attempt.py run router/bench6/pilot/candidates.json \
                 router/bench6/pilot/statements.json "$ID" "${MODE#agent-}" "$RUNNER_TEMP/out" "$RUNNER_TEMP/harness" "$GW" 8088 \
-                router/bench4/seal.sh "$AMODEL" 80 2100 1000   # bench-4's base harness: 80 calls, 2100 s, 1000 iterations
+                router/bench4/seal.sh "$AMODEL" "$ACAP" "$AWALL" 1000   # defaults: bench-4's base harness, 80 calls, 2100 s
               rm -f "$RUNNER_TEMP/meter.key"; find "$RUNNER_TEMP/out" -type l -print -delete | head -20 ;;
             *) echo "mode must be env, gold, goldtest, empty, cheat or agent-gold, agent-mock, agent-model"; exit 1 ;;
           esac
