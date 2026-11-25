@@ -195,5 +195,34 @@ class TestOwnFault(unittest.TestCase):
             self.assertEqual(v["extract"], "not scored", log)
 
 
+class ProposeArms(unittest.TestCase):
+    def run_arm(self, arm):
+        import propose
+        class P:
+            @staticmethod
+            def build(task):
+                return {"task": task, "data": [1]}
+        old, propose.packet = propose.packet, P
+        calls = []
+        def call(p):
+            calls.append(p)
+            return {"ok": True, "status": 200, "text": "not a candidate", "finish": "stop"}
+        try:
+            res = propose.propose("optdigits", arm, call=call, validate=lambda t: "invalid")
+        finally:
+            propose.packet = old
+        return res, calls
+
+    def test_packet_repairs_at_most_once(self):
+        res, calls = self.run_arm("packet")
+        self.assertEqual((res["calls"], len(calls)), (2, 2))
+        self.assertIn("invalid", calls[1])
+        self.assertIn("data", calls[0])
+
+    def test_baseline_makes_one_call(self):
+        res, calls = self.run_arm("baseline")
+        self.assertEqual((res["calls"], len(calls)), (1, 1))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,12 +4,17 @@ Writes OUT_DIR/<k>/{task, prompt.md, reply.md, finish} for k in 0..N-1 (task k i
 per call to OUT_DIR/calls.jsonl (for worker/ledger.py record). One call per proposal, no retry (PLAN.md).
 --dry makes no call: the reply is the example candidate itself, a known-good answer, so the score and record path can be
 tested end to end before real calls are spent (2026-11-19: a shell bug lost the first real run's scoring)."""
-import glob, json, os, sys
+import glob, json, os, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(ROOT, "router"))
+sys.path.insert(0, HERE)
 import engines  # noqa: E402
+try:
+    import packet  # noqa: E402
+except Exception:
+    packet = None
 
 ENGINE, MODEL, MAX_TOKENS = "nvidia", "nvidia/nemotron-3-ultra-550b-a55b", 16000
 TASKS = ("optdigits", "text", "adult")
@@ -42,10 +47,14 @@ def scores(task):
     return "(none recorded)"
 
 
-def prompt(task):
+def prompt(task, packet_data=None):
     contract = open(os.path.join(ROOT, "runner", "CONTRACT.md")).read()
     card = open(os.path.join(ROOT, "tasks", task, "card.json")).read()
     ex = os.path.join(ROOT, "runner", "candidates", EXAMPLE)
+    packet_section = ""
+    if packet_data is not None:
+        txt = packet_data if isinstance(packet_data, str) else json.dumps(packet_data, sort_keys=True, default=str)
+        packet_section = "\n# The packet (data built for this task)\n```json\n" + txt + "\n```\n"
     return f"""You write a new candidate model for a public research repository that measures small machine-learning
 models on accuracy and CPU cost. Your code is compiled and run in a sandbox with no network; it is judged on a held-back
 dev split by a fixed checker.
@@ -67,7 +76,7 @@ Rules that the checks enforce:
 ```json
 {card}
 ```
-
+{packet_section}
 # A working example candidate ({EXAMPLE}): follow its input and output handling exactly
 ```python
 {open(os.path.join(ex, "train.py")).read()}
@@ -103,23 +112,55 @@ def dry_reply():
             + open(os.path.join(ex, "train.py")).read() + "```\n```c\n" + open(os.path.join(ex, "infer.c")).read() + "```\n")
 
 
+def validate_reply(text):
+    import extract
+    with tempfile.TemporaryDirectory() as d:
+        return extract.extract(text, d) or ""
+
+
+def propose(task, arm, call=None, validate=None):
+    call = call or (lambda p: engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS))
+    validate = validate or validate_reply
+    p = prompt(task, packet_data=(packet.build(task) if packet else {"task": task}) if arm == "packet" else None)
+    rs = [call(p)]
+    if arm == "packet":
+        err = validate(rs[0].get("text") or "")
+        if err:
+            rs.append(call(p + "\n\n# Repair\nPrevious answer failed to validate: " + str(err)
+                           + "\n\nPrevious answer:\n" + (rs[0].get("text") or "")
+                           + "\n\nAnswer again with exactly three fenced blocks.\n"))
+    return {"reply": rs[-1], "calls": len(rs), "responses": rs, "prompt": p}
+
+
 def main():
     out, n, start = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
     dry = "--dry" in sys.argv[4:]
+    arm = "baseline"
+    rest = sys.argv[4:]
+    for i, a in enumerate(rest):
+        if a == "--arm" and i + 1 < len(rest):
+            arm = rest[i + 1]
+        elif a.startswith("--arm="):
+            arm = a.split("=", 1)[1]
+    if arm not in ("baseline", "packet"):
+        raise SystemExit("--arm must be baseline or packet")
     engines.TIMEOUT = 600   # Nemotron reasons before answering (worker release test 1)
     for k in range(n):
         task = TASKS[(start + k) % len(TASKS)]
         d = os.path.join(out, str(k))
         os.makedirs(d, exist_ok=True)
-        p = prompt(task)
+        if dry:
+            p = prompt(task, packet_data={"task": task} if arm == "packet" else None)
+            r = {"ok": True, "status": 200, "text": dry_reply(), "finish": "dry"}
+            calls = 0
+        else:
+            res = propose(task, arm)
+            p, r, calls = res["prompt"], res["reply"], res["calls"]
+            with open(os.path.join(out, "calls.jsonl"), "a") as f:
+                for rr in res["responses"]:
+                    f.write(json.dumps({k2: rr.get(k2) for k2 in ("t", "engine", "model", "ok", "status", "latency_s", "usage")}) + "\n")
         open(os.path.join(d, "task"), "w").write(task)
         open(os.path.join(d, "prompt.md"), "w").write(p)
-        if dry:
-            r = {"ok": True, "status": 200, "text": dry_reply(), "finish": "dry"}
-        else:
-            r = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)
-            with open(os.path.join(out, "calls.jsonl"), "a") as f:
-                f.write(json.dumps({k2: r.get(k2) for k2 in ("t", "engine", "model", "ok", "status", "latency_s", "usage")}) + "\n")
         with open(os.path.join(d, "reply.md"), "w") as f:
             f.write(r.get("text") or f"(no reply: status {r.get('status')}: {r.get('error')})")
         with open(os.path.join(d, "finish"), "w") as f:
