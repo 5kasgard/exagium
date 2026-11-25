@@ -1,0 +1,12 @@
+FAILED: prop-45620084537-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 146, in <module>
+    main()
+  File "/w/train.py", line 127, in main
+    acc = evaluate(X_val, y_val, enc, T, b1, W2, b2)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 103, in evaluate
+    a = Z @ T.reshape(-1, T.shape[-1]) + b1  # T is (d,256,H) -> reshape to (d*256, H)
+        ~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 4096 is different from 1000)
+
