@@ -163,5 +163,11 @@ class Setup(unittest.TestCase):
                 P.patch_mobile(d)
 
 
+    def test_search_settings_only_list_keys_that_exist(self):
+        self.assertEqual(S.search_settings({}), ("", "jina,naive"))
+        self.assertEqual(S.search_settings({"HAS_EXA": "true", "HAS_TAVILY": "true", "HAS_BRAVE": "false"}),
+                         ("tavily,exa", "exa,jina,naive"))
+
+
 if __name__ == "__main__":
     unittest.main()
