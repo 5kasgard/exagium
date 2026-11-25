@@ -6,7 +6,7 @@ name: workbench-manage
 on:
   workflow_dispatch:
     inputs:
-      mode: {description: "status or apply", default: status, type: choice, options: [status, apply]}
+      mode: {description: "status or apply", default: status, type: choice, options: [status, apply, errors]}
 permissions:
   contents: read
 jobs:
@@ -31,4 +31,5 @@ jobs:
         run: |
           lh login --server https://workbench.exagium.xyz > "$RUNNER_TEMP/login.log" 2>&1 || { echo "login failed: $(tail -n 1 "$RUNNER_TEMP/login.log" | grep -v -iE '@|key')"; exit 1; }
           if [ "$MODE" = apply ]; then python3 -I fabric/workbench/manage.py apply fabric/workbench/config/workbench.json
+          elif [ "$MODE" = errors ]; then python3 -I fabric/workbench/manage.py errors 2
           else python3 -I fabric/workbench/manage.py status; fi
