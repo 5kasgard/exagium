@@ -1605,6 +1605,27 @@ class FullText(unittest.TestCase):
         self.assertEqual(fulltext.results_text(html, 1000), "")
 
 
+class CallSites(unittest.TestCase):
+    def test_sites_skips_tests(self):
+        import sys
+        here = os.path.dirname(os.path.abspath(__file__))
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import callsites
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "mod.py"), "w") as f:
+                f.write("a = engines.call('x')\n"
+                        "b = slots.call('x')\n"
+                        "c = anthropic_call('x')\n")
+            with open(os.path.join(d, "test_mod.py"), "w") as f:
+                f.write("d = engines.call('x')\n")
+            got = callsites.sites(d)
+        self.assertEqual([(r["file"], r["line"], r["call"]) for r in got],
+                         [("mod.py", 1, "engines.call"),
+                          ("mod.py", 2, "slots.call"),
+                          ("mod.py", 3, "anthropic_call")])
+
+
 if __name__ == "__main__":
     unittest.main()
 
