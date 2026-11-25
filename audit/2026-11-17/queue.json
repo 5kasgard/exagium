@@ -22100,6 +22100,29 @@
    },
    "work_types_key": "5f9ba1cab33fa118",
    "work_types_at": "2026-11-25T04:57:52Z"
+  },
+  {
+   "id": "Q85",
+   "title": "Research claim decider keeps 7 of 48 quote-verified claims and has no known-answer controls",
+   "kind": "fix",
+   "status": "open",
+   "origin": "follow-up",
+   "severity": "major",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "next": "Data (Claude shift 2026-11-25, evidence/2026-11-25-claim-decider-funnel.txt: result artifacts of the last 24 research runs since 2026-11-24): the script quote check kept 48 claims; worker/research_job.py decide_claims (pplx-decider, keep at p >= 0.5) kept 7. 9 of the 18 'no claims' runs had quote-verified claims that only the decider dropped (R65 6 of 6, R69 6 of 6). p: 7 at >= 0.5, 8 in 0.3-0.5, 33 below 0.3. The relevance filter had the same shape and was fixed by known-answer controls plus a labelled replay (REL_KEEP 0.3, router/review/relevance-control/); decide_claims has no controls at all, against the rule that a model judges only with known-answer controls. Hypothesis: the decider's instruction ('directly answers the QUESTION, not merely the same field') is miscalibrated, not the claims. Cheapest test, rule fixed before the run: freeze the 48 claims with their questions; label each keep/drop blind (a separate model or agent, no p shown, with 6 planted known answers: 3 exact supported on-question claims, 3 off-question or over-claimed); replay decide_claims and the same request with two controls added at thresholds 0.5, 0.4, 0.3. Adopt the lowest threshold whose precision against the labels is >= 0.85 and whose controls hold on every request; else keep 0.5 and record why. Then add the two controls to decide_claims (the request is not used if they fail, like relevance()), with a test. After the change, re-open the research items sent to the owner only because no claim survived: R4, R22, R28, R29, R33, R37, R46, R47, R53, R55, R57, R61, R64, R65, R69, R70.",
+   "refs": [
+    "queue P7",
+    "worker/research_job.py:408-431",
+    "audit/2026-11-17/evidence/2026-11-25-claim-decider-funnel.txt"
+   ],
+   "blocked_by": [],
+   "touches": [
+    "worker/research_job.py",
+    "worker/test_worker.py"
+   ],
+   "filed_at": "2026-11-25T08:47:34Z"
   }
  ],
  "batches": [
