@@ -1,0 +1,62 @@
+# Deploys forge-act (fabric/act/worker.js), the write half of the Forge connector, to Cloudflare Workers (owner
+# 2026-11-25). Manual, main only. Two owner-made secrets go into the Worker, one step each:
+#   FORGE_ACT_TOKEN         a random string of 32+ characters (shorter refuses everything); the same value goes in
+#                           the workbench's MCP header as "Authorization: Bearer <value>"
+#   FORGE_ACT_GITHUB_TOKEN  a fine-grained token for this repo only: Contents, Issues, Pull requests (read/write),
+#                           Actions (read/write, for allow-listed workflows). NEVER the Workflows permission: with it a
+#                           PR could rewrite a keyed workflow (security review 2026-11-25). The Worker's "no merge, no
+#                           main" rules are code only; a ruleset on main (PR required) also holds them on GitHub's side.
+# The Worker cannot merge or touch .github/, agent/ or the connector code; the owner merges every PR it opens.
+name: act-deploy
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: install wrangler (pinned, shared with the connector)
+        working-directory: fabric/worker
+        run: npm ci --no-fund --no-audit
+      - name: tests
+        run: node fabric/act/test_act.mjs
+      - name: deploy
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler deploy --config ../act/wrangler.toml > "$RUNNER_TEMP/deploy.txt" 2>&1 || { grep -iE "error|fail" "$RUNNER_TEMP/deploy.txt" | grep -v -iE "workers\.dev|https?://" | tail -n 20; exit 1; }
+      - name: secret ACT_TOKEN
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.FORGE_ACT_TOKEN }}
+        run: |
+          [ -n "$V" ] || { echo "FORGE_ACT_TOKEN not set: every call will be refused (401)"; exit 0; }
+          printf '%s' "$V" | npx --no-install wrangler secret put ACT_TOKEN --config ../act/wrangler.toml > /dev/null 2>&1 && echo "ACT_TOKEN: set"
+      - name: secret GH_TOKEN
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.FORGE_ACT_GITHUB_TOKEN }}
+        run: |
+          [ -n "$V" ] || { echo "FORGE_ACT_GITHUB_TOKEN not set: tools will answer 'not configured'"; exit 0; }
+          printf '%s' "$V" | npx --no-install wrangler secret put GH_TOKEN --config ../act/wrangler.toml > /dev/null 2>&1 && echo "GH_TOKEN: set"
+      - name: smoke test (refuses without the token, lists tools with it)
+        env: {T: "${{ secrets.FORGE_ACT_TOKEN }}"}
+        run: |
+          url=https://act.exagium.xyz/mcp
+          body='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -d "$body")
+          echo "without token: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 401 ]
+          [ -n "$T" ] || exit 0
+          code=$(curl -s -o "$RUNNER_TEMP/s.json" -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -H "authorization: Bearer $T" -d "$body")
+          echo "with token: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 200 ] && grep -q '"open_pr"' "$RUNNER_TEMP/s.json"

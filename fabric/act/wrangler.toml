@@ -1,0 +1,11 @@
+name = "forge-act"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+# Same rules as the read-only connector: workers.dev stays off (the subdomain carries the owner's name); the only
+# address is the custom domain. Secrets (ACT_TOKEN, GH_TOKEN) are put by .github/workflows/act-deploy.yml.
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "act.exagium.xyz", custom_domain = true }]
+
+[vars]
+ALLOW_WORKFLOWS = "workbench-logs.yml"
