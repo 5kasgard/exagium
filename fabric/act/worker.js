@@ -9,15 +9,22 @@ const API = "https://api.github.com";
 const BLOCKED = [".github/", "agent/", "fabric/act/", "fabric/worker/", "fabric/chat/"];
 const MAX_FILES = 20, MAX_BYTES = 200_000;
 
-export function pathOk(p) {
+export function pathOk(p) {   // review 2026-11-25: "./" segments were normalised away by the URL parser
   p = String(p || "");
-  if (!p || p.startsWith("/") || p.includes("..") || p.includes("\\") || p.includes("//")) return false;
-  if (BLOCKED.some((b) => p.startsWith(b))) return false;
-  if (/(^|\/)\.env|secret|credential|\.pem$|\.key$/i.test(p)) return false;
+  if (!p || p.startsWith("/") || p.includes("\\") || /[\x00-\x1f?#%]/.test(p)) return false;
+  if (p.split("/").some((s) => s === "" || s === "." || s === "..")) return false;
+  const lp = p.toLowerCase();
+  if (BLOCKED.some((b) => lp.startsWith(b))) return false;
+  if (/(^|\/)\.env|\.dev\.vars|\.npmrc|id_[rde]+sa|secret|credential|token|\.pem$|\.key$|\.p12$/i.test(p)) return false;
   return true;
 }
+export const cleanActor = (a) => String(a || "").replace(/[^\w.\- ]/g, "").slice(0, 80);
+// The stamp leads every body: GitHub shows these writes as the owner's, so nothing a model writes may start a
+// comment (opencode.yml's /oc trigger reads the first characters; review 2026-11-25).
 export const stamp = (actor, now = new Date()) =>
-  `\n\n---\nrecorded_by: ${String(actor).slice(0, 80)} via forge-act (owner's workbench) · ${now.toISOString().slice(0, 19)}Z`;
+  `[forge-act · recorded_by: ${cleanActor(actor)} · ${now.toISOString().slice(0, 19)}Z]\n\n`;
+const signed = (a) => stamp(a.actor) + a.body;
+const titled = (t) => `forge-act: ${String(t).replace(/[\r\n]/g, " ").slice(0, 190)}`;
 const b64 = (s) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 
 async function gh(env, path, method = "GET", body) {
@@ -28,7 +35,10 @@ async function gh(env, path, method = "GET", body) {
   if (!r.ok) throw new Error(`GitHub ${method} ${path.split("?")[0]}: HTTP ${r.status} ${String(j.message || "").slice(0, 160)}`);
   return j;
 }
-const need = (a, ...k) => { for (const x of k) if (!a[x] || !String(a[x]).trim()) throw new Error(`missing ${x}`); };
+const need = (a, ...k) => {
+  for (const x of k) if (!a[x] || !String(a[x]).trim()) throw new Error(`missing ${x}`);
+  if (!cleanActor(a.actor).trim()) throw new Error("missing actor");
+};
 const ACTOR = { actor: { type: "string", description: "Who is asking: your model name, e.g. 'claude-sonnet-4.5 in LobeHub'." } };
 
 export const TOOLS = {
@@ -36,14 +46,14 @@ export const TOOLS = {
     description: "Open an issue in the Forge repo (a task, finding or question for the owner and workers).",
     schema: { type: "object", properties: { title: { type: "string" }, body: { type: "string" }, ...ACTOR }, required: ["title", "body", "actor"] },
     run: async (a, env) => { need(a, "title", "body", "actor");
-      const j = await gh(env, `/repos/${REPO}/issues`, "POST", { title: String(a.title).slice(0, 200), body: a.body + stamp(a.actor) });
+      const j = await gh(env, `/repos/${REPO}/issues`, "POST", { title: titled(a.title), body: signed(a) });
       return { issue: j.number, url: j.html_url }; },
   },
   comment: {
     description: "Comment on an issue or pull request by number.",
     schema: { type: "object", properties: { number: { type: "integer" }, body: { type: "string" }, ...ACTOR }, required: ["number", "body", "actor"] },
     run: async (a, env) => { need(a, "number", "body", "actor");
-      const j = await gh(env, `/repos/${REPO}/issues/${+a.number}/comments`, "POST", { body: a.body + stamp(a.actor) });
+      const j = await gh(env, `/repos/${REPO}/issues/${+a.number}/comments`, "POST", { body: signed(a) });
       return { comment: j.id, url: j.html_url }; },
   },
   open_pr: {
@@ -69,9 +79,9 @@ export const TOOLS = {
         let sha;
         try { sha = (await gh(env, `/repos/${REPO}/contents/${encodeURI(f.path)}?ref=${branch}`)).sha; } catch { sha = undefined; }
         await gh(env, `/repos/${REPO}/contents/${encodeURI(f.path)}`, "PUT",
-          { message: `${a.title} (${f.path})\n\nrecorded_by: ${a.actor} via forge-act`, content: b64(String(f.content ?? "")), branch, ...(sha ? { sha } : {}) });
+          { message: `${titled(a.title)} (${f.path})\n\nrecorded_by: ${cleanActor(a.actor)} via forge-act`, content: b64(String(f.content ?? "")), branch, ...(sha ? { sha } : {}) });
       }
-      const pr = await gh(env, `/repos/${REPO}/pulls`, "POST", { title: String(a.title).slice(0, 200), head: branch, base: "main", body: a.body + stamp(a.actor) });
+      const pr = await gh(env, `/repos/${REPO}/pulls`, "POST", { title: titled(a.title), head: branch, base: "main", body: signed(a) });
       return { pr: pr.number, url: pr.html_url, branch }; },
   },
   run_workflow: {
@@ -112,11 +122,12 @@ export async function handle(msg, env) {
   return rpcErr(id, -32601, `method not found: ${method}`);
 }
 
-export async function authorized(request, env) {
-  const got = new TextEncoder().encode((request.headers.get("authorization") || "").replace(/^Bearer\s+/i, ""));
-  const want = new TextEncoder().encode(env.ACT_TOKEN || "");
-  if (!want.length || got.length !== want.length) return false;
-  return crypto.subtle.timingSafeEqual(got, want);
+const digest = async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+export async function authorized(request, env) {   // digests: equal length, so the token's length is not timed
+  const want = env.ACT_TOKEN || "";
+  if (want.length < 32) return false;               // a weak or missing token refuses everything
+  const got = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  return crypto.subtle.timingSafeEqual(await digest(got), await digest(want));
 }
 
 export default {
@@ -129,7 +140,9 @@ export default {
     let body;
     try { body = await request.json(); } catch { return Response.json(rpcErr(null, -32700, "parse error"), { status: 400 }); }
     const batch = Array.isArray(body) ? body : [body];
-    const out = (await Promise.all(batch.map((m) => handle(m, env)))).filter(Boolean);
+    if (batch.length > 4) return Response.json(rpcErr(null, -32600, "batch of at most 4"), { status: 400 });
+    const out = [];
+    for (const m of batch) { const r = await handle(m, env); if (r) out.push(r); }   // one at a time
     if (!out.length) return new Response(null, { status: 202 });
     return Response.json(Array.isArray(body) ? out : out[0]);
   },

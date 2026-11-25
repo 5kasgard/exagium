@@ -1,8 +1,11 @@
 # Deploys forge-act (fabric/act/worker.js), the write half of the Forge connector, to Cloudflare Workers (owner
 # 2026-11-25). Manual, main only. Two owner-made secrets go into the Worker, one step each:
-#   FORGE_ACT_TOKEN         a long random string; the same value goes in the workbench's MCP header (Bearer)
+#   FORGE_ACT_TOKEN         a random string of 32+ characters (shorter refuses everything); the same value goes in
+#                           the workbench's MCP header as "Authorization: Bearer <value>"
 #   FORGE_ACT_GITHUB_TOKEN  a fine-grained token for this repo only: Contents, Issues, Pull requests (read/write),
-#                           Actions (read/write, for allow-listed workflows)
+#                           Actions (read/write, for allow-listed workflows). NEVER the Workflows permission: with it a
+#                           PR could rewrite a keyed workflow (security review 2026-11-25). The Worker's "no merge, no
+#                           main" rules are code only; a ruleset on main (PR required) also holds them on GitHub's side.
 # The Worker cannot merge or touch .github/, agent/ or the connector code; the owner merges every PR it opens.
 name: act-deploy
 on:
