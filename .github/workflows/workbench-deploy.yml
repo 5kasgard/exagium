@@ -74,12 +74,17 @@ jobs:
       - name: CEREBRAS_API_KEY (from CEREBRAS_API_KEY)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CEREBRAS_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py env CEREBRAS_API_KEY V
+      - name: FTS_SEARCH_PROVIDER (pg_like; Neon refuses pg_search to new projects)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py set FTS_SEARCH_PROVIDER pg_like
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           repository: lobehub/lobehub
           ref: 061f4d9fa334d5555b06bd7d95a0ce6078e9153c   # v2.3.6
           path: lobehub
           persist-credentials: false
+      - name: local fixes to LobeHub (each fails loudly if upstream changed)
+        run: python3 -I fabric/workbench/patch_lobehub.py lobehub
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with:
           node-version-file: lobehub/.nvmrc
