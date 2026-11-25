@@ -1,0 +1,12 @@
+FAILED: prop-45715524383-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 148, in <module>
+    main()
+  File "/w/train.py", line 124, in main
+    emb, W1, b1, W2, b2 = train_model(X_tr, y_tr, d, C, D, H, epochs, rng)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 58, in train_model
+    emb_vec = emb[np.arange(d), xb.T].transpose(1,0,2)  # (batch, d, D)
+              ~~~^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (16,) (16,64) 
+
