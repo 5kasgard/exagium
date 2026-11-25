@@ -225,11 +225,10 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (2)
+## Escalated (a check failed; the next tier takes it) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
-| R66 | B3 |  | minor | high | test | What are established patterns and limitations for building a read-only Model Context Protocol (MCP) server that exposes event queues and findings to a general-p | Worker job (research): literature card for P36. Why: It informs the design and first test of the read-only MCP connector over the queue/events/findings from one chat client. | queue P36; queue P27 (generator) |
 | R72 | B3 |  | minor | medium | test | How can per-actor, per-task-family success calibration with Wilson lower confidence bounds be maintained and used to route tasks across heterogeneous workers, a | Worker job (research): literature card for P26c. Why: It informs whether RabbitHole should port only the calibration registry and use measured success bounds to replace hand-kept qualification comments when routing. | queue P26c; queue P27 (generator) |
 
 ## Needs the owner (20)
@@ -372,7 +371,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (165)
+## Done (166)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -456,6 +455,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | R60 | B1 |  | minor | high | test | What evaluation protocols establish that model-routing gains generalize beyond the tasks used to select models, harnesses, and candidate pools? | Worker job (research): literature card for Q25. Why: It identifies published validation practices needed to decide whether routing claims require a held-out task set before the mixed suite arrives. | queue Q25; queue P27 (generator) |
 | R62 | B3 |  | minor | high | test | What evidence exists on the reliability of GitHub Actions scheduled workflows and on keeper, delayed-dispatch, redundant-schedule, or external-scheduler pattern | Worker job (research): literature card for Q58. Why: It compares restart mechanisms and scheduler reliability evidence to choose between delayed dispatch and an independent schedule and identify a fallback for unattended runs. | queue Q58; queue P27 (generator) |
 | R63 | B3 |  | minor | high | test | What published patterns use a broker to confine secret-bearing API calls to a frozen call layer and hashed artifacts, and what static-analysis methods enumerate | Worker job (research): literature card for P33. Why: It identifies prior art for broker-based secret isolation and call-site/hop analysis that can guide the CI validation and auto-merge boundary decision. | queue P33; queue P27 (generator) |
+| R66 | B3 |  | minor | high | test | What are established patterns and limitations for building a read-only Model Context Protocol (MCP) server that exposes event queues and findings to a general-p | Worker job (research): literature card for P36. Why: It informs the design and first test of the read-only MCP connector over the queue/events/findings from one chat client. | queue P36; queue P27 (generator) |
 | R67 | B3 |  | minor | high | test | In job-queue and workflow systems, what minimal change to job-type assignment or readiness/parking rules most reliably restores claimable work when zero items a | Worker job (research): literature card for P38. Why: It informs the smallest change to make ready() non-empty and how to measure ready count and claims per day before/after. | queue P38; queue P27 (generator) |
 | R68 | B3 |  | minor | high | test | In LLM-based code generation, does including compiler/runtime error feedback plus a bounded repair loop of at most two attempts improve valid-code rate and accu | Worker job (research): literature card for P5d. Why: It directly tests whether bounded error-feedback repair pays off per call, matching the pilot’s pre-registered comparison. | queue P5d; queue P27 (generator) |
 | R7 | B7 |  | minor | high | test | Research card (release test 2): How often do LLM-written machine-learning programs run and beat baselines? | Worker job (research) for P5; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue P5 |
