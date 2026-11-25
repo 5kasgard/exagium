@@ -4,6 +4,8 @@ import json, os, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
+import packet  # noqa: E402
+from unittest import mock  # noqa: E402
 
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
@@ -193,6 +195,35 @@ class TestOwnFault(unittest.TestCase):
                     "FAILED: output is malformed: 0 records, expected 6513\n", "FAILED: p-1: checker gave 5 scores for 6 items\n", "pip: 503 Service Unavailable\n"):
             v = self.run_one(rep_log=log)
             self.assertEqual(v["extract"], "not scored", log)
+
+
+class TestPacket(unittest.TestCase):
+    def test_builds_four_keys_and_never_opens_test_split(self):
+        with tempfile.TemporaryDirectory() as d:
+            parent, clusters = os.path.join(d, "parent"), os.path.join(d, "clusters")
+            os.makedirs(parent); os.makedirs(clusters)
+            open(os.path.join(parent, "compile.stderr"), "w").write(
+                "\n".join(f"line {i}" for i in range(50)) + "\n")
+            json.dump({"instructions": 7, "cache": 3}, open(os.path.join(parent, "result.json"), "w"))
+            json.dump([["a", "b"]], open(os.path.join(clusters, "clusters.json"), "w"))
+            champ = os.path.join(d, "champion.c")
+            open(champ, "w").write("int main(void){return 0;}\n")
+            secret = os.path.join(d, "test-split.json")
+            open(secret, "w").write("secret\n")
+            seen, real_open = [], open
+
+            def recording_open(path, *a, **k):
+                seen.append(os.fspath(path))
+                return real_open(path, *a, **k)
+
+            with mock.patch("builtins.open", side_effect=recording_open):
+                out = packet.build(parent, clusters, champ)
+            self.assertEqual(set(out), {"stderr_tail", "counts", "clusters", "champion_source"})
+            self.assertEqual(out["stderr_tail"], [f"line {i}" for i in range(10, 50)])
+            self.assertEqual(out["counts"], {"instructions": 7, "cache": 3})
+            self.assertEqual(out["clusters"], [["a", "b"]])
+            self.assertIn("int main", out["champion_source"])
+            self.assertFalse([p for p in seen if "test-split" in os.path.basename(p)])
 
 
 if __name__ == "__main__":
