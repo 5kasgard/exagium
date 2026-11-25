@@ -29,7 +29,7 @@ import transitions as T  # noqa: E402
 
 LIMIT_DAYS = {"worker": 2, "splitter": 3, "gate": 2, "review": 2, "in progress": 1, "scheduled": 2, "blocked": 14,
               "claude": 7, "owner-only": 14}   # guesses (2026-11-25), to be set from measured lane ages
-HOLD = re.compile(r"owner[^.]{0,40}(add to the queue only|do not start until|no work yet)|OWNER-ONLY", re.I)
+HOLD = re.compile(r"owner[^.]{0,40}(add to the queue only|do not start until|no work yet)", re.I)
 
 
 def ts(s):
