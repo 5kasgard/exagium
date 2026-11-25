@@ -22447,6 +22447,283 @@
    },
    "work_types_key": "12c009b755ec0cc4",
    "work_types_at": "2026-11-25T08:55:36Z"
+  },
+  {
+   "id": "K74",
+   "title": "Ledger the decisions-probe calls like the review calls",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20e",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "router/decisions_probe.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "router/engines.py",
+     "router/pick.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/decisions_probe.py",
+    "router/test_router.py"
+   ],
+   "next": "The NEXT STEP lists decisions-probe as one of the calls still missing from the shared daily ledger, so the worker's view of pool room is incomplete. In router/decisions_probe.py, route each model call through the same recording path that review.yml's calls use (log_usage in router/engines.py, with the ledger entry that router/pick.py reads), changing nothing else about what the probe sends or prints. Add a test in router/test_router.py that stubs the HTTP send, runs one probe call, and checks that exactly one usage record with the pool name and no prompt or reply text was written. Run python3 -m unittest router/test_router.py and check that it passes.",
+   "refs": [
+    "queue P20e",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K75",
+   "title": "Encode the P31 qualification rule as a pure function in worker/tier.py",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P31",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "worker/tier.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "router/decisions_probe.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "worker/tier.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Add qualifies(run) to worker/tier.py. run is a dict {controls_right, controls_total, agree, total} for one grading run over the 35-item set (5 controls, 30 reference items). Return True only if controls_right == controls_total == 5, total == 30 and agree >= 27. Add qualifies_pair(runs), True only when both of two separate runs qualify. Add class QualifiesRule to worker/test_worker.py with these cases: 5/5 controls with 27/30 qualifies; 4/5 controls fails; 26/30 fails; a single qualifying run is not enough for qualifies_pair; two qualifying runs pass (29/30 twice, as Nemotron 3.5 Super recorded). Run python3 -m unittest worker/test_worker.py and expect these to pass.",
+   "refs": [
+    "queue P31",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K76",
+   "title": "Choose the judgement model from qualifying runs (cost, then latency)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P31",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "worker/tier.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "router/decisions_probe.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "worker/tier.py",
+    "worker/test_worker.py"
+   ],
+   "next": "Add choose(records) to worker/tier.py. records maps model id to a list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s} (cost per run, latency per run). Keep only models where qualifies_pair (from the previous sub-item) holds. Return the model id with the lowest mean cost_usd, ties broken by lowest mean latency_s, or None if no model qualifies. Add class ChooseModel to worker/test_worker.py: a qualifying free model beats a non-qualifying cheaper one; among qualifiers, the lower cost wins; equal cost goes to the lower latency; no qualifiers returns None. Run python3 -m unittest worker/test_worker.py and expect these to pass.",
+   "refs": [
+    "queue P31",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K77",
+   "title": "Truth set Q1-Q3: queue dependency answers computed by script",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P35",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "experiments/graph_truth.py"
+    ],
+    "test": "experiments/test_experiments.py",
+    "context": [
+     "worker/backlog.py",
+     "worker/classify.py"
+    ],
+    "new": [
+     "experiments/graph_truth.py"
+    ]
+   },
+   "touches": [
+    "experiments/graph_truth.py",
+    "experiments/test_experiments.py"
+   ],
+   "next": "Create experiments/graph_truth.py (under 80 lines) with a PLAN string (the 10 fixed dependency questions, answers computed by script from queue.json and the findings register, not by a model), a run() that answers only Q1-Q3 as sorted item-ID lists read from queue.json's dependency field (use the field name the existing queue code uses; do not guess), and rule(result) that returns {\"verdict\": \"invalid\", \"why\": ...} if any answer is missing or not a list, else {\"verdict\": \"holds\", \"why\": \"3 of 10 answered\"}. Test in experiments/test_experiments.py: rule() returns invalid for a result with a None answer and holds for a complete fixture of three lists.",
+   "refs": [
+    "queue P35",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K78",
+   "title": "Splitter code sub-items must name a known-answer repro test",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P38",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "worker/split.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "worker/split.py",
+    "worker/test_worker.py"
+   ],
+   "next": "In worker/split.py, change the splitter's output schema for code sub-items so each one must include a \"repro\" field: a short description of a known-answer test (an input and the exact output or behaviour it must show) that fails on the current code and passes once the change is made. Drop any code sub-item whose repro is missing or empty, and log the drop the same way other rejected sub-items are logged. Add a test in worker/test_worker.py: a splitter reply with one code sub-item that has a repro and one without yields exactly the first one, and the dropped one is recorded with reason 'no repro'. Run python3 -m unittest worker/test_worker.py and check it passes.",
+   "refs": [
+    "queue P38",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K79",
+   "title": "Carry the repro into the coder's next step",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P38",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "worker/split.py"
+    ],
+    "test": "worker/test_worker.py",
+    "context": [
+     "worker/pr_sync.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "worker/split.py",
+    "worker/test_worker.py"
+   ],
+   "next": "In worker/split.py, when a code sub-item is written to the queue, put its repro into the item's next step with the instruction: first add a test that reproduces this exact case and confirm it fails on the current code, then make it pass, and do not add tests that only check the new code runs. Keep the existing next-step text after it. Add a test in worker/test_worker.py: a written sub-item whose repro is 'parse(\"a,b\") == [\"a\",\"b\"]' has a next step containing that string and the words 'fails on the current code'. Run python3 -m unittest worker/test_worker.py and check it passes.",
+   "refs": [
+    "queue P38",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K80",
+   "title": "Staged core reports how many scored items it spends, not only the survivors",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P5e",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "runner/proposals/staged.py"
+    ],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "runner/proposals/judge.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/proposals/staged.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "next": "Add scored_items(scores, folds, lam, cut, keep) to staged.py, returning the number of (candidate, item) pairs staged_select actually reads before elimination and keep, without changing staged_select's return value. Add a test in test_proposals.py with 16 synthetic candidates where one is clearly best: the count must be below 16 * the total items, and the best candidate must survive. Run python3 -m unittest runner/proposals/test_proposals.py.",
+   "refs": [
+    "queue P5e",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
+  },
+  {
+   "id": "K81",
+   "title": "Load the scored proposal log into aligned per-item correctness vectors",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P5e",
+   "generated_at": "2026-11-25T21:50:13Z",
+   "code": {
+    "files": [
+     "runner/proposals/replay_log.py"
+    ],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "runner/records.py",
+     "runner/proposals/judge.py"
+    ],
+    "new": [
+     "runner/proposals/replay_log.py"
+    ]
+   },
+   "touches": [
+    "runner/proposals/replay_log.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "next": "Create runner/proposals/replay_log.py (under 80 lines) with load(log_dir) returning {candidate_name: [0 or 1 per item]} for the scored proposals, all candidates aligned on the same item ids and items scored by every candidate only. Read the record format from the two context files; do not call any model. Add a test in test_proposals.py that writes two or three small JSON records into a temp dir and checks the aligned output, including that an item missing for one candidate is dropped for all.",
+   "refs": [
+    "queue P5e",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
