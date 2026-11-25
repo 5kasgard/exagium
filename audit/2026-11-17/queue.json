@@ -10315,7 +10315,7 @@
    "needs": "free",
    "cost": 0,
    "value": "medium",
-   "next": "GLM review findings F080, F081, F096-F099: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Regenerate numbers from the files rather than editing them by hand where possible.",
+   "next": "Doc job; targets located and values counted on main 2026-11-25 by chat-claude. Replace only these numbers: record/README.md:17 '22 tests' -> '29 tests (1 skipped)'; record/README.md:165 '630 lines, the tests 235, record.yml 127' -> '685 lines, the tests 350, record.yml 154'; audit/periodic/README.md:12 '7,225' -> '7,228' (the baseline JSON's function_lines); loop/README.md:11 and :51 '20 tests' -> '24 tests'; loop/README.md:145 -> 'loop.py 672 lines, tests 399, timer.c 104, confine.c 99, seccomp_filter.h 113, loop.yml 160'; loop/README.md:168 '17–31% faster than both baselines on every host' -> '14.5–33.1% faster than both baselines over the 7 hosts (16.0–33.1% on the six CI hosts)' (GLM F097, recomputed from the committed scoreboards); loop/README.md:173 '(empty now)' -> '(removed when empty; absent now)'; probe/README.md:8 and VERIFY.md:15 '~10 s' -> '~30 s' (probe.py's own docstring, line 11). Source: GLM findings F080, F081, F096-F099 (audit/reviews/glm-20261120/findings.jsonl). Earlier next step: GLM review findings F080, F081, F096-F099: claims, evidence, repro and proposed fixes in audit/reviews/glm-20261120/findings.jsonl and fixes.jsonl; status in RESPONSE.md. Regenerate numbers from the files rather than editing them by hand where possible.",
    "refs": [
     "owner 2026-11-21: every item ever mentioned",
     "claude/forge-tool-fit-register.md"
@@ -10323,11 +10323,11 @@
    "blocked_by": [],
    "batch": "B3",
    "touches": [
-    "record/README.md",
+    "VERIFY.md",
     "audit/periodic/README.md",
     "loop/README.md",
     "probe/README.md",
-    "VERIFY.md"
+    "record/README.md"
    ],
    "filed_at": "2026-11-20T22:07:32Z",
    "work_types": {
@@ -10336,7 +10336,86 @@
     "analysis": 0.276
    },
    "work_types_key": "688a46d634c124b0",
-   "work_types_at": "2026-11-21T05:03:57Z"
+   "work_types_at": "2026-11-21T05:03:57Z",
+   "targets": [
+    {
+     "path": "record/README.md",
+     "lines": [
+      17,
+      17
+     ]
+    },
+    {
+     "path": "record/README.md",
+     "lines": [
+      165,
+      165
+     ]
+    },
+    {
+     "path": "audit/periodic/README.md",
+     "lines": [
+      12,
+      12
+     ]
+    },
+    {
+     "path": "loop/README.md",
+     "lines": [
+      11,
+      11
+     ]
+    },
+    {
+     "path": "loop/README.md",
+     "lines": [
+      51,
+      51
+     ]
+    },
+    {
+     "path": "loop/README.md",
+     "lines": [
+      145,
+      145
+     ]
+    },
+    {
+     "path": "loop/README.md",
+     "lines": [
+      168,
+      168
+     ]
+    },
+    {
+     "path": "loop/README.md",
+     "lines": [
+      173,
+      173
+     ]
+    },
+    {
+     "path": "probe/README.md",
+     "lines": [
+      8,
+      8
+     ]
+    },
+    {
+     "path": "VERIFY.md",
+     "lines": [
+      15,
+      15
+     ]
+    }
+   ],
+   "scope": [
+    "record/README.md",
+    "audit/periodic/README.md",
+    "loop/README.md",
+    "probe/README.md",
+    "VERIFY.md"
+   ]
   },
   {
    "id": "Q69",
@@ -20102,7 +20181,7 @@
     "runner/proposals/packet.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "Add runner/proposals/packet.py (under 80 lines) with build(parent_dir, cluster_dir, champion_path) returning a JSON-able dict with: the parent's compile stderr (last 40 lines), instruction and cache counts from the existing result JSON, failed-item clusters, and the niche champion's source. It reads only dev-fold artifacts and never opens any test-split file, and it reads no keys or tokens. Add a test in runner/proposals/test_proposals.py that builds a packet from a temp fixture folder and asserts the test-split file is never opened (patch open to record paths) and that the output has all four keys. TIER NOTE (Claude shift 2026-11-24): the packet has exactly four top-level keys: 'stderr_tail' (last 40 lines), 'counts' (a dict with 'instructions' and 'cache'), 'clusters', 'champion_source'. The last attempt was refused for five top-level keys; the test asserts exactly these four. PREVIOUS ATTEMPT REJECTED: 96 changed lines (over 80); files a person merges, or not the item's own: runner/proposals/packet.py, runner/proposals/test_proposals.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
+   "next": "REJECTED 2026-11-25 (PR #151, blind review, checked): read values per candidate from result.json's dev['candidates'][name] (judge.py:98-108), take the candidate name as input; 'cache' must come from cachegrind counts (counter/count.py:40), never ns_per_item (a wall time, runner/run.py:310); read only artifact names the runner actually writes (none writes compile.stderr or clusters.json: grep first); put the test-split fixture where a careless glob would find it so the safety test can fail. Add runner/proposals/packet.py (under 80 lines) with build(parent_dir, cluster_dir, champion_path) returning a JSON-able dict with: the parent's compile stderr (last 40 lines), instruction and cache counts from the existing result JSON, failed-item clusters, and the niche champion's source. It reads only dev-fold artifacts and never opens any test-split file, and it reads no keys or tokens. Add a test in runner/proposals/test_proposals.py that builds a packet from a temp fixture folder and asserts the test-split file is never opened (patch open to record paths) and that the output has all four keys. TIER NOTE (Claude shift 2026-11-24): the packet has exactly four top-level keys: 'stderr_tail' (last 40 lines), 'counts' (a dict with 'instructions' and 'cache'), 'clusters', 'champion_source'. The last attempt was refused for five top-level keys; the test asserts exactly these four. PREVIOUS ATTEMPT REJECTED: 96 changed lines (over 80); files a person merges, or not the item's own: runner/proposals/packet.py, runner/proposals/test_proposals.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P5d",
     "worker/split.py"
@@ -20485,7 +20564,7 @@
     "runner/proposals/staged.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "Create runner/proposals/staged.py (under 80 lines, stdlib only) with one function staged_select(scores, folds, lam=0.5, cut=0.1, keep=0.5). scores maps candidate name to a list of per-item differences against label-linear, in [-1, 1], in a fixed item order. Use the first 60, 120, 240 and 480 items as the rotating dev folds. For each candidate keep a running e-value, the product of (1 + lam * d) over its items. Drop a candidate when its e-value falls below cut. After each fold keep the top half by e-value. Return {'survivors': [...], 'scored_items': int, 'eliminated_at': {name: fold_index}}. Add to test_proposals.py a test with synthetic scores: a clearly worse candidate is eliminated before the last fold, the best candidate survives, and scored_items is below 16 * 480.",
+   "next": "REJECTED 2026-11-25 (PR #145, blind review, reproduced): the cut must be checked per item, not only at each fold's end. staged_select({'dip': [-1.0]*10 + [1.0]*50 + [0.0]*420, 'flat': [0.0]*480}) must eliminate 'dip' (e-value ~0.001 < 0.1 after 10 items) but returns it as the survivor; add exactly this as a test. Create runner/proposals/staged.py (under 80 lines, stdlib only) with one function staged_select(scores, folds, lam=0.5, cut=0.1, keep=0.5). scores maps candidate name to a list of per-item differences against label-linear, in [-1, 1], in a fixed item order. Use the first 60, 120, 240 and 480 items as the rotating dev folds. For each candidate keep a running e-value, the product of (1 + lam * d) over its items. Drop a candidate when its e-value falls below cut. After each fold keep the top half by e-value. Return {'survivors': [...], 'scored_items': int, 'eliminated_at': {name: fold_index}}. Add to test_proposals.py a test with synthetic scores: a clearly worse candidate is eliminated before the last fold, the best candidate survives, and scored_items is below 16 * 480.",
    "refs": [
     "queue P5e",
     "worker/split.py"
