@@ -23,7 +23,7 @@ def lh(*args, quiet=False):
         sys.exit(f"lh {args[0]} {args[1] if len(args) > 1 else ''}: failed: {msg[0][:200]}")
     out = r.stdout.strip()
     try:
-        return json.loads(out) if out else None
+        return json.loads(out) if out else ""
     except ValueError:
         return out
 
@@ -65,9 +65,10 @@ def status():
 
 def apply(path):
     cfg = json.load(open(path))
-    for e in cfg.get("enable_models", []):
-        lh("model", "batch-toggle", *e["ids"], "--provider", e["provider"], "--enable")
-        print(f"models enabled on {e['provider']}: {', '.join(e['ids'])}")
+    for e in cfg.get("enable_models", []):   # one at a time: batch-toggle answered a server error (first apply run)
+        for mid in e["ids"]:
+            ok = lh("model", "toggle", mid, "--provider", e["provider"], "--enable", quiet=True) is not None
+            print(f"model {e['provider']}/{mid}: {'enabled' if ok else 'NOT enabled (lh error; see the workbench logs)'}")
     have = {c.get("identifier") for c in rows(lh("connector", "list", "--json"))}
     for c in cfg.get("connectors", []):
         if c["identifier"] in have:
