@@ -1,7 +1,9 @@
 # Issue agent (queue P36, owner 2026-11-24/25): the owner comments "/oc <question>" on an issue and gets an answer
 # there, from the model they pick: "/oc model=<alias or provider/model> <question>"; "/oc models" lists what is reachable.
-# Free models run with no key. Paid models (providers the owner connected on the OpenCode Console) run with
-# OPENCODE_API_KEY, only when agent/models.json says allow_paid. Spend limits belong at each provider and the Console.
+# Keys come from this repository's secrets, not the OpenCode Console (owner 2026-11-25): one step per provider, each
+# holding only that provider's secret under the variable opencode reads (models.dev), and only the step matching the
+# requested provider runs. agent/models.json maps providers to secrets and says which are paid; paid runs only while
+# allow_paid is true. OpenCode's own free models need no key. Spend limits belong at each provider.
 #
 # Two jobs, so that no model ever runs where a write token or a key could be read back out (blind review 45508009679):
 #   answer: contents: read only. The model gets a read-only agent (agent/opencode.json, installed as the system config,
@@ -33,6 +35,7 @@ jobs:
       model: ${{ steps.pick.outputs.model }}
       paid: ${{ steps.pick.outputs.paid }}
       mode: ${{ steps.pick.outputs.mode }}
+      provider: ${{ steps.pick.outputs.provider }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -55,30 +58,58 @@ jobs:
         run: |
           (cd agent && npm ci --no-fund --no-audit)
           sudo mkdir -p /etc/opencode && sudo cp agent/opencode.json /etc/opencode/opencode.json
-      - name: answer on a free model (no key)
-        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'ask' && steps.pick.outputs.paid == 'false'
-        env:
-          MODEL: ${{ steps.pick.outputs.model }}
-        run: |
-          timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -f "$RUNNER_TEMP/out/prompt.md" \
-            "Answer the request in the attached file. Read the repository files you need and name the paths you used." \
-            > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
-      - name: answer on a paid model (OPENCODE_API_KEY, this step only)
-        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'ask' && steps.pick.outputs.paid == 'true'
-        env:
-          MODEL: ${{ steps.pick.outputs.model }}
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-        run: |
-          timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -f "$RUNNER_TEMP/out/prompt.md" \
-            "Answer the request in the attached file. Read the repository files you need and name the paths you used." \
-            > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
-      - name: list reachable models (no inference)
-        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.mode == 'models'
-        env:
-          OPENCODE_API_KEY: ${{ steps.pick.outputs.paid == 'true' && secrets.OPENCODE_API_KEY || '' }}
-        run: |
-          timeout 120 agent/node_modules/.bin/opencode models > "$RUNNER_TEMP/out/answer.md" 2> "$RUNNER_TEMP/err.txt" \
-            || echo "Listing failed; see the workflow log." >> "$RUNNER_TEMP/out/answer.md"
+      - name: opencode free model (no key)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'opencode' && steps.pick.outputs.paid == 'false'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: opencode, OUT: "${{ runner.temp }}/out"}
+        run: bash agent/run.sh
+      - name: opencode console model (OPENCODE_API_KEY)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'opencode' && steps.pick.outputs.paid == 'true'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: opencode, OUT: "${{ runner.temp }}/out", OPENCODE_API_KEY: "${{ secrets.OPENCODE_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: anthropic (CLAUDE_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'anthropic'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: anthropic, OUT: "${{ runner.temp }}/out", ANTHROPIC_API_KEY: "${{ secrets.CLAUDE_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: google (GEMINI_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'google'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: google, OUT: "${{ runner.temp }}/out", GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: openrouter (OPENROUTER_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'openrouter'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: openrouter, OUT: "${{ runner.temp }}/out", OPENROUTER_API_KEY: "${{ secrets.OPENROUTER_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: groq (GROQ_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'groq'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: groq, OUT: "${{ runner.temp }}/out", GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: nvidia (NVIDIA_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'nvidia'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: nvidia, OUT: "${{ runner.temp }}/out", NVIDIA_API_KEY: "${{ secrets.NVIDIA_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: cerebras (CEREBRAS_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'cerebras'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: cerebras, OUT: "${{ runner.temp }}/out", CEREBRAS_API_KEY: "${{ secrets.CEREBRAS_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: xai (XAI_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'xai'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: xai, OUT: "${{ runner.temp }}/out", XAI_API_KEY: "${{ secrets.XAI_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: mistral (MISTRAL_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'mistral'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: mistral, OUT: "${{ runner.temp }}/out", MISTRAL_API_KEY: "${{ secrets.MISTRAL_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: deepinfra (DEEPINFRA_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'deepinfra'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: deepinfra, OUT: "${{ runner.temp }}/out", DEEPINFRA_API_KEY: "${{ secrets.DEEPINFRA_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: fireworks-ai (FIREWORKS_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'fireworks-ai'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: fireworks-ai, OUT: "${{ runner.temp }}/out", FIREWORKS_API_KEY: "${{ secrets.FIREWORKS_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: huggingface (HUGGINGFACE_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'huggingface'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: huggingface, OUT: "${{ runner.temp }}/out", HF_TOKEN: "${{ secrets.HUGGINGFACE_API_KEY }}"}
+        run: bash agent/run.sh
       - name: errors to the log only (never to the comment)
         if: ${{ !cancelled() }}
         run: '[ -s "$RUNNER_TEMP/err.txt" ] && tail -n 40 "$RUNNER_TEMP/err.txt" || true'
@@ -113,9 +144,10 @@ jobs:
           MODEL: ${{ needs.answer.outputs.model }}
           PAID: ${{ needs.answer.outputs.paid }}
           MODE: ${{ needs.answer.outputs.mode }}
+          PROVIDER: ${{ needs.answer.outputs.provider }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           tier=free; [ "$PAID" = true ] && tier=paid
-          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; else echo "**opencode** · [run]($RUN)"; fi
+          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; else echo "**opencode** · models for \`$PROVIDER\` · [run]($RUN)"; fi
             echo; cat out/answer.md; } > body.md
           gh issue comment "$ISSUE" -R "$REPO" --body-file body.md

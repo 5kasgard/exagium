@@ -39,7 +39,7 @@ jobs:
       - name: workflow guards (privilege, pause, paid allowance; runs even if another suite failed, Z1-F033)
         if: ${{ !cancelled() }}
         run: |
-          python3 -m unittest -v tests/test_workflows.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
+          python3 -m unittest -v tests/test_workflows.py agent/test_workflow_keys.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
       - name: router tests (offline, no keys, no network)
         if: ${{ !cancelled() }}
         run: |
