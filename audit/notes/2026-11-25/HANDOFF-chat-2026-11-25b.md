@@ -15,13 +15,16 @@
   findings->targets converter was not built: its reach is 1 item.
 - ready(): **0 -> 3** (Q68, K68, K72).
 
+## Update 18:35 AEST
+#129 (owner) and #132 merged; K60, K62 done. #145 and #151 closed. Merging works in a Claude chat session through the
+GitHub MCP connector (`merge_pull_request`); `gh api .../merge` from the shell was refused by the session's safety check.
+
 ## Open, in order
-1. **Owner:** merge #129 then #132; close #145 and #151.
-2. **P38 (a):** a PR-sync step — PR merged -> `decide_done`, closed -> `park` — so items stop rotting as "waiting on the
+1. **P38 (a):** a PR-sync step — PR merged -> `decide_done`, closed -> `park` — so items stop rotting as "waiting on the
    owner". Touches a workflow, so a person merges it.
-3. **P38 (b):** splitter sub-items carry a known-answer test written before the code (the K72 repro form), so "tests
+2. **P38 (b):** splitter sub-items carry a known-answer test written before the code (the K72 repro form), so "tests
    pass" means "item done". Measure: merits-rejections after passing tests, before/after.
-4. P33 (widen auto-merge safely), P36 (connector, PR #153), P39 (project-doc export).
+3. P33 (widen auto-merge safely), P36 (connector, PR #153), P39 (project-doc export).
 
 ## Running / pending
 Nothing started by this session. Another session was working on the LobeHub workbench (`fabric/workbench-*`) at the
