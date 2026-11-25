@@ -22616,7 +22616,7 @@
    "id": "K77",
    "title": "Truth set Q1-Q3: queue dependency answers computed by script",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P35",
    "generated_at": "2026-11-25T21:50:13Z",
@@ -22637,7 +22637,7 @@
     "experiments/graph_truth.py",
     "experiments/test_experiments.py"
    ],
-   "next": "Create experiments/graph_truth.py (under 80 lines) with a PLAN string (the 10 fixed dependency questions, answers computed by script from queue.json and the findings register, not by a model), a run() that answers only Q1-Q3 as sorted item-ID lists read from queue.json's dependency field (use the field name the existing queue code uses; do not guess), and rule(result) that returns {\"verdict\": \"invalid\", \"why\": ...} if any answer is missing or not a list, else {\"verdict\": \"holds\", \"why\": \"3 of 10 answered\"}. Test in experiments/test_experiments.py: rule() returns invalid for a result with a None answer and holds for a complete fixture of three lists.",
+   "next": "Create experiments/graph_truth.py (under 80 lines) with a PLAN string (the 10 fixed dependency questions, answers computed by script from queue.json and the findings register, not by a model), a run() that answers only Q1-Q3 as sorted item-ID lists read from queue.json's dependency field (use the field name the existing queue code uses; do not guess), and rule(result) that returns {\"verdict\": \"invalid\", \"why\": ...} if any answer is missing or not a list, else {\"verdict\": \"holds\", \"why\": \"3 of 10 answered\"}. Test in experiments/test_experiments.py: rule() returns invalid for a result with a None answer and holds for a complete fixture of three lists. PREVIOUS ATTEMPT REJECTED: model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P35",
     "worker/split.py"
@@ -22677,6 +22677,12 @@
      "outcome": "pr",
      "from": "in progress",
      "to": "review"
+    },
+    {
+     "at": "2026-11-25T21:53:27Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #207 not merged: model verdict: reject; model: The diff reads `blocked_by` from queue.json without showing that the existing queue code uses that field name, which the item explicitly forbids guessing; the rest matches the spec."
     }
    ],
    "work_types": {
