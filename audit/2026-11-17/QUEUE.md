@@ -57,8 +57,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7d | B7 | P26a | B3 | worker/research_job.py |
 | P7d | B7 | P26g | B3 | worker/research_job.py |
 | P7d | B7 | Q67 | B3 | worker/research_job.py |
-| P7e | B7 | Q73 | B3 | research/sources |
-| P7e | B7 | Q77 | B3 | research/sources |
 | P14 | B10 | Q65 | B3 | loop/results/machines-* |
 | P14 | B10 | Q66 | B3 | .github/workflows/machines.yml |
 | P14 | B10 | Q69 | B3 | loop/results/machines-* |
@@ -76,8 +74,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P18 | B1 | Q76 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | P18 | B1 | Q81 | B3 | runner/jail_tests, runner/results/jail-assurance-* |
 | P18 | B1 | P34 | - | runner/jail_tests, runner/results/jail-assurance-* |
-| R4 | B7 | Q73 | B3 | research/cards/R4.md |
-| R4 | B7 | Q77 | B3 | research/cards/R4.md |
 | P20 | B3 | P33 | - | router/engines.py |
 | P20a | B3 | P33 | - | router/engines.py |
 | P20c | B3 | K60 | B7 | worker/fulltext.py, worker/test_worker.py |
@@ -96,8 +92,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P23 | B1 | Q79 | B3 | runner/run.py |
 | P23 | B1 | Q81 | B3 | runner/CONTRACT.md, runner/run.py |
 | P23 | B1 | P34 | - | runner/CONTRACT.md, runner/run.py |
-| R10 | B7 | Q73 | B3 | research/cards/R10.md |
-| R10 | B7 | Q77 | B3 | research/cards/R10.md |
 | P5c | B1 | Q70 | B3 | runner/candidates/label-emblin, runner/results |
 | P5c | B1 | Q71 | B3 | runner/candidates/label-emblin, runner/results |
 | P5c | B1 | Q75 | B3 | runner/candidates/label-emblin, runner/results |
@@ -107,12 +101,8 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P7f | B7 | P26a | B3 | worker/research_job.py |
 | P7f | B7 | P26g | B3 | worker/research_job.py |
 | P7f | B7 | Q67 | B3 | worker/research_job.py |
-| P7f | B7 | Q73 | B3 | research/store |
-| P7f | B7 | Q77 | B3 | research/store |
 | P29 | B3 | P34 | - | runner/proposals |
 | Q62 | B3 | P34 | - | runner/jail.py |
-| R22 | B9 | Q73 | B3 | research/cards/R22.md |
-| R22 | B9 | Q77 | B3 | research/cards/R22.md |
 | G8 | B3 | K60 | B7 | worker/test_worker.py |
 | P26c | B3 | P33 | - | router/slots.py |
 | P26d | B3 | Q84 | - | facts/register.json |
@@ -125,24 +115,8 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q67 | B3 | P38 | - | worker/generate.py |
 | Q70 | B3 | P34 | - | runner, tasks |
 | Q71 | B3 | P34 | - | runner |
-| Q73 | B3 | R28 | B9 | research/cards/R28.md |
-| Q73 | B3 | R29 | B1 | research/cards/R29.md |
-| Q73 | B3 | R30 | B9 | research/cards/R30.md |
-| Q73 | B3 | R37 | B9 | research/cards/R37.md |
-| Q73 | B3 | R53 | B6 | research/cards/R53.md |
-| Q73 | B3 | R55 | B7 | research/cards/R55.md |
-| Q73 | B3 | R57 | B7 | research/cards/R57.md |
-| Q73 | B3 | R61 | B1 | research/cards/R61.md |
 | Q75 | B3 | P34 | - | runner |
 | Q76 | B3 | P34 | - | runner |
-| Q77 | B3 | R28 | B9 | research/cards/R28.md |
-| Q77 | B3 | R29 | B1 | research/cards/R29.md |
-| Q77 | B3 | R30 | B9 | research/cards/R30.md |
-| Q77 | B3 | R37 | B9 | research/cards/R37.md |
-| Q77 | B3 | R53 | B6 | research/cards/R53.md |
-| Q77 | B3 | R55 | B7 | research/cards/R55.md |
-| Q77 | B3 | R57 | B7 | research/cards/R57.md |
-| Q77 | B3 | R61 | B1 | research/cards/R61.md |
 | Q79 | B3 | P34 | - | runner/run.py |
 | Q81 | B3 | P34 | - | runner |
 | K20 | B3 | K60 | B7 | worker/test_worker.py |
