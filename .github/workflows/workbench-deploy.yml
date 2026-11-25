@@ -1,0 +1,108 @@
+# Deploys the owner's LobeHub workbench to Vercel (Hobby) with a Neon Postgres and Cloudflare R2 for files (queue P36/P40,
+# owner 2026-11-25: a full chat workspace on his own keys, outside any vendor chat's limits). Manual, main only.
+# - Settings first, one step per secret (each step holds the Vercel token and one value): fabric/workbench/setup.py.
+#   Provider keys and generated secrets are "sensitive" (runtime only), so the build below never sees them.
+# - Only the owner may register (AUTH_ALLOWED_EMAILS = CHAT_OWNER_EMAIL).
+# - Build here, not on Vercel: LobeHub v2.3.6's build asks for an 8 GB heap, the edge of Vercel's free builder; this
+#   runner has 16 GB. Pinned: LobeHub by commit, Node by .nvmrc, bun and the Vercel CLI by version.
+# - The Vercel CLI's output stays in a file: its URLs can carry the account's name, and this repo's logs are public.
+name: workbench-deploy
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: vercel project
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py project
+      - name: neon database (DATABASE_URL)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py neon
+      - name: generate KEY_VAULTS_SECRET once
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py gen KEY_VAULTS_SECRET secret32
+      - name: generate AUTH_SECRET once
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py gen AUTH_SECRET secret32
+      - name: generate JWKS_KEY once
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py gen JWKS_KEY jwks
+      - name: APP_URL
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py set APP_URL https://forge-workbench.vercel.app
+      - name: AUTH_ALLOWED_EMAILS (only the owner may register)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CHAT_OWNER_EMAIL }}"}
+        run: python3 -I fabric/workbench/setup.py env AUTH_ALLOWED_EMAILS V
+      - name: S3_ACCESS_KEY_ID (R2)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.R2_ACCESS_KEY_ID }}"}
+        run: python3 -I fabric/workbench/setup.py env S3_ACCESS_KEY_ID V
+      - name: S3_SECRET_ACCESS_KEY (R2)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.R2_SECRET_ACCESS_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env S3_SECRET_ACCESS_KEY V
+      - name: S3_ENDPOINT and S3_BUCKET (R2)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", ACC: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"}
+        run: V="https://$ACC.r2.cloudflarestorage.com" python3 -I fabric/workbench/setup.py env S3_ENDPOINT V && python3 -I fabric/workbench/setup.py set S3_BUCKET forge-files
+      - name: OPENROUTER_API_KEY (from OPENROUTER_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.OPENROUTER_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env OPENROUTER_API_KEY V
+      - name: GROQ_API_KEY (from GROQ_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.GROQ_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env GROQ_API_KEY V
+      - name: ANTHROPIC_API_KEY (from CLAUDE_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CLAUDE_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env ANTHROPIC_API_KEY V
+      - name: GOOGLE_API_KEY (from GEMINI_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.GEMINI_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env GOOGLE_API_KEY V
+      - name: MISTRAL_API_KEY (from MISTRAL_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.MISTRAL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env MISTRAL_API_KEY V
+      - name: XAI_API_KEY (from XAI_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.XAI_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env XAI_API_KEY V
+      - name: FIREWORKSAI_API_KEY (from FIREWORKS_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.FIREWORKS_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env FIREWORKSAI_API_KEY V
+      - name: CEREBRAS_API_KEY (from CEREBRAS_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CEREBRAS_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env CEREBRAS_API_KEY V
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          repository: lobehub/lobehub
+          ref: 061f4d9fa334d5555b06bd7d95a0ce6078e9153c   # v2.3.6
+          path: lobehub
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version-file: lobehub/.nvmrc
+      - name: tools (pinned)
+        run: |
+          npm i -g --no-fund --no-audit bun@1.4.5 vercel@66.6.0 > /dev/null   # zizmor: ignore[adhoc-packages] versions pinned; LobeHub needs bun and the Vercel CLI
+          corepack enable
+      - name: link and pull settings (sensitive values are not pulled)
+        working-directory: lobehub
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: |
+          vercel link --yes --project forge-workbench --token "$VERCEL_API_KEY" > "$RUNNER_TEMP/vercel.log" 2>&1
+          vercel pull --yes --environment=production --token "$VERCEL_API_KEY" >> "$RUNNER_TEMP/vercel.log" 2>&1
+      - name: build (LobeHub's own build:vercel, including its database migration)
+        working-directory: lobehub
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: |
+          vercel build --prod --token "$VERCEL_API_KEY" > "$RUNNER_TEMP/build.log" 2>&1 || { tail -n 80 "$RUNNER_TEMP/build.log" | grep -v -iE "vercel\.app|vercel\.com/" ; exit 1; }
+          tail -n 5 "$RUNNER_TEMP/build.log" | grep -v -iE "vercel\.app|vercel\.com/" || true
+      - name: deploy the built output
+        working-directory: lobehub
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: vercel deploy --prebuilt --prod --yes --token "$VERCEL_API_KEY" > "$RUNNER_TEMP/deploy.log" 2>&1 || { echo "deploy failed (log kept private)"; exit 1; }
+      - name: address
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py url | tee -a "$GITHUB_STEP_SUMMARY"
