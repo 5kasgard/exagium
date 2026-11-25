@@ -42,7 +42,8 @@ def ts(s):
 def since(i):
     """When the item entered its present state: its last run, else when it was filed."""
     rs = i.get("runs") or []
-    for t in ([rs[-1].get("at")] if rs else []) + [i.get("filed_at"), i.get("generated_at")]:
+    # aged_from: set once (2026-11-25) on items with no run and no filed date, so their wait is counted from then, not hidden
+    for t in ([rs[-1].get("at")] if rs else []) + [i.get("filed_at"), i.get("generated_at"), i.get("aged_from")]:
         if t and ts(t):
             return ts(t)
     return None
