@@ -1,0 +1,34 @@
+# Daily model ranking for the Forge dashboard (owner 2026-11-25): Artificial Analysis evaluations (free API tier,
+# 100 requests a day; this uses a few) crossed with the models.dev catalog, so the dashboard shows which models are
+# best at tool use, coding, research and instruction following, and which of our keys reach them, free or paid.
+name: models-rank
+on:
+  schedule:
+    - cron: "13 19 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write    # models.json on the fabric-data branch only
+concurrency: {group: fabric-data, cancel-in-progress: false}
+jobs:
+  rank:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+      - name: rank
+        env: {ARTIFICIALANALYSIS_API_KEY: "${{ secrets.ARTIFICIALANALYSIS_API_KEY }}"}
+        run: |
+          if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi   # the repo-wide stop (tests: PauseStopsSpending)
+          mkdir -p "$RUNNER_TEMP/data"
+          if git fetch -q --depth 1 origin fabric-data 2>/dev/null; then git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- . ; fi
+          python3 -I fabric/dash/models.py "$RUNNER_TEMP/data/models.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: publish to fabric-data
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git init -q && git checkout -q -b fabric-data && git add -A
+          git -c user.name=forge-dash -c user.email=forge-dash@users.noreply.github.com commit -q -m "models ranking (run $GITHUB_RUN_ID)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fabric-data
