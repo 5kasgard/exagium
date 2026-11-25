@@ -1,0 +1,12 @@
+FAILED: prop-45646733762-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 164, in <module>
+    main()
+  File "/w/train.py", line 82, in main
+    logits, h, flat, emb = forward(xb)
+                           ^^^^^^^^^^^
+  File "/w/train.py", line 59, in forward
+    emb = Emb[np.arange(d), Xb.T].transpose(1, 0, 2)   # (B, d, E)
+          ~~~^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (16,) (16,64) 
+
