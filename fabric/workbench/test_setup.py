@@ -147,5 +147,21 @@ class Setup(unittest.TestCase):
         self.assertIn("POST /trpc/x 500 boom", line)
 
 
+    def test_mobile_build_patch(self):
+        import tempfile, pathlib
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        import patch_lobehub as P
+        pkg = '{"scripts": {' + P.BUILD_OLD + ' && bun run build:next:raw", "build:spa:mobile": "vite build"}}'
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d) / "package.json"
+            f.write_text(pkg)
+            self.assertIn("now compiles", P.patch_mobile(d))
+            self.assertIn("build:spa:raw && bun run build:spa:mobile && bun run build:spa:auth", f.read_text())
+            self.assertIn("already", P.patch_mobile(d))
+            f.write_text('{"scripts": {"build:raw": "other"}}')
+            with self.assertRaises(SystemExit):
+                P.patch_mobile(d)
+
+
 if __name__ == "__main__":
     unittest.main()
