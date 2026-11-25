@@ -231,16 +231,15 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (4)
+## Escalated (a check failed; the next tier takes it) (3)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R66 | B3 |  | minor | high | test | What are established patterns and limitations for building a read-only Model Context Protocol (MCP) server that exposes event queues and findings to a general-p | Worker job (research): literature card for P36. Why: It informs the design and first test of the read-only MCP connector over the queue/events/findings from one chat client. | queue P36; queue P27 (generator) |
-| R70 | B3 |  | minor | medium | test | Do per-domain historical acceptance rates of claims (kept vs. offered) outperform source-type priors such as paper, forum, or Q&A in predicting future claim ret | Worker job (research): literature card for P26a. Why: It tests whether a per-source survival record adds predictive value beyond fixed source-kind credibility, matching the adoption criterion for the ledger. | queue P26a; queue P27 (generator) |
 | R71 | B3 |  | minor | medium | test | How can per-model API behavior monitors use success-rate and latency baselines to distinguish known endpoint retirements such as HTTP 410 from silent model chan | Worker job (research): literature card for P26b. Why: It informs how to set and validate drift rules that separate known retirement signals from silent model changes with few false flags. | queue P26b; queue P27 (generator) |
 | R72 | B3 |  | minor | medium | test | How can per-actor, per-task-family success calibration with Wilson lower confidence bounds be maintained and used to route tasks across heterogeneous workers, a | Worker job (research): literature card for P26c. Why: It informs whether RabbitHole should port only the calibration registry and use measured success bounds to replace hand-kept qualification comments when routing. | queue P26c; queue P27 (generator) |
 
-## Needs the owner (26)
+## Needs the owner (27)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -271,6 +270,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | G8 | B3 |  | minor | medium | fix | F035: The worker spec card predates 2026-11-20 and contradicts the code: 'Paid pools can't be reserved' while worker | Fix review finding glm-20261120:F035 (doc-drift, low). Claim: The worker spec card predates 2026-11-20 and contradicts the code: 'Paid pools can't be reserved' while worker.yml reserves openrouter_paid:3:8 per research/code run, the Files list omits code_job/transitions/tier/generate/split/diagnose/note, and 'Not yet: code items' although the code job ran (K1, PR #9). Evidence at worker/README.md lines [37, 37]:   half each free pool's daily allowance. Calls are counted exactly; Cloudflare neurons are projected (1,000 per call)
   and checked against recorded use, so one run can overshoot by the difference. Paid pools can't be reserved. Proposed fix: Regenerate the worker spec card's Status/Files/Not-yet sections from the current subsystem (paid pools are reserved; code items ran; workers always run since 2026-11-20). Add a test in worker/test_worker.py that fails on the current code and passes after the fix. Change nothing else. | audit/reviews/glm-20261120/findings.jsonl; worker/intake_review.py |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
+| R70 | B3 |  | minor | medium | test | Do per-domain historical acceptance rates of claims (kept vs. offered) outperform source-type priors such as paper, forum, or Q&A in predicting future claim ret | Worker job (research): literature card for P26a. Why: It tests whether a per-source survival record adds predictive value beyond fixed source-kind credibility, matching the adoption criterion for the ledger. | queue P26a; queue P27 (generator) |
 
 ## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
 
