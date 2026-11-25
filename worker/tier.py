@@ -8,7 +8,7 @@ comes back wrong, nothing is moved: the items wait for the next tier (the Claude
 Per item (at most MAX_ITEMS): the last run's artifact (read.json, search.json) is summarised by script - question,
 source titles, the reader's claims with their quotes, why each was dropped, the decision model's probabilities - and
 the model chooses: "redo" with a narrower question and new queries (both script-checked as the generator's are), or
-"escalate" to the owner with a reason. The move goes through queue_ops.move, so transitions.py and render.py check it.
+"escalate" (no free source can answer it), recorded since 2026-11-25 as a null result, as is a second "no claims" after a redo (owner: nothing goes to the owner that data can settle). The move goes through queue_ops.move, so transitions.py and render.py check it.
 Nothing the model writes is executed; its question and queries are data the research job searches with.
 """
 import json, os, re, subprocess, sys, zipfile, io
@@ -148,6 +148,9 @@ MERGE_REFUSE = re.compile(CJ.REFUSE.pattern + r"|^worker/(tier|generate|research
 # transfer/ (built into the scoring jobs by tasks/build.py), runner/, worker/, router/, tests. A person merges those.
 # Also refused: experiments/run_one.py (it writes the verdict the record job trusts) and a
 # name that shadows a standard-library module (audit R2 F2: worker/datetime.py was imported by an unchanged keyed script).
+# The system's own guards: agent instructions, workflows, the gates and the queue's rules. No agent merges these; a change
+# to one is the only code change that reaches the owner (owner-only: guard-merge).
+GUARD = re.compile(r"^(\.github/|AGENTS\.md$|CLAUDE\.md$|worker/(tier|transitions|queue_ops|code_job|doc_job|guards?)\.py$|runner/jail\.py$|counter/count\.py$|tests/test_workflows\.py$)")
 MERGE_ALLOW = re.compile(r"experiments/[a-z][a-z0-9_]*\.py")
 MERGE_ALLOW_NOT = {"experiments/run_one.py", "experiments/__init__.py"}
 
@@ -296,7 +299,7 @@ def drain_code(wt, ask, record):
         files = pr_files(n)
         after_files = pr_snapshot(n)
         if files is None:
-            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", f"tier: PR #{n}: its files could not be read; not merged")
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "defer", f"tier: PR #{n}: its files could not be read; not merged, retried next run")
             record["code_prs"].append({"id": item["id"], "pr": n, "merged": False, "why": ["files unreadable"], "rc": rc})
             continue
         if not same_reviewed_head(before, after_files):
@@ -347,9 +350,12 @@ def drain_code(wt, ask, record):
                 rc = _redo_with_reason(wt, item["id"], "; ".join(str(w) for w in why)[:500], note)
             else:
                 rc = Q.move(wt, f"tier-{MODEL}", item["id"], "resplit", note + "; parked for a smaller split")
-        else:   # merged, a conflict to redo, or an approved change on a path only a person merges (the owner)
-            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo" if conflict else "escalate",
-                        note + ("; closed for a redo on today's main" if conflict else ""))
+        elif ok or conflict:
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "confirm" if ok else "redo", note + ("; closed for a redo on today's main" if conflict else ""))
+        elif any(GUARD.search(f["filename"]) for f in files):   # the system's own guards: no agent merges them
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", "owner-only: guard-merge: " + note)
+        else:   # approved, on a path the free tier may not merge: the Claude tier reviews and merges it (owner 2026-11-25)
+            rc = Q.move(wt, f"tier-{MODEL}", item["id"], "hold", note + "; held for the Claude tier")
         record["code_prs"].append({"id": item["id"], "pr": n, "merged": ok, "why": why, "rc": rc})
 
 
@@ -368,7 +374,7 @@ def _defer(wt, item, n, why):
     (review 2026-11-22: uncounted, a PR the tier can never judge sat in review for ever and held one of MAX_PRS slots)."""
     note = f"tier ({MODEL}): PR #{n} not judged: {why}"[:400]
     if defers(item) + 1 >= MAX_DEFERS:
-        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note + f"; {MAX_DEFERS} tier runs could not judge it: to the owner, PR open")
+        rc = Q.move(wt, f"tier-{MODEL}", item["id"], "hold", note + f"; {MAX_DEFERS} tier runs could not judge it: held for the Claude tier, PR open")
     else:
         rc = Q.move(wt, f"tier-{MODEL}", item["id"], "defer", note + "; left for the next tier run")
     return {"id": item["id"], "pr": n, "merged": False, "why": [why], "deferred": True, "rc": rc}
@@ -446,13 +452,17 @@ def run(wt, out, ask=None):
             if not d:
                 record["items"].append({"id": item["id"], "skipped": why}); continue
             if d["decision"] == "redo" and tier_redos(item) >= MAX_REDOS:
-                d = {"decision": "escalate", "reason": f"this tier already narrowed it {tier_redos(item)} time(s) and it still found no claims; "
-                                                        f"its next suggestion was: {d.get('question')}"}
+                # owner 2026-11-25: a question the literature does not answer after narrowing is a result, not an owner decision
+                # (16 of 20 items waiting on the owner were these; queue.json 2026-11-25). Recorded as a null result.
+                d = {"decision": "null", "reason": f"null result: narrowed {tier_redos(item)} time(s) and still no claim survived both checks; "
+                                                    f"its next suggestion was: {d.get('question')}"}
             note = f"tier ({MODEL}, controls passed): {d['decision']}: {str(d.get('reason'))[:300]}"
             if d["decision"] == "redo":
                 rc = redo(wt, item["id"], d, note)
-            else:
-                rc = Q.move(wt, f"tier-{MODEL}", item["id"], "escalate", note)
+            elif d["decision"] == "null":
+                rc = Q.move(wt, f"tier-{MODEL}", item["id"], "solved", note)
+            else:   # the model's "escalate": the evidence needs a keyed or paid source; that is a spend decision only if it costs money
+                rc = Q.move(wt, f"tier-{MODEL}", item["id"], "solved", note.replace(": escalate:", ": null result (source not reachable free):"))
             record["items"].append({"id": item["id"], "decision": d, "rc": rc})
         drain_code(wt, ask, record)
         retry_code(wt, record)

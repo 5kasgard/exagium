@@ -718,7 +718,7 @@ class TierOutcomes(unittest.TestCase):
         import tier as TI
         runs = [{"outcome": "pr"}] + [{"outcome": "defer"}] * (TI.MAX_DEFERS - 1)
         closed, moves, rec = self._drain(None, self.F, runs=runs)
-        self.assertEqual((closed, moves), (False, ["escalate"]))   # to the owner, PR still open
+        self.assertEqual((closed, moves), (False, ["hold"]))   # held for the Claude tier, PR still open (owner 2026-11-25)
         self.assertEqual(TI.defers({"runs": [{"outcome": "defer"}, {"outcome": "pr"}, {"outcome": "defer"}]}), 1)   # since the PR
         deferred = {"id": "X2", "status": "review", "code": {"files": ["a.py"]},
                     "runs": [{"outcome": "pr", "where": "https://github.com/o/r/pull/9"}, {"outcome": "defer"}]}
@@ -755,12 +755,41 @@ class TierOutcomes(unittest.TestCase):
     def test_a_rejection_on_merit_still_closes_and_redoes(self):
         self.assertEqual(self._drain('{"verdict": "reject", "reason": "wrong"}', self.F)[:2], (True, ["redo_with_reason"]))
 
-    def test_a_change_too_long_to_see_whole_goes_to_a_person(self):
+    def test_a_change_too_long_to_see_whole_goes_to_the_claude_tier(self):
         long = [dict(self.F[0], patch="+" + "x" * 25000)]
         closed, moves, rec = self._drain('{"verdict": "approve", "reason": "ok"}', long)
-        self.assertEqual((closed, moves), (False, ["escalate"]))
+        self.assertEqual((closed, moves), (False, ["hold"]))
         nodiff = [dict(self.F[0], patch=None)]
-        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', nodiff)[:2], (False, ["escalate"]))
+        self.assertEqual(self._drain('{"verdict": "approve", "reason": "ok"}', nodiff)[:2], (False, ["hold"]))
+
+    def test_only_a_guard_file_reaches_the_owner(self):
+        import tier as TI
+        for path in (".github/workflows/x.yml", "AGENTS.md", "worker/tier.py", "worker/transitions.py", "runner/jail.py"):
+            self.assertTrue(TI.GUARD.search(path), path)
+        for path in ("experiments/x.py", "runner/proposals/packet.py", "router/bench6/pilot/agent_attempt.py", "README.md"):
+            self.assertFalse(TI.GUARD.search(path), path)
+
+
+class OwnerOnly(unittest.TestCase):
+    """Owner 2026-11-25: nothing reaches the owner that data can settle."""
+
+    def test_categories(self):
+        import transitions as T
+        self.assertEqual(T.owner_only("owner-only: repo-settings: branch protection"), "repo-settings")
+        for r in ("to the owner", "owner-only: taste", "", None, "escalate: owner-only: spend"):
+            self.assertIsNone(T.owner_only(r), r)
+        self.assertEqual(T.next_status("review", "hold"), "review")
+
+    def test_move_refuses_an_escalation_without_a_category(self):
+        import queue_ops as QO
+        with self.assertRaises(SystemExit):
+            QO.move("/nonexistent", "tier-x", "X1", "escalate", "the tier is unsure")
+
+    def test_a_held_pr_is_not_reviewed_again_by_the_free_tier(self):
+        import tier as TI
+        held = {"id": "X3", "status": "review", "code": {"files": ["a.py"]},
+                "runs": [{"outcome": "pr", "where": "https://github.com/o/r/pull/9"}, {"outcome": "hold"}]}
+        self.assertEqual(TI.code_prs({"items": [held]}), [])
 
 
 class TierRedoCap(unittest.TestCase):

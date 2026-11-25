@@ -20,6 +20,8 @@ weak gate, so the gates here are scripts first (guard words, target lines, quote
 
 python3 -I worker/transitions.py next STATUS OUTCOME [FAILURES]   -> prints the next status, exit 2 if not allowed
 """
+import re
+
 import sys
 
 STATES = ("open", "in progress", "review", "escalated", "done", "waiting on the owner", "parked", "blocked", "scheduled",
@@ -48,7 +50,8 @@ TABLE.update({("review", "confirm"): "done", ("review", "redo"): "open", ("revie
               # a code item that failed its retry is parked for the splitter to cut smaller, not sent to the owner
               # (2026-11-21: 23 of 31 items waiting on the owner were code items a person could not help from a phone)
               ("escalated", "resplit"): "parked", ("review", "resplit"): "parked",
-              ("review", "defer"): "review"})   # the tier could not judge a PR this run (no verdict, merge refused): kept, counted
+              ("review", "defer"): "review",
+              ("review", "hold"): "review"})   # an approved PR on a path only Claude or a person merges: left for the Claude tier, not counted   # the tier could not judge a PR this run (no verdict, merge refused): kept, counted
 for s in STATES:   # the owner may settle any item, from any state; nothing else is implied
     TABLE.update({(s, "decide_done"): "done", (s, "decide_open"): "open", (s, "park"): "parked",
                   (s, "decide_blocked"): "blocked", (s, "decide_scheduled"): "scheduled", (s, "decide_owner"): "waiting on the owner"})
@@ -81,6 +84,26 @@ def classify(result, staged_empty, landed):
     if r == "pr" and isinstance(result.get("proposed"), int):
         return "unchanged" if result["proposed"] == 0 else "guard_blocked"   # proposed none / proposed some, all refused
     return "failed"              # an unknown shape is not guessed
+
+
+# Owner 2026-11-25: "nothing is passed to the owner; follow the data". Only these reach 'waiting on the owner', and the
+# reason must start with "owner-only: <category>". Everything else is decided by data: a pre-registered rule, a recorded
+# null result, a redo, a smaller split, or the Claude tier. Measured before this rule: 16 of the 20 items waiting on the
+# owner were research questions with no surviving claims (queue.json, 2026-11-25), which the owner could not act on.
+OWNER_ONLY = {
+    "credentials": "keys, tokens and accounts only the owner holds",
+    "repo-settings": "repository settings the bot token cannot change (branch protection, permissions)",
+    "spend": "money beyond the free pools and the subscription",
+    "delete": "deleting branches, data or published records",
+    "guard-merge": "merging changes to the system's own guards (workflows, agent instructions, gates), which no agent merges",
+    "owner-hold": "an item the owner explicitly said to hold until they release it",
+}
+
+
+def owner_only(reason):
+    """The category if the reason starts with 'owner-only: <category>', else None."""
+    m = re.match(r"\s*owner-only:\s*([a-z-]+)", str(reason or ""))
+    return m.group(1) if m and m.group(1) in OWNER_ONLY else None
 
 
 class NotAllowed(ValueError):
