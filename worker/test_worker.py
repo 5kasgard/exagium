@@ -1626,6 +1626,34 @@ class CallSites(unittest.TestCase):
                           ("mod.py", 3, "anthropic_call")])
 
 
+class PrSync(unittest.TestCase):
+    """P38: a merged or closed PR moves its waiting item; an open one, an unfetched one or a review item does not."""
+
+    def item(self, status, runs):
+        return {"id": "K1", "status": status, "runs": runs}
+
+    def test_decide(self):
+        import pr_sync as S
+        runs = [{"outcome": "pr", "where": "https://github.com/o/r/pull/7"}, {"outcome": "escalate"}]
+        it = self.item("waiting on the owner", runs)
+        self.assertEqual(S.pr_number(it), 7)
+        self.assertEqual(S.decide(it, {"number": 7, "state": "closed", "merged": True, "sha": "abc1234ff"})[0], "decide_done")
+        self.assertEqual(S.decide(it, {"number": 7, "state": "closed", "merged": False})[0], "park")
+        self.assertIsNone(S.decide(it, {"number": 7, "state": "open", "merged": False}))
+        self.assertIsNone(S.decide(it, None))   # a failed fetch changes nothing
+        self.assertIsNone(S.decide(self.item("review", runs), {"number": 7, "state": "closed", "merged": True}))
+        self.assertIsNone(S.pr_number(self.item("escalated", [{"outcome": "failed", "where": "x/pull/3"}])))
+
+    def test_latest_pr_wins(self):
+        import pr_sync as S
+        it = self.item("escalated", [{"outcome": "pr", "where": "/pull/3"}, {"outcome": "pr", "where": "/pull/9"}])
+        seen = []
+        q = {"items": [it, self.item("open", [{"outcome": "pr", "where": "/pull/4"}])]}
+        out = S.plan(q, lambda n: seen.append(n) or {"number": n, "state": "closed", "merged": False})
+        self.assertEqual(seen, [9])
+        self.assertEqual([o[:2] for o in out], [("K1", "park")])
+
+
 if __name__ == "__main__":
     unittest.main()
 
