@@ -1,0 +1,106 @@
+# Queue P28 pilot step 3 (router/bench6/pilot/PLAN.md): one agent attempt per task inside the task's own image, graded by
+# the sealed grader (envcheck.attempt, Q82). agent=gold (no model: the gold patch stands in for the agent) and agent=mock
+# (bench-4's base harness through the meter to a local mock model) cost nothing and come first; agent=model uses the
+# OpenRouter key, free models only, through bench-4's meter (the key is read and deleted by the meter).
+name: bench6-agent
+on:
+  workflow_dispatch:
+    inputs:
+      ids:
+        description: "comma-separated instance ids, or usable (step 1's 8)"
+        required: true
+      agent:
+        description: "gold, mock or model"
+        required: true
+        default: gold
+      model:
+        description: "OpenRouter model for agent=model (free only); bench-4's base default"
+        required: false
+        default: "nvidia/nemotron-3-ultra-550b-a55b:free"
+permissions: {}
+env:
+  CAP: "80"        # bench-4's base harness: call cap and wall time (PLAN.md's settled pilot rule)
+  WALL_S: "2100"
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      ids: ${{ steps.m.outputs.ids }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - id: m
+        env:
+          IDS: ${{ github.event.inputs.ids }}
+          AGENT: ${{ github.event.inputs.agent }}
+          MODEL: ${{ github.event.inputs.model }}
+        run: |
+          case "$AGENT" in gold|mock|model) ;; *) echo "agent must be gold, mock or model"; exit 1 ;; esac
+          if [ "$AGENT" = model ] && [[ "$MODEL" != *:free ]]; then echo "paid model refused: $MODEL"; exit 1; fi
+          python3 -I - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, sys
+          sys.path.insert(0, "router/bench6/pilot"); import envcheck
+          want = envcheck.USABLE if os.environ["IDS"] == "usable" else [x.strip() for x in os.environ["IDS"].split(",") if x.strip()]
+          bad = [x for x in want if x not in envcheck.USABLE]
+          if bad or not want:
+              raise SystemExit(f"not usable tasks: {bad}")
+          print("ids=" + json.dumps(want))
+          PY
+  attempt:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 2   # OpenRouter free: 20 requests/min across the account
+      matrix:
+        id: ${{ fromJSON(needs.plan.outputs.ids) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: free disk for the images
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc; df -h / | tail -1
+      - name: build bench-4's harness image and copy out its base harness (OpenHands SDK)
+        if: github.event.inputs.agent != 'gold'
+        run: |
+          docker build -q -t bench4:run router/bench4 > "$RUNNER_TEMP/build.log" 2>&1 || { tail -40 "$RUNNER_TEMP/build.log"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/harness" && python3 -I router/bench6/pilot/agent.py extract bench4:run "$RUNNER_TEMP/harness"
+      - name: hand the key to a file only the meter reads (it deletes the file once read)
+        if: github.event.inputs.agent == 'model'
+        env:
+          KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          umask 077; printf '%s' "$KEY" > "$RUNNER_TEMP/meter.key"
+          echo "exit 0"
+      - name: attempt and grade
+        env:
+          ID: ${{ matrix.id }}
+          AGENT: ${{ github.event.inputs.agent }}
+          MODEL: ${{ github.event.inputs.model }}
+          BENCH4_KEY_FILE: ${{ runner.temp }}/meter.key
+        run: |
+          GW=$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}')
+          mkdir -p "$RUNNER_TEMP/harness" "$RUNNER_TEMP/out"
+          python3 -I router/bench6/pilot/agent.py run router/bench6/pilot/candidates.json router/bench6/pilot/statements.json \
+            "$ID" "$AGENT" "$RUNNER_TEMP/out" "$RUNNER_TEMP/harness" "$GW" 8088 router/bench4/seal.sh "$MODEL" "$CAP" "$WALL_S" 1000
+          rm -f "$RUNNER_TEMP/meter.key"
+          find "$RUNNER_TEMP/out" -type l -print -delete | head -20
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ always() }}
+        with:
+          name: agent-${{ strategy.job-index }}
+          path: |
+            ${{ runner.temp }}/out/agent-*.json
+            ${{ runner.temp }}/out/agent-*.diff
+            ${{ runner.temp }}/out/agent-*-harness.*
+            ${{ runner.temp }}/out/attempt-*.json
+            ${{ runner.temp }}/out/attempt-log-*.txt
+            ${{ runner.temp }}/out/meter-*.jsonl
+            ${{ runner.temp }}/out/mock-*.jsonl
