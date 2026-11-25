@@ -19949,7 +19949,7 @@
    "id": "K69",
    "title": "Propose arm: packet in the prompt plus a repair loop capped at two calls",
    "kind": "fix",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P5d",
    "generated_at": "2026-11-24T22:12:33Z",
@@ -19967,7 +19967,7 @@
     "runner/proposals/propose.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "In runner/proposals/propose.py add an arm flag: 'baseline' (one call, no packet, the current behaviour) and 'packet' (render the packet from packet.build as data in the prompt, then if the candidate fails to compile or validate, make at most one repair call that includes the error text, so at most two calls in total). Count every call made and return the count with the result, so calls per valid candidate can be computed. Add a test that a stub model returning invalid code twice makes exactly two calls and no third, and that baseline makes exactly one call.",
+   "next": "In runner/proposals/propose.py add an arm flag: 'baseline' (one call, no packet, the current behaviour) and 'packet' (render the packet from packet.build as data in the prompt, then if the candidate fails to compile or validate, make at most one repair call that includes the error text, so at most two calls in total). Count every call made and return the count with the result, so calls per valid candidate can be computed. Add a test that a stub model returning invalid code twice makes exactly two calls and no third, and that baseline makes exactly one call. PREVIOUS ATTEMPT REJECTED: no accepted edit. Do the whole item, with a test.",
    "refs": [
     "queue P5d",
     "worker/split.py"
@@ -20020,6 +20020,12 @@
      "outcome": "guard_blocked",
      "from": "in progress",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-25T01:59:51Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no accepted edit"
     }
    ],
    "work_types": {
