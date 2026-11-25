@@ -36,8 +36,9 @@ jobs:
             if [ "$n" -ge 10 ]; then MODE=kill; fi
           fi
           if [ "$MODE" = create ] && [ -f "$S" ] && ! grep -q killed_at "$S"; then echo "a sandbox is already under test"; exit 1; fi
-          pip install -q --break-system-packages e2b==2.46.0
-          python3 -I fabric/sandbox/e2b_eval.py "$MODE" "$S" | tee -a "$GITHUB_STEP_SUMMARY"
+          python3 -m venv "$RUNNER_TEMP/v" && "$RUNNER_TEMP/v/bin/pip" install -q e2b==2.46.0   # python3 -I skips user site-packages (first run: no module e2b)
+          set -o pipefail
+          "$RUNNER_TEMP/v/bin/python" -I fabric/sandbox/e2b_eval.py "$MODE" "$S" | tee -a "$GITHUB_STEP_SUMMARY"
           echo "changed=1" >> "$GITHUB_ENV"
       - name: publish state to fabric-data
         if: env.changed == '1'
