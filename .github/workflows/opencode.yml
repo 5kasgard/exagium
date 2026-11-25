@@ -148,6 +148,6 @@ jobs:
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           tier=free; [ "$PAID" = true ] && tier=paid
-          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; else echo "**opencode** · models for \`$PROVIDER\` · [run]($RUN)"; fi
+          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; elif [ "$MODE" = models ]; then echo "**opencode** · models for \`$PROVIDER\` · [run]($RUN)"; else echo "**opencode** · [run]($RUN)"; fi
             echo; cat out/answer.md; } > body.md
           gh issue comment "$ISSUE" -R "$REPO" --body-file body.md

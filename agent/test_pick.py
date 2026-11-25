@@ -43,6 +43,12 @@ class Pick(unittest.TestCase):
             with self.assertRaises(ValueError, msg=c):
                 P.plan(CFG, c)
 
+    def test_forgiving_input(self):
+        # 2026-11-25 first runs: "/oc models Anthropic" and "model=anthropic/<opus_5.5>" were refused
+        self.assertEqual(P.plan(CFG, "/oc models Anthropic")["provider"], "anthropic")
+        self.assertEqual(P.plan(CFG, "/oc model=<opus> what would you do?")["model"], "anthropic/claude-opus-5-5")
+        self.assertEqual(P.plan(CFG, "/oc model=Anthropic/claude-Sonnet-5-5 x")["model"], "anthropic/claude-Sonnet-5-5")
+
     def test_models_listing(self):
         self.assertEqual((P.plan(CFG, "/oc models")["mode"], P.plan(CFG, "/oc models")["provider"]), ("models", "opencode"))
         self.assertEqual(P.plan(CFG, "/oc models anthropic")["provider"], "anthropic")

@@ -32,7 +32,7 @@ def plan(cfg, comment, title="", body=""):
     rest = comment[m.end():].strip()
     first = rest.split("\n", 1)[0].split()
     if first and first[0].lower() == "models":
-        provider = first[1] if len(first) > 1 else "opencode"
+        provider = first[1].strip("<>").lower() if len(first) > 1 else "opencode"
         if provider not in cfg["providers"]:
             raise ValueError(f"unknown provider {provider!r}; known: {', '.join(sorted(cfg['providers']))}")
         return {"mode": "models", "model": "", "provider": provider, "paid": False, "prompt": ""}   # a listing costs nothing
@@ -40,7 +40,11 @@ def plan(cfg, comment, title="", body=""):
     a = MODEL_ARG.match(rest)
     if a:
         want, rest = a.group(1), rest[a.end():].strip()
-    model = cfg.get("aliases", {}).get(want, want)
+    want = want.strip("<>")   # the owner typed a placeholder's brackets (2026-11-25, issue #103)
+    model = cfg.get("aliases", {}).get(want.lower(), want)
+    if "/" in model:   # provider names are lower case; model names keep their case
+        head, tail = model.split("/", 1)
+        model = head.lower() + "/" + tail
     if not MODEL_ID.match(model):
         raise ValueError(f"not a model id: {model!r} (use provider/model or an alias in agent/models.json)")
     provider, name = model.split("/", 1)
