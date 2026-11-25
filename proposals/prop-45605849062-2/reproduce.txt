@@ -1,0 +1,16 @@
+FAILED: prop-45605849062-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 165, in <module>
+    main()
+  File "/w/train.py", line 153, in main
+    model.train(X_tr, y_tr, lr, l2, BATCH, TUNE_EPOCHS, verbose=False)
+  File "/w/train.py", line 122, in train
+    self.train_batch(X[idx], y[idx], lr, l2)
+  File "/w/train.py", line 73, in train_batch
+    scores = self.forward(Xb)                     # (b, C)
+             ^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 44, in forward
+    linear = self.bias + np.sum(self.W[np.arange(self.d), X.T, :], axis=0).T
+                                ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (16,) (16,64) 
+

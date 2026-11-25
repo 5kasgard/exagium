@@ -1,0 +1,12 @@
+FAILED: prop-45605849062-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 165, in <module>
+    main()
+  File "/w/train.py", line 153, in main
+    model = train_fm(Z_tr, y_tr, D, k, lr, l2, SEED, EPOCHS_TUNE)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 90, in train_fm
+    g_V = (x.T @ (grad_logits[:, None] * XV)) / b - (x2.T @ (grad_logits[:, None] * V)) / b + l2 * V
+                                                             ~~~~~~~~~~~~~~~~~~~~~^~~
+ValueError: operands could not be broadcast together with shapes (64,1) (108,4) 
+
