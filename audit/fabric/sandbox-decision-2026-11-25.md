@@ -104,6 +104,9 @@ The tiers are decided separately. The workbench (persistent box) is decided by Â
   assumed 40 h in the cost criterion (section 2). Weights are unchanged; only the usage assumption changes.
 - **Tiers and places:** a tiered setup is fine, and so are machines from different providers and locations. The
   decision may pick one provider per tier, not one provider overall.
-- Still open: (a) memory-keeping or (b) files-only resume; whether the Cloudflare account is on Workers Paid.
+- **Resume:** the owner leans to (a), processes keep running ("by my gutâ€¦ as long as it doesn't require rebuilding the
+  environment and sessions work"). So both are scored, and a process surviving resume counts in the resume criterion
+  as section 2 already says; files-only providers stay in the field if they never need a rebuild.
+- **Cloudflare:** the account is not on Workers Paid now; the owner is willing to pay the $5/mo if the data favours it.
 - First measurement started: `sandbox-eval.yml` runs section 5 on E2B (the keyed candidate) with the key checked live
   (keys-probe 2026-11-26: HTTP 200). This measures E2B; it does not choose it. Other Stage B candidates follow Stage A.
