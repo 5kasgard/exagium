@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 LH = os.environ.get("LH", "lh")
 TAG = "forge-managed"
+FREE = ["nvidia", "groq", "cerebras", "opencodezen", "huggingface"]   # providers whose free models status lists in full
 
 
 def lh(*args, quiet=False):
@@ -45,6 +46,10 @@ def status():
         ms = rows(lh("model", "list", p["id"], "--enabled", "--type", "chat", "--json", quiet=True) or [])
         tools = [m.get("id") for m in ms if (m.get("abilities") or {}).get("functionCall")]
         print(f"  {p['id']}: {len(ms)} chat models enabled, {len(tools)} with tool calling: {', '.join(tools[:12])}")
+    for pid in FREE:
+        ms = rows(lh("model", "list", pid, "-L", "300", "--type", "chat", "--json", quiet=True) or [])
+        tools = [m.get("id") + ("*" if m.get("enabled") else "") for m in ms if (m.get("abilities") or {}).get("functionCall")]
+        print(f"  all {pid} chat models with tool calling (* = enabled): {', '.join(tools)}")
     cons = rows(lh("connector", "list", "--json"))
     print(f"connectors: {len(cons)}")
     for c in cons:
@@ -53,11 +58,16 @@ def status():
     ags = rows(lh("agent", "list", "-L", "100", "--json"))
     print(f"agents: {len(ags)}")
     for a in ags:
-        print(f"  {a.get('title')}: {a.get('provider')}/{a.get('model')} tags={a.get('tags') or []}")
+        v = lh("agent", "view", a["id"], "--json", quiet=True) or {}
+        v = v if isinstance(v, dict) else {}
+        print(f"  {v.get('title') or a.get('title')}: {v.get('provider')}/{v.get('model')} plugins={v.get('plugins') or []} tags={v.get('tags') or a.get('tags') or []}")
 
 
 def apply(path):
     cfg = json.load(open(path))
+    for e in cfg.get("enable_models", []):
+        lh("model", "batch-toggle", *e["ids"], "--provider", e["provider"], "--enable")
+        print(f"models enabled on {e['provider']}: {', '.join(e['ids'])}")
     have = {c.get("identifier") for c in rows(lh("connector", "list", "--json"))}
     for c in cfg.get("connectors", []):
         if c["identifier"] in have:
