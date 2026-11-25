@@ -81,13 +81,27 @@ def jwks():
     return out
 
 
+def neon_org(ntoken):
+    """Neon accounts now belong to an organization, and listing or creating projects must name it (2nd run: HTTP 400
+    on GET /projects). The account's one organization, or NEON_ORG_ID; its id is never printed."""
+    if os.environ.get("NEON_ORG_ID"):
+        return os.environ["NEON_ORG_ID"]
+    st, j = call(NEON, "/users/me/organizations", ntoken)
+    orgs = j.get("organizations", []) if st == 200 else []
+    if len(orgs) > 1:
+        sys.exit(f"{len(orgs)} Neon organizations: set NEON_ORG_ID to choose one")
+    return orgs[0]["id"] if orgs else None
+
+
 def neon_url(ntoken):
-    st, j = call(NEON, "/projects", ntoken)
+    org = neon_org(ntoken)
+    st, j = call(NEON, "/projects" + (f"?org_id={org}" if org else ""), ntoken)
     if st != 200:
-        sys.exit(f"neon list: HTTP {st}")
+        sys.exit(f"neon list: HTTP {st} {str(j.get('message', ''))[:160]}")
     proj = next((p for p in j.get("projects", []) if p.get("name") == PROJECT), None)
     if proj is None:
-        st, j = call(NEON, "/projects", ntoken, "POST", {"project": {"name": PROJECT, "region_id": NEON_REGION}})
+        body = {"name": PROJECT, "region_id": NEON_REGION, **({"org_id": org} if org else {})}
+        st, j = call(NEON, "/projects", ntoken, "POST", {"project": body})
         if st not in (200, 201):
             sys.exit(f"neon create: HTTP {st} {str(j.get('message', ''))[:120]}")
         return j["connection_uris"][0]["connection_uri"], True
