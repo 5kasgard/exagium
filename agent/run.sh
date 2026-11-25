@@ -7,7 +7,7 @@ case "$MODE" in
   ask)
     # the request goes in as the message, after "--": -f is an array option and took the message as a second file
     # (run 45519136124: "File not found: Answer the request ...")
-    msg="$(printf 'Answer the request below. Read the repository files you need and name the paths you used.\n\n%s' "$(cat "$OUT/prompt.md")")"
+    msg="$(printf 'Answer the request below. The checkout is branch main; state/ holds the queue branch (state/audit/2026-11-17/queue.json and QUEUE.md, state/audit/findings/, state/audit/notes/, state/audit/spine/). Read the files you need and name the paths you used. Say so when a file you need is not there.\n\n%s' "$(cat "$OUT/prompt.md")")"
     timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -- "$msg" \
       > "$OUT/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$OUT/answer.md" ;;
   models)
