@@ -46,7 +46,9 @@ def extract(image, dest):
     """bench-4's /opt/oh venv points at a uv-managed Python under /root; copy both, to mount at the same paths."""
     rc, py, _ = sh(["docker", "run", "--rm", "--entrypoint", "readlink", image, "-f", "/opt/oh/bin/python"])
     py = py.strip()
-    root = py.rsplit("/bin/", 1)[0]
+    # the whole managed-Python folder: the venv's link goes through a version alias (cpython-3.12-...) to the full version
+    # folder (cpython-3.12.16-...), and both live in it (first mock run, job 139143389636: "/opt/oh/bin/python: not found")
+    root = os.path.dirname(py.rsplit("/bin/", 1)[0])
     if rc != 0 or not py.startswith("/"):
         raise SystemExit(f"cannot locate the venv's python: {py}")
     cid = sh(["docker", "create", image])[1].strip()
