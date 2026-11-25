@@ -21,13 +21,13 @@ concurrency:   # one run at a time, repo-wide: GitHub keeps one pending run per 
   group: opencode   # so a burst of /oc comments cannot queue many paid runs (blind review 45509281079)
   cancel-in-progress: false
 jobs:
-  answer:
+  answer:   # a comment holding [forge-act was posted by forge-act (as the owner): never a trigger
     if: >-
       github.event.issue.pull_request == null &&
       github.event.comment.author_association == 'OWNER' &&
       github.event.comment.user.login == github.repository_owner &&
       (startsWith(github.event.comment.body, '/oc') || startsWith(github.event.comment.body, '/opencode')) &&
-      !contains(github.event.comment.body, '[forge-act')   # forge-act posts as the owner; never a trigger
+      !contains(github.event.comment.body, '[forge-act')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:

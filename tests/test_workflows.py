@@ -255,3 +255,17 @@ class PaidAllowanceMatchesReservation(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+class TestIfHasNoComment(unittest.TestCase):
+    """2026-11-25: a '# ...' comment inside a folded `if: >-` became part of the expression; GitHub refused opencode.yml
+    and every /oc request failed for ~1.5 h (5 failed runs, 0 jobs). No `if` may hold a '#'."""
+    def test_no_hash_in_if(self):
+        bad = []
+        for f in glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".github", "workflows", "*.yml")):
+            w = yaml.safe_load(open(f)) or {}
+            for jn, j in (w.get("jobs") or {}).items():
+                for where, cond in [(jn, j.get("if"))] + [(f"{jn}/{s.get('name', i)}", s.get("if")) for i, s in enumerate(j.get("steps") or [])]:
+                    if isinstance(cond, str) and "#" in cond:
+                        bad.append(f"{os.path.basename(f)}:{where}")
+        self.assertEqual(bad, [])
