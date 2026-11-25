@@ -1651,7 +1651,26 @@ class PrSync(unittest.TestCase):
         q = {"items": [it, self.item("open", [{"outcome": "pr", "where": "/pull/4"}])]}
         out = S.plan(q, lambda n: seen.append(n) or {"number": n, "state": "closed", "merged": False})
         self.assertEqual(seen, [9])
-        self.assertEqual([o[:2] for o in out], [("K1", "park")])
+        self.assertEqual([o[:3] for o in out], [("K1", 9, "park")])
+
+    def test_pr_is_history_after_redo(self):
+        """Review 2026-11-25: tier.py closes a rejected PR and sends the item back; a later escalation must not park it."""
+        import pr_sync as S
+        runs = [{"outcome": "pr", "where": "/pull/5"}, {"outcome": "redo"}, {"outcome": "claim"}, {"outcome": "failed"},
+                {"outcome": "escalate"}]
+        self.assertIsNone(S.pr_number(self.item("escalated", runs)))
+        reopened = [{"outcome": "pr", "where": "/pull/5"}, {"outcome": "decide_open"}]
+        self.assertIsNone(S.decide(self.item("waiting on the owner", reopened), {"number": 5, "merged": True}))
+
+    def test_write_time_recheck(self):
+        import pr_sync as S
+        q = {"items": [self.item("in progress", [{"outcome": "pr", "where": "/pull/5"}])]}
+        mock = unittest.mock
+        with mock.patch.object(S.Q, "sync"), mock.patch.object(S.Q, "load", return_value=q), \
+                mock.patch.object(S.Q, "save") as save, mock.patch.object(S.Q, "commit_push") as push:
+            self.assertIsNone(S.apply("wt", "K1", 5, "park", "r"))
+        save.assert_not_called(); push.assert_not_called()
+        self.assertEqual(q["items"][0]["status"], "in progress")
 
 
 if __name__ == "__main__":
