@@ -2,7 +2,7 @@
 // Claude app, workers) opens a box BY NAME and gets the same machine back: same files, same running processes. The
 // name lives in the sandbox's own E2B metadata, not in any chat, so a new chat or another agent reconnects to it.
 // Idle boxes pause themselves (no compute billing while paused) and wake on the next call.
-// Auth: `Authorization: Bearer <BOX_TOKEN>`. Limits: MAX_BOXES live boxes, a command timeout cap, output capped.
+// Auth: `Authorization: Bearer <BOX_TOKEN>` (its own secret, FORGE_BOX_TOKEN, not shared with forge-act: review). Limits: MAX_BOXES live boxes, a command timeout cap, output capped.
 // Every command is appended to /home/user/.forge-box.log in the box with the caller's actor and time (provenance).
 import { Sandbox } from "e2b";
 
@@ -12,18 +12,26 @@ export const cleanActor = (a) => String(a || "").replace(/[^\w.\- ]/g, "").slice
 const clip = (s) => { s = String(s ?? ""); return s.length > MAX_OUT ? s.slice(0, MAX_OUT / 2) + `\n…[${s.length - MAX_OUT} chars cut]…\n` + s.slice(-MAX_OUT / 2) : s; };
 const opts = (env) => ({ apiKey: env.E2B_API_KEY });
 
+const need = (n) => { if (!n) throw new Error("name: letters, digits and - only"); return n; };   // review: "" skipped the filter
 async function find(env, name, S) {
-  const items = await S.list({ ...opts(env), query: { metadata: { forge_box: name }, state: ["running", "paused"] } }).nextItems();
+  const items = await S.list({ ...opts(env), query: { metadata: { forge: "box", forge_box: need(name) }, state: ["running", "paused"] } }).nextItems();
   return items[0];
 }
+const IDLE = (env) => Number(env.IDLE_MIN || 10) * 60000;
 async function open(env, name, S, create = true) {
   const hit = await find(env, name, S);
-  if (hit) return { sb: await S.connect(hit.sandboxId, opts(env)), created: false };   // resumes a paused box
+  if (hit) return { sb: await S.connect(hit.sandboxId, { ...opts(env), timeoutMs: IDLE(env) }), created: false };   // resumes; a fresh idle window
   if (!create) throw new Error(`no box named ${name}; open it first`);
   const live = await S.list({ ...opts(env), query: { metadata: { forge: "box" }, state: ["running", "paused"] } }).nextItems();
   if (live.length >= Number(env.MAX_BOXES || 3)) throw new Error(`box limit reached (${live.length}); kill one first: ${live.map((x) => x.metadata?.forge_box).join(", ")}`);
-  const sb = await S.create({ ...opts(env), timeoutMs: Number(env.IDLE_MIN || 10) * 60000,
-    lifecycle: { onTimeout: "pause", autoResume: true }, metadata: { forge: "box", forge_box: name } });
+  // No autoResume: outside traffic must not wake a box (review); connect() is the only way back in.
+  const sb = await S.create({ ...opts(env), timeoutMs: IDLE(env), lifecycle: { onTimeout: "pause" }, metadata: { forge: "box", forge_box: name } });
+  const after = await S.list({ ...opts(env), query: { metadata: { forge: "box" }, state: ["running", "paused"] } }).nextItems();
+  const same = after.filter((x) => x.metadata?.forge_box === name).map((x) => x.sandboxId).sort();
+  if (after.length > Number(env.MAX_BOXES || 3) || (same.length > 1 && same[0] !== sb.sandboxId)) {   // lost a race: undo
+    await S.kill(sb.sandboxId, opts(env));
+    throw new Error("box limit or a parallel open of the same name; try again");
+  }
   return { sb, created: true };
 }
 const ACTOR = { actor: { type: "string", description: "Who is asking: your model name, e.g. 'gpt-oss-120b in LobeHub'." } };
@@ -34,7 +42,7 @@ export const TOOLS = {
     description: "Open (or create) a persistent Linux box by name: 2 vCPU, ~0.5 GB RAM, Debian with Python, sudo and internet. " +
       "It keeps files and running processes while idle (it pauses itself after ~10 min) and resumes on the next call.",
     schema: { type: "object", properties: { ...NAME, ...ACTOR }, required: ["name", "actor"] },
-    run: async (a, env, S) => { const n = cleanName(a.name); if (!n) throw new Error("name: letters, digits, -");
+    run: async (a, env, S) => { const n = need(cleanName(a.name));
       const { sb, created } = await open(env, n, S);
       const u = await sb.commands.run("uname -srm; nproc; df -h /home/user | tail -1", { timeoutMs: 30000 });
       return { box: n, created, machine: u.stdout.trim() }; },
@@ -44,13 +52,16 @@ export const TOOLS = {
       "For long jobs start them in the background (nohup … &) and check later; processes survive pauses.",
     schema: { type: "object", required: ["name", "command", "actor"], properties: { ...NAME, command: { type: "string" },
       timeout_s: { type: "integer", description: "default 120, max 600" }, cwd: { type: "string" }, ...ACTOR } },
-    run: async (a, env, S) => { const n = cleanName(a.name); const { sb } = await open(env, n, S, false);
+    run: async (a, env, S) => { const n = need(cleanName(a.name)); const { sb } = await open(env, n, S, false);
       const t = Math.min(Math.max(Number(a.timeout_s) || 120, 1), 600) * 1000;
-      await sb.files.write("/home/user/.forge-box.cmd", String(a.command));
-      await sb.commands.run(`printf '%s\\t%s\\t%s\\n' "$(date -u +%FT%TZ)" "$ACTOR" "$(head -c 300 /home/user/.forge-box.cmd | tr '\\n' ' ')" >> /home/user/.forge-box.log`,
-        { envs: { ACTOR: cleanActor(a.actor) }, timeoutMs: 15000 });
-      try {
-        const r = await sb.commands.run("bash -l /home/user/.forge-box.cmd", { timeoutMs: t, cwd: a.cwd || "/home/user" });
+      const f = `/home/user/.forge-box/${crypto.randomUUID()}.cmd`;   // one file per call: parallel calls cannot swap commands
+      await sb.files.write(f, String(a.command));
+      // A note for people in the box, not an audit trail (actor is self-declared and the box can edit it).
+      await sb.commands.run(`printf '%s\\t%s\\t%s\\n' "$(date -u +%FT%TZ)" "$ACTOR" "$(head -c 300 "$F" | tr '\\n\\t' '  ')" >> /home/user/.forge-box.log`,
+        { envs: { ACTOR: cleanActor(a.actor), F: f }, timeoutMs: 15000 });
+      try {   // output capped inside the box, so a huge stdout cannot exhaust the Worker
+        const r = await sb.commands.run(`bash -l "$F" > >(head -c ${MAX_OUT * 2}) 2> >(head -c ${MAX_OUT} >&2)`,
+          { envs: { F: f }, timeoutMs: t, cwd: a.cwd || "/home/user" });
         return { exit: r.exitCode, stdout: clip(r.stdout), stderr: clip(r.stderr) };
       } catch (e) {   // the SDK throws on a non-zero exit; keep its output
         return { exit: e.exitCode ?? -1, stdout: clip(e.stdout), stderr: clip(e.stderr || e.message) };
@@ -59,15 +70,16 @@ export const TOOLS = {
   box_write: {
     description: "Write a text file in a box (whole content).",
     schema: { type: "object", required: ["name", "path", "content", "actor"], properties: { ...NAME, path: { type: "string" }, content: { type: "string" }, ...ACTOR } },
-    run: async (a, env, S) => { const { sb } = await open(env, cleanName(a.name), S, false);
-      if (new TextEncoder().encode(String(a.content)).length > 2_000_000) throw new Error("content over 2 MB");
+    run: async (a, env, S) => { const { sb } = await open(env, need(cleanName(a.name)), S, false);
+      if ( TextEncoder().encode(String(a.content)).length > 2_000_000) throw new Error("content over 2 MB");
       await sb.files.write(String(a.path), String(a.content)); return { written: a.path }; },
   },
   box_read: {
     description: "Read a text file from a box (capped at 20k chars).",
     schema: { type: "object", required: ["name", "path", "actor"], properties: { ...NAME, path: { type: "string" }, ...ACTOR } },
-    run: async (a, env, S) => { const { sb } = await open(env, cleanName(a.name), S, false);
-      return { path: a.path, content: clip(await sb.files.read(String(a.path))) }; },
+    run: async (a, env, S) => { const { sb } = await open(env, need(cleanName(a.name)), S, false);
+      const r = await sb.commands.run(`head -c ${MAX_OUT * 2} -- "$P"`, { envs: { P: String(a.path) }, timeoutMs: 30000 });
+      return { path: a.path, content: clip(r.stdout) }; },
   },
   box_list: {
     description: "List boxes with their state (running or paused).",

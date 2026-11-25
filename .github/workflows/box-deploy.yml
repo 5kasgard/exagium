@@ -1,7 +1,7 @@
 # Deploys forge-box (fabric/box/worker.js): persistent E2B sandboxes as MCP tools, opened by name from any chat or
 # worker (#191; owner 2026-11-26). Manual, main only. Secrets go into the Worker one step each:
 #   E2B_API_KEY       the E2B key already in the repo
-#   FORGE_ACT_TOKEN   reused as BOX_TOKEN, so the owner holds one bearer token for both Forge write connectors
+#   FORGE_BOX_TOKEN   its own bearer token (32+ characters), not shared with forge-act (security review 2026-11-26)
 # The Worker has no GitHub token: a box can run code, but it cannot touch the repo.
 name: box-deploy
 on:
@@ -19,7 +19,7 @@ jobs:
           persist-credentials: false
       - name: install (pinned e2b SDK and wrangler, lockfile)
         working-directory: fabric/box
-        run: npm ci --no-fund --no-audit
+        run: npm ci --ignore-scripts --no-fund --no-audit   # no install scripts before the secret steps (review)
       - name: tests
         run: node fabric/box/test_box.mjs
       - name: deploy
@@ -41,11 +41,12 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          V: ${{ secrets.FORGE_ACT_TOKEN }}
+          V: ${{ secrets.FORGE_BOX_TOKEN }}
         run: |
+          [ -n "$V" ] || { echo "FORGE_BOX_TOKEN not set: every call will be refused (401)"; exit 0; }
           printf '%s' "$V" | npx --no-install wrangler secret put BOX_TOKEN > /dev/null 2>&1 && echo "BOX_TOKEN: set"
       - name: smoke test (refuses without the token, lists tools with it)
-        env: {T: "${{ secrets.FORGE_ACT_TOKEN }}"}
+        env: {T: "${{ secrets.FORGE_BOX_TOKEN }}"}
         run: |
           url=https://box.exagium.xyz/mcp; body='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
           sleep 20

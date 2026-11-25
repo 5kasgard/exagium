@@ -42,7 +42,7 @@ jobs:
           python3 -m unittest -v tests/test_workflows.py agent/test_workflow_keys.py fabric/workbench/test_setup.py   # system Python has PyYAML; the hashed venv does not (2026-11-20: tier.yml duplicate key)
           node fabric/chat/test_chat.mjs   # the owner's chat: Access JWT checks and the tool loop (no network)
           node fabric/act/test_act.mjs     # forge-act: bearer auth, refused paths, PR flow (no network)
-          (cd fabric/box && npm ci --no-fund --no-audit --silent) && node fabric/box/test_box.mjs   # forge-box: names, limits, actor, auth (E2B stubbed)
+          (cd fabric/box && npm ci --omit=dev --ignore-scripts --no-fund --no-audit --silent) && node fabric/box/test_box.mjs   # forge-box: names, limits, actor, auth (E2B stubbed)
       - name: router tests (offline, no keys, no network)
         if: ${{ !cancelled() }}
         run: |
