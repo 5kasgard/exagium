@@ -49,7 +49,7 @@ jobs:
         run: python3 -I fabric/workbench/setup.py env S3_SECRET_ACCESS_KEY V
       - name: S3_ENDPOINT and S3_BUCKET (R2)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", ACC: "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"}
-        run: V="https://$ACC.r2.cloudflarestorage.com" python3 -I fabric/workbench/setup.py env S3_ENDPOINT V && python3 -I fabric/workbench/setup.py set S3_BUCKET forge-files
+        run: V="https://$ACC.r2.cloudflarestorage.com" python3 -I fabric/workbench/setup.py env S3_ENDPOINT V --build && python3 -I fabric/workbench/setup.py set S3_BUCKET forge-files
       - name: OPENROUTER_API_KEY (from OPENROUTER_API_KEY)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.OPENROUTER_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py env OPENROUTER_API_KEY V
