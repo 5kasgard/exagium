@@ -82,10 +82,16 @@ def apply(path):
             args += ["--auth", "none"]
         lh(*args, "--json")
         print(f"connector {c['identifier']}: added")
+    if cfg.get("inbox"):   # the default "Lobe AI" chat: LobeHub ships it on deepseek, which has no key here
+        i = cfg["inbox"]
+        lh("agent", "edit", "--slug", "inbox", "-p", i["provider"], "-m", i["model"], "--json", "id")
+        print(f"default chat (inbox): {i['provider']}/{i['model']}")
     for a in cfg.get("agents", []):
         key = f"forge:{a['key']}"
         found = rows(lh("agent", "list", "--tag", key, "--json"))
-        extra = {k: a[k] for k in ("plugins", "openingMessage", "openingQuestions", "params", "chatConfig") if k in a}
+        extra = {k: a[k] for k in ("openingMessage", "openingQuestions", "params", "chatConfig") if k in a}
+        if "plugins" in a:   # LobeHub's shape: [{"identifier": ..., "mode": "auto"}] (seen in status, 2026-11-25)
+            extra["plugins"] = [{"identifier": x, "mode": "auto"} for x in cfg.get("builtin_plugins", []) + a["plugins"]]
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump(extra, f)
         flags = ["-t", a["title"], "-d", a.get("description", ""), "-p", a["provider"], "-m", a["model"], "-s", a["system_role"]]
