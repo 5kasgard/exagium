@@ -27,7 +27,7 @@ jobs:
         run: npx --no-install wrangler deploy 2>&1 | tee "$RUNNER_TEMP/deploy.txt"; exit "${PIPESTATUS[0]}"
       - name: smoke test (no secrets)
         run: |
-          url=https://forge-connector.exagium.xyz/mcp   # fixed: workers.dev is disabled (fabric/worker/wrangler.toml)
+          url=https://connector.exagium.xyz/mcp   # fixed: workers.dev is disabled (fabric/worker/wrangler.toml)
           echo "connector: $url" | tee -a "$GITHUB_STEP_SUMMARY"
           code=$(curl -s -o "$RUNNER_TEMP/smoke.json" -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' \
             -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')
