@@ -91,5 +91,22 @@ class Setup(unittest.TestCase):
         self.assertEqual(seen[-1][2]["type"], "encrypted")
 
 
+    def test_pg_search_patch(self):
+        import tempfile, pathlib
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        import patch_lobehub as P
+        orig = ("DO $$\nBEGIN\n  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_search') THEN\n"
+                + P.OLD + "  ELSE\n    RAISE NOTICE 'x';\n  END IF;\nEND $$;\n")
+        with tempfile.TemporaryDirectory() as d:
+            f = pathlib.Path(d) / "packages/database/migrations/0090_enable_pg_search.sql"
+            f.parent.mkdir(parents=True); f.write_text(orig)
+            self.assertIn("now skipped", P.patch(d))
+            self.assertIn("EXCEPTION WHEN OTHERS", f.read_text())
+            self.assertIn("already", P.patch(d))
+            f.write_text("changed")
+            with self.assertRaises(SystemExit):
+                P.patch(d)
+
+
 if __name__ == "__main__":
     unittest.main()
