@@ -20798,18 +20798,18 @@
    "id": "R67",
    "title": "In job-queue and workflow systems, what minimal change to job-type assignment or readiness/parking rules most reliably restores claimable work when zero items a",
    "kind": "test",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "generated_from": "P38",
    "generated_at": "2026-11-25T01:42:19Z",
    "research": {
-    "question": "In job-queue and workflow systems, what minimal change to job-type assignment or readiness/parking rules most reliably restores claimable work when zero items are ready despite an open backlog, and which before/after metrics best validate the improvement?",
+    "question": "In job-queue schedulers, does priority aging or re-evaluating parked tasks' readiness predicates restore dispatch when no tasks are ready but a backlog exists, and which wait-time or dispatch-rate metrics show the effect?",
     "queries": [
-     "job queue zero ready items missing job type",
-     "workflow backlog parked tasks readiness predicate",
-     "minimal intervention task routing claimable work",
-     "queue claim rate before after metrics",
-     "job scheduling starvation unpark eligible items"
+     "priority aging job queue starvation evaluation",
+     "unpark blocked tasks workflow scheduler dependencies",
+     "workflow scheduler stalled ready set backlog",
+     "job queue starvation fairness wait time metrics",
+     "task readiness predicate re-evaluation scheduler"
     ]
    },
    "touches": [
@@ -20855,13 +20855,31 @@
      "outcome": "no_claims",
      "from": "in progress",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-25T01:59:28Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: The four sources are off-topic (regression methods, a sensor-polling priority queue, and a Resque blog), and the multi-part question needs a narrower literature search on starvation and parked-task unparking in schedulers."
     }
    ],
    "work_types": {
     "literature": 0.997
    },
    "work_types_key": "4313a94955579a03",
-   "work_types_at": "2026-11-25T01:42:32Z"
+   "work_types_at": "2026-11-25T01:42:32Z",
+   "research_history": [
+    {
+     "question": "In job-queue and workflow systems, what minimal change to job-type assignment or readiness/parking rules most reliably restores claimable work when zero items are ready despite an open backlog, and which before/after metrics best validate the improvement?",
+     "queries": [
+      "job queue zero ready items missing job type",
+      "workflow backlog parked tasks readiness predicate",
+      "minimal intervention task routing claimable work",
+      "queue claim rate before after metrics",
+      "job scheduling starvation unpark eligible items"
+     ]
+    }
+   ]
   },
   {
    "id": "R68",
