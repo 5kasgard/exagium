@@ -7,12 +7,13 @@
   python3 -I fabric/workbench/setup.py set NAME VALUE     # a plain, non-secret value
   python3 -I fabric/workbench/setup.py domain HOST        # attach a custom domain to the project; prints its status
   python3 -I fabric/workbench/setup.py url                # the address, and whether the build is what serves it
+  python3 -I fabric/workbench/setup.py logs [SECONDS]      # recent warnings, errors and 4xx/5xx of the live deployment
 
 Kinds: provider keys and generated secrets are "sensitive" (runtime only: `vercel pull` cannot read them, so the
 build and its third-party scripts never see them); DATABASE_URL is "encrypted" because the build runs migrations.
 Reads VERCEL_API_KEY (and NEON_API_KEY for `neon`). Values are never printed: only names and what was done.
 """
-import base64, json, os, secrets, subprocess, sys, urllib.error, urllib.request
+import base64, json, os, re, secrets, socket, subprocess, sys, time, urllib.error, urllib.request
 
 PROJECT = "forge-workbench"
 DOMAIN = "workbench.exagium.xyz"   # forge-workbench.vercel.app served another site (owner, 2026-11-25: 404s)
@@ -76,6 +77,28 @@ def put_env(token, pid, key, value, kind="sensitive"):
                  {"key": key, "value": value, "type": kind, "target": ["production"]})
     if st not in (200, 201):
         sys.exit(f"vercel env {key}: HTTP {st} {str(j.get('error', {}).get('message', ''))[:120]}")
+
+
+REDACT = [(re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+"), "<email>"), (re.compile(r"[\w.-]+\.vercel\.app"), "<host>"),
+          (re.compile(r"https?://\S+"), "<url>"), (re.compile(r"\b(\d{1,3}\.){3}\d{1,3}\b"), "<ip>"),
+          (re.compile(r"[A-Za-z0-9_-]{32,}"), "<long>")]
+
+
+def redact(text):
+    """Public logs: no emails, account-named hosts, addresses, IPs or long tokens."""
+    for rx, sub in REDACT:
+        text = rx.sub(sub, text)
+    return text
+
+
+def log_row(r):
+    """One line for a log record worth seeing (warning or worse, or an HTTP error), else None."""
+    st = r.get("responseStatusCode") or 0
+    if r.get("level") not in ("warning", "error", "fatal") and st < 400:
+        return None
+    path = (r.get("requestPath") or "").split("?")[0]
+    when = time.strftime("%H:%M:%S", time.gmtime((r.get("timestampInMs") or 0) / 1000))
+    return redact(f"{when} {r.get('level')} {r.get('requestMethod', '')} {path} {st} {(r.get('message') or '')[:400]}")
 
 
 def jwks():
@@ -174,6 +197,32 @@ def main(a):
         print(f"latest production deployment: {prod.get('readyState')}")
         print(f"{PROJECT}.vercel.app points at this project: {'yes' if f'{PROJECT}.vercel.app' in al else 'no'}")
         print(f"https://{DOMAIN}" if DOMAIN in al else f"{DOMAIN} is not yet on the latest deployment")
+        return 0
+    if a[0] == "logs":   # the stream stays open: read what arrives within the window
+        st, j = call(VERCEL, f"/v6/deployments?projectId={pid}&target=production&limit=1", token)
+        deps = j.get("deployments") or []
+        if not deps:
+            sys.exit(f"no production deployment (HTTP {st})")
+        path = f"/v1/projects/{pid}/deployments/{deps[0]['uid']}/runtime-logs" + (f"?teamId={TEAM}" if TEAM else "")
+        req = urllib.request.Request(VERCEL + path, headers={"Authorization": f"Bearer {token}"})
+        rows, end = [], time.time() + float(a[1] if len(a) > 1 else 25)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                while time.time() < end:
+                    line = r.readline()
+                    if not line:
+                        break
+                    try:
+                        row = log_row(json.loads(line))
+                    except ValueError:
+                        continue
+                    if row:
+                        rows.append(row)
+        except (socket.timeout, TimeoutError, urllib.error.URLError) as e:
+            if not rows and not isinstance(e, (socket.timeout, TimeoutError)):
+                sys.exit(f"runtime logs: {redact(str(e))[:160]}")
+        print(f"deployment state {deps[0].get('state')}; {len(rows)} warning/error rows")
+        print("\n".join(rows[-80:]))
         return 0
     if a[0] == "set":
         put_env(token, pid, a[1], a[2], kind="plain")

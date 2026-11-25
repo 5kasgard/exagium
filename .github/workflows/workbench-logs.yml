@@ -1,0 +1,21 @@
+# Recent warnings and errors of the live workbench (owner 2026-11-25: blank page after sign-in). Manual, main only.
+# Prints only redacted rows (no emails, account-named hosts, addresses, IPs or long tokens): this repo's logs are public.
+name: workbench-logs
+on:
+  workflow_dispatch:
+    inputs:
+      seconds: {description: "how long to read the log stream", default: "120"}
+permissions:
+  contents: read
+jobs:
+  logs:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: runtime logs (redacted)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", SECONDS_IN: "${{ inputs.seconds }}"}
+        run: python3 -I fabric/workbench/setup.py logs "$SECONDS_IN"
