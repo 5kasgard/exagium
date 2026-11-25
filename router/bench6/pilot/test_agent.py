@@ -1,6 +1,6 @@
 import json, os, sys, tempfile, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import agent as A  # noqa: E402
+import agent_attempt as A  # noqa: E402
 import envcheck as E  # noqa: E402
 
 

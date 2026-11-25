@@ -59,7 +59,7 @@ person merges this PLAN; until then no model attempt runs.
 
 ## Step 3: one base-harness attempt per usable task (written 2026-11-25, before any model attempt)
 
-**How an attempt runs** (`agent.py`, `bench6-env.yml` modes `agent-*`): bench-4's base harness (OpenHands SDK v1.61.0,
+**How an attempt runs** (`agent_attempt.py`, `bench6-env.yml` modes `agent-*`): bench-4's base harness (OpenHands SDK v1.61.0,
 the venv copied out of bench-4's image and mounted read-only) runs inside the task's own image, launched by bench-4's
 `run_in_container.sh` unchanged. Task text: the issue (`statements.json`, frozen from the same dataset rows, base commit
 checked) plus "The repository is in /workspace." and nothing more. Before the agent: a warm-up runs the task's own tests

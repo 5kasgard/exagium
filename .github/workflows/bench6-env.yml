@@ -1,7 +1,7 @@
 # Queue P28 pilot, environment check (router/bench6/pilot/PLAN.md). No model call, no secret: pulls each candidate's
 # SWE-rebench image and runs its own tests without and with the gold patch (known-answer negative and positive).
 # mode gold / goldtest / empty / cheat (PLAN.md step 2): the attempt grader's known-answer runs (no model call); use ids=usable.
-# mode agent-gold / agent-mock / agent-model (step 3, router/bench6/pilot/agent.py): one attempt inside the task's image by
+# mode agent-gold / agent-mock / agent-model (step 3, router/bench6/pilot/agent_attempt.py): one attempt inside the task's image by
 # bench-4's base harness, graded by the sealed grader. agent-gold (gold patch as the agent) and agent-mock (local mock model)
 # cost nothing and run first; agent-model uses the OpenRouter key through bench-4's meter, free models only.
 name: bench6-env
@@ -67,7 +67,7 @@ jobs:
         if: github.event.inputs.mode == 'agent-mock' || github.event.inputs.mode == 'agent-model'
         run: |
           docker build -q -t bench4:run router/bench4 > "$RUNNER_TEMP/build.log" 2>&1 || { tail -40 "$RUNNER_TEMP/build.log"; exit 1; }
-          mkdir -p "$RUNNER_TEMP/harness" && python3 -I router/bench6/pilot/agent.py extract bench4:run "$RUNNER_TEMP/harness"
+          mkdir -p "$RUNNER_TEMP/harness" && python3 -I router/bench6/pilot/agent_attempt.py extract bench4:run "$RUNNER_TEMP/harness"
       - name: hand the key to a file only the meter reads (it deletes the file once read)
         if: github.event.inputs.mode == 'agent-model'
         env:
@@ -93,7 +93,7 @@ jobs:
             gold|goldtest|empty|cheat) python3 -I router/bench6/pilot/envcheck.py attempt router/bench6/pilot/candidates.json "$ID" "$MODE" "$RUNNER_TEMP/out" ;;
             agent-gold|agent-mock|agent-model)
               GW=$(docker network inspect bridge -f '{{(index .IPAM.Config 0).Gateway}}'); mkdir -p "$RUNNER_TEMP/harness" "$RUNNER_TEMP/out"
-              BENCH4_KEY_FILE="$RUNNER_TEMP/meter.key" python3 -I router/bench6/pilot/agent.py run router/bench6/pilot/candidates.json \
+              BENCH4_KEY_FILE="$RUNNER_TEMP/meter.key" python3 -I router/bench6/pilot/agent_attempt.py run router/bench6/pilot/candidates.json \
                 router/bench6/pilot/statements.json "$ID" "${MODE#agent-}" "$RUNNER_TEMP/out" "$RUNNER_TEMP/harness" "$GW" 8088 \
                 router/bench4/seal.sh "$AMODEL" 80 2100 1000   # bench-4's base harness: 80 calls, 2100 s, 1000 iterations
               rm -f "$RUNNER_TEMP/meter.key"; find "$RUNNER_TEMP/out" -type l -print -delete | head -20 ;;

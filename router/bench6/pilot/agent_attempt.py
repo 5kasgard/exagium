@@ -1,7 +1,7 @@
 """P28 pilot step 3: one agent attempt inside the task's own image, graded by envcheck.attempt (sealed, Q82).
 
-python3 -I agent.py extract HARNESS_IMAGE DEST            # copy bench-4's OpenHands venv and its Python out of the image
-python3 -I agent.py run CANDS STATEMENTS ID AGENT OUTDIR HARNESS_DIR GW PORT SEAL_SH [MODEL CAP WALL_S MAXIT]
+python3 -I agent_attempt.py extract HARNESS_IMAGE DEST            # copy bench-4's OpenHands venv and its Python out of the image
+python3 -I agent_attempt.py run CANDS STATEMENTS ID AGENT OUTDIR HARNESS_DIR GW PORT SEAL_SH [MODEL CAP WALL_S MAXIT]
 
 AGENT: gold  - no model: the gold patch is applied as if an agent wrote it (dry run of everything but the model)
        mock  - bench-4's base harness (OpenHands SDK) through bench-4's meter to a local mock model (no key)
