@@ -1,0 +1,15 @@
+FAILED: prop-45550565199-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 193, in <module>
+    main()
+  File "/w/train.py", line 170, in main
+    val_acc, params = train_config(Xtr, ytr, Xval, yval, d, C, E, H, lr, epochs, batch, L2, cfg_rng)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 126, in train_config
+    grads = backward(xb, emb, W1, b1, W2, b2, H, logits, sums, yb, grad_logits)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 88, in backward
+    grad_W2 = sums.T @ grad_logits  # (E, C)
+              ^^^^^^
+AttributeError: 'NoneType' object has no attribute 'T'
+
