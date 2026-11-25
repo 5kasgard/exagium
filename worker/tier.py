@@ -21,6 +21,20 @@ import generate as G
 import code_job as CJ
 
 MODEL = "claude-haiku-5-5"   # $0.10/$0.50 per M tokens up to 100k-token prompts (Anthropic pricing, 2026-11-20)
+
+
+def qualifies(run):
+    """P31: one grading run over the 35-item set (5 controls, 30 reference items)."""
+    agree = run.get("agree")
+    return (run.get("controls_right") == 5 and run.get("controls_total") == 5
+            and run.get("total") == 30 and isinstance(agree, (int, float)) and agree >= 27)
+
+
+def qualifies_pair(runs):
+    """P31: both of two separate grading runs must qualify."""
+    return isinstance(runs, (list, tuple)) and len(runs) == 2 and all(qualifies(r) for r in runs)
+
+
 MAX_ITEMS = 3
 MAX_PRS = 12   # 2026-11-21: 15 PRs arrived in 18 minutes and the tier took 3 per run (its controls run once per run)
 REPO = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
