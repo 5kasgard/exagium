@@ -1,9 +1,11 @@
 """Offline tests for the P5 proposer's extractor and judge. Run: python3 -m unittest runner/proposals/test_proposals.py"""
 import json, os, sys, tempfile, unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import extract  # noqa: E402
 import judge  # noqa: E402
+import packet  # noqa: E402
 
 GOOD = "intro\n```hypothesis\nA family.\n```\n```python\ndef main():\n    pass\n```\n```c\nint main(void){return 0;}\n```\n"
 
@@ -193,6 +195,34 @@ class TestOwnFault(unittest.TestCase):
                     "FAILED: output is malformed: 0 records, expected 6513\n", "FAILED: p-1: checker gave 5 scores for 6 items\n", "pip: 503 Service Unavailable\n"):
             v = self.run_one(rep_log=log)
             self.assertEqual(v["extract"], "not scored", log)
+
+
+class TestPacket(unittest.TestCase):
+    def test_builds_exactly_four_keys_and_never_opens_test_split(self):
+        with tempfile.TemporaryDirectory() as d:
+            parent, cluster = os.path.join(d, "p"), os.path.join(d, "c")
+            os.makedirs(parent)
+            os.makedirs(cluster)
+            json.dump({"name": "p", "dev": {"candidates": {"p": {
+                "ir_per_item": 12, "cache": 34, "items": [{"score": 1}, {"score": 0}, {"score": 0}]}}}},
+                open(os.path.join(parent, "result.json"), "w"))
+            open(os.path.join(parent, "dev.txt"), "w").write("\n".join("line%d" % i for i in range(50)))
+            json.dump({"candidates": {"p": {"items": [{"score": 1}, {"score": 0}, {"score": 0}]}}},
+                      open(os.path.join(cluster, "dev.json"), "w"))
+            champ = os.path.join(d, "champ.py")
+            open(champ, "w").write("source")
+            test_split = os.path.join(parent, "test-split.json")
+            open(test_split, "w").write("secret")
+            opened, real_open = [], open
+            def spy(path, *a, **k):
+                opened.append(os.path.abspath(os.fspath(path)))
+                return real_open(path, *a, **k)
+            with mock.patch("builtins.open", spy):
+                out = packet.build(parent, cluster, champ)
+            self.assertEqual(set(out), {"stderr_tail", "counts", "clusters", "champion_source"})
+            self.assertEqual(out["counts"], {"instructions": 12, "cache": 34})
+            self.assertEqual(out["stderr_tail"][-1], "line49")
+            self.assertNotIn(os.path.abspath(test_split), opened)
 
 
 if __name__ == "__main__":
