@@ -22930,6 +22930,41 @@
    },
    "work_types_key": "f43182e5a144443a",
    "work_types_at": "2026-11-25T21:50:36Z"
+  },
+  {
+   "id": "K82",
+   "title": "Ledger the confirm step's model calls in the shared daily ledger",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P20e",
+   "generated_at": "2026-11-25T21:54:10Z",
+   "code": {
+    "files": [
+     "runner/proposals/confirm/decide.py"
+    ],
+    "test": "runner/proposals/confirm/test_decide.py",
+    "context": [
+     "router/engines.py",
+     "router/pick.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/proposals/confirm/decide.py",
+    "runner/proposals/confirm/test_decide.py"
+   ],
+   "next": "In runner/proposals/confirm/decide.py, record each model call it makes in the same daily ledger the worker reads (the way the review calls in router/pick.py and review.yml are recorded: pool name, model, one entry per call, no prompt or reply text). Keep the call behaviour and the verdict unchanged. Test in runner/proposals/confirm/test_decide.py: with a stubbed call function that returns a fixed reply, one decide run writes exactly one ledger entry per call made, and a run that makes no calls writes none.",
+   "refs": [
+    "queue P20e",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
