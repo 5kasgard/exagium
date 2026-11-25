@@ -46,6 +46,23 @@ class Contract(unittest.TestCase):
             open(os.path.join(d, "unrelated.json"), "w").write(json.dumps({"digests": 554}))
             self.assertEqual(packet_pilot.run(d), {"status": "no_pilot"})
 
+    def test_graph_truth_rule(self):
+        import graph_truth
+        self.assertEqual(graph_truth.rule({"Q1": None, "Q2": [], "Q3": []})["verdict"], "invalid")
+        self.assertEqual(graph_truth.rule({"Q1": ["a"], "Q2": ["b"], "Q3": ["c"]})["verdict"], "holds")
+
+    def test_graph_truth_run(self):
+        import graph_truth
+        with tempfile.TemporaryDirectory() as d:
+            q = {"items": [{"id": "A", "blocked_by": []},
+                           {"id": "B", "blocked_by": ["A"]},
+                           {"id": "C", "blocked_by": ["A", "B"]}]}
+            open(os.path.join(d, "queue.json"), "w").write(json.dumps(q))
+            r = graph_truth.run(d)
+            self.assertEqual(r["Q1"], ["A"])
+            self.assertEqual(r["Q2"], ["B", "C"])
+            self.assertEqual(r["Q3"], ["A", "B"])
+
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:
             for name, body, want, rc in (
