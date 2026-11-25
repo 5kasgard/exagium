@@ -13,13 +13,17 @@ from datetime import datetime, timezone
 
 AA = "https://artificialanalysis.ai/api/v2/language/models/free"
 CATALOG = "https://models.dev/api.json"
-JOBS = {   # metric names as AA's API spells them; absent ones are skipped
+# AA's free tier (first live run, 2026-11-25) returns only these indices, no per-benchmark fields: no tau2, Terminal-
+# Bench or IFBench. Tool calling therefore is not ranked here; it needs AA Pro or our own probe (see TOOL_NOTE).
+JOBS = {   # metric names as AA's API spells them; a job uses the ones a model has
+    "overall intelligence": ["artificial_analysis_intelligence_index"],
+    "engineering and coding": ["artificial_analysis_engineering_index", "artificial_analysis_intelligence_index"],
+    "strategy and operations": ["artificial_analysis_strategy_and_ops_index", "artificial_analysis_intelligence_index"],
     "tool use and agents": ["tau2_telecom", "tau_banking", "automationbench_aa", "aa_briefcase_elo", "terminalbench_hard", "terminalbench_v2_1"],
-    "coding": ["terminalbench_hard", "terminalbench_v2_1", "scicode", "frontiercode_v1_1", "frontiercode_v2_0", "livecodebench"],
-    "reasoning and research": ["artificial_analysis_intelligence_index", "gpqa_diamond", "hle", "aa_lcr", "aa_omniscience_index"],
-    "instruction following": ["ifbench"],
 }
-MIN_METRICS = {"tool use and agents": 2, "coding": 2, "reasoning and research": 2, "instruction following": 1}
+MIN_METRICS = {"overall intelligence": 1, "engineering and coding": 2, "strategy and operations": 2, "tool use and agents": 2}
+TOOL_NOTE = ("Tool-use metrics (tau2, Terminal-Bench, AutomationBench) are not in AA's free API tier, so 'tool use and "
+             "agents' stays empty until we have AA Pro or measure tool calling ourselves.")
 OURS = {   # models.dev provider id -> the secret that reaches it (only providers wired into the workbench or the agent)
     "openrouter": "OPENROUTER_API_KEY", "groq": "GROQ_API_KEY", "google": "GEMINI_API_KEY", "anthropic": "CLAUDE_API_KEY",
     "xai": "XAI_API_KEY", "fireworks-ai": "FIREWORKS_API_KEY", "cerebras": "CEREBRAS_API_KEY", "nvidia": "NVIDIA_API_KEY",
@@ -103,13 +107,15 @@ def main(out):
                          "reach": reach or "not on our keys", "free": bool(free), "tools": any(h["tools"] for h in m["hits"]),
                          "price": min(prices) if prices else None})
         rows.sort(key=lambda x: -x["score"])
-        by_job[job] = rows[:25]
+        if not rows:
+            continue
+        by_job[job] = [x for x in rows if x["reach"] != "not on our keys"][:20]
         by_job[job + " (free only)"] = [x for x in rows if x["free"]][:15]
     data = {"generated_at": datetime.now(timezone.utc).isoformat()[:19] + "Z", "models_seen": len(models),
             "reached_by_our_keys": sum(bool(m["hits"]) for m in models), "fields_seen": fields, "by_job": by_job,
             "note": "Data: Artificial Analysis (artificialanalysis.ai), free API tier; reach and price: models.dev catalog. "
                     "Score = mean percentile over the job's metrics the model has. 'free' = cost 0 in the catalog or a "
-                    "rate-limited free-tier provider (groq, cerebras, nvidia). Price = catalog $/M tokens, blended 3:1."}
+                    "rate-limited free-tier provider (groq, cerebras, nvidia). Price = catalog $/M tokens, blended 3:1. " + TOOL_NOTE}
     json.dump(data, open(out, "w"), indent=1)
     print(f"models: {len(models)} from AA, {data['reached_by_our_keys']} reachable by our keys; metrics seen: {len(fields)}; "
           + "; ".join(f"{j}: {len(r)}" for j, r in by_job.items() if "free only" not in j))
