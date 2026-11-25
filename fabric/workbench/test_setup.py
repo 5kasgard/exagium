@@ -60,5 +60,23 @@ class Setup(unittest.TestCase):
         self.assertNotIn("POST", calls)
 
 
+    def test_neon_names_the_organization(self):
+        seen = []
+        def fake(base, path, token, method="GET", body=None):
+            seen.append((method, path, body))
+            if path == "/users/me/organizations":
+                return 200, {"organizations": [{"id": "org-1"}]}
+            if path.startswith("/projects?") and method == "GET":
+                return 200, {"projects": []}
+            if path == "/projects" and method == "POST":
+                return 201, {"connection_uris": [{"connection_uri": "postgres://u:p@h/db"}]}
+            return 404, {}
+        with unittest.mock.patch.object(S, "call", fake):
+            uri, made = S.neon_url("t")
+        self.assertEqual((uri, made), ("postgres://u:p@h/db", True))
+        self.assertIn(("GET", "/projects?org_id=org-1", None), seen)
+        self.assertEqual(seen[-1][2]["project"]["org_id"], "org-1")
+
+
 if __name__ == "__main__":
     unittest.main()
