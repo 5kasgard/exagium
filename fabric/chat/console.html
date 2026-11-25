@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Forge">
+<title>Forge console</title>
+<style>
+:root{--bg:#f7f7f5;--card:#fff;--ink:#1b1b1b;--mute:#6b6b6b;--line:#e4e4e0;--ok:#2f7d4f;--bad:#b3412e;--a:#2f6fb0}
+@media (prefers-color-scheme:dark){:root{--bg:#141414;--card:#1e1e1e;--ink:#eee;--mute:#9a9a9a;--line:#2e2e2e;--a:#7fb0e6}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:env(safe-area-inset-bottom)}
+main{max-width:980px;margin:auto;padding:14px}h1{font-size:22px;margin:6px 0 2px}h2{font-size:14px;margin:0 0 8px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.sub{color:var(--mute);font-size:13px}.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+a.tile{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;color:var(--ink);text-decoration:none}
+a.tile b{display:block}a.tile span{color:var(--mute);font-size:12px}a{color:var(--a)}
+.row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:14px}.row:last-child{border:0}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.kpis{display:flex;gap:18px;flex-wrap:wrap}.kpi b{display:block;font-size:22px}.kpi span{color:var(--mute);font-size:12px}
+</style></head><body><main>
+<h1>Forge</h1><div class="sub" id="when">loading…</div>
+<div class="card"><div class="kpis" id="kpis"></div></div>
+<h2>Open</h2>
+<div class="grid" id="tiles"></div>
+<div class="card"><h2>Health (live)</h2><div id="health"></div></div>
+<div class="card"><h2>Waiting on you</h2><div id="owner"></div></div>
+<div class="card"><h2>Open PRs</h2><div id="prs"></div></div>
+<div class="card"><h2>Automations (last 24 h)</h2><div id="wf"></div></div>
+<div class="card"><h2>Best free models now</h2><div id="models"></div></div>
+<p class="sub">Owner-only (Cloudflare Access). Live health is checked on each load; the rest comes from the hourly snapshot (fabric/dash).</p>
+</main><script>
+const $=(i)=>document.getElementById(i),esc=(s)=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ago=(t)=>{const m=(Date.now()-Date.parse(t))/6e4;return m<60?Math.round(m)+" min ago":m<2880?Math.round(m/60)+" h ago":Math.round(m/1440)+" d ago"};
+const GH="https://github.com/5kasgard/exagium";
+const TILES=[["Workbench","LobeHub: agents, connectors","https://workbench.exagium.xyz"],["Quick chat","light, any model","/"],["Dashboard","queue, runs, models","/dash"],
+ ["Repo","code and record",GH],["Actions","every job and run",GH+"/actions"],["Pull requests","proposed changes",GH+"/pulls"],["Issues","proposals and findings",GH+"/issues"],
+ ["Cloudflare","Workers, DNS, Access","https://dash.cloudflare.com"],["Vercel","workbench hosting","https://vercel.com/dashboard"],["Neon","workbench database","https://console.neon.tech"],
+ ["E2B","sandboxes","https://e2b.dev/dashboard"],["OpenRouter","model usage","https://openrouter.ai/activity"],["Groq","free tier limits","https://console.groq.com/settings/limits"],["Hugging Face","models and Spaces","https://huggingface.co/settings/tokens"]];
+$("tiles").innerHTML=TILES.map(([t,d,u])=>`<a class="tile" href="${u}"><b>${esc(t)}</b><span>${esc(d)}</span></a>`).join("");
+fetch("/api/health").then(r=>r.json()).then(h=>{$("health").innerHTML=h.parts.map(p=>`<div class="row"><span><span class="${p.ok?"ok":"bad"}">${p.ok?"●":"▲"}</span> ${esc(p.name)}</span><span class="sub">HTTP ${p.http} · ${p.ms} ms</span></div>`).join("")}).catch(e=>$("health").textContent="health check failed: "+e);
+fetch("/api/dash").then(r=>r.json()).then(d=>{
+ const q=d.queue,g=d.github||{},w=q.daily_14d.slice(-7),sum=k=>w.reduce((s,x)=>s+x[k],0);
+ $("when").textContent="snapshot "+ago(d.generated_at);
+ $("kpis").innerHTML=[["open items",q.status_counts.open||0],["waiting on you",(q.waiting_on_owner||[]).length],["finished, 7 d",sum("finished")],["free-worker finished, 7 d",sum("free_finished")],["open PRs",(g.open_prs||[]).length],["failed runs, 24 h",Object.values(g.workflows_24h||{}).reduce((s,v)=>s+(v.failure||0),0)]].map(([k,v])=>`<div class="kpi"><b>${v}</b><span>${k}</span></div>`).join("");
+ $("owner").innerHTML=(q.waiting_on_owner||[]).map(i=>`<div class="row"><span>${esc(i.id)}</span><span class="sub">${esc(i.title)}</span></div>`).join("")||'<span class="sub">nothing</span>';
+ $("prs").innerHTML=(g.open_prs||[]).map(p=>`<div class="row"><a href="${GH}/pull/${p.n}">#${p.n}</a><span class="sub">${esc(p.title)}</span></div>`).join("")||'<span class="sub">none</span>';
+ $("wf").innerHTML=Object.entries(g.workflows_24h||{}).map(([k,v])=>`<div class="row"><span>${esc(k)}</span><span class="sub">${Object.entries(v).map(([o,n])=>`<span class="${o==="failure"?"bad":o==="success"?"ok":""}">${esc(o)} ${n}</span>`).join(", ")}</span></div>`).join("");
+ const m=d.models&&d.models.by_job||{},fr=m["engineering and coding (free only)"]||[];
+ $("models").innerHTML=fr.slice(0,6).map(x=>`<div class="row"><span>${esc(x.name)}</span><span class="sub">${esc(x.reach)}</span></div>`).join("")||'<span class="sub">no ranking yet</span>';
+}).catch(e=>$("when").textContent="snapshot failed: "+e);
+</script></body></html>
