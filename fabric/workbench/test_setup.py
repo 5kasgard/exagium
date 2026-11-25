@@ -78,5 +78,18 @@ class Setup(unittest.TestCase):
         self.assertEqual(seen[-1][2]["project"]["org_id"], "org-1")
 
 
+    def test_build_value_replaces_a_sensitive_entry(self):
+        seen = []
+        def fake(base, path, token, method="GET", body=None):
+            seen.append((method, path, body))
+            if method == "GET":
+                return 200, {"envs": [{"id": "e1", "key": "S3_ENDPOINT", "type": "sensitive", "target": ["production"]}]}
+            return 200, {}
+        with unittest.mock.patch.object(S, "call", fake):
+            S.put_env("t", "p", "S3_ENDPOINT", "https://x.example", kind="encrypted")
+        self.assertIn(("DELETE", "/v9/projects/p/env/e1", None), seen)
+        self.assertEqual(seen[-1][2]["type"], "encrypted")
+
+
 if __name__ == "__main__":
     unittest.main()

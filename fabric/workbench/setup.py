@@ -2,7 +2,7 @@
 
   python3 -I fabric/workbench/setup.py project            # Vercel project (created if missing); prints nothing secret
   python3 -I fabric/workbench/setup.py neon               # Neon project + DATABASE_URL on Vercel (only if missing)
-  python3 -I fabric/workbench/setup.py env NAME FROM_VAR  # upsert a Vercel env var from an env var (skipped if empty)
+  python3 -I fabric/workbench/setup.py env NAME FROM_VAR [--build]  # upsert a Vercel env var from an env var (skipped if empty)
   python3 -I fabric/workbench/setup.py gen NAME KIND      # generate once and keep (KIND: secret32 | jwks)
   python3 -I fabric/workbench/setup.py set NAME VALUE     # a plain, non-secret value
 
@@ -64,6 +64,11 @@ def env_keys(token, pid):
 
 
 def put_env(token, pid, key, value, kind="sensitive"):
+    if kind != "sensitive":   # an existing sensitive entry cannot change kind in place: remove it first
+        st, j = call(VERCEL, f"/v10/projects/{pid}/env", token)
+        for e in (j.get("envs", []) if st == 200 else []):
+            if e.get("key") == key and e.get("type") != kind and "production" in (e.get("target") or []):
+                call(VERCEL, f"/v9/projects/{pid}/env/{e['id']}", token, "DELETE")
     st, j = call(VERCEL, f"/v10/projects/{pid}/env?upsert=true", token, "POST",
                  {"key": key, "value": value, "type": kind, "target": ["production"]})
     if st not in (200, 201):
@@ -138,11 +143,11 @@ def main(a):
         put_env(token, pid, "DATABASE_URL", uri, kind="encrypted")   # the build's migration step needs it (vercel pull)
         print(f"DATABASE_URL: set (neon project {'created' if created else 'existing'})")
         return 0
-    if a[0] == "env":
+    if a[0] == "env":   # `--build`: the build must read it too (3rd run: S3_ENDPOINT empty at build, "Invalid URL")
         v = os.environ.get(a[2], "")
         if not v:
             print(f"{a[1]}: {a[2]} not set, skipped"); return 0
-        put_env(token, pid, a[1], v)
+        put_env(token, pid, a[1], v, kind="encrypted" if "--build" in a[3:] else "sensitive")
         print(f"{a[1]}: set from {a[2]}")
         return 0
     if a[0] == "gen":
