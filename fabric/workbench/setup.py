@@ -229,7 +229,10 @@ def main(a):
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
                 while time.time() < end:
-                    line = r.readline()
+                    try:
+                        line = r.readline()
+                    except (socket.timeout, TimeoutError):
+                        continue   # a quiet stream is not the end: the read timeout fired between records (0 records twice)
                     if not line:
                         break
                     try:
