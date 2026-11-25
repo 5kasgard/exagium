@@ -90,6 +90,37 @@ class TestStaged(unittest.TestCase):
         self.assertLess(out['scored_items'], 16 * 480)
 
 
+class TestPacket(unittest.TestCase):
+    def test_four_keys_dev_record_only(self):
+        import builtins, struct
+        from unittest import mock
+        import packet
+        with tempfile.TemporaryDirectory() as d:
+            out, task = os.path.join(d, "out"), os.path.join(d, "task")
+            os.makedirs(os.path.join(out, "records")); os.makedirs(task)
+            items = [{"score": 1}, {"score": 0}, {"score": 0}]
+            json.dump({"n": 3, "candidates": {"p": {"items": items, "ir_per_item": 12.5}}}, open(os.path.join(out, "dev.json"), "w"))
+            open(os.path.join(out, "dev.txt"), "w").write("\n".join(f"l{i}" for i in range(50)))
+            rec = lambda c: {"reps": [{"counts": dict({k: c for k in packet.MISSES}, Ir=99)}]}
+            json.dump(rec(7), open(os.path.join(out, "records", "p-n3-" + "a" * 16 + ".json"), "w"))
+            test_rec = os.path.join(out, "records", "p-n9-" + "b" * 16 + ".json")   # a test-split record beside it
+            json.dump(rec(1), open(test_rec, "w"))
+            for split in ("dev", "test"):
+                open(os.path.join(task, f"{split}.key"), "wb").write(b"".join(struct.pack("<I", 1) + x for x in (b"a", b"b", b"a")))
+            champ = os.path.join(d, "champ.c"); open(champ, "w").write("int main(void){return 0;}")
+            seen, real = [], builtins.open
+            def spy(f, *a, **k):
+                seen.append(os.path.abspath(f)); return real(f, *a, **k)
+            with mock.patch("builtins.open", spy):
+                pk = packet.build(out, task, champ, "p")
+            self.assertEqual(set(pk), {"stderr_tail", "counts", "clusters", "champion_source"})
+            self.assertEqual(pk["counts"], {"instructions": 12.5, "cache": {k: 7 for k in packet.MISSES}})
+            self.assertEqual(pk["clusters"], {"b": [1], "a": [2]})
+            self.assertEqual(len(pk["stderr_tail"]), 40)
+            self.assertNotIn(os.path.abspath(test_rec), seen)
+            self.assertNotIn(os.path.join(task, "test.key"), seen)
+
+
 class TestBoardPending(unittest.TestCase):
     def test_not_scored_is_excluded_and_listed(self):
         import tempfile
