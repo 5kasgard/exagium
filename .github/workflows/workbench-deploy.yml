@@ -80,6 +80,45 @@ jobs:
       - name: CEREBRAS_API_KEY (from CEREBRAS_API_KEY)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CEREBRAS_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py env CEREBRAS_API_KEY V
+      - name: NVIDIA_API_KEY (from NVIDIA_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.NVIDIA_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env NVIDIA_API_KEY V
+      - name: HUGGINGFACE_API_KEY (from HUGGINGFACE_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.HUGGINGFACE_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env HUGGINGFACE_API_KEY V
+      - name: COHERE_API_KEY (from COHERE_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.COHERE_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env COHERE_API_KEY V
+      - name: SAMBANOVA_API_KEY (from SAMBANOVA_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.SAMBANOVA_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env SAMBANOVA_API_KEY V
+      - name: OPENCODEZEN_API_KEY (from OPENCODE_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.OPENCODE_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env OPENCODEZEN_API_KEY V
+      - name: EXA_API_KEY (from EXA_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.EXA_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env EXA_API_KEY V
+      - name: TAVILY_API_KEY (from TAVILY_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.TAVILY_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env TAVILY_API_KEY V
+      - name: BRAVE_API_KEY (from BRAVE_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.BRAVE_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env BRAVE_API_KEY V
+      - name: FIRECRAWL_API_KEY (from FIRECRAWL_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.FIRECRAWL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env FIRECRAWL_API_KEY V
+      - name: JINA_API_KEY (from JINA_API_KEY)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.JINA_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py env JINA_API_KEY V
+      - name: SEARCH_PROVIDERS and CRAWLER_IMPLS (from which search keys exist; values never read)
+        env:
+          VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"
+          HAS_EXA: "${{ secrets.EXA_API_KEY != '' }}"
+          HAS_TAVILY: "${{ secrets.TAVILY_API_KEY != '' }}"
+          HAS_BRAVE: "${{ secrets.BRAVE_API_KEY != '' }}"
+          HAS_FIRECRAWL: "${{ secrets.FIRECRAWL_API_KEY != '' }}"
+          HAS_JINA: "${{ secrets.JINA_API_KEY != '' }}"
+        run: python3 -I fabric/workbench/setup.py search
       - name: FTS_SEARCH_PROVIDER (pg_like; Neon refuses pg_search to new projects)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py set FTS_SEARCH_PROVIDER pg_like

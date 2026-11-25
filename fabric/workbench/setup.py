@@ -7,6 +7,7 @@
   python3 -I fabric/workbench/setup.py set NAME VALUE     # a plain, non-secret value
   python3 -I fabric/workbench/setup.py domain HOST        # attach a custom domain to the project; prints its status
   python3 -I fabric/workbench/setup.py url                # the address, and whether the build is what serves it
+  python3 -I fabric/workbench/setup.py search             # SEARCH_PROVIDERS / CRAWLER_IMPLS from HAS_<NAME>=true flags
   python3 -I fabric/workbench/setup.py logs [SECONDS]      # recent warnings, errors and 4xx/5xx of the live deployment
 
 Kinds: provider keys and generated secrets are "sensitive" (runtime only: `vercel pull` cannot read them, so the
@@ -99,6 +100,18 @@ def log_row(r):
     path = (r.get("requestPath") or "").split("?")[0]
     when = time.strftime("%H:%M:%S", time.gmtime((r.get("timestampInMs") or 0) / 1000))
     return redact(f"{when} {r.get('level')} {r.get('requestMethod', '')} {path} {st} {(r.get('message') or '')[:400]}")
+
+
+SEARCH_ORDER = ["tavily", "exa", "brave", "jina", "firecrawl"]   # first listed is tried first
+CRAWL_ORDER = ["firecrawl", "exa", "jina", "naive"]              # jina's reader also works without a key
+
+
+def search_settings(env):
+    """Only providers whose key exists, so LobeHub never offers a search that cannot work."""
+    has = {n for n in SEARCH_ORDER if env.get(f"HAS_{n.upper()}") == "true"}
+    search = ",".join(n for n in SEARCH_ORDER if n in has)
+    crawl = ",".join(n for n in CRAWL_ORDER if n in has or n in ("jina", "naive"))
+    return search, crawl
 
 
 def jwks():
@@ -197,6 +210,13 @@ def main(a):
         print(f"latest production deployment: {prod.get('readyState')}")
         print(f"{PROJECT}.vercel.app points at this project: {'yes' if f'{PROJECT}.vercel.app' in al else 'no'}")
         print(f"https://{DOMAIN}" if DOMAIN in al else f"{DOMAIN} is not yet on the latest deployment")
+        return 0
+    if a[0] == "search":
+        search, crawl = search_settings(os.environ)
+        if search:
+            put_env(token, pid, "SEARCH_PROVIDERS", search, kind="plain")
+        put_env(token, pid, "CRAWLER_IMPLS", crawl, kind="plain")
+        print(f"SEARCH_PROVIDERS: {search or 'none (no search key yet)'}; CRAWLER_IMPLS: {crawl}")
         return 0
     if a[0] == "logs":   # the stream stays open: read what arrives within the window
         st, j = call(VERCEL, f"/v6/deployments?projectId={pid}&target=production&limit=1", token)
