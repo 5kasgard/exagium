@@ -119,6 +119,9 @@ jobs:
           HAS_FIRECRAWL: "${{ secrets.FIRECRAWL_API_KEY != '' }}"
           HAS_JINA: "${{ secrets.JINA_API_KEY != '' }}"
         run: python3 -I fabric/workbench/setup.py search
+      - name: FEATURE_FLAGS (+api_key_manage, so the owner can make the key the lh CLI uses; LobeHub's default is off)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py set FEATURE_FLAGS +api_key_manage
       - name: FTS_SEARCH_PROVIDER (pg_like; Neon refuses pg_search to new projects)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py set FTS_SEARCH_PROVIDER pg_like
