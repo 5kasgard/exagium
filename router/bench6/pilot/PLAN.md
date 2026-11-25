@@ -56,3 +56,23 @@ first: one task in each mode on the branch, before the 32.
 each of the 8 usable tasks; a task is kept if its attempt finishes inside the cap (call cap and wall time of bench-4's
 base harness); fewer than 6 kept means the fresh set is too hard for this pilot, and that is the result. Settled when a
 person merges this PLAN; until then no model attempt runs.
+
+## Step 3: one base-harness attempt per usable task (written 2026-11-25, before any model attempt)
+
+**How an attempt runs** (`agent.py`, `bench6-env.yml` modes `agent-*`): bench-4's base harness (OpenHands SDK v1.61.0,
+the venv copied out of bench-4's image and mounted read-only) runs inside the task's own image, launched by bench-4's
+`run_in_container.sh` unchanged. Task text: the issue (`statements.json`, frozen from the same dataset rows, base commit
+checked) plus "The repository is in /workspace." and nothing more. Before the agent: a warm-up runs the task's own tests
+on the unfixed code with the test_patch copied in, then reversed and deleted (so build requirements and test data are
+cached, and the agent never sees the tests); then bench-4's seal (containers reach only the meter), checked from inside
+the container. Through bench-4's meter: model `nvidia/nemotron-3-ultra-550b-a55b:free`, cap 80 calls, 2100 s wall
+(bench-4's base settings, `bench4.yml`). The diff of /testbed against the base commit is graded by the sealed grader (Q82).
+
+**Dry runs first, no model call:** `agent-gold` (the gold patch applied in place of the agent) must read resolved on all
+8; `agent-mock` (the harness through the meter to a local mock model) must start, reach the meter, end by itself and read
+not resolved.
+
+**The pilot rule, applied:** a task is kept if its attempt ends by itself (ending `exited`, no call refused at the cap,
+inside the wall time); a run that never starts (`start_failed`, `warm_failed`, `seal_failed`) is fixed and rerun, not
+counted. Fewer than 6 kept of 8 means the fresh set is too hard for this pilot, and that is the result. Whether an attempt
+resolves its task is reported for every attempt but decides nothing in this pilot.

@@ -75,6 +75,11 @@ jobs:
           MODEL: ${{ github.event.inputs.model }}
         run: |
           if [[ "$MODEL" != *:free ]]; then echo "paid model refused: $MODEL"; exit 1; fi
+          # bench-4's allowance guard (bench4.yml): under 180 free requests left, the attempt is not run (a refused attempt is not a result)
+          left=$(curl -fsS -m 30 https://openrouter.ai/api/v1/key -H "Authorization: Bearer $KEY" \
+                 | python3 -c "import json,sys;d=json.load(sys.stdin)['data'].get('free_model_daily_requests') or {};print(d.get('remaining',-1))" || echo -1)
+          echo "free requests left: $left"
+          if [ "$left" -ge 0 ] && [ "$left" -lt 180 ]; then echo "skipped: under 180 left"; exit 1; fi
           umask 077; printf '%s' "$KEY" > "$RUNNER_TEMP/meter.key"
           echo "exit 0"
       - name: check
