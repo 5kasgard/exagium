@@ -103,7 +103,7 @@ def main(wt, dry=False, get=fetch, write=apply):
         if not dry:
             try:
                 ok = write(wt, item, n, outcome, reason)
-            except (T.NotAllowed, subprocess.CalledProcessError) as e:
+            except (T.NotAllowed, subprocess.CalledProcessError, RuntimeError) as e:
                 print(f"{item}: not moved: {e}")
                 ok = False
             failed += ok is False
