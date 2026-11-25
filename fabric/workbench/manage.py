@@ -3,6 +3,8 @@ with LOBEHUB_CLI_API_KEY). Owner 2026-11-25: "add automation so you can work on 
 
   python3 -I fabric/workbench/manage.py status                   # what is there: providers, models, connectors, agents
   python3 -I fabric/workbench/manage.py apply CONFIG_JSON        # make connectors and agents match the config
+  python3 -I fabric/workbench/manage.py errors [DAYS]            # recent failed replies: when, provider/model, error type and
+                                                                 # the provider's message (redacted); never message content
 
 Public logs: prints ids, titles, hosts and counts only, never the account's email, keys or headers. Changes come only
 from merged config (fabric/workbench/config/); agents it manages carry the tag forge-managed and are found by it."""
@@ -108,9 +110,33 @@ def apply(path):
         os.unlink(f.name)
 
 
+def errors(days):
+    """The workbench stores each failed reply with its error (type and the provider's body). Vercel's runtime-log API
+    returned 0 records three times, so this reads the failures where LobeHub keeps them."""
+    import re
+    from datetime import datetime, timedelta, timezone
+    start = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    msgs = rows(lh("message", "list", "--role", "assistant", "--start", start, "-L", "200", "--json"))
+    bad = [m for m in msgs if m.get("error")]
+    print(f"assistant replies since {start}: {len(msgs)}; with an error: {len(bad)}")
+    by = {}
+    for m in bad:
+        e = m["error"] if isinstance(m["error"], dict) else {"type": str(m["error"])}
+        body = json.dumps(e.get("body") or e.get("message") or "")[:300]
+        body = re.sub(r"[\w.+-]+@[\w-]+(\.[\w-]+)+|https?://\S+|[A-Za-z0-9_-]{32,}", "<redacted>", body)
+        key = f"{m.get('provider')}/{m.get('model')} {e.get('type')}"
+        by.setdefault(key, []).append(f"{str(m.get('createdAt'))[:19]} {body}")
+    for k, v in sorted(by.items(), key=lambda kv: -len(kv[1])):
+        print(f"  {len(v):3d}  {k}")
+        for x in v[:3]:
+            print(f"         {x}")
+
+
 if __name__ == "__main__":
     if sys.argv[1:2] == ["status"]:
         status()
+    elif sys.argv[1:2] == ["errors"]:
+        errors(float(sys.argv[2]) if len(sys.argv) > 2 else 2)
     elif sys.argv[1:2] == ["apply"]:
         apply(sys.argv[2])
     else:
