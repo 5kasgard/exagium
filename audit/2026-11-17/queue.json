@@ -20696,7 +20696,7 @@
     "worker/queue_ops.py",
     ".github/workflows/worker.yml"
    ],
-   "next": "Probe 2026-11-25T05:30Z: Q73 and Q77 (literature) given research jobs by hand; measure whether free workers claim and land them (vs R items: 3 of R63-R70 done). Converter design from #150 (GPT/opencode and Claude agree): doc_change -> targets, literature -> research, gated with known-answer controls. Measured 2026-11-25T02:25Z (issue #150 comment): workers claim every few minutes on generated R items (3 of R63-R70 done, 5 escalated); 0 of 77 open P/Q items reach them. Filter table: 26 split-tried <7d, 9 blocked, 9 held, 7 owner_action, 6 busy parent, 4 literature, 4 sandbox_or_workflow, 3 doc_change, 4 review/analysis, 3 candidates. Gap: no path turns doc_change -> targets or literature -> research. Free agent asked for the smallest gated converter (#150). Measure: free-worker P/Q completions per day before/after. Brief and free-agent analysis on GitHub issue #150 (/oc). Verify its counts against queue.json, then the smallest change that gets ready() non-empty; measure: ready() count and claims per day before/after.",
+   "next": "Probe result 2026-11-25T05:18Z: Q73 claimed and merged by a free worker in about 3 min (research/cards/Q73.md, main e807cc9); Q77 escalated (no_claims). First backlog items done by free workers. Second cause: 55 of 78 open items declare bare-directory touches, which overlap live claims; research jobs need only their card. Next: the gated converter (literature -> research with card-only touches; doc_change -> targets), then measure free-worker P/Q completions per day. Probe 2026-11-25T05:30Z: Q73 and Q77 (literature) given research jobs by hand; measure whether free workers claim and land them (vs R items: 3 of R63-R70 done). Converter design from #150 (GPT/opencode and Claude agree): doc_change -> targets, literature -> research, gated with known-answer controls. Measured 2026-11-25T02:25Z (issue #150 comment): workers claim every few minutes on generated R items (3 of R63-R70 done, 5 escalated); 0 of 77 open P/Q items reach them. Filter table: 26 split-tried <7d, 9 blocked, 9 held, 7 owner_action, 6 busy parent, 4 literature, 4 sandbox_or_workflow, 3 doc_change, 4 review/analysis, 3 candidates. Gap: no path turns doc_change -> targets or literature -> research. Free agent asked for the smallest gated converter (#150). Measure: free-worker P/Q completions per day before/after. Brief and free-agent analysis on GitHub issue #150 (/oc). Verify its counts against queue.json, then the smallest change that gets ready() non-empty; measure: ready() count and claims per day before/after.",
    "refs": [
     "audit/notes/2026-11-25/HANDOFF-chat-2026-11-25.md"
    ],
@@ -20705,7 +20705,15 @@
     "experiment": 0.88
    },
    "work_types_key": "8de68eb8a8c05fab",
-   "work_types_at": "2026-11-25T05:19:18Z"
+   "work_types_at": "2026-11-25T05:19:18Z",
+   "runs": [
+    {
+     "at": "2026-11-25T05:24:13Z",
+     "worker": "chat-claude",
+     "result": "probe: Q73 done by worker-45552151061 (merged main e807cc9); Q77 escalated no_claims",
+     "outcome": null
+    }
+   ]
   },
   {
    "id": "R63",
