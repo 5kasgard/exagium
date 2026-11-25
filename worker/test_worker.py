@@ -1617,3 +1617,53 @@ class EventLog(unittest.TestCase):
         j = {"id": "B", "status": "in progress", "claimed_by": "worker-1", "lease_until": "2026-11-24T00:00:00Z", "runs": []}
         Q.expire({"items": [j]}, t)
         self.assertEqual((j["runs"][-1]["from"], j["runs"][-1]["to"]), ("in progress", j["status"]))
+
+
+class GenerateAttachLiterature(unittest.TestCase):
+    """P38: a literature item's accepted question becomes its own research job (card-only touches), so the worker can
+    claim the backlog item itself; other items still get a separate R item."""
+
+    def run_gen(self, q, ps):
+        import generate as G, tempfile
+        drafts = {"L1": {"question": "Which programs compile into transformer weights today, and at what size and cost?",
+                         "queries": ["Tracr compiled transformers", "ALTA compiler weights", "compiled transformer ground truth"]},
+                  "B1": {"question": "How do cache-aware schedulers reduce tail latency for small inference kernels?",
+                         "queries": ["cache aware scheduling inference", "tail latency kernels", "small model inference cache"]}}
+        def draft_fn(prompt):
+            return next(v for k, v in drafts.items() if f"ITEM {k}:" in prompt)
+        out = tempfile.mkdtemp()
+        with unittest.mock.patch.object(G.Q, "sync"), unittest.mock.patch.object(G.Q, "load", return_value=q), \
+                unittest.mock.patch.object(G.Q, "save"), unittest.mock.patch.object(G.Q, "commit_push", return_value=True), \
+                unittest.mock.patch.object(G, "MAX_TRIES", 5):
+            G.run("wt", out, draft_fn=draft_fn, decide_fn=lambda pairs: (ps[:len(pairs)], None))
+        return {i["id"]: i for i in q["items"]}
+
+    def q(self):
+        lit = {"literature": 0.98, "experiment": 0.2}
+        return {"items": [
+            {"id": "L1", "status": "open", "kind": "build", "value": "high", "touches": ["research/"], "blocked_by": [],
+             "title": "Weight-space programming", "next": "Start as literature", "work_types": lit},
+            {"id": "B1", "status": "open", "kind": "build", "value": "high", "touches": ["worker/"], "blocked_by": [],
+             "title": "Faster kernels", "next": "Measure", "work_types": {"code_change": 0.9}}]}
+
+    def test_accepted_question_becomes_the_items_own_job(self):
+        import datetime as dt
+        by = self.run_gen(self.q(), [0.9, 0.1, 0.8, 0.8])
+        l1 = by["L1"]
+        self.assertEqual((l1["status"], l1["touches"], l1["scope"]), ("open", ["research/cards/L1.md"], ["research/"]))
+        self.assertIn("research", l1)
+        self.assertEqual([i["id"] for i in Q.ready({"items": list(by.values())}, dt.datetime.now(dt.timezone.utc))
+                          if i["id"] == "L1"], ["L1"])   # the backlog item itself is now claimable
+        made = [i for i in by.values() if i.get("generated_from") == "B1"]
+        self.assertEqual(len(made), 1)   # a non-literature item still gets a separate R item
+        self.assertFalse(any(i.get("generated_from") == "L1" for i in by.values()))
+
+    def test_rejected_or_withheld_changes_nothing_but_a_note(self):
+        import generate as G
+        for ps in ([0.9, 0.1, 0.8, 0.2], [0.4, 0.1, 0.9, 0.9]):   # drafts run B1 then L1: L1 rejected; controls failed (withheld)
+            by = self.run_gen(self.q(), ps)
+            l1 = by["L1"]
+            self.assertNotIn("research", l1)
+            self.assertEqual(l1["touches"], ["research/"])
+            self.assertTrue(l1.get("research_tried"))
+            self.assertNotIn("L1", [i["id"] for i in G.candidates({"items": list(by.values())})])   # not redrafted for 7 days
