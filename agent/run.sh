@@ -5,8 +5,10 @@ set -u
 set +x   # never trace: the step's env holds a key
 case "$MODE" in
   ask)
-    timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -f "$OUT/prompt.md" \
-      "Answer the request in the attached file. Read the repository files you need and name the paths you used." \
+    # the request goes in as the message, after "--": -f is an array option and took the message as a second file
+    # (run 45519136124: "File not found: Answer the request ...")
+    msg="$(printf 'Answer the request below. Read the repository files you need and name the paths you used.\n\n%s' "$(cat "$OUT/prompt.md")")"
+    timeout 900 agent/node_modules/.bin/opencode run --agent answer -m "$MODEL" -- "$msg" \
       > "$OUT/answer.md" 2> "$RUNNER_TEMP/err.txt" || echo "The run failed (exit $?); see the workflow log." >> "$OUT/answer.md" ;;
   models)
     timeout 120 agent/node_modules/.bin/opencode models "$PROVIDER" > "$OUT/answer.md" 2> "$RUNNER_TEMP/err.txt" \
