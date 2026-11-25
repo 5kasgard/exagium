@@ -54,16 +54,25 @@ def call(engines, pool, model, prompt):
     return engines.compat_call(pool, model, prompt, max_tokens=16000)
 
 
-def chain(slot, override=None):
-    """The fillers to try, in order. override (pool, model) pins one filler (arm tests)."""
+def chain(slot, override=None, calibration=None):
+    """The fillers to try, in order. override (pool, model) pins one filler (arm tests).
+    If calibration is provided (a mapping (actor, slot_family) -> score), fillers are sorted
+    by that score descending, stable for ties. actor is "pool:model", the same key run() records through a
+    registry (review 2026-11-24: the two used different keys); slot_family is the slot name."""
     if override:
         return [tuple(override)]
     paid = os.environ.get("PAID_FALLBACK") == "1"
-    return [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
+    fillers = [f for f in SLOTS[slot] if paid or f[0] != "openrouter_paid"]
+    if calibration is None:
+        return fillers
+    # Stable sort by calibration score descending; "pool:model" is the actor, slot is the family
+    return sorted(fillers, key=lambda fm: calibration.get((f"{fm[0]}:{fm[1]}", slot), 0.0), reverse=True)
 
 
-def run(slot, prompt, ask, parse, override=None):
-    """Try each filler until one returns a reply that parses. Returns (parsed or None, last reply, tries list)."""
+def run(slot, prompt, ask, parse, override=None, registry=None):
+    """Try each filler until one returns a reply that parses. Returns (parsed or None, last reply, tries list).
+    If registry is provided, record each try's outcome via registry.record(actor, slot_family, ok) where
+    actor is the filler's pool and model, and ok is True when the reply parsed."""
     tries, last = [], None
     for pool, model in chain(slot, override):
         try:
@@ -71,8 +80,11 @@ def run(slot, prompt, ask, parse, override=None):
         except Exception as e:   # GLM review F036: a missing key or unknown pool aborted the whole chain; it is a failure like any other
             last = {"ok": False, "status": None, "text": None, "error": f"{type(e).__name__}: {str(e)[:200]}"}
         got = parse(last.get("text")) if last.get("ok") else None
-        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": got is not None,
-                      **({"error": str(last.get("error"))[:200]} if last.get("error") and got is None else {})})
-        if got is not None:
+        ok = got is not None
+        tries.append({"pool": pool, "model": model, "status": last.get("status"), "ok": ok,
+                      **({"error": str(last.get("error"))[:200]} if last.get("error") and not ok else {})})
+        if registry is not None:
+            registry.record(f"{pool}:{model}", slot, ok)
+        if ok:
             return got, last, tries
     return None, last, tries

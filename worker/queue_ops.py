@@ -89,9 +89,8 @@ def expire(q, t):
                 and parse(i["runs"][-1].get("at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=SCHEDULED_TTL_H):
             # the experiment run was cancelled or never recorded: nothing else moves it (audit 2026-11-21, GLM F123). Only a
             # dispatched experiment: 'scheduled' is also the owner's decide_scheduled, which waits on purpose (review)
-            i.setdefault("runs", []).append({"at": iso(t), "worker": "expiry", "result": f"no experiment result within {SCHEDULED_TTL_H} h",
-                                             "outcome": "lost"})
-            i["status"] = T.next_status("scheduled", "lost", failures(i))
+            e = event(i, "expiry", "lost", "scheduled", None, f"no experiment result within {SCHEDULED_TTL_H} h", t)
+            i["status"] = e["to"] = T.next_status("scheduled", "lost", failures(i))
             out.append(i["id"])
             continue
         if i.get("status") != "in progress":
@@ -99,17 +98,16 @@ def expire(q, t):
         who = str(i.get("claimed_by") or "")
         stale_chat = who and not who.startswith("worker-") and parse(i.get("claimed_at", "1970-01-01T00:00:00Z")) < t - dt.timedelta(hours=CHAT_TTL_H)
         if not who or stale_chat:
-            i.setdefault("runs", []).append({"at": iso(t), "worker": who or "nobody",
-                                             "result": "no claim held" if not who else f"chat claim older than {CHAT_TTL_H} h",
-                                             "outcome": "lease_expired"})
-            i["status"] = T.next_status("in progress", "lease_expired", failures(i))   # counted, like a worker lease (GLM F117)
+            e = event(i, who or "nobody", "lease_expired", "in progress", None,
+                      "no claim held" if not who else f"chat claim older than {CHAT_TTL_H} h", t)
+            i["status"] = e["to"] = T.next_status("in progress", "lease_expired", failures(i))   # counted, like a worker lease (GLM F117)
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])
             continue
         if who.startswith("worker-") and not live_claim(i, t):
-            i.setdefault("runs", []).append({"at": iso(t), "worker": i["claimed_by"], "result": "lease expired", "outcome": "lease_expired"})
-            i["status"] = T.next_status("in progress", "lease_expired", failures(i))   # counted with this run (GLM F018)
+            e = event(i, i["claimed_by"], "lease_expired", "in progress", None, "lease expired", t)
+            i["status"] = e["to"] = T.next_status("in progress", "lease_expired", failures(i))   # counted with this run (GLM F018)
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
             out.append(i["id"])
@@ -162,7 +160,7 @@ def failures(i):
         res = str(r.get("result", ""))
         # a dispatch only starts the experiment run: it is neither a success nor a failure, so it must not end the count
         # (audit 2026-11-21, A F4 / R2 F5: dispatch reset it, and a run that never gave a verdict looped forever)
-        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result", "defer"):
+        if res.startswith("not started") or r.get("outcome") in ("budget", "retry", "dispatch", "late_result", "defer", "claim"):
             continue
         if r.get("result") == "lease expired":   # the run was killed before it released: a failure (review of Q60, 10)
             n += 1; continue
@@ -176,6 +174,15 @@ def commit_push(wt, msg):
     git(wt, "add", QUEUE, QUEUE_MD)
     git(wt, "-c", "user.name=exagium-worker", "-c", "user.email=worker@exagium.invalid", "commit", "-qm", msg)
     return git(wt, "push", "-q", "origin", f"HEAD:{BRANCH}", check=False).returncode == 0
+
+
+def event(i, actor, outcome, frm, to, result, t=None, **extra):
+    """Append one structured event to the item's run log: every status write goes through here (queue P37b; the P37
+    replay rebuilt only 230 of 339 items from their logs, because claims and hand edits left no from/to)."""
+    e = dict(extra)
+    e.update({"at": iso(t or now()), "worker": actor, "result": result, "outcome": outcome, "from": frm, "to": to})
+    i.setdefault("runs", []).append(e)
+    return e
 
 
 def claim(wt, worker, out, types=None):
@@ -194,7 +201,9 @@ def claim(wt, worker, out, types=None):
             json.dump({"item": None, "expired": expired, "attempts": attempt + 1}, open(out, "w"))
             return 0
         i = r[0]
-        i.update(status=T.next_status(i["status"], "claim"), claimed_by=worker, claimed_at=iso(t), lease_until=iso(t + dt.timedelta(hours=LEASE_HOURS)))
+        to = T.next_status(i["status"], "claim")
+        event(i, worker, "claim", i["status"], to, "claimed", t)
+        i.update(status=to, claimed_by=worker, claimed_at=iso(t), lease_until=iso(t + dt.timedelta(hours=LEASE_HOURS)))
         save(wt, q)
         if commit_push(wt, f"worker: {worker} claims {i['id']}" + (f" (leases expired {expired})" if expired else "")):
             json.dump({"item": i, "expired": expired, "attempts": attempt + 1}, open(out, "w"), indent=1)
@@ -222,6 +231,7 @@ def release(wt, worker, item_id, outcome, note_path):
         i.setdefault("runs", []).append(dict(note, worker=worker, at=iso(now()), lost_lease=lost))
         i["runs"][-1]["outcome"] = outcome
         status = i["status"]
+        i["runs"][-1]["from"] = status
         if not lost:
             try:
                 status = T.next_status(i["status"], outcome, failures(i))
@@ -233,6 +243,7 @@ def release(wt, worker, item_id, outcome, note_path):
             i["status"] = status
             for k in ("claimed_by", "claimed_at", "lease_until"):
                 i.pop(k, None)
+        i["runs"][-1]["to"] = status
         save(wt, q)
         if commit_push(wt, f"worker: {worker} {'releases' if not lost else 'records (lease lost)'} {item_id} -> {status}"):
             print(f"released-status={status if not lost else 'lease lost'}")   # the chain reads the real outcome (review of Q60, 8)
@@ -265,15 +276,14 @@ def move(wt, actor, item_id, outcome, reason, allow_failed=False):
             raise SystemExit(f"no item {item_id}")
         if outcome in ("verdict", "invalid", EXPERIMENT_FAILED) and i["status"] != "scheduled":
             # a result that arrives after expiry moved the item on: keep it on the record, move nothing (review 2026-11-21)
-            i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": "late, after the item left scheduled: " + reason,
-                                             "outcome": "late_result"})
+            event(i, actor, "late_result", i["status"], i["status"], "late, after the item left scheduled: " + reason)
             save(wt, q)
             if commit_push(wt, f"{actor}: {item_id} late {outcome} recorded (status {i['status']} kept)"):
                 print(f"{item_id}: {i['status']} (late {outcome} recorded)")
                 return 0
             continue
         to = T.next_status(i["status"], outcome, failures(i) + 1 if outcome == EXPERIMENT_FAILED else 0)   # raises NotAllowed for a move the table does not have
-        i.setdefault("runs", []).append({"at": iso(now()), "worker": actor, "result": reason, "outcome": outcome})
+        event(i, actor, outcome, i["status"], to, reason)
         i["status"] = to
         save(wt, q)
         if commit_push(wt, f"{actor}: {item_id} {outcome} -> {to}"):

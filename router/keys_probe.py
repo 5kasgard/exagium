@@ -23,6 +23,8 @@ PROBES = {
     "VULTR_API_KEY": ("https://api.vultr.com/v2/account", "bearer", "unverified: account info"),
     "BENCHLM_API_KEY": ("https://data.benchlm.ai/v1/usage", "bearer",
                         "benchlm.ai/data/access: usage checks do not use a read; free 1,000 reads a month, 30 a minute"),
+    "OPENCODE_API_KEY": ("https://opencode.ai/inference/v1/models", "bearer",
+                         "opencode.ai/docs (Console): the list is public; measured 2026-11-25: no key 200, a bad key 401, so 200 means the key is valid"),
     "UPSTASH_API_KEY": ("https://api.upstash.com/v2/redis/databases", "basic-upstash",
                         "upstash.com/docs/devops/developer-api/authentication: HTTP Basic EMAIL:API_KEY; list only"),
 }

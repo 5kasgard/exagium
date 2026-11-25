@@ -1,0 +1,160 @@
+# Issue agent (queue P36, owner 2026-11-24/25): the owner comments "/oc <question>" on an issue and gets an answer
+# there, from the model they pick: "/oc model=<alias or provider/model> <question>"; "/oc models" lists what is reachable.
+# Keys come from this repository's secrets, not the OpenCode Console (owner 2026-11-25): one step per provider, each
+# holding only that provider's secret under the variable opencode reads (models.dev), and only the step matching the
+# requested provider runs. agent/models.json maps providers to secrets and says which are paid; paid runs only while
+# allow_paid is true. OpenCode's own free models need no key. Spend limits belong at each provider.
+#
+# Two jobs, so that no model ever runs where a write token or a key could be read back out (blind review 45508009679):
+#   answer: contents: read only. The model gets a read-only agent (agent/opencode.json, installed as the system config,
+#           which overrides any repo config): no shell, no edits, no web, no files outside the checkout. It cannot read
+#           its own environment, so it cannot print the key. Only the owner's text reaches it: the comment, and the issue
+#           title and body only when the owner opened the issue. Other people's comments are never sent.
+#   post:   no model. Posts the answer file as a comment with an issues: write token.
+# opencode is pinned through agent/package-lock.json (npm ci checks integrity); no curl | bash, no cache.
+name: opencode
+on:
+  issue_comment:   # zizmor: ignore[dangerous-triggers] issues only (no PR head checked out), owner-only by login and association; the model job has contents: read and no shell
+    types: [created]
+permissions: {}
+concurrency:   # one run at a time, repo-wide: GitHub keeps one pending run per group and drops older pending ones,
+  group: opencode   # so a burst of /oc comments cannot queue many paid runs (blind review 45509281079)
+  cancel-in-progress: false
+jobs:
+  answer:
+    if: >-
+      github.event.issue.pull_request == null &&
+      github.event.comment.author_association == 'OWNER' &&
+      github.event.comment.user.login == github.repository_owner &&
+      (startsWith(github.event.comment.body, '/oc') || startsWith(github.event.comment.body, '/opencode'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      model: ${{ steps.pick.outputs.model }}
+      paid: ${{ steps.pick.outputs.paid }}
+      mode: ${{ steps.pick.outputs.mode }}
+      provider: ${{ steps.pick.outputs.provider }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: the queue branch, read-only, as state/ (the queue, findings register, notes and spine live there)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: pilot/lgn-20261115
+          path: state
+          fetch-depth: 1
+          persist-credentials: false
+      - name: pick (script, no model)
+        id: pick
+        env:
+          COMMENT: ${{ github.event.comment.body }}
+          ISSUE_TITLE: ${{ github.event.issue.user.login == github.repository_owner && github.event.issue.title || '' }}
+          ISSUE_BODY: ${{ github.event.issue.user.login == github.repository_owner && github.event.issue.body || '' }}
+        run: |
+          set +e
+          python3 -I agent/oc_pick.py agent/models.json "$RUNNER_TEMP/out" >> "$GITHUB_OUTPUT"
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          [ "$rc" -le 2 ]
+      - name: install opencode (pinned) and the read-only agent as the system config
+        if: steps.pick.outputs.rc == '0'
+        run: |
+          (cd agent && npm ci --no-fund --no-audit)
+          sudo mkdir -p /etc/opencode && sudo cp agent/opencode.json /etc/opencode/opencode.json
+      - name: opencode free model (no key)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'opencode' && steps.pick.outputs.paid == 'false'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: opencode, OUT: "${{ runner.temp }}/out"}
+        run: bash agent/run.sh
+      - name: opencode console model (OPENCODE_API_KEY)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'opencode' && steps.pick.outputs.paid == 'true'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: opencode, OUT: "${{ runner.temp }}/out", OPENCODE_API_KEY: "${{ secrets.OPENCODE_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: anthropic (CLAUDE_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'anthropic'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: anthropic, OUT: "${{ runner.temp }}/out", ANTHROPIC_API_KEY: "${{ secrets.CLAUDE_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: google (GEMINI_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'google'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: google, OUT: "${{ runner.temp }}/out", GEMINI_API_KEY: "${{ secrets.GEMINI_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: openrouter (OPENROUTER_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'openrouter'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: openrouter, OUT: "${{ runner.temp }}/out", OPENROUTER_API_KEY: "${{ secrets.OPENROUTER_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: groq (GROQ_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'groq'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: groq, OUT: "${{ runner.temp }}/out", GROQ_API_KEY: "${{ secrets.GROQ_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: nvidia (NVIDIA_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'nvidia'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: nvidia, OUT: "${{ runner.temp }}/out", NVIDIA_API_KEY: "${{ secrets.NVIDIA_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: cerebras (CEREBRAS_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'cerebras'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: cerebras, OUT: "${{ runner.temp }}/out", CEREBRAS_API_KEY: "${{ secrets.CEREBRAS_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: xai (XAI_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'xai'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: xai, OUT: "${{ runner.temp }}/out", XAI_API_KEY: "${{ secrets.XAI_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: mistral (MISTRAL_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'mistral'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: mistral, OUT: "${{ runner.temp }}/out", MISTRAL_API_KEY: "${{ secrets.MISTRAL_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: deepinfra (DEEPINFRA_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'deepinfra'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: deepinfra, OUT: "${{ runner.temp }}/out", DEEPINFRA_API_KEY: "${{ secrets.DEEPINFRA_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: fireworks-ai (FIREWORKS_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'fireworks-ai'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: fireworks-ai, OUT: "${{ runner.temp }}/out", FIREWORKS_API_KEY: "${{ secrets.FIREWORKS_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: huggingface (HUGGINGFACE_API_KEY only)
+        if: steps.pick.outputs.rc == '0' && steps.pick.outputs.provider == 'huggingface'
+        env: {MODE: "${{ steps.pick.outputs.mode }}", MODEL: "${{ steps.pick.outputs.model }}", PROVIDER: huggingface, OUT: "${{ runner.temp }}/out", HF_TOKEN: "${{ secrets.HUGGINGFACE_API_KEY }}"}
+        run: bash agent/run.sh
+      - name: errors to the log only (never to the comment)
+        if: ${{ !cancelled() }}
+        run: '[ -s "$RUNNER_TEMP/err.txt" ] && tail -n 40 "$RUNNER_TEMP/err.txt" || true'
+      - name: cap the answer
+        if: ${{ !cancelled() }}
+        run: |
+          f="$RUNNER_TEMP/out/answer.md"; [ -s "$f" ] || echo "No answer was produced; see the workflow log." > "$f"
+          head -c 60000 "$f" > "$f.cut" && mv "$f.cut" "$f"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        if: ${{ !cancelled() }}
+        with:
+          name: answer
+          path: ${{ runner.temp }}/out/answer.md
+          retention-days: 7
+  post:
+    needs: answer
+    if: ${{ always() && needs.answer.result != 'skipped' && needs.answer.result != 'cancelled' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          name: answer
+          path: out
+      - name: comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          MODEL: ${{ needs.answer.outputs.model }}
+          PAID: ${{ needs.answer.outputs.paid }}
+          MODE: ${{ needs.answer.outputs.mode }}
+          PROVIDER: ${{ needs.answer.outputs.provider }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          tier=free; [ "$PAID" = true ] && tier=paid
+          { if [ "$MODE" = ask ]; then echo "**opencode** · \`$MODEL\` · $tier · [run]($RUN)"; elif [ "$MODE" = models ]; then echo "**opencode** · models for \`$PROVIDER\` · [run]($RUN)"; else echo "**opencode** · [run]($RUN)"; fi
+            echo; cat out/answer.md; } > body.md
+          gh issue comment "$ISSUE" -R "$REPO" --body-file body.md

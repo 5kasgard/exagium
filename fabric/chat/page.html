@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forge chat</title><style>
+body{font:16px system-ui;margin:0;display:flex;flex-direction:column;height:100dvh;background:#111;color:#eee}
+header{padding:8px;display:flex;gap:8px;border-bottom:1px solid #333}select,button,textarea{font:inherit;background:#222;color:#eee;border:1px solid #444;border-radius:6px}
+#log{flex:1;overflow:auto;padding:8px}.m{margin:8px 0;white-space:pre-wrap}.u{color:#9cf}.a{color:#eee}.t{color:#888;font-size:13px}.e{color:#f88}
+form{display:flex;gap:6px;padding:8px;border-top:1px solid #333}textarea{flex:1;min-height:44px}</style></head><body>
+<header><select id="model"></select><button id="clear" type="button">New</button></header>
+<div id="log"></div>
+<form id="f"><textarea id="q" placeholder="Ask about the Forge..."></textarea><button>Send</button></form>
+<script>
+let msgs=[];try{msgs=JSON.parse(localStorage.getItem("forge-chat")||"[]")}catch{}
+const log=document.getElementById("log"),sel=document.getElementById("model");
+const add=(cls,text)=>{const d=document.createElement("div");d.className="m "+cls;d.textContent=text;log.appendChild(d);log.scrollTop=1e9};
+const save=()=>{try{localStorage.setItem("forge-chat",JSON.stringify(msgs.slice(-60)))}catch{}};
+msgs.forEach(m=>add(m.role==="user"?"u":"a",m.content));
+fetch("/api/models").then(r=>r.json()).then(j=>j.models.forEach(m=>{const o=document.createElement("option");o.value=m.id;
+ o.textContent=m.id+(m.paid?" (paid"+(j.allow_paid?"":", off")+")":" (free)");sel.appendChild(o)}));
+document.getElementById("clear").onclick=()=>{msgs=[];save();log.innerHTML=""};
+document.getElementById("f").onsubmit=async e=>{e.preventDefault();const q=document.getElementById("q");if(!q.value.trim())return;
+ msgs.push({role:"user",content:q.value});add("u",q.value);q.value="";save();add("t","...");
+ const r=await fetch("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({model:sel.value,messages:msgs})}).then(r=>r.json()).catch(e=>({error:String(e)}));
+ log.lastChild.remove();(r.trace||[]).forEach(t=>add("t","tool: "+t.tool+" "+JSON.stringify(t.args)));
+ if(r.error){add("e",r.error);return}msgs.push({role:"assistant",content:r.reply});add("a",r.reply);
+ add("t",r.model+(r.paid?" · paid":" · free")+" · tokens "+(r.usage?.prompt_tokens||0)+" in / "+(r.usage?.completion_tokens||0)+" out");save()};
+</script></body></html>

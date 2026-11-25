@@ -114,6 +114,26 @@ def check(wt, spec):
     return 2 if why else 0
 
 
+def calls_digest(calls):
+    raw = json.dumps(calls, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    import hashlib
+    return hashlib.sha256(raw).hexdigest()
+
+
+def mark_recorded(led, run, calls):
+    """Record one immutable payload per run; return False for an exact replay."""
+    meta = led.setdefault("_meta", {})
+    recorded = meta.setdefault("recorded_runs", {})
+    digest = calls_digest(calls)
+    prior = recorded.get(run)
+    if prior is not None:
+        if prior != digest:
+            raise ValueError(f"{run}: a different usage payload was already recorded")
+        return False
+    recorded[run] = digest
+    return True
+
+
 def reserve(wt, run, spec):
     want = parse(spec)
     for _ in range(TRIES):
@@ -159,6 +179,16 @@ def record(wt, run, calls_path):
         if not calls and not any(run in (e.get(k) or {}) for e in led.values() if isinstance(e, dict)
                                  for k in ("pending", "pending_calls", "pending_usd")):
             return 0   # nothing made and nothing held: no commit
+        try:
+            if not mark_recorded(led, run, calls):
+                return 0
+        except ValueError:
+            # a re-run of failed jobs reuses the run id with a different payload: count it under its own key rather
+            # than drop it, so the caps never undercount spend (independent review 2026-11-24 of #108: fail-open)
+            alt = f"{run}#{calls_digest(calls)[:12]}"
+            print(f"ledger: {run} already recorded with another payload; recording this one as {alt}", file=sys.stderr)
+            if not mark_recorded(led, alt, calls):
+                return 0
         for c in calls:
             e = led.setdefault(c["engine"], {"reserved": 0, "calls": 0, "tokens": 0, "neurons": 0.0, "runs": []})
             u = c.get("usage") or {}

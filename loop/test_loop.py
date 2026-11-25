@@ -391,7 +391,7 @@ class RequirePlan(unittest.TestCase):
 
     def test_refuses_when_check_anchors_cant_check(self):
         self.stand_in({"check-anchors": 2})
-        with self.assertRaisesRegex(loop.Failed, "record.py check-anchors exit 2"):
+        with self.assertRaisesRegex(loop.Failed, r"record.py check-anchors (--max-pending-hours 48 )?exit 2"):   # F016 added the flag (8de155e8)
             loop.require_plan(1, [self.cand])
 
 

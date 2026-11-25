@@ -6,10 +6,32 @@ import digest  # noqa: E402
 import research_job as R  # noqa: E402
 import doc_job as D  # noqa: E402
 import queue_ops as Q  # noqa: E402
+import ledger as L  # noqa: E402
 import tier as TierModule  # noqa: E402
 
 ITEM = {"id": "Q99", "title": "t", "next": "n", "targets": [{"path": "a.md", "lines": [2, 3]}]}
 FILES = {"a.md": "one\ntwo\nthree\nfour"}
+
+
+class LedgerRecordIdempotency(unittest.TestCase):
+    def test_recorded_payload_is_idempotent_and_immutable(self):
+        led, calls = {}, [{"engine": "groq", "usage": {"requests": 1}}]
+        self.assertTrue(L.mark_recorded(led, "run-1", calls))
+        self.assertFalse(L.mark_recorded(led, "run-1", calls))
+        with self.assertRaises(ValueError):
+            L.mark_recorded(led, "run-1", [{"engine": "groq", "usage": {"requests": 2}}])
+
+    def test_rerun_with_another_payload_is_still_counted(self):
+        import tempfile, unittest.mock as M
+        with tempfile.TemporaryDirectory() as wt:
+            os.makedirs(os.path.join(wt, "ledger"))
+            calls = os.path.join(wt, "calls.jsonl")
+            for n in (1, 2):   # the same run id twice, different payloads (a GitHub re-run of failed jobs)
+                open(calls, "w").write(json.dumps({"engine": "groq", "usage": {"requests": n}}) + "\n")
+                with M.patch.object(L, "sync"), M.patch.object(L, "push", return_value=True):
+                    L.record(wt, "run-9", calls)
+            led = L.load(L.day_path(wt))
+            self.assertEqual(led["groq"]["calls"], 3)   # both payloads counted, none dropped
 
 
 class TierMergeGuards(unittest.TestCase):
@@ -281,6 +303,32 @@ class RejectedNotOffered(unittest.TestCase):
 
 
 class GuaranteeWords(unittest.TestCase):
+    def test_e3_scope_words_dropped_is_rejected(self):
+        import doc_job as D
+        old = "Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given."
+        new = "Results cannot be changed or deleted once recorded."
+        item = {"targets": [{"path": "doc.md", "lines": [1, 1]}]}
+        files = {"doc.md": old}
+        ok, reasons = D.check_edits(item, files, [{"path": "doc.md", "line": 1, "old": old, "new": new}])
+        self.assertEqual(ok, [])
+        self.assertTrue(reasons)
+
+    def test_scope_words_kept_is_accepted(self):
+        import doc_job as D
+        old = "Results can never be changed or deleted after they are recorded, by anyone at all, whatever the reason given."
+        new = "Results can never be changed or deleted after they are written down, by anyone at all, whatever the reason given."
+        item = {"targets": [{"path": "doc.md", "lines": [1, 1]}]}
+        files = {"doc.md": old}
+        ok, reasons = D.check_edits(item, files, [{"path": "doc.md", "line": 1, "old": old, "new": new}])
+        self.assertEqual(reasons, [])
+        self.assertEqual(len(ok), 1)
+
+    def test_new_scope_words_are_guarded_and_common_words_are_not(self):
+        self.assertEqual(D.lost_guarantee("Refused, whatever the reason.", "Refused for a stated reason."), ["whatever"])
+        self.assertEqual(D.lost_guarantee("Refused by anybody, no matter who.", "Refused by staff."), ["anybody", "no matter"])
+        self.assertEqual(D.lost_guarantee("Run all suites before merging; did it ever fail? Any order works.",
+                                          "Run the full set of suites before merging; did it fail? Order is free."), [])
+
     def test_lost(self):
         self.assertEqual(D.lost_guarantee("Results can never be changed, by anyone.", "Results cannot be changed."), ["anyone", "never"])
         self.assertEqual(D.lost_guarantee("The cap is 4,000.", "The cap is 5,000."), [])
@@ -1517,6 +1565,46 @@ class Exhaust(unittest.TestCase):
         self.assertEqual(exhaust.reset_time(429, {"retry-after": "soon"}, 1000), 1060)
 
 
+class FullText(unittest.TestCase):
+    def test_arxiv_url(self):
+        import fulltext
+        self.assertEqual(fulltext.arxiv_html_url("2401.12345"), "https://arxiv.org/html/2401.12345")
+
+    def test_results_section_only(self):
+        import fulltext
+        html = """<html><body>
+        <h1>Title</h1>
+        <p>Intro</p>
+        <h2>1 Introduction</h2>
+        <p>Intro text</p>
+        <h2>2 Related Work</h2>
+        <p>Related stuff</p>
+        <h2>3 Results</h2>
+        <p>We achieved 90%.</p>
+        <h3>3.1 Experiment</h3>
+        <p>More.</p>
+        <h2>4 Conclusion</h2>
+        <p>Bye.</p>
+        </body></html>"""
+        out = fulltext.results_text(html, 1000)
+        self.assertIn("We achieved 90%.", out)
+        self.assertIn("More.", out)
+        self.assertNotIn("Related stuff", out)
+        self.assertNotIn("Bye.", out)
+        self.assertNotIn("Intro text", out)
+
+    def test_cap(self):
+        import fulltext
+        html = "<h2>Results</h2><p>" + "word " * 100 + "</p>"
+        out = fulltext.results_text(html, 20)
+        self.assertLessEqual(len(out), 20)
+
+    def test_no_matching_heading(self):
+        import fulltext
+        html = "<h2>Introduction</h2><p>Nothing.</p><h2>Conclusion</h2><p>Done.</p>"
+        self.assertEqual(fulltext.results_text(html, 1000), "")
+
+
 class CallSites(unittest.TestCase):
     def test_sites_skips_tests(self):
         import sys
@@ -1540,3 +1628,103 @@ class CallSites(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class EventLog(unittest.TestCase):
+    """Queue P37b: every status write leaves one structured event, so the run log alone rebuilds the item's status."""
+
+    def run_cycle(self, q, outcomes):
+        import tempfile
+        note = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+        json.dump({"result": "x"}, note); note.close()
+        out = note.name + ".out"
+        with unittest.mock.patch.object(Q, "sync"), unittest.mock.patch.object(Q, "load", return_value=q), \
+                unittest.mock.patch.object(Q, "save"), unittest.mock.patch.object(Q, "commit_push", return_value=True):
+            for o in outcomes:
+                self.assertEqual(Q.claim("wt", "worker-1", out), 0)
+                Q.release("wt", "worker-1", "A", o, note.name)
+        os.unlink(note.name); os.unlink(out)
+
+    def q(self):
+        return {"items": [{"id": "A", "status": "open", "targets": [{"path": "x.md", "lines": [1, 1]}], "touches": ["x.md"],
+                           "blocked_by": []}]}
+
+    def test_claims_are_events_and_do_not_reset_the_failure_count(self):
+        import transitions as T
+        q = self.q()
+        self.run_cycle(q, ["failed"] * T.MAX_FAILURES)
+        i = q["items"][0]
+        self.assertEqual(i["status"], "escalated")   # a claim between two failures must not reset the count
+        self.assertEqual([r["outcome"] for r in i["runs"]], ["claim", "failed"] * T.MAX_FAILURES)
+
+    def test_the_log_alone_rebuilds_the_status(self):
+        q = self.q()
+        self.run_cycle(q, ["failed", "pr"])
+        i, state = q["items"][0], "open"
+        for r in i["runs"]:
+            self.assertEqual(r["from"], state)   # each event starts where the last one ended
+            state = r["to"]
+        self.assertEqual(state, i["status"])
+
+    def test_move_and_expiry_record_from_and_to(self):
+        import datetime as dt
+        q = {"items": [{"id": "A", "status": "review", "touches": ["x"], "blocked_by": [], "runs": []}]}
+        with unittest.mock.patch.object(Q, "sync"), unittest.mock.patch.object(Q, "load", return_value=q), \
+                unittest.mock.patch.object(Q, "save"), unittest.mock.patch.object(Q, "commit_push", return_value=True):
+            Q.move("wt", "tier-x", "A", "confirm", "ok")
+        self.assertEqual({k: q["items"][0]["runs"][-1][k] for k in ("from", "to", "outcome")},
+                         {"from": "review", "to": "done", "outcome": "confirm"})
+        t = dt.datetime(2026, 11, 25, tzinfo=dt.timezone.utc)
+        j = {"id": "B", "status": "in progress", "claimed_by": "worker-1", "lease_until": "2026-11-24T00:00:00Z", "runs": []}
+        Q.expire({"items": [j]}, t)
+        self.assertEqual((j["runs"][-1]["from"], j["runs"][-1]["to"]), ("in progress", j["status"]))
+
+
+class GenerateAttachLiterature(unittest.TestCase):
+    """P38: a literature item's accepted question becomes its own research job (card-only touches), so the worker can
+    claim the backlog item itself; other items still get a separate R item."""
+
+    def run_gen(self, q, ps):
+        import generate as G, tempfile
+        drafts = {"L1": {"question": "Which programs compile into transformer weights today, and at what size and cost?",
+                         "queries": ["Tracr compiled transformers", "ALTA compiler weights", "compiled transformer ground truth"]},
+                  "B1": {"question": "How do cache-aware schedulers reduce tail latency for small inference kernels?",
+                         "queries": ["cache aware scheduling inference", "tail latency kernels", "small model inference cache"]}}
+        def draft_fn(prompt):
+            return next(v for k, v in drafts.items() if f"ITEM {k}:" in prompt)
+        out = tempfile.mkdtemp()
+        with unittest.mock.patch.object(G.Q, "sync"), unittest.mock.patch.object(G.Q, "load", return_value=q), \
+                unittest.mock.patch.object(G.Q, "save"), unittest.mock.patch.object(G.Q, "commit_push", return_value=True), \
+                unittest.mock.patch.object(G, "MAX_TRIES", 5):
+            G.run("wt", out, draft_fn=draft_fn, decide_fn=lambda pairs: (ps[:len(pairs)], None))
+        return {i["id"]: i for i in q["items"]}
+
+    def q(self):
+        lit = {"literature": 0.98, "experiment": 0.2}
+        return {"items": [
+            {"id": "L1", "status": "open", "kind": "build", "value": "high", "touches": ["research/"], "blocked_by": [],
+             "title": "Weight-space programming", "next": "Start as literature", "work_types": lit},
+            {"id": "B1", "status": "open", "kind": "build", "value": "high", "touches": ["worker/"], "blocked_by": [],
+             "title": "Faster kernels", "next": "Measure", "work_types": {"code_change": 0.9}}]}
+
+    def test_accepted_question_becomes_the_items_own_job(self):
+        import datetime as dt
+        by = self.run_gen(self.q(), [0.9, 0.1, 0.8, 0.8])
+        l1 = by["L1"]
+        self.assertEqual((l1["status"], l1["touches"], l1["scope"]), ("open", ["research/cards/L1.md"], ["research/"]))
+        self.assertIn("research", l1)
+        self.assertEqual([i["id"] for i in Q.ready({"items": list(by.values())}, dt.datetime.now(dt.timezone.utc))
+                          if i["id"] == "L1"], ["L1"])   # the backlog item itself is now claimable
+        made = [i for i in by.values() if i.get("generated_from") == "B1"]
+        self.assertEqual(len(made), 1)   # a non-literature item still gets a separate R item
+        self.assertFalse(any(i.get("generated_from") == "L1" for i in by.values()))
+
+    def test_rejected_or_withheld_changes_nothing_but_a_note(self):
+        import generate as G
+        for ps in ([0.9, 0.1, 0.8, 0.2], [0.4, 0.1, 0.9, 0.9]):   # drafts run B1 then L1: L1 rejected; controls failed (withheld)
+            by = self.run_gen(self.q(), ps)
+            l1 = by["L1"]
+            self.assertNotIn("research", l1)
+            self.assertEqual(l1["touches"], ["research/"])
+            self.assertTrue(l1.get("research_tried"))
+            self.assertNotIn("L1", [i["id"] for i in G.candidates({"items": list(by.values())})])   # not redrafted for 7 days

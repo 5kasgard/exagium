@@ -47,10 +47,14 @@ jobs:
         run: |
           mkdir -p out
           git cat-file -e "$PLAN_COMMIT^{commit}" || { echo "plan commit not found"; exit 1; }
-          git diff --stat "$PLAN_COMMIT" HEAD -- transfer/PLAN.md transfer/decide.py transfer/families.py \
-            transfer/tasks.py transfer/meter.py transfer/infer_table.c transfer/infer_lgn.c > out/amended.txt
-          echo "registered $PLAN_COMMIT, run at $GITHUB_SHA" > out/commits.txt
-          if [ -s out/amended.txt ]; then echo "AMENDED since registration:"; cat out/amended.txt; fi
+          git merge-base --is-ancestor "$PLAN_COMMIT" "$GITHUB_SHA" || { echo "registered plan commit is not an ancestor of this run"; exit 1; }
+          paths=(transfer/PLAN.md transfer/decide.py transfer/families.py transfer/tasks.py transfer/meter.py transfer/infer_table.c transfer/infer_lgn.c)
+          if ! git diff --quiet "$PLAN_COMMIT" "$GITHUB_SHA" -- "${paths[@]}"; then
+            echo "transfer inputs changed after registration; refusing to run against an amended plan"
+            git diff --stat "$PLAN_COMMIT" "$GITHUB_SHA" -- "${paths[@]}" | tee out/amended.txt
+            exit 1
+          fi
+          echo "registered $PLAN_COMMIT, run at $GITHUB_SHA; frozen inputs unchanged" > out/commits.txt
       - name: build the task
         run: |
           "$RUNNER_TEMP/venv/bin/python" -I transfer/tasks.py "$RUNNER_TEMP/tasks" --cache "$RUNNER_TEMP/dl"
