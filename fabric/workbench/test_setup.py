@@ -108,5 +108,29 @@ class Setup(unittest.TestCase):
                 P.patch(d)
 
 
+    def test_dns_upsert_creates_dns_only_cname_and_refuses_other_types(self):
+        import pathlib
+        sys.path.insert(0, str(pathlib.Path(__file__).parent))
+        import cf_dns as D
+        seen = []
+        def fake(path, token, method="GET", body=None):
+            seen.append((method, path, body))
+            if path.startswith("/zones?"):
+                return 200, {"result": [{"id": "z"}]}
+            if method == "GET":
+                return 200, {"result": []}
+            return 200, {"result": {}}
+        with unittest.mock.patch.object(D, "call", fake):
+            self.assertIn("created", D.upsert("workbench.exagium.xyz", "t"))
+        self.assertEqual(seen[-1][2]["proxied"], False)
+        self.assertEqual(seen[-1][2]["content"], "cname.vercel-dns.com")
+        def fake_a(path, token, method="GET", body=None):
+            if path.startswith("/zones?"):
+                return 200, {"result": [{"id": "z"}]}
+            return 200, {"result": [{"type": "A", "id": "r"}]}
+        with unittest.mock.patch.object(D, "call", fake_a), self.assertRaises(SystemExit):
+            D.upsert("workbench.exagium.xyz", "t")
+
+
 if __name__ == "__main__":
     unittest.main()

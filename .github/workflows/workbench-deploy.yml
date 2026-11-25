@@ -35,9 +35,15 @@ jobs:
       - name: generate JWKS_KEY once
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py gen JWKS_KEY jwks
+      - name: custom domain on Vercel (forge-workbench.vercel.app served another site)
+        env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
+        run: python3 -I fabric/workbench/setup.py domain workbench.exagium.xyz
+      - name: DNS record in Cloudflare (DNS only; Vercel issues the certificate)
+        env: {CLOUDFLARE_API_TOKEN: "${{ secrets.CLOUDFLARE_API_TOKEN }}"}
+        run: python3 -I fabric/workbench/cf_dns.py workbench.exagium.xyz
       - name: APP_URL
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
-        run: python3 -I fabric/workbench/setup.py set APP_URL https://forge-workbench.vercel.app
+        run: python3 -I fabric/workbench/setup.py set APP_URL https://workbench.exagium.xyz
       - name: AUTH_ALLOWED_EMAILS (only the owner may register)
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}", V: "${{ secrets.CHAT_OWNER_EMAIL }}"}
         run: python3 -I fabric/workbench/setup.py env AUTH_ALLOWED_EMAILS V
