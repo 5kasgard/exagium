@@ -113,7 +113,7 @@ jobs:
       - name: deploy the built output
         working-directory: lobehub
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
-        run: vercel deploy --prebuilt --prod --yes --token "$VERCEL_API_KEY" > "$RUNNER_TEMP/deploy.log" 2>&1 || { grep -iE "error|fail|limit|exceed|denied|forbidden" "$RUNNER_TEMP/deploy.log" | grep -v -iE "vercel\.app|vercel\.com/|https?://" | tail -n 20; exit 1; }   # reasons only: addresses carry the account name
+        run: vercel deploy --prebuilt --archive=tgz --prod --yes --token "$VERCEL_API_KEY" > "$RUNNER_TEMP/deploy.log" 2>&1 || { grep -iE "error|fail|limit|exceed|denied|forbidden" "$RUNNER_TEMP/deploy.log" | grep -v -iE "vercel\.app|vercel\.com/|https?://" | tail -n 20; exit 1; }   # reasons only: addresses carry the account name
       - name: address
         env: {VERCEL_API_KEY: "${{ secrets.VERCEL_API_KEY }}"}
         run: python3 -I fabric/workbench/setup.py url | tee -a "$GITHUB_STEP_SUMMARY"
