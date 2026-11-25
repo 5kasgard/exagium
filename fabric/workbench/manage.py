@@ -99,7 +99,8 @@ def apply(path):
             extra["plugins"] = [{"identifier": x, "mode": "auto"} for x in cfg.get("builtin_plugins", []) + a["plugins"]]
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump(extra, f)
-        flags = ["-t", a["title"], "-d", a.get("description", ""), "-p", a["provider"], "-m", a["model"], "-s", a["system_role"]]
+        role = (cfg.get("preamble", "") + "\n\n" + a["system_role"]).strip()   # every agent knows what it can use
+        flags = ["-t", a["title"], "-d", a.get("description", ""), "-p", a["provider"], "-m", a["model"], "-s", role]
         if found:
             lh("agent", "edit", found[0]["id"], *flags, "--config-file", f.name, "--json", "id")
             print(f"agent {a['title']}: updated ({a['provider']}/{a['model']})")
