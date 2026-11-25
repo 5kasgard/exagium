@@ -136,5 +136,16 @@ class Setup(unittest.TestCase):
             self.assertIn("no change", D.upsert("workbench.exagium.xyz", "t"))
 
 
+    def test_log_rows_keep_errors_and_redact(self):
+        self.assertIsNone(S.log_row({"level": "info", "responseStatusCode": 200, "message": "ok"}))
+        line = S.log_row({"level": "error", "requestMethod": "POST", "requestPath": "/trpc/x?input=secret",
+                          "responseStatusCode": 500, "timestampInMs": 0,
+                          "message": "boom for someone@example.com at forge-abc-team.vercel.app ip 10.1.2.3 "
+                                     "tok " + "a" * 40 + " see https://x.y/z"})
+        for leak in ("someone@example.com", "vercel.app", "10.1.2.3", "a" * 40, "https://", "secret"):
+            self.assertNotIn(leak, line)
+        self.assertIn("POST /trpc/x 500 boom", line)
+
+
 if __name__ == "__main__":
     unittest.main()
