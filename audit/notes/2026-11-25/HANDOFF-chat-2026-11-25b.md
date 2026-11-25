@@ -19,9 +19,15 @@
 #129 (owner) and #132 merged; K60, K62 done. #145 and #151 closed. Merging works in a Claude chat session through the
 GitHub MCP connector (`merge_pull_request`); `gh api .../merge` from the shell was refused by the session's safety check.
 
+## Update 18:50 AEST
+- **pr-sync live** (PR #172, blind review applied: PR counts only if it is the item's latest worker event; re-check at
+  write time; dry run touches no git). First run moved G8, R30, R62 -> done and R10, R43 -> parked.
+- K72 and K68 redone by free workers within 10 min of reopening (PRs #173, #171; the tier reviews them).
+- README updated (PR #175).
+
 ## Open, in order
-1. **P38 (a):** a PR-sync step — PR merged -> `decide_done`, closed -> `park` — so items stop rotting as "waiting on the
-   owner". Touches a workflow, so a person merges it.
+1. ~~**P38 (a):** a PR-sync step — PR merged -> `decide_done`, closed -> `park` — so items stop rotting as "waiting on the
+   owner". Done, #172.~~
 2. **P38 (b):** splitter sub-items carry a known-answer test written before the code (the K72 repro form), so "tests
    pass" means "item done". Measure: merits-rejections after passing tests, before/after.
 3. P33 (widen auto-merge safely), P36 (connector, PR #153), P39 (project-doc export).
