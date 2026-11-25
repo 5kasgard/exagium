@@ -1,4 +1,9 @@
 name = "forge-connector"
 main = "worker.js"
 compatibility_date = "2026-11-01"
-workers_dev = true
+# workers.dev is off on purpose: the account's workers.dev subdomain carries the owner's name (2026-11-25), so
+# deploys must never turn it back on. The connector's only address is the custom domain below, which is also
+# where its Cloudflare Access Bypass application is scoped.
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "connector.exagium.xyz", custom_domain = true }]
