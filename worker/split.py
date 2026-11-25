@@ -275,7 +275,7 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                     rid = f"K{n}"; n += 1
                     q["items"].append({"id": rid, "title": f"Run experiment {s['experiment']} ({p['id']})", "kind": "test",
                                        "status": "proposed", "origin": "generated", "split_from": p["id"], "generated_at": Q.iso(Q.now()),
-                                       "experiment": {"name": s["experiment"]}, "touches": [], "next": f"Runs experiments/{s['experiment']}.py "
+                                       "experiment": {"name": s["experiment"]}, "touches": [G.run_touches(s["experiment"])], "next": f"Runs experiments/{s['experiment']}.py "
                                        f"once {kid} lands; its own rule decides.", "refs": [f"queue {kid}", "experiments/README.md"],
                                        "severity": "minor", "needs": "free", "cost": 0, "value": p.get("value", "medium"),
                                        "blocked_by": [kid], "batch": p.get("batch", "B3")})
