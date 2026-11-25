@@ -65,6 +65,29 @@ export class EvalBox {
     return p.pid;
   }
 
+  // marker file, one installed package, a process that writes a timestamp every 10 s; throws if any of it failed
+  async seed() {
+    const setup = await this.sh("echo forge-$(date +%s) > /workspace/marker.txt && pip install -q --user --break-system-packages cowsay >/dev/null 2>&1; python3 -c 'import cowsay; print(\"ok\")'", 300000);
+    if (setup.out !== "ok") throw new Error("setup failed: " + (setup.out || setup.err));
+    const pid = await this.startTicker();
+    await new Promise((r) => setTimeout(r, 25000));
+    const ticks = (await this.sh("wc -l < /workspace/ticks.log")).out;
+    if (!(Number(ticks) >= 2)) throw new Error("ticker not writing: " + ticks);
+    await this.ctx.storage.put("pid", pid);
+    return { pid, ticks_before_stop: ticks };
+  }
+
+  // a process survived only if the log kept growing during the wait and its newest line is under 20 s old;
+  // a pid check alone cannot tell a survivor from a reused pid after a restart (review 2026-11-26)
+  async tickerAlive() {
+    const n = async () => Number((await this.sh("wc -l < /workspace/ticks.log 2>/dev/null || echo 0")).out) || 0;
+    const before = await n();
+    await new Promise((r) => setTimeout(r, 15000));
+    const after = await n();
+    const age = Number((await this.sh("echo $(( $(date +%s) - $(tail -n 1 /workspace/ticks.log 2>/dev/null || echo 0) ))")).out);
+    return { ticks_before: before, ticks_after: after, last_tick_age_s: age, alive: after > before && age < 20 };
+  }
+
   async snapshotAndStop() {
     let t = Date.now();
     const s = await this.box.snapshotContainer({ name: "forge-eval" });
@@ -78,7 +101,8 @@ export class EvalBox {
     if (this.box.running) await this.box.destroy();
     let t = Date.now();
     const up = await this.startFresh(null);
-    const rec = { mode, instance: INSTANCE, create_s: secs(t), up: up.out || up.err, checks: {} };
+    if (up.rc !== 0) throw new Error("container did not start: " + up.err);
+    const rec = { mode, instance: INSTANCE, create_s: secs(t), checks: {} };
     const c = rec.checks;
     c.uname = (await this.sh("uname -srm")).out;
     c.nproc = (await this.sh("nproc")).out;
@@ -88,12 +112,9 @@ export class EvalBox {
     c.bwrap_proc = await this.sh("bwrap --ro-bind / / --proc /proc --dev /dev --unshare-all true && echo ok");
     c.cpu_bench_s = [];
     for (let i = 0; i < 5; i++) c.cpu_bench_s.push((await this.sh(`python3 -c "${BENCH}"`)).out);
-    c.setup = await this.sh("echo forge-$(date +%s) > /workspace/marker.txt && pip install -q --user --break-system-packages cowsay >/dev/null 2>&1; python3 -c 'import cowsay; print(\"ok\")'", 300000);
-    rec.pid = await this.startTicker();
-    await new Promise((r) => setTimeout(r, 25000));
-    rec.ticks_before_stop = (await this.sh("wc -l < /workspace/ticks.log")).out;
+    Object.assign(rec, await this.seed());
     if (mode === "snap") Object.assign(rec, await this.snapshotAndStop());
-    await this.ctx.storage.put("pid", rec.pid);
+    rec.ok = true;
     return rec;
   }
 
@@ -110,20 +131,18 @@ export class EvalBox {
       const up = await this.startFresh(null);                 // native: a stopped container comes back from the image
       cyc.resume_s = secs(t); cyc.up = up.out || up.err;
     }
-    await new Promise((r) => setTimeout(r, 15000));            // long enough for a surviving ticker to write again
-    const pid = await this.ctx.storage.get("pid");
+    if (cyc.up !== undefined && cyc.up !== "up") throw new Error("container did not start: " + cyc.up);
+    cyc.ticker = await this.tickerAlive();                     // waits 15 s: long enough for a survivor to write
     cyc.file = (await this.sh("cat /workspace/marker.txt")).out;
     cyc.tool = (await this.sh("python3 -c 'import cowsay; print(\"ok\")'")).out;
-    cyc.process_alive = (await this.sh(`kill -0 ${pid} 2>/dev/null && echo alive || echo gone`)).out;
-    cyc.last_ticks = (await this.sh("tail -n 3 /workspace/ticks.log 2>/dev/null; date +%s")).out;
     cyc.files_ok = cyc.file.startsWith("forge-") && cyc.tool === "ok";
-    cyc.ok = cyc.files_ok && cyc.process_alive === "alive";
-    if (mode === "snap") {
-      // processes cannot live in a snapshot: restart the ticker so the next check measures the same thing again
-      await this.ctx.storage.put("pid", await this.startTicker());
-      await new Promise((r) => setTimeout(r, 12000));
-      Object.assign(cyc, await this.snapshotAndStop());
-    }
+    cyc.process_alive = cyc.ticker.alive;
+    cyc.ok = cyc.files_ok && cyc.process_alive;
+    // re-seed whatever was lost, so the next cycle measures a fresh gap instead of repeating this loss (review
+    // 2026-11-26): snap loses the process every time; native after a stop loses everything
+    if (!cyc.files_ok) await this.sh("rm -f /workspace/ticks.log");
+    if (!cyc.files_ok || !cyc.process_alive) cyc.reseed = await this.seed();
+    if (mode === "snap") Object.assign(cyc, await this.snapshotAndStop());
     return cyc;
   }
 
@@ -141,6 +160,7 @@ export class EvalBox {
       if (op === "create") return Response.json(await this.create(mode));
       if (op === "check") return Response.json(await this.check(mode));
       if (op === "kill") return Response.json(await this.kill());
+      // snapshots: the Workers types (2026-11) have no delete call, so old ones are left; their size is recorded
       return new Response("not found", { status: 404 });
     } catch (e) {
       return Response.json({ ok: false, error: String(e && e.stack || e).slice(0, 600) }, { status: 500 });

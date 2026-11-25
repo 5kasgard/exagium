@@ -46,6 +46,10 @@ def create(path):
         r = call("create", m)
         rec[m] = {"create": r, "last_at": now(), "cycles": []}
         print(json.dumps({m: r}, indent=1))
+    if not all(rec[m]["create"].get("ok") for m in MODES):   # no state on a failed setup, so a re-create is allowed
+        for m in MODES:
+            call("kill", m)
+        sys.exit("create failed; nothing recorded (review 2026-11-26)")
     json.dump(rec, open(path, "w"), indent=1)
 
 
@@ -53,6 +57,8 @@ def check(path):
     rec = json.load(open(path))
     for m in MODES:
         cyc = {"at": now(), "recorded_by": WHO, "idle_h": idle_h(rec[m]["last_at"])} | call("check", m)
+        if "files_ok" not in cyc:   # the call itself failed: not evidence about survival (review 2026-11-26)
+            cyc["infra_error"] = True
         rec[m]["cycles"].append(cyc); rec[m]["last_at"] = now()
         print(json.dumps({m: cyc}, indent=1))
     json.dump(rec, open(path, "w"), indent=1)
@@ -60,11 +66,14 @@ def check(path):
 
 def kill(path):
     rec = json.load(open(path))
+    killed = all(call("kill", m).get("killed") for m in MODES)
     for m in MODES:
-        call("kill", m)
-        cs = rec[m]["cycles"]
+        cs = [c for c in rec[m]["cycles"] if not c.get("infra_error")]
         print(f"{m}: files carried over in {sum(bool(c.get('files_ok')) for c in cs)}/{len(cs)} cycles, "
-              f"process in {sum(bool(c.get('ok')) for c in cs)}/{len(cs)}")
+              f"process in {sum(bool(c.get('ok')) for c in cs)}/{len(cs)}; "
+              f"{len(rec[m]['cycles']) - len(cs)} calls failed")
+    if not killed:   # leave no killed_at, so the next run tries again (a live container or snapshot keeps billing)
+        sys.exit("kill failed; state left open")
     rec["killed_at"] = now(); json.dump(rec, open(path, "w"), indent=1)
 
 
