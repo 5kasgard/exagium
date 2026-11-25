@@ -41,6 +41,13 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      - name: the queue branch, read-only, as state/ (the queue, findings register, notes and spine live there)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: pilot/lgn-20261115
+          path: state
+          fetch-depth: 1
+          persist-credentials: false
       - name: pick (script, no model)
         id: pick
         env:
