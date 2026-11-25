@@ -161,7 +161,7 @@ def run(cands, stmts, iid, agent, outdir, hdir, gw, port, seal_sh, model="", cap
             if os.path.exists(os.path.join(outdir, f"meter-{iid}.jsonl")):
                 calls = [json.loads(l) for l in open(os.path.join(outdir, f"meter-{iid}.jsonl")) if l.strip()]
                 res["calls"] = sum(1 for x in calls if x.get("status") == 200)
-                res["refused"] = sum(1 for x in calls if x.get("status") == 429)
+                res["refused"] = sum(1 for x in calls if x.get("status") == "refused_cap")   # meter.py logs refusals so, not as 429 (model run 45601064588)
                 if res["refused"] and ending == "exited":
                     ending = "call_cap"
         for f in ("harness.out", "harness.err"):   # the harness's own record, kept with the attempt

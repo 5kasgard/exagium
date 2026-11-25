@@ -30,5 +30,25 @@ class Agent(unittest.TestCase):
             self.assertEqual(hashlib.sha256(v["text"].encode()).hexdigest(), v["sha256"])
 
 
+class Grade(unittest.TestCase):
+    def test_cap_comes_from_the_meter_log(self):
+        import contextlib, io
+        import grade_pilot as G
+        with tempfile.TemporaryDirectory() as d:
+            for i, (n, cap) in enumerate([(80, True), (33, False)]):
+                iid = f"t{i}"
+                json.dump({"id": iid, "ending": "exited", "wall_s": 100, "wall_cap_s": 2100, "resolved": False, "harness_end": None},
+                          open(os.path.join(d, f"agent-{iid}-model.json"), "w"))
+                with open(os.path.join(d, f"meter-{iid}.jsonl"), "w") as f:
+                    f.write("".join(json.dumps({"status": 200}) + "\n" for _ in range(n)))
+                    if cap:
+                        f.write(json.dumps({"status": "refused_cap"}) + "\n")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                G.grade(d)
+            self.assertIn("t0                                         call_cap", out.getvalue())
+            self.assertIn("kept 1 of 2 started", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
