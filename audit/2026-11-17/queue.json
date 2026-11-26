@@ -24848,6 +24848,46 @@
    },
    "work_types_key": "fe299de42daf4207",
    "work_types_at": "2026-11-26T08:53:33Z"
+  },
+  {
+   "id": "K88",
+   "title": "Wire the drift generator into tasks/build.py as task \"drift\" with a pinned card (P3: next step after K87)",
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P3",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B1",
+   "refs": [
+    "queue P3",
+    "queue K87 (tasks/drift.py, merged #221, main 62ad37095)",
+    "tasks/build.py (build_sat: generated task, fixed seeds)"
+   ],
+   "generated_at": "2026-11-26T10:40:00Z",
+   "blocked_by": [],
+   "code": {
+    "files": [
+     "tasks/build.py",
+     "tasks/drift/card.json"
+    ],
+    "test": "tasks/test_drift.py",
+    "context": [
+     "tasks/drift.py",
+     "tasks/optdigits/card.json"
+    ],
+    "new": [
+     "tasks/drift/card.json"
+    ]
+   },
+   "touches": [
+    "tasks/build.py",
+    "tasks/drift/card.json",
+    "tasks/test_drift.py"
+   ],
+   "next": "In tasks/build.py add build_drift(out): X, y, W = drift.generate(seed=2026, n=8000, dim=16, segments=4) (import tasks/drift.py the way build.py imports its other helpers); split in stream order, never shuffled: train = rows 0..3999 (blocks 0-1), dev = rows 4000..5999 (block 2), test = rows 6000..7999 (block 3); encode with the existing label_splits-style records (input = the 16 X bytes of a row, key = one byte y) and save(out, 'drift', splits). Add 'drift' to --only's default list and call build_drift when it is selected. Add tasks/drift/card.json modelled on tasks/optdigits/card.json: task 'drift', kind 'stream', input 16 bytes (quantized N(0,1) features), output one byte 0..1, classes 2, checker 'label', metric 'accuracy', baselines ['majority', 'label-linear'], floor 'majority', sources ['tasks/drift.py seed 2026'], items {train 4000, dev 2000, test 2000}, and 'data' = the sha256 digests that python3 tasks/build.py OUT --only drift prints into OUT/drift/manifest.json (run it twice; both runs must give the same digests). Add a test to tasks/test_drift.py that runs build_drift into a temp dir and checks the item counts and that the manifest digests equal the card's 'data'. Run python3 -m unittest tasks/test_drift.py. The split choice (train on the first half, score on later drifted blocks) is what the later online-vs-static experiment needs; that experiment and its decision rule are a separate item."
   }
  ],
  "batches": [
