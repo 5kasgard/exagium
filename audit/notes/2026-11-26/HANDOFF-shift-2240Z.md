@@ -31,3 +31,6 @@ Q29 repo-settings; K75 guard-merge (PR #208); P11, P14, P16, P17, P18 owner-hold
 
 ## Spend
 No paid API calls; Claude subscription only. One local experiment run on this machine.
+
+## Rule broken (recorded)
+- Commit 988920967 pushed a queue change while render.py was failing. My shell chain did not check render's exit code. A worker had filed its own K90 between my pull and my commit, so my item duplicated that id. Fixed in cfc6e4de1: my item is now K91, render passes, and the worker's K90 (in progress) was never changed. From now on, check render's exit code before `git add`.
