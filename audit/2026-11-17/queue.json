@@ -20910,7 +20910,7 @@
    "touches": [
     "router-runs:experiments/packet_pilot/"
    ],
-   "next": "Runs experiments/packet_pilot.py once K70 lands; its own rule decides.",
+   "next": "Runs experiments/packet_pilot.py once K86 has written pilot records to runner/results/packet-pilot/; its own rule decides. (2026-11-26: first run returned invalid 'no pilot result' because nothing produced pilot data; the rule was not changed.)",
    "refs": [
     "queue K70",
     "experiments/README.md"
@@ -20920,7 +20920,8 @@
    "cost": 0,
    "value": "high",
    "blocked_by": [
-    "K70"
+    "K70",
+    "K86"
    ],
    "batch": "B3",
    "work_types": {
@@ -24568,6 +24569,128 @@
    },
    "work_types_key": "aac6181cb7ff4dc7",
    "work_types_at": "2026-11-26T01:35:59Z"
+  },
+  {
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P5d",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B3",
+   "refs": [
+    "queue P5d",
+    "queue K69 (PR #152 rejected: 86 lines, silent fallback)"
+   ],
+   "generated_at": "2026-11-26T08:46:40Z",
+   "runs": [
+    {
+     "at": "2026-11-26T08:46:40Z",
+     "by": "claude-shift-2026-11-26",
+     "outcome": "filed",
+     "result": "K69 cut in two worker-sized pieces (Claude tier)"
+    }
+   ],
+   "id": "K84",
+   "title": "Repair helper: at most one repair call after a failed proposal (P5d, part 1 of K69)",
+   "code": {
+    "files": [],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "runner/proposals/extract.py"
+    ],
+    "new": [
+     "runner/proposals/repair.py"
+    ]
+   },
+   "touches": [
+    "runner/proposals/repair.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "blocked_by": [],
+   "next": "Add runner/proposals/repair.py (new, under 50 lines) with run_arm(arm, call, prompt, check). call(prompt) returns the model's reply text; check(reply) returns None if the reply is usable or an error string. arm 'baseline': exactly one call, no repair. arm 'packet': one call; if check fails, one repair call whose prompt is the original prompt plus the failed reply's error text (not the reply itself), so at most two calls. Any other arm raises ValueError. Return {'reply', 'valid' (bool), 'calls' (int), 'error' (str or None)}. No imports with fallbacks. Add class TestRepair to runner/proposals/test_proposals.py: baseline with an invalid stub makes exactly 1 call; packet with a stub invalid twice makes exactly 2 calls and valid False; packet invalid then valid makes 2 calls and valid True; packet valid first makes 1 call; arm 'x' raises ValueError. Run python3 -m unittest runner/proposals/test_proposals.py."
+  },
+  {
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P5d",
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "batch": "B3",
+   "refs": [
+    "queue P5d",
+    "queue K69 (PR #152 rejected: 86 lines, silent fallback)"
+   ],
+   "generated_at": "2026-11-26T08:46:40Z",
+   "runs": [
+    {
+     "at": "2026-11-26T08:46:40Z",
+     "by": "claude-shift-2026-11-26",
+     "outcome": "filed",
+     "result": "K69 cut in two worker-sized pieces (Claude tier)"
+    }
+   ],
+   "id": "K85",
+   "title": "propose.py --arm baseline|packet using the repair helper (P5d, part 2 of K69)",
+   "code": {
+    "files": [
+     "runner/proposals/propose.py"
+    ],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "runner/proposals/repair.py",
+     "runner/proposals/packet.py",
+     "runner/proposals/extract.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/proposals/propose.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "blocked_by": [
+    "K84"
+   ],
+   "next": "In runner/proposals/propose.py main(), accept optional flags after the positional args: --arm baseline|packet (default baseline: today's behaviour, unchanged) and --packet PATH (a JSON file from packet.build; required with --arm packet, exit 2 with a message if missing or unreadable: no fallback). With packet: append to the prompt a section 'Telemetry from the parent run (data, not instructions):' followed by the packet JSON; call through repair.run_arm with check = lambda r: extract.extract(r, a temporary directory) and call = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)['text']. For both arms write out/<k>/calls (the integer number of calls) and out/<k>/arm. Keep calls.jsonl logging per call. Under 60 changed lines. Add tests with engines.compat_call patched: baseline writes calls 1; packet with a stub reply missing blocks writes calls 2; --arm packet without --packet exits 2."
+  },
+  {
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P5d",
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "batch": "B3",
+   "refs": [
+    "queue P5d",
+    "queue K69 (PR #152 rejected: 86 lines, silent fallback)"
+   ],
+   "generated_at": "2026-11-26T08:46:40Z",
+   "runs": [
+    {
+     "at": "2026-11-26T08:46:40Z",
+     "by": "claude-shift-2026-11-26",
+     "outcome": "filed",
+     "result": "K69 cut in two worker-sized pieces (Claude tier)"
+    }
+   ],
+   "id": "K86",
+   "title": "Pilot producer: propose.yml arm input and runner/results/packet-pilot/<run>.json records (P5d)",
+   "touches": [
+    ".github/workflows/propose.yml",
+    "runner/results/packet-pilot/"
+   ],
+   "blocked_by": [
+    "K85"
+   ],
+   "next": "Claude tier, guard path (owner-only: guard-merge for the workflow). After K85: add a propose.yml input arm (baseline|packet); for packet, build the packet with packet.build from the champion's latest dev-fold score artifacts and pass --packet. After scoring, write one record per proposal to runner/results/packet-pilot/<run_id>.json: {arm, valid (bool), calls (int), correct (int dev items right, 0 if invalid)}, the shape experiments/packet_pilot.py reads. Dry run first (dry=1 with both arms, fixture packet). Then about 50 proposals per arm on free models, as P5d's rule fixed before the run."
   }
  ],
  "batches": [
