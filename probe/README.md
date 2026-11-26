@@ -5,7 +5,7 @@
 **Run.**
 ```
 python3 probe.py                      # full: ~100 s on 2 vCPUs, 7 reps, sweep to 4x reported LLC (cap: 1/4 of free RAM)
-python3 probe.py --quick              # ~10 s smoke run, 3 reps, coarser sweep
+python3 probe.py --quick              # ~30 s smoke run, 3 reps, coarser sweep
 python3 probe.py --reanalyse p.json   # recompute from raw reps; exit 0 consistent, 1 inconsistent,
                                       #   2 consistent but meter claims unverifiable (different host)
 python3 -m unittest -v test_probe     # 40 tests, ~65 s

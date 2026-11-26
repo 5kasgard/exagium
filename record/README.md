@@ -14,7 +14,7 @@ python3 record.py verify          # chain intact? also lists open and overdue pl
 python3 record.py head            # head seq and sha256
 python3 record.py check-anchors   # every anchor right; writer's ranges cover 1..head; each run's commit
 python3 record.py monitor         # every Rekor attestation by record.yml on any ref, vs the ledger
-python3 -m unittest -v test_record   # 22 tests, <1 s
+python3 -m unittest -v test_record   # 29 tests (1 skipped), <1 s
 ```
 - `verify` and `head` need only Python 3 (stdlib).
 - `check-anchors` needs `sigstore==4.5.1` and `opentimestamps-client==0.8.0` (use a virtualenv), plus network access to blockstream.info and mempool.space.
@@ -162,7 +162,7 @@ It also found that an explorer outage blocked the writer (now tolerated), and th
 - **Orphans.** A failed push after attesting leaves an orphan that stays red until explained. That's intended: the failure is part of the record.
 - **The monitor is a command, not a service.** Someone has to run it. A scheduled run from outside the owner's control (Z, or another account) is the next step.
 - **OpenTimestamps** proofs are pending for hours. Verifying through the explorers trusts that two operators serve the real chain.
-- **Size:** `record.py` is 630 lines, the tests 235, `record.yml` 127. Most of it is defences, as with the counter.
+- **Size:** `record.py` is 685 lines, the tests 350, `record.yml` 154. Most of it is defences, as with the counter.
 
 ## Files
 - `record.py`: the ledger, anchor checks and monitor.

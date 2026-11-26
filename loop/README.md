@@ -8,7 +8,7 @@ python3 loop.py freeze DIR...                      # digests for a plan's "input
 python3 loop.py reproduce DIR...                   # retrain in the jail; weights must be byte-identical
 python3 loop.py evaluate DIR... --test dev         # smoke test (in-sample for anything trained on the whole file)
 python3 loop.py evaluate DIR... --test test --plan SEQ [--rounds R] [--seed S]
-python3 -m unittest -v test_loop                   # 20 tests, ~20 s (1 skipped under bubblewrap)
+python3 -m unittest -v test_loop                   # 24 tests, ~20 s (1 skipped under bubblewrap)
 ```
 Exit codes: 0 done; 1 a check failed; 2 bad arguments (e.g. `--test test` without `--plan`; the docstring omits this); 3 failure. Plan 2 froze `loop.py`, `timer.c`, `counter/count.py`, `record/record.py`, the task and the candidates. `record.py` changed after entry 4 (a fix found by Z), so re-measure plan 2 at commit `113a3f6`, the last one with every frozen file unchanged. Needs Linux, gcc, valgrind 3.22+, bubblewrap with unprivileged user namespaces or else Linux 6.7+ for the fallback jail, Python 3 (stdlib; candidates' `train.py` may use `numpy==2.5.3`).
 
@@ -48,7 +48,7 @@ Stock Docker, Kubernetes and some VMs refuse unprivileged user namespaces, so bu
 - **Everything else (seccomp):** no fork, clone, sockets, keyring, ptrace, signals to other processes, namespaces, mounts, io_uring, BPF or perf. No SysV IPC or POSIX message queues, and no chmod, chown, utimes or xattr writes, because those outlive a run and Landlock doesn't cover them. Rlimits, CPU affinity, priority and scheduling only on the process itself: the harness shares its uid and pid namespace, so a nice value set on `loop.py` would slow every later timed run. An outside reviewer found the IPC hole independently, our own review the metadata hole, and a separate fact-check agent the rlimit and priority hole (its test fails on the old filter).
 - **The meters, almost unchanged.** The timer runs under Landlock only, so Landlock's setup (about 630 rules) isn't timed; the seccomp filter is installed in the timed child just before `exec`, a small cost bubblewrap runs don't pay (not yet measured). The counter wraps valgrind in confine with the same lists, plus `/proc/self` and `/proc/cpuinfo` (valgrind needs them). bubblewrap's one-pid check is replaced by seccomp refusing every way to make a process or thread.
 
-**Results** (`test_loop`, 20 tests: the attacks from rounds 1, 2 and 4 replayed, plus network, keyring, fork, IPC, metadata, rlimit, priority, affinity and scheduler attempts; ptrace, namespaces, mounts, io_uring, BPF and perf are denied but not separately tested):
+**Results** (`test_loop`, 24 tests: the attacks from rounds 1, 2 and 4 replayed, plus network, keyring, fork, IPC, metadata, rlimit, priority, affinity and scheduler attempts; ptrace, namespaces, mounts, io_uring, BPF and perf are denied but not separately tested):
 - **H1, it refuses what bubblewrap refuses:** holds. Every test passes in both modes, here and in stock `ubuntu:24.04` Docker on x86-64 and arm64 (the `docker` job in `loop.yml`).
 - **H2, same programs, same counts:** holds on the same host: Ir/img is identical in both modes. Between Docker's image and the runner's, only process startup differs (−413 Ir per run on x86-64, −175 on arm64), so compare Ir across hosts with the same OS image.
 - **H3, it works where bubblewrap can't:** holds in stock Docker. Not on Z's kata sandbox: its kernel (5.10) predates Landlock, so neither jail runs there and `loop.py` fails closed.
@@ -142,7 +142,7 @@ Other limits:
 - **Tier 2 only.** Instructions and nanoseconds, not joules; native time is dominated by process startup at this task's size.
 - **One task, one machine family per run.** Ir differs between x86-64 and arm64, so every Ir claim is per architecture.
 - **SEs assume independent images.**
-- **Size:** `loop.py` 666 lines, tests 331, `timer.c` 76, `confine.c` 99, `seccomp_filter.h` 113, `loop.yml` 133.
+- **Size:** `loop.py` 672 lines, tests 399, `timer.c` 104, `confine.c` 99, `seccomp_filter.h` 113, `loop.yml` 160.
 
 ## Plan 2: the first claim
 **Outcome: inconclusive** (ledger entry 3, by `claude-loop1-verifier`; evidence in `results/plan2/`).
@@ -165,10 +165,10 @@ The verifier ran the test command here, and CI ran it on 3 x86-64 and 3 arm64 ho
 - **Part B is inconclusive.** Both MLPs beat linear clearly (z 4.3 and 3.5), and both are cheaper per correct answer. But their lead over thermo is +0.56 points (z 1.62) for mlp32 and +0.11 (z 0.33) for mlp64, short of 2 SE. On the validation holdout it had been about +1.1 points: the edge shrank on the 13 new writers.
 - **Code reading** (rule amendment 2): no test data carried in, and no environment-dependent path, in any of the five.
 
-**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 17–31% faster than both baselines on every host (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.8–2.6× faster on the six CI hosts (2.3× on the EPYC cited), not the 3.5–5.4× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
+**So the plan as a whole wasn't earned; part A was.** At thermo's accuracy, mlp16 does the same job with about a fifth (x86-64) to a quarter (arm64) of the simulated instructions, *startup included*. Natively it is also 14.5–33.1% faster than both baselines over the 7 hosts (16.0–33.1% on the six CI hosts) (for example 520 ± 5 ns/img against 706 and 711 on an EPYC 7763), although startup is most of every candidate's time at this size; with startup removed it is 1.8–2.6× faster on the six CI hosts (2.3× on the EPYC cited), not the 3.5–5.4× its instruction count suggests. mlp64 is the warning: scored at 0.43× linear's instructions, it was slower than at least one baseline on all 7 hosts (see "Two meters" above). Native time wasn't part of the rule. On this task, a bigger MLP's accuracy edge over thermometer-plus-linear is within noise. A re-run would need a new plan.
 
 ## Files
 - `loop.py`: freeze, reproduce, evaluate; `scale.py` and `test_scale.py`: the per-image meter and its tests; `timer.c`: the trusted timer; `confine.c` and `seccomp_filter.h`: the fallback jail; `test_loop.py`: the tests.
 - `task/`: the dataset and its source. `baselines/`, `candidates/`: the five entries of plan 2.
-- `verify/`: CI requests to score a plan on the test set, removed once the plan has a verdict (empty now). `results/plan2/`: the verifier's evidence.
+- `verify/`: CI requests to score a plan on the test set, removed once the plan has a verdict (removed when empty; absent now). `results/plan2/`: the verifier's evidence.
 - `../.github/workflows/loop.yml`: reproduce and score on 3 x86-64 and 3 arm64 runners, plus the fallback jail in stock Docker on both; results to the `ci-runs` branch.

@@ -9,7 +9,7 @@ The planned design (queue P10):
 - Reports go straight to the owner as a GitHub issue. They are not routed through the builders.
 
 ## Baseline, 2026-11-18 (`2026-11-18-baseline.json`, main at c8d4747)
-- **Duplication:** 313 of 7,225 Python function lines (4.3%) are exact structural duplicates. Most are the frozen plan-2 candidate folders, plus the new runner label candidates.
+- **Duplication:** 313 of 7,228 Python function lines (4.3%) are exact structural duplicates. Most are the frozen plan-2 candidate folders, plus the new runner label candidates.
 - **Unreferenced code files:** 5, mostly one-off verifier and probe scripts. `router/analysis/design_variance.py` needs a look.
 - **Workflow lines that swallow a failure:** 31, mostly in the parked bench workflows.
 - **CI over the last 7 days:** router 7 of 16 runs not successful (most before the 2026-11-18 fix); runner 2 of 3 (jail work that failed closed).
