@@ -356,6 +356,37 @@ class TestProposeArm(unittest.TestCase):
             propose.main([out, "1", "0", "--arm", "packet"])
         self.assertEqual(e.exception.code, 2)
 
+    def test_packet_pilot_record_after_scoring(self):
+        import glob, importlib.util
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                            "experiments", "packet_pilot.py")
+        spec = importlib.util.spec_from_file_location("packet_pilot", path)
+        pp = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pp)
+        results = pp.RESULTS_DIR
+        initial = set(glob.glob(os.path.join(results, "*.json")))
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"wrong_items": [3, 7]}, f)
+        try:
+            self.run_propose(["no blocks"], "--arm", "baseline")
+            new = set(glob.glob(os.path.join(results, "*.json"))) - initial
+            self.assertEqual(len(new), 1)
+            rec = json.load(open(new.pop()))[0]
+            self.assertEqual(set(rec), {"arm", "valid", "calls", "correct"})
+            self.assertEqual((rec["arm"], rec["valid"], rec["correct"]), ("baseline", False, 0))
+
+            before = set(glob.glob(os.path.join(results, "*.json")))
+            self.run_propose(["no blocks"], "--arm", "packet", "--packet", f.name)
+            new = set(glob.glob(os.path.join(results, "*.json"))) - before
+            self.assertEqual(len(new), 1)
+            rec = json.load(open(new.pop()))[0]
+            self.assertEqual((rec["arm"], rec["valid"], rec["correct"]), ("packet", False, 0))
+            self.assertIsInstance(pp.run(results), dict)
+        finally:
+            os.unlink(f.name)
+            for p in set(glob.glob(os.path.join(results, "*.json"))) - initial:
+                os.unlink(p)
+
 
 if __name__ == "__main__":
     unittest.main()

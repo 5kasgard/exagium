@@ -126,6 +126,8 @@ def main(argv=None):
         except (OSError, ValueError) as e:
             print(f"--arm packet needs a readable --packet JSON file: {e}", file=sys.stderr)
             sys.exit(2)
+    run_id = os.path.basename(flag(rest, "--run-id") or os.path.abspath(out)) or "propose"
+    records = []
     engines.TIMEOUT = 600   # Nemotron reasons before answering (worker release test 1)
     for k in range(n):
         task = TASKS[(start + k) % len(TASKS)]
@@ -157,6 +159,12 @@ def main(argv=None):
             f.write(res["reply"] or f"(no reply: status {r.get('status')}: {r.get('error')})")
         with open(os.path.join(d, "finish"), "w") as f:
             f.write(str(r.get("finish") or ""))
+        records.append({"arm": arm, "valid": bool(res["valid"]), "calls": int(res["calls"]),
+                        "correct": int(res.get("correct", 0)) if res["valid"] else 0})
+        pilot = os.path.join(ROOT, "runner", "results", "packet-pilot")
+        os.makedirs(pilot, exist_ok=True)
+        with open(os.path.join(pilot, run_id + ".json"), "w") as f:
+            json.dump(records, f, indent=1)
         print(f"proposal {k}: task {task}, call ok {r.get('ok')}, status {r.get('status')}, finish {r.get('finish')}")
 
 
