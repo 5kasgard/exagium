@@ -1,0 +1,39 @@
+# Tells the owner what the system did while nobody was watching (owner, 2026-11-26). Fires when a listed workflow
+# finishes on main and posts one line to a Discord channel webhook (secret DISCORD_WEBHOOK_URL; without it this does
+# nothing). Failures always; successes only for workflows whose finishing is news (results, deploys, the scheduler).
+# workflow_run is event-driven, not cron, so it does not share GitHub's unreliable scheduler (measured 2026-11-26).
+# Only fixed text and GitHub's own fields go out: no titles, logs or outputs that a model or a PR could have written.
+name: notify
+on:
+  workflow_run:
+    workflows: [worker, schedules, sandbox-eval, box-sizes, dash-snapshot, models-rank, digest, keeper, wiring, tests,
+                act-deploy, box-deploy, cfbox-deploy, chat-deploy, connector-deploy, workbench-deploy, workbench-manage,
+                review, propose, record, runner, keys-probe]
+    types: [completed]
+permissions:
+  contents: read    # only to see worker/PAUSE
+jobs:
+  post:
+    if: >-
+      github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.event != 'pull_request' &&
+      (github.event.workflow_run.conclusion == 'failure' || github.event.workflow_run.conclusion == 'timed_out' ||
+       (github.event.workflow_run.conclusion == 'success' && contains(fromJSON('["schedules","sandbox-eval","box-sizes","digest","act-deploy","box-deploy","cfbox-deploy","chat-deploy","connector-deploy","workbench-deploy"]'), github.event.workflow_run.name)))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: post to Discord
+        env:
+          HOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ github.event.workflow_run.name }}
+          RESULT: ${{ github.event.workflow_run.conclusion }}
+          HOW: ${{ github.event.workflow_run.event }}
+          URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          [ -n "$HOOK" ] || { echo "DISCORD_WEBHOOK_URL not set: nothing sent"; exit 0; }
+          if gh api "repos/$GITHUB_REPOSITORY/contents/worker/PAUSE?ref=main" --silent 2>/dev/null; then echo "worker/PAUSE is set: paused"; exit 0; fi
+          case "$RESULT" in success) ICON="✅";; *) ICON="❌";; esac; export ICON
+          msg=$(python3 -c 'import json,os;print(json.dumps({"content":f"{os.environ["ICON"]} **{os.environ["NAME"]}** {os.environ["RESULT"]} ({os.environ["HOW"]}) <{os.environ["URL"]}>","allowed_mentions":{"parse":[]}}))' ) 
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOOK" -H 'content-type: application/json' --data "$msg")
+          echo "Discord: HTTP $code"; [ "$code" = 204 ] || [ "$code" = 200 ]
+        shell: bash
