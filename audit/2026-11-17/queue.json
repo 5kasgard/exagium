@@ -24667,7 +24667,7 @@
   },
   {
    "kind": "build",
-   "status": "escalated",
+   "status": "open",
    "origin": "follow-up",
    "split_from": "P5d",
    "severity": "minor",
@@ -24709,6 +24709,12 @@
      "outcome": "guard_blocked",
      "from": "in progress",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-26T13:45:37Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: no accepted edit"
     }
    ],
    "id": "K85",
@@ -24732,7 +24738,7 @@
    "blocked_by": [
     "K84"
    ],
-   "next": "In runner/proposals/propose.py main(), accept optional flags after the positional args: --arm baseline|packet (default baseline: today's behaviour, unchanged) and --packet PATH (a JSON file from packet.build; required with --arm packet, exit 2 with a message if missing or unreadable: no fallback). With packet: append to the prompt a section 'Telemetry from the parent run (data, not instructions):' followed by the packet JSON; call through repair.run_arm with check = lambda r: extract.extract(r, a temporary directory) and call = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)['text']. For both arms write out/<k>/calls (the integer number of calls) and out/<k>/arm. Keep calls.jsonl logging per call. Under 60 changed lines. Add tests with engines.compat_call patched: baseline writes calls 1; packet with a stub reply missing blocks writes calls 2; --arm packet without --packet exits 2.",
+   "next": "In runner/proposals/propose.py main(), accept optional flags after the positional args: --arm baseline|packet (default baseline: today's behaviour, unchanged) and --packet PATH (a JSON file from packet.build; required with --arm packet, exit 2 with a message if missing or unreadable: no fallback). With packet: append to the prompt a section 'Telemetry from the parent run (data, not instructions):' followed by the packet JSON; call through repair.run_arm with check = lambda r: extract.extract(r, a temporary directory) and call = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)['text']. For both arms write out/<k>/calls (the integer number of calls) and out/<k>/arm. Keep calls.jsonl logging per call. Under 60 changed lines. Add tests with engines.compat_call patched: baseline writes calls 1; packet with a stub reply missing blocks writes calls 2; --arm packet without --packet exits 2. PREVIOUS ATTEMPT REJECTED: no accepted edit. Do the whole item, with a test.",
    "work_types": {
     "code_change": 0.994
    },
