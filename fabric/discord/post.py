@@ -52,5 +52,24 @@ def post(kind, key, text):
     return codes
 
 
+def post_embed(kind, key, embed):
+    """One card (Discord embed) as the persona. Returns [HTTP status] or [] when no webhook is set."""
+    hook = os.environ.get("DISCORD_WEBHOOK_URL", "")
+    if not hook:
+        return []
+    who = persona(kind, key)
+    body = json.dumps({"username": who["name"], "avatar_url": who["avatar"], "embeds": [embed],
+                       "allowed_mentions": {"parse": []}}).encode()
+    req = urllib.request.Request(hook, data=body, method="POST",
+                                 headers={"content-type": "application/json", "user-agent": "forge-discord"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return [r.status]
+    except urllib.error.HTTPError as e:
+        return [e.code]
+    except Exception:
+        return [-1]
+
+
 if __name__ == "__main__":
     print("discord:", post(sys.argv[1], sys.argv[2], sys.stdin.read()) or "DISCORD_WEBHOOK_URL not set")

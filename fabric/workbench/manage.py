@@ -10,7 +10,7 @@ with LOBEHUB_CLI_API_KEY). Owner 2026-11-25: "add automation so you can work on 
 
 Public logs: prints ids, titles, hosts and counts only, never the account's email, keys or headers. Changes come only
 from merged config (fabric/workbench/config/); agents it manages carry the tag forge-managed and are found by it."""
-import json, os, subprocess, sys, tempfile
+import json, os, re, subprocess, sys, tempfile
 from urllib.parse import urlparse
 
 LH = os.environ.get("LH", "lh")
@@ -142,7 +142,7 @@ def agent_id(key):
     return found[0]["id"]
 
 
-def run(key, prompt, timeout=600):
+def run(key, prompt, timeout=600, topic=None):
     """One headless run. Returns (exit code, seconds). The reply stays in LobeHub (a topic the owner can open) and,
     when DISCORD_WEBHOOK_URL is set, is also posted to the owner's private Discord as the agent's persona
     (fabric/discord/post.py). The public log gets only the status, because agent output may quote private material."""
@@ -151,7 +151,11 @@ def run(key, prompt, timeout=600):
     aid = agent_id(key)
     t_lookup = time.time()
     probe = os.environ.get("FORGE_STREAM_PROBE") == "1"
-    args = [LH, "agent", "run", "-a", aid, "-p", prompt, "--timeout", str(timeout)] + (["--json"] if probe else [])
+    if topic and not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", topic):
+        sys.exit("bad topic id")
+    to_discord = bool(os.environ.get("DISCORD_WEBHOOK_URL"))
+    args = [LH, "agent", "run", "-a", aid, "-p", prompt, "--timeout", str(timeout)] + (["-t", topic] if topic else []) \
+        + (["--json"] if probe or to_discord else [])
     if probe:   # learn the live stream: when output arrives and its shape (types and field names only, never content)
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
         stamps, buf = [], []
@@ -189,12 +193,15 @@ def run(key, prompt, timeout=600):
         return p.returncode, round(time.time() - t)
     r = subprocess.run(args, capture_output=True, text=True, timeout=timeout + 60)
     print(f"timing: agent lookup {t_lookup - t:.1f} s, agent run {time.time() - t_lookup:.1f} s")
-    if os.environ.get("DISCORD_WEBHOOK_URL"):
+    if to_discord:
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "discord"))
-        import post
-        head = {0: "", 1: "(the run failed)\n", 2: "(waiting for your approval in LobeHub)\n", 3: "(still running)\n"}
-        codes = post.post("agent", key, head.get(r.returncode, "") + (r.stdout or ""))
-        print("discord:", codes)
+        import post, render
+        s = render.summarise(render.events(r.stdout or ""))
+        if s["answer"] or s["tools"]:
+            codes = post.post_embed("agent", key, render.card(key, s, time.time() - t_lookup, r.returncode))
+        else:   # the stream could not be read: send what the CLI printed rather than nothing
+            codes = post.post("agent", key, r.stdout or "(no output)")
+        print("discord:", codes, "| tools", len(s["tools"]), "| topic", "yes" if s["topic"] else "no")
     return r.returncode, round(time.time() - t)
 
 
@@ -221,7 +228,7 @@ if __name__ == "__main__":
     if sys.argv[1:2] == ["status"]:
         status()
     elif sys.argv[1:2] == ["run"]:
-        code, secs = run(sys.argv[2], sys.argv[3])
+        code, secs = run(sys.argv[2], sys.argv[3], topic=(sys.argv[4] if len(sys.argv) > 4 and sys.argv[4] else None))
         print(f"run {sys.argv[2]}: exit {code} in {secs} s (0 done, 1 failed, 2 waiting for approval, 3 unconfirmed)")
         sys.exit(code)
     elif sys.argv[1:2] == ["due"]:

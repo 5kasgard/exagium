@@ -24,7 +24,20 @@ export const COMMANDS = [
         choices: RUN.filter((w) => w !== "workbench-manage.yml").map((w) => ({ name: w.replace(".yml", ""), value: w })) }] },
   { name: "status", description: "Latest result of the main Forge jobs", default_member_permissions: "32" },
   { name: "prs", description: "Open pull requests", default_member_permissions: "32" },
+  // message menu (long-press a message > Apps): continue that agent's chat instead of starting a new one
+  { type: 3, name: "Reply to agent", default_member_permissions: "32" },
 ];
+const BY_NAME = Object.fromEntries(Object.entries(NAMES).map(([k, v]) => [v, k]));
+const TOPIC = /topic ([A-Za-z0-9_-]{1,80})/;
+
+// The agent and the chat to continue come from the card itself: the persona name it was posted as and the
+// "topic …" in its footer (fabric/discord/render.py). Nothing is stored.
+export function replyTarget(i) {
+  const m = i.data?.resolved?.messages?.[i.data?.target_id];
+  const agent = BY_NAME[m?.author?.username];
+  const topic = (m?.embeds?.[0]?.footer?.text || "").match(TOPIC)?.[1];
+  return agent && topic ? { agent, topic } : null;
+}
 
 const hex = (h) => new Uint8Array((h.match(/../g) || []).map((x) => parseInt(x, 16)));
 
@@ -53,6 +66,13 @@ export async function command(i, env, gh, repo) {
     await gh(env, `/repos/${repo}/actions/workflows/workbench-manage.yml/dispatches`, "POST",
       { ref: "main", inputs: { mode: "run", agent, prompt } });
     return say(`Asked **${NAMES[agent]}**. The reply will be posted here as ${NAMES[agent]} (usually 1-3 min). Runs: <${RUNS}/workflows/workbench-manage.yml>`);
+  }
+  if (name === "continue") {
+    const { agent, topic, text } = i.data;
+    if (!AGENTS.includes(agent) || !/^[A-Za-z0-9_-]{1,80}$/.test(topic || "") || !text) return say("Could not read the reply.");
+    await gh(env, `/repos/${repo}/actions/workflows/workbench-manage.yml/dispatches`, "POST",
+      { ref: "main", inputs: { mode: "run", agent, prompt: text, topic } });
+    return say(`Sent to **${NAMES[agent]}** in the same chat. The answer will arrive as a new card.`);
   }
   if (name === "run") {
     const job = opt(i, "job");
@@ -87,7 +107,19 @@ export async function handle(request, env, gh, repo, ctx, post = fetch) {
   let i;
   try { i = JSON.parse(body); } catch { return new Response("bad json", { status: 400 }); }
   if (i.type === 1) return Response.json({ type: 1 });            // Discord's PING when the endpoint is saved
-  if (i.type !== 2) return Response.json({ type: 4, data: { ...reply("Not supported yet."), flags: 64 } });
+  const owner = env.DISCORD_OWNER_ID && (i.member?.user?.id || i.user?.id) === env.DISCORD_OWNER_ID;
+  if (i.type === 2 && i.data?.type === 3) {                       // "Reply to agent": answer with a form at once
+    const t = replyTarget(i);
+    if (!owner || !t) return Response.json({ type: 4, data: { ...reply(owner ? "That message is not an agent reply with a topic." : "Not allowed."), flags: 64 } });
+    return Response.json({ type: 9, data: { custom_id: `reply:${t.agent}:${t.topic}`, title: `Reply to ${NAMES[t.agent]}`,
+      components: [{ type: 1, components: [{ type: 4, custom_id: "text", label: "Your reply", style: 2, required: true, max_length: 1500 }] }] } });
+  }
+  if (i.type === 5) {                                              // the form was sent: continue that topic
+    const [, agent, topic] = String(i.data?.custom_id || "").match(/^reply:([a-z]+):([A-Za-z0-9_-]{1,80})$/) || [];
+    const text = i.data?.components?.[0]?.components?.[0]?.value?.trim();
+    if (!owner || !AGENTS.includes(agent) || !text) return Response.json({ type: 4, data: { ...reply(owner ? "Could not read the reply." : "Not allowed."), flags: 64 } });
+    i = { ...i, type: 2, data: { name: "continue", agent, topic, text } };
+  } else if (i.type !== 2) return Response.json({ type: 4, data: { ...reply("Not supported yet."), flags: 64 } });
   const work = (async () => {
     let text;
     try { text = await command(i, env, gh, repo); } catch (e) { text = "Failed: " + String(e && e.message || e).slice(0, 300); }

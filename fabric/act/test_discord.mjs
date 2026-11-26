@@ -50,4 +50,19 @@ r = await send(cmd("prs")); assert.ok(!r.j.data.content.includes("@everyone")); 
 assert.equal((await handle(new Request("https://a", { method: "POST", headers: {}, body: "{}" }), {}, gh, "o/r")).status, 401, "no key configured: refuse");
 const runChoices = COMMANDS.find((c) => c.name === "run").options[0].choices.map((c) => c.value);
 assert.ok(runChoices.every((v) => RUN.includes(v)) && !runChoices.includes("workbench-manage.yml"));
+// "Reply to agent": a form for the owner on an agent card, then the same topic continues
+const card = { author: { username: "Scout" }, embeds: [{ footer: { text: "gpt-oss-120b · 52 s · topic tpc_AB12" } }] };
+const menu = (uid = OWNER, m = card) => ({ type: 2, application_id: "app", token: "tok", member: { user: { id: uid } },
+  data: { type: 3, name: "Reply to agent", target_id: "m1", resolved: { messages: { m1: m } } } });
+r = await send(menu()); assert.equal(r.j.type, 9); assert.equal(r.j.data.custom_id, "reply:free:tpc_AB12");
+r = await send(menu("999")); assert.match(r.j.data.content, /Not allowed/);
+r = await send(menu(OWNER, { author: { username: "Forge" }, embeds: [] })); assert.match(r.j.data.content, /not an agent reply/);
+const form = (uid = OWNER, cid = "reply:free:tpc_AB12", text = "and the open PRs?") => ({ type: 5, application_id: "app", token: "tok",
+  member: { user: { id: uid } }, data: { custom_id: cid, components: [{ type: 1, components: [{ type: 4, custom_id: "text", value: text }] }] } });
+r = await send(form()); assert.match(r.j.data.content, /same chat/);
+assert.deepEqual(calls.pop().body, { ref: "main", inputs: { mode: "run", agent: "free", prompt: "and the open PRs?", topic: "tpc_AB12" } });
+const before = calls.length;
+r = await send(form("999")); assert.match(r.j.data.content, /Not allowed/);
+r = await send(form(OWNER, "reply:root:x;rm")); assert.match(r.j.data.content, /Could not read/);
+assert.equal(calls.length, before, "no dispatch for a stranger or a bad form");
 console.log("test_discord: ok");
