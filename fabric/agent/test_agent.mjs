@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 const CONFIG = JSON.parse(readFileSync(new URL("./agents.json", import.meta.url)));
 // worker.js imports agents.json as a module (wrangler bundles it); give node the same thing
-const src = readFileSync(new URL("./worker.js", import.meta.url), "utf8").replace('import CONFIG from "./agents.json";', `const CONFIG = ${JSON.stringify(CONFIG)};`);
+const src = readFileSync(new URL("./worker.js", import.meta.url), "utf8").replace('import CONFIG from "./agents.json";', `const CONFIG = ${JSON.stringify(CONFIG)};`)
+  .replace('import * as record from "../record/record.js";', "const record = { register: async () => null, touch: async () => {}, log: async () => {} };");
 const m = await import("data:text/javascript," + encodeURIComponent(src));
 
 // SSE: text in pieces, a tool call split across chunks, usage at the end
@@ -70,7 +71,12 @@ assert.deepEqual(m.route({ ...base, guild_id: undefined }, O), { agent: "lead", 
 assert.deepEqual(m.route({ ...base, content: "Scout, count the queue" }, O), { agent: "free", prompt: "count the queue" });
 assert.deepEqual(m.route({ ...base, content: "coder: fix #12" }, O), { agent: "coder", prompt: "fix #12" });
 assert.equal(m.route({ ...base, content: "Bob, hi" }, O), null);
-const reply = { ...base, content: "and the PRs?", referenced_message: { author: { username: "Scout" }, embeds: [{ footer: { text: "gpt-oss-120b · 9 s · done · chat c0ffee1234567890" } }] } };
-assert.deepEqual(m.route(reply, O), { agent: "free", chat: "c0ffee1234567890", prompt: "and the PRs?" });
-assert.equal(m.route({ ...reply, referenced_message: { author: { username: "Scheduler" }, embeds: [] } }, O), null);
+const reply = { ...base, content: "and the PRs?", referenced_message: { webhook_id: "w", author: { username: "Stradivari · Coder" }, embeds: [{ footer: { text: "gpt-oss-120b · 9 s · done · chat c0ffee1234567890" } }] } };
+assert.deepEqual(m.route(reply, O), { chat: "c0ffee1234567890", prompt: "and the PRs?" });
+assert.equal(m.route({ ...reply, referenced_message: { webhook_id: "w", author: { username: "Scheduler" }, embeds: [] } }, O), null);
+assert.equal(m.route({ ...reply, referenced_message: { ...reply.referenced_message, webhook_id: undefined } }, O), null, "a typed message quoting a footer is not a card");
+assert.deepEqual(m.route({ ...base, content: "Coder, add tests" }, O), { agent: "coder", prompt: "add tests" });
+assert.equal(m.personaName({ name: "Fabergé" }, "free"), "Fabergé · Scout");
+// a reply with only a chat id is accepted at the entry
+const ok2 = await (await post({ prompt: "more", chat: "c0ffee1234567890" })).json(); assert.equal(ok2.chat, "c0ffee1234567890");
 console.log("test_agent: ok");

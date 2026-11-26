@@ -1,4 +1,5 @@
 import { handle as discordHandle } from "./discord.js";
+import * as record from "../record/record.js";
 // Forge act: the write half of the Forge connector (owner 2026-11-25: "as powerful as this chat"). A remote MCP
 // server (Streamable HTTP, JSON responses) that lets a chat the owner uses do things in the repo, never on its own
 // authority: it opens issues, comments, opens PRs from workbench/* branches and starts allow-listed workflows.
@@ -54,6 +55,16 @@ export function inputProblem(env, workflow, inputs) {
 }
 
 export const TOOLS = {
+  agents: {
+    reads: true,
+    description: "The Forge's agent register: active agent instances (name, class, model, interface, what each may do, who started it). Read before acting so you know who else is working.",
+    schema: { type: "object", properties: { class: { type: "string", description: "only this class: main, lead, coder, scout, researcher, worker, chat, job" }, all: { type: "boolean", description: "include retired instances" } } },
+    run: async (a, env) => ({ agents: await record.agents(env.DB, { active: !a.all, cls: a.class }) }) },
+  activity: {
+    reads: true,
+    description: "The Forge's activity log: who did what, when, through which interface and model, newest first. Filter by an agent id, name or claimed actor.",
+    schema: { type: "object", properties: { agent: { type: "string" }, since: { type: "string", description: "ISO time" }, limit: { type: "number" } } },
+    run: async (a, env) => ({ events: await record.activity(env.DB, a) }) },
   create_issue: {
     description: "Open an issue in the Forge repo (a task, finding or question for the owner and workers).",
     schema: { type: "object", properties: { title: { type: "string" }, body: { type: "string" }, ...ACTOR }, required: ["title", "body", "actor"] },
@@ -126,10 +137,18 @@ export async function handle(msg, env) {
   if (method === "tools/call") {
     const t = TOOLS[params.name];
     if (!t) return rpcErr(id, -32602, `unknown tool ${params.name}`);
+    const a = params.arguments || {};
+    // every write is logged. The caller held the act token, but the actor name is only what it claimed, so the
+    // event is marked unverified (review 2026-11-27)
+    const note = (ok, out) => t.reads ? null : record.log(env.DB, { actor: a.actor || "unknown", verified: false, interface: "act",
+      action: params.name, target: a.workflow || (a.number && `#${a.number}`) || a.title || a.branch || null,
+      link: out?.url || out?.html_url || null, summary: ok ? null : `failed: ${out}` });
     try {
-      const out = await t.run(params.arguments || {}, env);
+      const out = await t.run(a, env);
+      await note(true, out);
       return rpc(id, { content: [{ type: "text", text: JSON.stringify(out, null, 1) }] });
     } catch (e) {
+      await note(false, String(e.message).slice(0, 200));
       return rpc(id, { content: [{ type: "text", text: `error: ${e.message}` }], isError: true });
     }
   }
