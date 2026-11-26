@@ -348,59 +348,66 @@ const INTENTS = (1 << 9) | (1 << 12) | (1 << 15);   // guild messages, direct me
 const GATEWAY = "https://gateway.discord.gg/?v=10&encoding=json";
 
 export class Gateway {
-  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.ws = null; this.seq = null; this.acked = true; this.timer = null; }
+  // The socket's heartbeat runs from the Durable Object's alarm, not a timer: timers set during a request did not
+  // keep firing (2026-11-27: the socket went quiet a minute after "ready" while the object still thought it was up).
+  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.ws = null; this.seq = null; this.hb = 40000; this.lastAck = 0; }
 
-  async fetch() { await this.ensure(); return Response.json({ connected: !!this.ws }); }
+  async fetch() { await this.ensure(); return Response.json({ connected: !!this.ws, lastAck: this.lastAck }); }
   async alarm() { await this.ensure(); }
 
   async ensure() {
-    // checked every minute: reconnect if the socket is gone or stopped acknowledging heartbeats
-    await this.ctx.storage.setAlarm(Date.now() + 60000);
+    await this.ctx.storage.setAlarm(Date.now() + Math.min(this.hb, 40000));
     if (!this.env.DISCORD_BOT_TOKEN || !this.env.DISCORD_OWNER_ID) return;
-    // a refusal that retrying cannot fix (bad token, intents not enabled): wait 30 min before trying again
     const fatal = await this.ctx.storage.get("fatal");
     if (fatal && Date.now() - fatal.at < 30 * 60000) return;
-    if (this.ws && this.acked !== false) return;
-    try { this.ws?.close(); } catch {}
+    // alive means an acknowledgement or event within 2.5 heartbeats; otherwise drop it and connect again
+    if (this.ws && Date.now() - this.lastAck < 2.5 * this.hb) { this.send(1, this.seq); return; }
+    if (this.ws) console.log(JSON.stringify({ gateway: "stale, reconnecting", since: Date.now() - this.lastAck }));
+    try { this.ws?.close(4000); } catch {}
     this.ws = null;
     const st = (await this.ctx.storage.get("session")) || {};
     const r = await fetch(st.resume || GATEWAY, { headers: { Upgrade: "websocket" } });
     const ws = r.webSocket;
     if (!ws) { console.log(JSON.stringify({ gateway: "no socket", status: r.status })); return; }
     ws.accept();
-    this.ws = ws; this.acked = true;
+    this.ws = ws; this.lastAck = Date.now();
     ws.addEventListener("message", (e) => this.onMessage(JSON.parse(e.data), st).catch((x) => console.log(JSON.stringify({ gateway: "error", e: String(x).slice(0, 200) }))));
-    ws.addEventListener("close", (e) => { console.log(JSON.stringify({ gateway: "closed", code: e.code })); if (this.ws === ws) this.ws = null; clearInterval(this.timer);
-      if ([4004, 4010, 4011, 4012, 4013, 4014].includes(e.code)) this.ctx.storage.put("fatal", { code: e.code, at: Date.now() }); });
+    ws.addEventListener("close", (e) => { console.log(JSON.stringify({ gateway: "closed", code: e.code })); if (this.ws === ws) this.ws = null;
+      if ([4004, 4010, 4011, 4012, 4013, 4014].includes(e.code)) this.ctx.storage.put("fatal", { code: e.code, at: Date.now() });
+      if (e.code === 4007 || e.code === 4009) this.ctx.storage.delete("session"); });
   }
 
   send(op, d) { try { this.ws?.send(JSON.stringify({ op, d })); } catch {} }
 
   async onMessage(p, st) {
+    this.lastAck = Date.now();
     if (p.s) this.seq = p.s;
-    if (p.op === 10) {                       // hello: start heartbeats, then resume or identify
-      clearInterval(this.timer);
-      this.timer = setInterval(() => { if (this.acked === false) { try { this.ws?.close(4000); } catch {} this.ws = null; return; }
-        this.acked = false; this.send(1, this.seq); }, p.d.heartbeat_interval);
+    if (p.op === 10) {                       // hello: resume or identify; heartbeats then run from the alarm
+      this.hb = p.d.heartbeat_interval || 40000;
+      await this.ctx.storage.setAlarm(Date.now() + Math.min(this.hb, 40000));
+      this.send(1, this.seq);
       if (st.session && st.seq) this.send(6, { token: this.env.DISCORD_BOT_TOKEN, session_id: st.session, seq: st.seq });
       else this.send(2, { token: this.env.DISCORD_BOT_TOKEN, intents: INTENTS, properties: { os: "cloudflare", browser: "forge", device: "forge" } });
-    } else if (p.op === 11) this.acked = true;
-    else if (p.op === 1) this.send(1, this.seq);
-    else if (p.op === 7) { try { this.ws?.close(4000); } catch {} this.ws = null; }                 // reconnect asked
+    } else if (p.op === 1) this.send(1, this.seq);
+    else if (p.op === 7) { try { this.ws?.close(4000); } catch {} this.ws = null; }
     else if (p.op === 9) { await this.ctx.storage.delete("session"); try { this.ws?.close(4000); } catch {} this.ws = null; }
     else if (p.op === 0) {
       if (p.t === "READY") {
         await this.ctx.storage.put("session", { session: p.d.session_id, resume: (p.d.resume_gateway_url || "").replace(/^wss:/, "https:") + "/?v=10&encoding=json", seq: p.s });
         console.log(JSON.stringify({ gateway: "ready" }));
       }
+      if (p.t === "RESUMED") console.log(JSON.stringify({ gateway: "resumed" }));
       if (p.s) { const cur = (await this.ctx.storage.get("session")) || {}; if (cur.session) await this.ctx.storage.put("session", { ...cur, seq: p.s }); }
       if (p.t === "MESSAGE_CREATE") {
-        const job = route(p.d, this.env.DISCORD_OWNER_ID);
+        const d = p.d;
+        const job = route(d, this.env.DISCORD_OWNER_ID);
+        // shape only, never content: why a message was or was not picked up
+        console.log(JSON.stringify({ gateway: "message", owner: d.author?.id === this.env.DISCORD_OWNER_ID, bot: !!d.author?.bot,
+          dm: !d.guild_id, reply: !!d.referenced_message, card: !!d.referenced_message?.webhook_id, text: !!d.content, routed: !!job }));
         if (!job) return;
         const res = await startJob(this.env, job);
-        console.log(JSON.stringify({ gateway: "message", agent: job.agent, cont: !!job.chat, ok: !res.error }));
-        // a small reaction tells the owner it was picked up (ignored if the bot lacks the permission)
-        await fetch(`https://discord.com/api/v10/channels/${p.d.channel_id}/messages/${p.d.id}/reactions/${encodeURIComponent(res.error ? "⚠️" : "👀")}/@me`,
+        console.log(JSON.stringify({ gateway: "started", agent: job.agent || "(chat)", cont: !!job.chat, ok: !res.error, err: res.error }));
+        await fetch(`https://discord.com/api/v10/channels/${d.channel_id}/messages/${d.id}/reactions/${encodeURIComponent(res.error ? "⚠️" : "👀")}/@me`,
           { method: "PUT", headers: { authorization: `Bot ${this.env.DISCORD_BOT_TOKEN}` } }).catch(() => {});
       }
     }
