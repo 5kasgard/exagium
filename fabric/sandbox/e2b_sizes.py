@@ -14,9 +14,12 @@ from e2b import Sandbox, Template
 
 RUN = f"{os.environ.get('GITHUB_WORKFLOW', 'local')}#{os.environ.get('GITHUB_RUN_ID', '-')}"
 WHO = "fabric/sandbox/e2b_sizes.py (written by Claude Opus 5.5), run " + RUN
-# name -> (memory MB, start CPUs, max CPUs). 4 and 8 GiB are E2B's listed tiers (e2b.dev/pricing, read 2026-11-26).
-TEMPLATES = {"forge-box": (4096, 2, 8), "forge-box-big": (8192, 2, 8)}
-PROBES = [("forge-box", 1), ("forge-box", 2), ("forge-box", 4), ("forge-box", 8), ("forge-box-big", 8)]
+# name -> (memory MB, start CPUs, max CPUs); listed tiers on e2b.dev/pricing (read 2026-11-26).
+# Run 45793709339: "400: Resizable templates are not enabled for your team", so each size is its own fixed template
+# (max = start). A refusal of these too would mean custom sizes are Pro-only on this account.
+TEMPLATES = {"forge-box-s": (2048, 1, 1), "forge-box": (4096, 2, 2), "forge-box-l": (4096, 4, 4),
+             "forge-box-xl": (8192, 8, 8)}
+PROBES = [(n, c) for n, (_, c, _) in TEMPLATES.items()]
 # per-second prices, e2b.dev/pricing read 2026-11-26: $0.000014 per vCPU, $0.0000045 per GiB
 PRICE_CPU, PRICE_GIB = 0.000014, 0.0000045
 WORK = 24_000_000
@@ -47,7 +50,8 @@ def build():
     for name, (mem, cpu, cpu_max) in TEMPLATES.items():
         t = time.time()
         try:
-            Template.build(image, name, cpu_count=cpu, max_cpu_count=cpu_max, memory_mb=mem)
+            extra = {"max_cpu_count": cpu_max} if cpu_max != cpu else {}
+            Template.build(image, name, cpu_count=cpu, memory_mb=mem, **extra)
             out[name] = {"ok": True, "build_s": round(time.time() - t, 1), "memory_mb": mem, "cpu": [cpu, cpu_max]}
         except Exception as e:   # e.g. a plan refusal: that is the answer to the Hobby question
             out[name] = {"ok": False, "error": str(e)[-400:]}
@@ -59,7 +63,7 @@ def probe(name, cpus):
     rec = {"template": name, "cpu_asked": cpus, "at": now()}
     t = time.time()
     try:
-        sb = Sandbox.create(template=name, cpu_count=cpus, timeout=300, metadata={"forge": "sizes"})
+        sb = Sandbox.create(template=name, timeout=300, metadata={"forge": "sizes"})   # fixed size: no cpu_count
     except Exception as e:
         return rec | {"ok": False, "error": str(e)[-400:]}
     try:
