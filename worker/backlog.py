@@ -85,6 +85,9 @@ def lanes(q, now=None):
             dead = [b for b in i.get("blocked_by", []) if by.get(b, {}).get("status") in ("parked", None)]
             return ("orphan", f"blocked by parked or missing {dead}") if dead else ("blocked", ",".join(i.get("blocked_by", [])))
         if st == "open":
+            n = (i.get("experiment") or {}).get("name", "")
+            if re.fullmatch(r"[a-z0-9_]+", n) and os.path.isfile(os.path.join(os.path.dirname(HERE), "experiments", n + ".py")):
+                return "worker", "experiment"   # worker/dispatch_experiments.py starts it from the idle job (K89 was shown as claude work)
             if i["id"] in ready:
                 return "worker", Q.job_type(i) or ""
             if i["id"] in cand:
