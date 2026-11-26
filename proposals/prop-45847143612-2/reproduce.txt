@@ -1,0 +1,16 @@
+FAILED: prop-45847143612-2 on text: train.py exited 1:
+Trying E=16, H=64
+Traceback (most recent call last):
+  File "/w/train.py", line 148, in <module>
+    main()
+  File "/w/train.py", line 122, in main
+    params = train_model(X_train, y_train, d, C, E, H, rng, SAMPLES, MAX_EPOCHS)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 62, in train_model
+    flat, hidden, hidden_relu, logits = forward(Xb)
+                                        ^^^^^^^^^^^
+  File "/w/train.py", line 44, in forward
+    flat = emb.reshape(n, d * E)  # (n, d*E)
+           ^^^^^^^^^^^^^^^^^^^^^
+ValueError: cannot reshape array of size 16384 into shape (19200,256)
+
