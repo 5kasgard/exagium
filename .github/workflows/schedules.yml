@@ -24,6 +24,7 @@ jobs:
       - name: run what is due
         env:
           LOBEHUB_CLI_API_KEY: ${{ secrets.LOBEHUB_CLI_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}   # replies go to the owner's private Discord
         run: |
           if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
           npm i -g --no-fund --no-audit @lobehub/cli@0.0.234 > /dev/null   # zizmor: ignore[adhoc-packages] version pinned

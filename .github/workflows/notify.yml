@@ -21,6 +21,11 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+          sparse-checkout: fabric/discord
       - name: post to Discord
         env:
           HOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -33,7 +38,7 @@ jobs:
           [ -n "$HOOK" ] || { echo "DISCORD_WEBHOOK_URL not set: nothing sent"; exit 0; }
           if gh api "repos/$GITHUB_REPOSITORY/contents/worker/PAUSE?ref=main" --silent 2>/dev/null; then echo "worker/PAUSE is set: paused"; exit 0; fi
           case "$RESULT" in success) ICON="✅";; *) ICON="❌";; esac; export ICON
-          msg=$(python3 -c 'import json,os;print(json.dumps({"content":f"{os.environ["ICON"]} **{os.environ["NAME"]}** {os.environ["RESULT"]} ({os.environ["HOW"]}) <{os.environ["URL"]}>","allowed_mentions":{"parse":[]}}))' ) 
-          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$HOOK" -H 'content-type: application/json' --data "$msg")
-          echo "Discord: HTTP $code"; [ "$code" = 204 ] || [ "$code" = 200 ]
+          export DISCORD_WEBHOOK_URL="$HOOK"
+          printf '%s **%s** %s (%s) <%s>' "$ICON" "$NAME" "$RESULT" "$HOW" "$URL" | python3 -I fabric/discord/post.py workflow "$NAME" | tee "$RUNNER_TEMP/r"
+          grep -qE '\[(200|204)\]' "$RUNNER_TEMP/r"
         shell: bash
