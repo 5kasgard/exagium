@@ -31,3 +31,8 @@ def staged_select(scores, folds, lam=0.5, cut=0.1, keep=0.5):
     survivors = [n for n in names if st[n]['alive']]
     elim = {n: st[n]['elim'] for n in names if st[n]['elim'] is not None}
     return {'survivors': survivors, 'scored_items': scored, 'eliminated_at': elim}
+
+
+def scored_items(scores, folds, lam=0.5, cut=0.1, keep=0.5):
+    """Number of (candidate, item) pairs staged_select reads before elimination and keep."""
+    return staged_select(scores, folds, lam, cut, keep)['scored_items']

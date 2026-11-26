@@ -89,6 +89,14 @@ class TestStaged(unittest.TestCase):
         self.assertEqual(out['eliminated_at'].get('dip'), 0)
         self.assertLess(out['scored_items'], 16 * 480)
 
+    def test_scored_items_counts_before_keep(self):
+        total = 64
+        scores = {f'c{i}': [-1.0] * total for i in range(15)}
+        scores['best'] = [1.0] * total
+        folds = [16, 32, 64]
+        self.assertLess(staged.scored_items(scores, folds), 16 * total)
+        self.assertIn('best', staged.staged_select(scores, folds)['survivors'])
+
 
 class TestPacket(unittest.TestCase):
     def test_four_keys_dev_record_only(self):
