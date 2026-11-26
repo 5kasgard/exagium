@@ -1,0 +1,30 @@
+FAILED: prop-45899776214-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 247, in <module>
+    main()
+  File "/w/train.py", line 208, in main
+    tree = build_tree(X, y, train_idx, feature_types, max_depth, min_leaf)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 155, in build_tree
+    node.left = build_tree(X, y, left_idx, feature_types, max_depth, min_leaf, depth + 1)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 156, in build_tree
+    node.right = build_tree(X, y, right_idx, feature_types, max_depth, min_leaf, depth + 1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 155, in build_tree
+    node.left = build_tree(X, y, left_idx, feature_types, max_depth, min_leaf, depth + 1)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 138, in build_tree
+    return make_leaf(y, indices)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 163, in make_leaf
+    cls = vals[np.argmax(counts)]
+               ^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py", line 1352, in argmax
+    return _wrapfunc(a, 'argmax', axis=axis, out=out, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py", line 54, in _wrapfunc
+    return bound(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^
+ValueError: attempt to get argmax of an empty sequence
+
