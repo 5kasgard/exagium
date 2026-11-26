@@ -34,6 +34,12 @@ class Lanes(unittest.TestCase):
         L = B.lanes({"items": [item("A", "open", kind="decision", split_tried="2026-11-24T00:00:00Z")]})
         self.assertEqual(L["A"]["lane"], "claude")
 
+    def test_open_experiment_is_worker_work(self):
+        L = B.lanes({"items": [item("A", "open", kind="test", experiment={"name": "queue_drift"}),
+                               item("B", "open", kind="test", experiment={"name": "no_such_experiment"})]})
+        self.assertEqual((L["A"]["lane"], L["A"]["why"]), ("worker", "experiment"))
+        self.assertEqual(L["B"]["lane"], "claude")
+
     def test_stale_and_undated(self):
         import datetime as dt
         now = dt.datetime(2026, 12, 1, tzinfo=dt.timezone.utc)
