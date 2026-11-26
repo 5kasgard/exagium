@@ -124,6 +124,14 @@ def check(sub, lines, tests):
             "experiment": exp}, None
 
 
+def repro_next(next_step, repro):
+    """K79: carry the item's repro into the coder's next step, with the fail-first instruction."""
+    if not repro:
+        return next_step
+    return (f"Repro: {repro}\nfirst add a test that reproduces this exact case and confirm it fails on the current code, "
+            "then make it pass, and do not add tests that only check the new code runs.\n" + next_step)
+
+
 def recently_tried(i):
     import datetime as dt
     t = i.get("split_tried")
@@ -267,7 +275,8 @@ def run(wt, repo, out, ask=None, decide_fn=None):
                                    "split_from": p["id"], "generated_at": Q.iso(Q.now()),
                                    "code": {"files": s["files"], "test": s["test"], "context": s["context"], "new": s["new"]},
                                    "touches": list(s["files"]) + [s["test"]],
-                                   "next": s["next"], "refs": [f"queue {p['id']}", "worker/split.py"], "severity": "minor",
+                                   "next": repro_next(s["next"], p.get("repro")), "refs": [f"queue {p['id']}", "worker/split.py"],
+                                   "severity": "minor",
                                    "needs": "free", "cost": 0, "value": p.get("value", "medium"), "blocked_by": [],
                                    "batch": p.get("batch", "B3")})
                 made.append(kid)

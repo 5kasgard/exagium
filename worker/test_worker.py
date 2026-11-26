@@ -1804,3 +1804,39 @@ class GenerateAttachLiterature(unittest.TestCase):
             self.assertEqual(l1["touches"], ["research/"])
             self.assertTrue(l1.get("research_tried"))
             self.assertNotIn("L1", [i["id"] for i in G.candidates({"items": list(by.values())})])   # not redrafted for 7 days
+
+
+class SplitRepro(unittest.TestCase):
+    """K79: a sub-item's next step carries its parent's repro and the fail-first instruction."""
+
+    def test_repro_in_next_step(self):
+        import json as _json
+        here = os.path.dirname(os.path.abspath(__file__))
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import split
+        with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as out:
+            os.makedirs(os.path.join(repo, "worker"))
+            with open(os.path.join(repo, "worker", "foo.py"), "w") as f:
+                f.write("def parse(s):\n    return s.split(',')\n")
+            with open(os.path.join(repo, "worker", "test_foo.py"), "w") as f:
+                f.write("import unittest\n")
+            next_text = "Make parse split on commas and test it."
+            q = {"items": [{"id": "K1", "title": "Parse a CSV", "kind": "fix", "status": "open", "value": "high",
+                            "next": next_text, "repro": 'parse("a,b") == ["a","b"]', "blocked_by": []}]}
+
+            def ask(prompt):
+                return _json.dumps({"subitems": [{"title": "Make parse split on commas",
+                                                  "files": ["worker/foo.py"], "new": [], "test": "worker/test_foo.py",
+                                                  "context": [], "next": next_text}]})
+
+            with unittest.mock.patch.object(split.Q, "sync"), \
+                    unittest.mock.patch.object(split.Q, "load", return_value=q), \
+                    unittest.mock.patch.object(split.Q, "save"), \
+                    unittest.mock.patch.object(split.Q, "commit_push", return_value=True):
+                split.run("wt", repo, out, ask=ask, decide_fn=lambda pairs: ([1.0] * len(pairs), None))
+            sub = next(i for i in q["items"] if i.get("split_from") == "K1")
+            self.assertIn('parse("a,b") == ["a","b"]', sub["next"])
+            self.assertIn("fails on the current code", sub["next"])
+            self.assertIn(next_text, sub["next"])
+            self.assertGreater(sub["next"].index(next_text), sub["next"].index("fails on the current code"))
