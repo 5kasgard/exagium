@@ -1,0 +1,18 @@
+FAILED: prop-45810399894-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 176, in <module>
+    main()
+  File "/w/train.py", line 117, in main
+    logits, h, e_flat = forward(emb, W1, b1, W2, b2, Xb)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 68, in forward
+    e = np.transpose(e, (1, 0, 2))  # (batch, d, D)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py", line 677, in transpose
+    return _wrapfunc(a, 'transpose', axes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/venv/lib/python3.12/site-packages/numpy/_core/fromnumeric.py", line 54, in _wrapfunc
+    return bound(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^^
+ValueError: axes don't match array
+
