@@ -1,3 +1,5 @@
+# DISCORD_OWNER_ID (the only Discord user whose commands run) is a Worker secret set once through the Cloudflare API,
+# not a repo secret, so it is not in this file or the repo. Unset: every command answers "Not allowed".
 # Deploys forge-act (fabric/act/worker.js), the write half of the Forge connector, to Cloudflare Workers (owner
 # 2026-11-25). Manual, main only. Two owner-made secrets go into the Worker, one step each:
 #   FORGE_ACT_TOKEN         a random string of 32+ characters (shorter refuses everything); the same value goes in
@@ -25,7 +27,7 @@ jobs:
         working-directory: fabric/worker
         run: npm ci --no-fund --no-audit
       - name: tests
-        run: node fabric/act/test_act.mjs
+        run: node fabric/act/test_act.mjs && node fabric/act/test_discord.mjs
       - name: deploy
         working-directory: fabric/worker
         env:
@@ -50,6 +52,29 @@ jobs:
         run: |
           [ -n "$V" ] || { echo "FORGE_ACT_GITHUB_TOKEN not set: tools will answer 'not configured'"; exit 0; }
           printf '%s' "$V" | npx --no-install wrangler secret put GH_TOKEN --config ../act/wrangler.toml > /dev/null 2>&1 && echo "GH_TOKEN: set"
+      - name: secret DISCORD_PUBLIC_KEY
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.DISCORD_PUBLIC_KEY }}
+        run: |
+          [ -n "$V" ] || { echo "DISCORD_PUBLIC_KEY not set: /discord refuses everything"; exit 0; }
+          printf '%s' "$V" | npx --no-install wrangler secret put DISCORD_PUBLIC_KEY --config ../act/wrangler.toml > /dev/null 2>&1 && echo "DISCORD_PUBLIC_KEY: set"
+      - name: Discord slash commands and endpoint (fabric/act/discord.js)
+        env:
+          APP: ${{ secrets.DISCORD_APP_ID }}
+          BOT: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          [ -n "$APP" ] && [ -n "$BOT" ] || { echo "DISCORD_APP_ID or DISCORD_BOT_TOKEN not set: skipped"; exit 0; }
+          node -e 'import("./fabric/act/discord.js").then(m => process.stdout.write(JSON.stringify(m.COMMANDS)))' > "$RUNNER_TEMP/cmds.json"
+          code=$(curl -s -o "$RUNNER_TEMP/c.out" -w '%{http_code}' -X PUT "https://discord.com/api/v10/applications/$APP/commands" \
+            -H "authorization: Bot $BOT" -H 'content-type: application/json' --data @"$RUNNER_TEMP/cmds.json")
+          echo "commands: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 200 ] || { head -c 300 "$RUNNER_TEMP/c.out"; exit 1; }
+          sleep 5   # Discord PINGs the endpoint when it is saved; the deploy above must be live
+          code=$(curl -s -o "$RUNNER_TEMP/e.out" -w '%{http_code}' -X PATCH "https://discord.com/api/v10/applications/@me" \
+            -H "authorization: Bot $BOT" -H 'content-type: application/json' --data '{"interactions_endpoint_url":"https://act.exagium.xyz/discord"}')
+          echo "endpoint: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 200 ] || { head -c 300 "$RUNNER_TEMP/e.out"; exit 1; }
       - name: smoke test (refuses without the token, lists tools with it)
         env: {T: "${{ secrets.FORGE_ACT_TOKEN }}"}
         run: |
@@ -60,3 +85,7 @@ jobs:
           [ -n "$T" ] || exit 0
           code=$(curl -s -o "$RUNNER_TEMP/s.json" -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -H "authorization: Bearer $T" -d "$body")
           echo "with token: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 200 ] && grep -q '"open_pr"' "$RUNNER_TEMP/s.json"
+      - name: smoke test /discord (an unsigned request is refused)
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST https://act.exagium.xyz/discord -d '{"type":1}')
+          echo "discord unsigned: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"; [ "$code" = 401 ]
