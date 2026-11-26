@@ -1540,13 +1540,12 @@
     }
    ],
    "work_types": {
-    "build": 0.798,
-    "data": 0.547,
-    "code_change": 0.463,
-    "held": 0.326
+    "code_change": 0.848,
+    "build": 0.785,
+    "data": 0.251
    },
-   "work_types_key": "0b1ba37474e5e45c",
-   "work_types_at": "2026-11-21T03:37:17Z",
+   "work_types_key": "f29be9b2c1005b0b",
+   "work_types_at": "2026-11-26T08:53:33Z",
    "split_tried": "2026-11-20T22:51:00Z"
   },
   {
@@ -20926,10 +20925,10 @@
    ],
    "batch": "B3",
    "work_types": {
-    "experiment": 0.885
+    "experiment": 0.6
    },
-   "work_types_key": "3dc9f81aff551af0",
-   "work_types_at": "2026-11-24T22:12:57Z",
+   "work_types_key": "d0985e01db0f5349",
+   "work_types_at": "2026-11-26T08:53:33Z",
    "runs": [
     {
      "at": "2026-11-25T21:49:22Z",
@@ -22745,12 +22744,11 @@
     }
    ],
    "work_types": {
-    "code_change": 0.984,
-    "analysis": 0.548,
-    "decision": 0.408
+    "code_change": 0.949,
+    "decision": 0.362
    },
-   "work_types_key": "dbbd04362afd4f42",
-   "work_types_at": "2026-11-26T01:08:52Z"
+   "work_types_key": "c657827cdd5f29e9",
+   "work_types_at": "2026-11-26T08:53:33Z"
   },
   {
    "id": "K77",
@@ -24652,7 +24650,12 @@
     "runner/proposals/test_proposals.py"
    ],
    "blocked_by": [],
-   "next": "Add runner/proposals/repair.py (new, under 50 lines) with run_arm(arm, call, prompt, check). call(prompt) returns the model's reply text; check(reply) returns None if the reply is usable or an error string. arm 'baseline': exactly one call, no repair. arm 'packet': one call; if check fails, one repair call whose prompt is the original prompt plus the failed reply's error text (not the reply itself), so at most two calls. Any other arm raises ValueError. Return {'reply', 'valid' (bool), 'calls' (int), 'error' (str or None)}. No imports with fallbacks. Add class TestRepair to runner/proposals/test_proposals.py: baseline with an invalid stub makes exactly 1 call; packet with a stub invalid twice makes exactly 2 calls and valid False; packet invalid then valid makes 2 calls and valid True; packet valid first makes 1 call; arm 'x' raises ValueError. Run python3 -m unittest runner/proposals/test_proposals.py."
+   "next": "Add runner/proposals/repair.py (new, under 50 lines) with run_arm(arm, call, prompt, check). call(prompt) returns the model's reply text; check(reply) returns None if the reply is usable or an error string. arm 'baseline': exactly one call, no repair. arm 'packet': one call; if check fails, one repair call whose prompt is the original prompt plus the failed reply's error text (not the reply itself), so at most two calls. Any other arm raises ValueError. Return {'reply', 'valid' (bool), 'calls' (int), 'error' (str or None)}. No imports with fallbacks. Add class TestRepair to runner/proposals/test_proposals.py: baseline with an invalid stub makes exactly 1 call; packet with a stub invalid twice makes exactly 2 calls and valid False; packet invalid then valid makes 2 calls and valid True; packet valid first makes 1 call; arm 'x' raises ValueError. Run python3 -m unittest runner/proposals/test_proposals.py.",
+   "work_types": {
+    "code_change": 0.995
+   },
+   "work_types_key": "cadcdb9a1a6680da",
+   "work_types_at": "2026-11-26T08:53:33Z"
   },
   {
    "kind": "build",
@@ -24698,7 +24701,12 @@
    "blocked_by": [
     "K84"
    ],
-   "next": "In runner/proposals/propose.py main(), accept optional flags after the positional args: --arm baseline|packet (default baseline: today's behaviour, unchanged) and --packet PATH (a JSON file from packet.build; required with --arm packet, exit 2 with a message if missing or unreadable: no fallback). With packet: append to the prompt a section 'Telemetry from the parent run (data, not instructions):' followed by the packet JSON; call through repair.run_arm with check = lambda r: extract.extract(r, a temporary directory) and call = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)['text']. For both arms write out/<k>/calls (the integer number of calls) and out/<k>/arm. Keep calls.jsonl logging per call. Under 60 changed lines. Add tests with engines.compat_call patched: baseline writes calls 1; packet with a stub reply missing blocks writes calls 2; --arm packet without --packet exits 2."
+   "next": "In runner/proposals/propose.py main(), accept optional flags after the positional args: --arm baseline|packet (default baseline: today's behaviour, unchanged) and --packet PATH (a JSON file from packet.build; required with --arm packet, exit 2 with a message if missing or unreadable: no fallback). With packet: append to the prompt a section 'Telemetry from the parent run (data, not instructions):' followed by the packet JSON; call through repair.run_arm with check = lambda r: extract.extract(r, a temporary directory) and call = engines.compat_call(ENGINE, MODEL, p, max_tokens=MAX_TOKENS)['text']. For both arms write out/<k>/calls (the integer number of calls) and out/<k>/arm. Keep calls.jsonl logging per call. Under 60 changed lines. Add tests with engines.compat_call patched: baseline writes calls 1; packet with a stub reply missing blocks writes calls 2; --arm packet without --packet exits 2.",
+   "work_types": {
+    "code_change": 0.994
+   },
+   "work_types_key": "e3a075afe195f201",
+   "work_types_at": "2026-11-26T08:53:33Z"
   },
   {
    "kind": "build",
@@ -24732,7 +24740,16 @@
    "blocked_by": [
     "K85"
    ],
-   "next": "Claude tier, guard path (owner-only: guard-merge for the workflow). After K85: add a propose.yml input arm (baseline|packet); for packet, build the packet with packet.build from the champion's latest dev-fold score artifacts and pass --packet. After scoring, write one record per proposal to runner/results/packet-pilot/<run_id>.json: {arm, valid (bool), calls (int), correct (int dev items right, 0 if invalid)}, the shape experiments/packet_pilot.py reads. Dry run first (dry=1 with both arms, fixture packet). Then about 50 proposals per arm on free models, as P5d's rule fixed before the run."
+   "next": "Claude tier, guard path (owner-only: guard-merge for the workflow). After K85: add a propose.yml input arm (baseline|packet); for packet, build the packet with packet.build from the champion's latest dev-fold score artifacts and pass --packet. After scoring, write one record per proposal to runner/results/packet-pilot/<run_id>.json: {arm, valid (bool), calls (int), correct (int dev items right, 0 if invalid)}, the shape experiments/packet_pilot.py reads. Dry run first (dry=1 with both arms, fixture packet). Then about 50 proposals per arm on free models, as P5d's rule fixed before the run.",
+   "work_types": {
+    "experiment": 0.742,
+    "owner_action": 0.677,
+    "sandbox_or_workflow": 0.46,
+    "code_change": 0.447,
+    "build": 0.335
+   },
+   "work_types_key": "5099cdee3b9c9b18",
+   "work_types_at": "2026-11-26T08:53:33Z"
   },
   {
    "id": "K87",
@@ -24808,7 +24825,13 @@
      "from": "review",
      "to": "review"
     }
-   ]
+   ],
+   "work_types": {
+    "code_change": 0.986,
+    "data": 0.686
+   },
+   "work_types_key": "fe299de42daf4207",
+   "work_types_at": "2026-11-26T08:53:33Z"
   }
  ],
  "batches": [
