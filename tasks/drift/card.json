@@ -1,0 +1,62 @@
+{
+ "task": "drift",
+ "kind": "stream",
+ "description": "drifting linear rule: 16 standard-normal features quantized to bytes; the rule changes every 2000 rows (tasks/drift.py, seed 2026)",
+ "input": {
+  "bytes": 16,
+  "meaning": "16 features, (x+4)/8*255 rounded and clipped to 0..255",
+  "types": [
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal",
+   "ordinal"
+  ]
+ },
+ "output": {
+  "max_len": 1,
+  "meaning": "the label, one byte 0..1 (y = 1 iff x . W[block] > 0)"
+ },
+ "classes": 2,
+ "checker": "label",
+ "metric": "accuracy",
+ "baselines": [
+  "majority",
+  "label-linear"
+ ],
+ "floor": "majority",
+ "sources": [
+  "tasks/drift.py seed 2026 (n 8000, dim 16, segments 4; tasks/build.py DRIFT)"
+ ],
+ "splits": {
+  "train": "rows 0..3999 (blocks 0-1), seen by train.py",
+  "dev": "rows 4000..5999 (block 2), scored by the runner, never trained on",
+  "test": "rows 6000..7999 (block 3), scored only under a ledger plan (test_gate)"
+ },
+ "test_gate": "plan",
+ "items": {
+  "dev": 2000,
+  "test": 2000,
+  "train": 4000
+ },
+ "data": {
+  "dev.in": "7d2272ba77fde15a01a48332b3e47f12af6e94972d01fdcbbf174fc047383c29",
+  "dev.key": "f0c2c4efa5802dc56e04b5cd6fe5d6b9e84fb380975f8ddd4de9ac1068d18e02",
+  "test.in": "d45555c69e578dbc1370e0934ea1d59128d64e8f42a1d0d1c63bed23b5225ca3",
+  "test.key": "06234758f3b9c02963557b6b34b433a43c1edbbcc47eb85d1b2c4a32ac477bf8",
+  "train.in": "321a26677e90874e6cfec1eb8a55b0ddb49ebabd8d8872696216908e53a6bc0f",
+  "train.key": "a998f7cb9482089411bd58153144b572727aa6c799fecc85e01ce702913d6be2"
+ },
+ "order": "stream order, never shuffled: dev and test follow rules train never saw (queue P3, K88)"
+}
