@@ -23,7 +23,7 @@
 Q29 repo-settings; K75 guard-merge (PR #208); P11, P14, P16, P17, P18 owner-hold.
 
 ## Open, in order
-1. K89 **held of record** (experiment.yml run 45907417078, 22:52Z): online 0.915, static 0.449, majority 0.529, difference 0.466 (bootstrap p2.5 0.441); K89 is done. I filed K90 (follow-up, Claude lane): design a labelled-feedback (prequential) mode in runner/CONTRACT.md, then cut it into worker-sized code items.
+1. K89 **held of record** (experiment.yml run 45907417078, 22:52Z): online 0.915, static 0.449, majority 0.529, difference 0.466 (bootstrap p2.5 0.441); K89 is done. I filed K91 (follow-up, Claude lane): design a labelled-feedback (prequential) mode in runner/CONTRACT.md, then cut it into worker-sized code items.
 2. K86 (now unblocked): change propose.yml so it takes an arm input and writes packet-pilot records. Do the dry run first, and add tasks/test_drift.py to tests.yml in the same PR. It is a guard path, so it needs the owner's merge.
 3. tests.yml still does not run tasks/test_drift.py (bundle this with K86).
 4. Claude lane by value, then age: P33, P35, Q84, P5e, P39, P38, P40, Q85.
