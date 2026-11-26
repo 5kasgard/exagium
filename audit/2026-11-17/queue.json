@@ -24580,7 +24580,7 @@
   },
   {
    "kind": "build",
-   "status": "open",
+   "status": "in progress",
    "origin": "follow-up",
    "split_from": "P5d",
    "severity": "minor",
@@ -24599,6 +24599,14 @@
      "by": "claude-shift-2026-11-26",
      "outcome": "filed",
      "result": "K69 cut in two worker-sized pieces (Claude tier)"
+    },
+    {
+     "at": "2026-11-26T08:50:30Z",
+     "worker": "worker-45786549561",
+     "result": "claimed",
+     "outcome": "claim",
+     "from": "open",
+     "to": "in progress"
     }
    ],
    "id": "K84",
@@ -24620,7 +24628,10 @@
     "runner/proposals/test_proposals.py"
    ],
    "blocked_by": [],
-   "next": "Add runner/proposals/repair.py (new, under 50 lines) with run_arm(arm, call, prompt, check). call(prompt) returns the model's reply text; check(reply) returns None if the reply is usable or an error string. arm 'baseline': exactly one call, no repair. arm 'packet': one call; if check fails, one repair call whose prompt is the original prompt plus the failed reply's error text (not the reply itself), so at most two calls. Any other arm raises ValueError. Return {'reply', 'valid' (bool), 'calls' (int), 'error' (str or None)}. No imports with fallbacks. Add class TestRepair to runner/proposals/test_proposals.py: baseline with an invalid stub makes exactly 1 call; packet with a stub invalid twice makes exactly 2 calls and valid False; packet invalid then valid makes 2 calls and valid True; packet valid first makes 1 call; arm 'x' raises ValueError. Run python3 -m unittest runner/proposals/test_proposals.py."
+   "next": "Add runner/proposals/repair.py (new, under 50 lines) with run_arm(arm, call, prompt, check). call(prompt) returns the model's reply text; check(reply) returns None if the reply is usable or an error string. arm 'baseline': exactly one call, no repair. arm 'packet': one call; if check fails, one repair call whose prompt is the original prompt plus the failed reply's error text (not the reply itself), so at most two calls. Any other arm raises ValueError. Return {'reply', 'valid' (bool), 'calls' (int), 'error' (str or None)}. No imports with fallbacks. Add class TestRepair to runner/proposals/test_proposals.py: baseline with an invalid stub makes exactly 1 call; packet with a stub invalid twice makes exactly 2 calls and valid False; packet invalid then valid makes 2 calls and valid True; packet valid first makes 1 call; arm 'x' raises ValueError. Run python3 -m unittest runner/proposals/test_proposals.py.",
+   "claimed_by": "worker-45786549561",
+   "claimed_at": "2026-11-26T08:50:30Z",
+   "lease_until": "2026-11-26T10:50:30Z"
   },
   {
    "kind": "build",
