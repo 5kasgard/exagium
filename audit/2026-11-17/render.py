@@ -68,6 +68,34 @@ def transition_check():
     return bad
 
 
+def code_check():
+    """An open code item must pass worker/code_job.py's prepare gate, or the worker fails it twice for nothing (K88,
+    runs 45832352658 and 45833902349: a new file in a folder that did not exist). The same rule, checked on origin/main's
+    tree: files listed in touches, each one on main or in code.new (a new file: not on main, its folder on main, a plain
+    source or text type), and a tests file that exists or is new."""
+    import os, re, subprocess
+    here = os.path.dirname(os.path.abspath(sys.argv[1]))
+    t = subprocess.run(['git', '-C', here, 'ls-tree', '-r', '--full-tree', '--name-only', 'origin/main'], capture_output=True, text=True)
+    if t.returncode:
+        return ['note: origin/main not reachable; code-item check skipped']
+    tree = set(t.stdout.split())
+    dirs = {os.path.dirname(f) for f in tree} | {''}
+    dirs |= {d.rsplit('/', k)[0] for d in list(dirs) for k in range(1, d.count('/') + 1)}
+    test_re, ext = re.compile(r"^[\w./-]+/test_[\w-]+\.py$"), ('.py', '.md', '.json', '.c', '.h', '.txt')
+    new_ok = lambda p: p not in tree and os.path.dirname(p) in dirs and p.endswith(ext)
+    bad = []
+    for i in items:
+        c = i.get('code')
+        if not c or i.get('status') not in ('open', 'proposed'):
+            continue
+        files, test, new = c.get('files') or [], c.get('test', ''), set(c.get('new') or [])
+        wrong = [p for p in files if p not in i.get('touches', []) or not (p in tree or (p in new and new_ok(p)))]
+        if wrong or not files or not test_re.fullmatch(test or '') or not (test in tree or (test in new and new_ok(test))):
+            bad.append(f"{i['id']}: code item the worker's prepare step would refuse (files {wrong or files}, test {test!r}): "
+                       "each file in touches and on main, or in code.new with its folder already on main")
+    return bad
+for m in code_check():
+    (print(m, file=sys.stderr) if m.startswith('note:') else errs.append(m))
 for m in transition_check():
     (print(m, file=sys.stderr) if m.startswith('note:') else errs.append(m))
 for i in items:
