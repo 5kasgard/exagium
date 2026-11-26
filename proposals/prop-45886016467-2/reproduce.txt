@@ -1,0 +1,15 @@
+FAILED: prop-45886016467-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 202, in <module>
+    main()
+  File "/w/train.py", line 187, in main
+    params = train_loop(Z_all, y_all, params, H, rng, best_epoch, BATCH, LR, L2)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 108, in train_loop
+    grads = loss_and_grad(z, yy, params, H, l2)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 62, in loss_and_grad
+    a = Z @ W1 + b1
+        ~~^~~~
+ValueError: matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size 989 is different from 1000)
+
