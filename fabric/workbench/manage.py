@@ -148,8 +148,32 @@ def run(key, prompt, timeout=600):
     (fabric/discord/post.py). The public log gets only the status, because agent output may quote private material."""
     import time
     t = time.time()
-    r = subprocess.run([LH, "agent", "run", "-a", agent_id(key), "-p", prompt, "--timeout", str(timeout)],
-                       capture_output=True, text=True, timeout=timeout + 60)
+    aid = agent_id(key)
+    t_lookup = time.time()
+    probe = os.environ.get("FORGE_STREAM_PROBE") == "1"
+    args = [LH, "agent", "run", "-a", aid, "-p", prompt, "--timeout", str(timeout)] + (["--json"] if probe else [])
+    r = subprocess.run(args, capture_output=True, text=True, timeout=timeout + 60)
+    print(f"timing: agent lookup {t_lookup - t:.1f} s, agent run {time.time() - t_lookup:.1f} s")
+    if probe:   # learn the event stream's shape for live replies: event types and field names only, never content
+        from collections import Counter
+        kinds, keys, first = Counter(), Counter(), []
+        for line in (r.stdout or "").splitlines():
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                kinds["(not json)"] += 1; continue
+            k = str(ev.get("type") or ev.get("event") or "?") if isinstance(ev, dict) else type(ev).__name__
+            kinds[k] += 1
+            if isinstance(ev, dict):
+                keys.update(f"{k}.{f}" for f in ev)
+                if isinstance(ev.get("data"), dict):
+                    keys.update(f"{k}.data.{f}" for f in ev["data"])
+            if len(first) < 12 and (not first or first[-1] != k):
+                first.append(k)
+        print("stream event types:", dict(kinds.most_common(20)))
+        print("stream first order:", first)
+        print("stream fields:", sorted(keys)[:80])
+        return r.returncode, round(time.time() - t)
     if os.environ.get("DISCORD_WEBHOOK_URL"):
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "discord"))
         import post
