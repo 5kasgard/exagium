@@ -20,8 +20,11 @@ sys.path.insert(0, os.path.join(REPO, "transfer"))
 sys.path.insert(0, os.path.join(REPO, "runner"))
 import records  # noqa: E402
 import tasks as T  # noqa: E402  (transfer/tasks.py)
+sys.path.insert(0, HERE)
+import drift  # noqa: E402  (tasks/drift.py)
 
 OPTDIGITS_TES = ("loop/task/optdigits.tes", "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8")
+DRIFT = dict(seed=2026, n=8000, dim=16, segments=4)   # queue K88: stream order kept, train blocks 0-1, dev 2, test 3
 SAT = dict(n=50, ratio=4.2, k=3, seeds={"train": 101, "dev": 102, "test": 103},
            counts={"train": 100, "dev": 200, "test": 200})
 
@@ -100,15 +103,27 @@ def build_sat(out):
     save(out, "sat", splits)
 
 
+def build_drift(out):
+    """Drifting stream (tasks/drift.py), split in stream order and never shuffled: train = blocks 0-1, dev = block 2,
+    test = block 3, so dev and test come from rules train never saw (queue P3, K88)."""
+    X, y, _ = drift.generate(DRIFT["seed"], DRIFT["n"], DRIFT["dim"], DRIFT["segments"])
+    b = DRIFT["n"] // DRIFT["segments"]
+    rec = lambda A, v: ([bytes(r) for r in A], [bytes([int(t)]) for t in v])
+    save(out, "drift", {"train": rec(X[:2 * b], y[:2 * b]), "dev": rec(X[2 * b:3 * b], y[2 * b:3 * b]),
+                        "test": rec(X[3 * b:], y[3 * b:])})
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     ap.add_argument("--cache", default=os.path.join(REPO, "transfer", ".cache"))
-    ap.add_argument("--only", nargs="*", default=["optdigits", "text", "adult", "sat"])
+    ap.add_argument("--only", nargs="*", default=["optdigits", "text", "adult", "sat", "drift"])
     a = ap.parse_args()
     build_label(a.out, a.cache, set(a.only))
     if "sat" in a.only:
         build_sat(a.out)
+    if "drift" in a.only:
+        build_drift(a.out)
     bad = []
     for name in a.only:
         man = json.load(open(os.path.join(a.out, name, "manifest.json")))

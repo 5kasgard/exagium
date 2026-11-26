@@ -1,5 +1,5 @@
 """Tests for the drifting-stream task generator."""
-import unittest
+import importlib.util, json, os, tempfile, unittest
 
 import numpy as np
 
@@ -35,6 +35,21 @@ class Drift(unittest.TestCase):
         last = slice((segments - 1) * block, n)
         agree_last = ((Xf[last] @ W[0] > 0) == y[last]).mean()
         self.assertLess(agree_last, 0.8)
+
+
+class DriftTask(unittest.TestCase):
+    def test_build_matches_card(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        spec = importlib.util.spec_from_file_location("tasks_build_k88", os.path.join(here, "build.py"))
+        B = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(B)
+        card = json.load(open(os.path.join(here, "drift", "card.json")))
+        with tempfile.TemporaryDirectory() as out:
+            B.build_drift(out)
+            man = json.load(open(os.path.join(out, "drift", "manifest.json")))
+        self.assertEqual(man["items"], {"train": 4000, "dev": 2000, "test": 2000})
+        self.assertEqual(man["items"], card["items"])
+        self.assertEqual(man["files"], card["data"])
 
 
 if __name__ == "__main__":
