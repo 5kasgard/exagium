@@ -246,5 +246,73 @@ class TestOwnFault(unittest.TestCase):
             self.assertEqual(v["extract"], "not scored", log)
 
 
+class TestRepair(unittest.TestCase):
+    def test_baseline_invalid_makes_one_call(self):
+        import repair
+        calls = []
+
+        def call(prompt):
+            calls.append(prompt)
+            return "bad"
+
+        out = repair.run_arm("baseline", call, "P", lambda reply: "not usable")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(out["calls"], 1)
+        self.assertFalse(out["valid"])
+        self.assertEqual(out["error"], "not usable")
+
+    def test_packet_invalid_twice_makes_two_calls(self):
+        import repair
+        calls = []
+
+        def call(prompt):
+            calls.append(prompt)
+            return "bad"
+
+        out = repair.run_arm("packet", call, "P", lambda reply: "not usable")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(out["calls"], 2)
+        self.assertFalse(out["valid"])
+        self.assertEqual(out["error"], "not usable")
+        self.assertEqual(calls[1], "P\n\nnot usable")
+
+    def test_packet_invalid_then_valid(self):
+        import repair
+        calls = []
+        replies = iter(["bad", "good"])
+
+        def call(prompt):
+            calls.append(prompt)
+            return next(replies)
+
+        def check(reply):
+            return None if reply == "good" else "not usable"
+
+        out = repair.run_arm("packet", call, "P", check)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(out["calls"], 2)
+        self.assertEqual(out["reply"], "good")
+        self.assertTrue(out["valid"])
+        self.assertIsNone(out["error"])
+
+    def test_packet_valid_first_makes_one_call(self):
+        import repair
+        calls = []
+
+        def call(prompt):
+            calls.append(prompt)
+            return "good"
+
+        out = repair.run_arm("packet", call, "P", lambda reply: None)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(out["calls"], 1)
+        self.assertTrue(out["valid"])
+
+    def test_unknown_arm_raises(self):
+        import repair
+        with self.assertRaises(ValueError):
+            repair.run_arm("x", lambda prompt: "reply", "P", lambda reply: None)
+
+
 if __name__ == "__main__":
     unittest.main()
