@@ -3,8 +3,8 @@
 # owner's page at https://chat.exagium.xyz/dash reads. No secrets beyond this job's own GITHUB_TOKEN.
 name: dash-snapshot
 on:
-  schedule:
-    - cron: "41 * * * *"
+  # started at "41 * * * *" by forge-act's Cloudflare cron (fabric/act/wrangler.toml), not GitHub's cron, which ran it
+  # rarely or never (2026-11-26); also by hand
   workflow_dispatch:
 permissions:
   contents: write    # push dash.json to the fabric-data branch only

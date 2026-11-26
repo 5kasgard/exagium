@@ -6,8 +6,8 @@
 #                          added 2026-11-26 once the owner took Workers Paid; deploy cfbox-deploy.yml first)
 name: sandbox-eval
 on:
-  schedule:
-    - cron: "17 */3 * * *"
+  # started at "17 */3 * * *" by forge-act's Cloudflare cron (fabric/act/wrangler.toml), not GitHub's cron, which ran it
+  # rarely or never (2026-11-26); also by hand
   workflow_dispatch:
     inputs:
       mode: {description: "create, check or kill", default: check, type: choice, options: [create, check, kill]}

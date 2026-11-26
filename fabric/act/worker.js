@@ -130,7 +130,27 @@ export async function authorized(request, env) {   // digests: equal length, so 
   return crypto.subtle.timingSafeEqual(await digest(got), await digest(want));
 }
 
+// The clock: a Cloudflare cron trigger starts the workflows CRON_JOBS lists for that cron string (wrangler.toml says
+// why). Only workflow_dispatch on main, with no inputs; nothing else is reachable from here.
+export function cronTargets(env, cron) {
+  let jobs = {};
+  try { jobs = JSON.parse(env.CRON_JOBS || "{}"); } catch { return []; }
+  const list = Array.isArray(jobs[cron]) ? jobs[cron] : [];
+  return list.filter((w) => /^[a-z0-9][a-z0-9-]*\.yml$/.test(w));
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    if (!env.GH_TOKEN) { console.log(JSON.stringify({ cron: event.cron, error: "GH_TOKEN missing" })); return; }
+    for (const w of cronTargets(env, event.cron)) {
+      try {
+        await gh(env, `/repos/${REPO}/actions/workflows/${w}/dispatches`, "POST", { ref: "main" });
+        console.log(JSON.stringify({ cron: event.cron, dispatched: w }));
+      } catch (e) {
+        console.log(JSON.stringify({ cron: event.cron, workflow: w, error: String(e && e.message || e).slice(0, 200) }));
+      }
+    }
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname !== "/mcp") return new Response("Forge act: MCP endpoint at /mcp (bearer token required).\n");
