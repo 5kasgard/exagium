@@ -1,0 +1,289 @@
+{
+ "tool": "loop/scale.py",
+ "sizes": [
+  0,
+  956,
+  4096
+ ],
+ "rounds": 2,
+ "seed": 1,
+ "pool": {
+  "source": "first 3/4 of optdigits.tra, originals + copies with 4 pixels moved by 1, distinct",
+  "n": 4096,
+  "sha256": "605968a5bff6baa19064863eed67798e5a100fcdba36bac28f80afe81c536715"
+ },
+ "host": {
+  "cpu": "AMD EPYC 9V45 96-Core Processor",
+  "jail": "bwrap",
+  "versions": {
+   "python": "3.12.3",
+   "numpy": "2.5.3",
+   "gcc": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+   "valgrind": "valgrind-3.22.0",
+   "machine": "x86_64",
+   "cpu": "AMD EPYC 9V45 96-Core Processor",
+   "kernel": "7.0.0-1017-azure"
+  }
+ },
+ "digests": [
+  {
+   "name": "loop/task/optdigits.tra",
+   "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"
+  },
+  {
+   "name": "loop/task/optdigits.tes",
+   "sha256": "6ebb3d2fee246a4e99363262ddf8a00a3c41bee6014c373ed9d9216ba7f651b8"
+  },
+  {
+   "name": "loop/loop.py",
+   "sha256": "645ce80f12a553b391ea58e3bfd03596a2749c75169bec88f193502ee4544e36"
+  },
+  {
+   "name": "loop/timer.c",
+   "sha256": "baf40fdab8ff70b23a15106e676aba3c3aab4a13f70b6d819a69439f56ea9753"
+  },
+  {
+   "name": "loop/confine.c",
+   "sha256": "0b38041e5b16718f95ed289b6c415a4a09d68f6b134707e76c4815067a7b3dd2"
+  },
+  {
+   "name": "loop/seccomp_filter.h",
+   "sha256": "339b5da4af90efc8c5d3c3f913e3d7f90ce06e7dc16b3a51b48eeb4e20ef8582"
+  },
+  {
+   "name": "counter/count.py",
+   "sha256": "539857dd04d4a3849a27342b5bfac105a5579de793067fff380c4bcb8275ad09"
+  },
+  {
+   "name": "record/record.py",
+   "sha256": "b5090555475480fc56369d661cef48479fad64b9308e56a60727fb0c51a2899e"
+  },
+  {
+   "name": "loop/candidates/mlp16/train.py",
+   "sha256": "f403927fe58bd63f9112b59bf573a4f7eb75b39a9dba54fce180536cc4186bc1"
+  },
+  {
+   "name": "loop/candidates/mlp16/infer.c",
+   "sha256": "aa30ab3243983d6eb9b861048bd47a03670bb68b446488d514e3af5fba42e27d"
+  },
+  {
+   "name": "loop/candidates/mlp16/weights.bin",
+   "sha256": "1f3f035ca9cb3bca1e5130faa11bb16fc1d38830ebce22dab7f4355b3de934b0"
+  },
+  {
+   "name": "loop/baselines/linear/train.py",
+   "sha256": "a839285c69d8da70fc5b0d5bdc704e760ec27dfb468a4fbb5d007494a4a9df11"
+  },
+  {
+   "name": "loop/baselines/linear/infer.c",
+   "sha256": "0d754e71c9c0463cd93933294837edebed2747741dd020e61829c248a0d22ac0"
+  },
+  {
+   "name": "loop/baselines/linear/weights.bin",
+   "sha256": "06fdc96e634323d2a90ffb5a32fb1e1cf7d5e94aa7e0aec58add0c2ed15c9e62"
+  },
+  {
+   "name": "loop/scale.py",
+   "sha256": "28353a9ce89e7bf2cdb46cfa985c3633381e29e2b47bc32ef86ab500bd402ead"
+  }
+ ],
+ "candidates": {
+  "mlp16": {
+   "fixed_ns_t0": [
+    543867.0,
+    15548.999999999998
+   ],
+   "marginal_ns_per_image_large_n": [
+    125.8859872611465,
+    20.01910828025477
+   ],
+   "marginal_ns_per_image_large_n_median": 125.8859872611465,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      100.21495815899581,
+      2.923117154811713
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      125.8859872611465,
+      20.01910828025477
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      543867.0,
+      15548.999999999998
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      639672.5,
+      12754.499999999998
+     ],
+     "ns_per_image": [
+      669.1134937238494,
+      13.341527196652692
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      1034954.5,
+      50105.5
+     ],
+     "ns_per_image": [
+      252.6744384765625,
+      12.2327880859375
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    100.21495815899581,
+    2.923117154811713
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9872611464968153
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9872611464968153
+   }
+  },
+  "linear": {
+   "fixed_ns_t0": [
+    498559.0,
+    1486.9999999999998
+   ],
+   "marginal_ns_per_image_large_n": [
+    258.43694267515923,
+    13.700636942675144
+   ],
+   "marginal_ns_per_image_large_n_median": 258.43694267515923,
+   "large_n_segment": [
+    956,
+    4096
+   ],
+   "segments": [
+    {
+     "from": 0,
+     "to": 956,
+     "ns_per_image": [
+      242.59414225941424,
+      4.6307531380753195
+     ]
+    },
+    {
+     "from": 956,
+     "to": 4096,
+     "ns_per_image": [
+      258.43694267515923,
+      13.700636942675144
+     ]
+    }
+   ],
+   "per_size": {
+    "0": {
+     "run_ns": [
+      498559.0,
+      1486.9999999999998
+     ],
+     "ns_per_image": null
+    },
+    "956": {
+     "run_ns": [
+      730479.0,
+      5914.0
+     ],
+     "ns_per_image": [
+      764.0993723849372,
+      6.186192468619253
+     ]
+    },
+    "4096": {
+     "run_ns": [
+      1541971.0,
+      48934.0
+     ],
+     "ns_per_image": [
+      376.457763671875,
+      11.94677734375
+     ]
+    }
+   },
+   "n956_pool_minus_t0_ns_per_image": [
+    242.59414225941424,
+    4.6307531380753195
+   ],
+   "pool_accuracy": {
+    "first": 956,
+    "accuracy_first": 0.9926778242677824,
+    "segments": [
+     {
+      "from": 956,
+      "to": 4096,
+      "accuracy": 0.9843949044585987
+     }
+    ],
+    "problem": null,
+    "accuracy_rest": 0.9843949044585987
+   }
+  }
+ },
+ "pairs": [
+  {
+   "a": "linear",
+   "b": "mlp16",
+   "marginal_diff_ns": 132.55095541401272,
+   "marginal_diff_se": 33.719745222929916,
+   "ratio_of_means": 2.05294448014329,
+   "n956_diff_ns": 142.3791841004184,
+   "n956_diff_se": 7.55387029288704
+  }
+ ],
+ "raw_ns": {
+  "mlp16": [
+   {
+    "4096": 984849,
+    "0": 559416,
+    "956": 652427
+   },
+   {
+    "0": 528318,
+    "956": 626918,
+    "4096": 1085060
+   }
+  ],
+  "linear": [
+   {
+    "0": 500046,
+    "4096": 1590905,
+    "956": 736393
+   },
+   {
+    "956": 724565,
+    "4096": 1493037,
+    "0": 497072
+   }
+  ]
+ },
+ "problems": [],
+ "provenance": null
+}
