@@ -1,0 +1,32 @@
+FAILED: prop-45857974623-2 on text: train.py exited 1:
+/w/train.py:112: RuntimeWarning: invalid value encountered in log
+  loss = -np.log(probs[np.arange(batch), y] * batch + 1e-12).mean()
+D=16 H=32 lr=1e-03 tune_acc=0.3204
+D=16 H=32 lr=3e-03 tune_acc=0.3206
+D=16 H=64 lr=1e-03 tune_acc=0.3237
+D=16 H=64 lr=3e-03 tune_acc=0.3229
+D=16 H=128 lr=1e-03 tune_acc=0.3250
+D=16 H=128 lr=3e-03 tune_acc=0.3131
+D=32 H=32 lr=1e-03 tune_acc=0.3044
+D=32 H=32 lr=3e-03 tune_acc=0.2954
+D=32 H=64 lr=1e-03 tune_acc=0.3135
+D=32 H=64 lr=3e-03 tune_acc=0.2812
+D=32 H=128 lr=1e-03 tune_acc=0.3069
+D=32 H=128 lr=3e-03 tune_acc=0.2760
+D=64 H=32 lr=1e-03 tune_acc=0.3100
+D=64 H=32 lr=3e-03 tune_acc=0.2792
+D=64 H=64 lr=1e-03 tune_acc=0.2952
+D=64 H=64 lr=3e-03 tune_acc=0.2656
+D=64 H=128 lr=1e-03 tune_acc=0.3067
+D=64 H=128 lr=3e-03 tune_acc=0.2754
+Best config: D=16 H=128 lr=1e-03 acc=0.3250
+Traceback (most recent call last):
+  File "/w/train.py", line 209, in <module>
+    main()
+  File "/w/train.py", line 205, in main
+    write_weights(sys.argv[4], d, D, H, C, emb, W1, b1, W2, b2)
+  File "/w/train.py", line 150, in write_weights
+    f.write(struct.pack("<4i", magic, d, D, H, C))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+struct.error: pack expected 4 items for packing (got 5)
+
