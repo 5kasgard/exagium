@@ -1521,7 +1521,7 @@
    "blocked_by": [
     "P2"
    ],
-   "next": "2026-11-26 Claude tier: first worker-sized piece filed as K87 (drifting-stream generator, tasks/drift.py). After it: wire it into tasks/build.py with a card (code item), then a pre-registered experiment comparing an online learner with a static one. Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tasks are the bottleneck, not candidates: a standing task-intake path (new tasks from P16 sources and the research worker), difficulty calibrated by item response theory (shared with P20b and P6), and held-out splits that cannot have leaked (with Q25). Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 11 accepted narrowly: tasks with people data (UCI Adult has sex and race columns) record per-group outcomes alongside per-item ones, so gaps between groups are visible; no separate gate. 2026-11-19 07:45Z: owner says this chat owns P3 (then P5); claimed by chat. Step 1 DONE 2026-11-19 (main 8408ef2 plan, 8f46c37 families, a9887fc/06b2bb9 result; run 44486290814): label-gbdt, label-knn, label-wisard added, tuning split in every label card; trees beat linear/mlp16 on text (+10.4 SE) and adult (+2.4 SE), not optdigits, at 3-18x the instructions; WiSARD less accurate and dearer on all 3; all reproduce, also across two machines; outside check 44498301665 applied (4/4 wording). Forecast Brier 0.152 over 4. Limitations: kNN k at grid edge (15) on text and adult; old families untuned. NEXT (step 2): new task kinds (MNIST under a plan, audio KWS, time-series anomaly, control, harder SAT, rule-as-code), a PFN, and wider grids for kNN/trees as a follow-up only if cheap.",
+   "next": "2026-11-26 late shift: K88 is done (drift task with a pinned card, PR #244). K89 runs the pre-registered online-vs-static experiment (experiments/drift_online.py, PR #246). Next, if K89 holds: a labelled-feedback mode in runner/CONTRACT.md so online families can be candidates. 2026-11-26 Claude tier: first worker-sized piece filed as K87 (drifting-stream generator, tasks/drift.py). After it: wire it into tasks/build.py with a card (code item), then a pre-registered experiment comparing an online learner with a static one. Owner 2026-11-18: in progress in another chat. Outside review 2026-11-19 (finding 2): include outside-strength baselines (tuned GBM, random-search control, kNN or PFN, a lookup table, a solver variant) and a tuning split, and require each task to clear the majority baseline by a margin. vision (optdigits, MNIST under a pre-registered plan), audio KWS, next-char, tabular (+ a PFN), time-series anomaly, a small control task, SAT and simple formal lemmas, rule learning emitted as code. From P2 (2026-11-18): build on runner/ and tasks/; settle the contract's open questions here: outputs over one bound (proofs, programs), slow checkers (one call per split may not do), per-item time limits, a tuning split fixed in every card (P1's capacity lesson), and a harder SAT set (P2's planted 4.2-ratio instances are easy). Owner 2026-11-19 (adds to what exists; does not change how anything works): include stateful and continually learning families (recurrent, state-space, online learners, test-time training) where a task can show their advantage (drifting data, control loops, long sequences), measured over time for forgetting, not once. Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): tasks are the bottleneck, not candidates: a standing task-intake path (new tasks from P16 sources and the research worker), difficulty calibrated by item response theory (shared with P20b and P6), and held-out splits that cannot have leaked (with Q25). Outside review 2026-11-19 (gpt-oss-120b, router-runs reviews/44470377631; llama-4-scout timed out): finding 11 accepted narrowly: tasks with people data (UCI Adult has sex and race columns) record per-group outcomes alongside per-item ones, so gaps between groups are visible; no separate gate. 2026-11-19 07:45Z: owner says this chat owns P3 (then P5); claimed by chat. Step 1 DONE 2026-11-19 (main 8408ef2 plan, 8f46c37 families, a9887fc/06b2bb9 result; run 44486290814): label-gbdt, label-knn, label-wisard added, tuning split in every label card; trees beat linear/mlp16 on text (+10.4 SE) and adult (+2.4 SE), not optdigits, at 3-18x the instructions; WiSARD less accurate and dearer on all 3; all reproduce, also across two machines; outside check 44498301665 applied (4/4 wording). Forecast Brier 0.152 over 4. Limitations: kNN k at grid edge (15) on text and adult; old families untuned. NEXT (step 2): new task kinds (MNIST under a plan, audio KWS, time-series anomaly, control, harder SAT, rule-as-code), a PFN, and wider grids for kNN/trees as a follow-up only if cheap.",
    "refs": [
     "project doc claude/forge-next-item-2026-11-18.md",
     "README.md (Next) on main"
@@ -25365,6 +25365,42 @@
    },
    "work_types_key": "a59424fccd200a8f",
    "work_types_at": "2026-11-26T20:53:19Z"
+  },
+  {
+   "id": "K89",
+   "title": "Run experiment drift_online (P3): can the drift task show an online learner's advantage?",
+   "kind": "test",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P3",
+   "generated_at": "2026-11-26T22:49:30Z",
+   "filed_at": "2026-11-26T22:49:30Z",
+   "experiment": {
+    "name": "drift_online"
+   },
+   "touches": [
+    "router-runs:experiments/drift_online/"
+   ],
+   "next": "Dispatch experiment.yml with name=drift_online. The rule is in experiments/drift_online.py, merged in PR #246 before any run of record, and decides the outcome. If it holds, P3 keeps the drift task as its stateful task, and the next step is a labelled-feedback mode in the runner contract (runner/CONTRACT.md: infer sees each key after predicting) so online families can be candidates. If it fails, the drift parameters are changed under a new rule. One local no-cost run (2026-11-26) gave holds: online 0.915, static 0.449, majority 0.529. That run is not the record.",
+   "refs": [
+    "queue P3",
+    "queue K88 (PR #244)",
+    "experiments/drift_online.py (PR #246)"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B1",
+   "runs": [
+    {
+     "at": "2026-11-26T22:49:30Z",
+     "by": "claude-shift-2026-11-26b",
+     "outcome": "filed",
+     "result": "filed with its experiment committed first (PR #246)"
+    }
+   ]
   }
  ],
  "batches": [
