@@ -1,0 +1,13 @@
+FAILED: prop-45754319785-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 205, in <module>
+    main()
+  File "/w/train.py", line 162, in main
+    model, val_acc = train_model(X_tr, y_tr, X_val, y_val, types, emb_dim, H, lr, l2, MAX_EPOCHS_GRID, rng)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 133, in train_model
+    train_step(model, Z, A, H_act, g, lr, l2, state, t)
+  File "/w/train.py", line 94, in train_step
+    np.add.at(model['embeddings'][i], idx, g_cat[:, i])
+ValueError: array is not broadcastable to correct shape
+
