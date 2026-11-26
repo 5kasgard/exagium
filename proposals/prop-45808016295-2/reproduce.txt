@@ -1,0 +1,18 @@
+FAILED: prop-45808016295-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 144, in <module>
+    main()
+  File "/w/train.py", line 116, in main
+    W = train_model(train_X, train_y, C, d, B2, LR, L2, TUNE_EPOCHS, rng)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 49, in train_model
+    unigram_idx, bigram_idx = featurize(X, d, B2)
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 38, in featurize
+    bigram_idx[:, j] = hash_bigram(X[:, j], X[:, j+1], B2) + d * 256
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 29, in hash_bigram
+    return (b1 * 256 + b2) % B2
+            ~~~^~~~~
+OverflowError: Python integer 256 out of bounds for uint8
+
