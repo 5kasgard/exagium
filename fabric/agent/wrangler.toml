@@ -10,9 +10,21 @@ preview_urls = false
 name = "CHAT"
 class_name = "Chat"
 
+[[durable_objects.bindings]]
+name = "GATEWAY"
+class_name = "Gateway"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Chat"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Gateway"]
+
+# keeps the Discord listener alive (it also checks itself every minute)
+[triggers]
+crons = ["*/10 * * * *"]
 
 [limits]
 cpu_ms = 60000   # parsing a long streamed reply; waiting on models and tools is not CPU time

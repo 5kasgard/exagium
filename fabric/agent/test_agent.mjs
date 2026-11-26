@@ -59,4 +59,18 @@ assert.ok(!m.redact("Authorization: Bearer abcdefghijklmnop1234").includes("abcd
 assert.match(m.redact("key ghp_ABCDEFGHIJKLMNOPQRSTUV and csk-abcdefghijklmnopqrstu"), /^key <redacted> and <redacted>$/);
 assert.match(m.redact("https://discord.com/api/webhooks/1/abc"), /<redacted>/);
 assert.equal(m.safeArgs("{bad"), null); assert.deepEqual(m.safeArgs(""), {});
+// listener routing: owner only; reply to a forge card continues; "Name, ..." starts; DM goes to the main agent
+const O = "42", base = { author: { id: O }, guild_id: "g", content: "hello" };
+assert.equal(m.route({ ...base, author: { id: "7" } }, O), null, "a stranger is ignored");
+assert.equal(m.route({ ...base, webhook_id: "w" }, O), null, "webhook posts are ignored");
+assert.equal(m.route({ ...base, author: { id: O, bot: true } }, O), null);
+assert.equal(m.route(base, O), null, "plain server chatter is ignored");
+assert.equal(m.route(base, ""), null, "no owner configured: nothing");
+assert.deepEqual(m.route({ ...base, guild_id: undefined }, O), { agent: "lead", prompt: "hello" });
+assert.deepEqual(m.route({ ...base, content: "Scout, count the queue" }, O), { agent: "free", prompt: "count the queue" });
+assert.deepEqual(m.route({ ...base, content: "coder: fix #12" }, O), { agent: "coder", prompt: "fix #12" });
+assert.equal(m.route({ ...base, content: "Bob, hi" }, O), null);
+const reply = { ...base, content: "and the PRs?", referenced_message: { author: { username: "Scout" }, embeds: [{ footer: { text: "gpt-oss-120b · 9 s · done · chat c0ffee1234567890" } }] } };
+assert.deepEqual(m.route(reply, O), { agent: "free", chat: "c0ffee1234567890", prompt: "and the PRs?" });
+assert.equal(m.route({ ...reply, referenced_message: { author: { username: "Scheduler" }, embeds: [] } }, O), null);
 console.log("test_agent: ok");
