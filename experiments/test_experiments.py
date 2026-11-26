@@ -46,6 +46,17 @@ class Contract(unittest.TestCase):
             open(os.path.join(d, "unrelated.json"), "w").write(json.dumps({"digests": 554}))
             self.assertEqual(packet_pilot.run(d), {"status": "no_pilot"})
 
+    def test_drift_online_rule(self):
+        import importlib.util as u
+        spec = u.spec_from_file_location("e_drift", os.path.join(os.path.dirname(os.path.abspath(__file__)), "drift_online.py"))
+        m = u.module_from_spec(spec); spec.loader.exec_module(m)
+        base = {"pinned": True, "test_items": 2000, "online": 0.9, "static": 0.6, "majority": 0.5, "diff": 0.3, "diff_p2_5": 0.27}
+        self.assertEqual(m.rule(base)["verdict"], "holds")
+        self.assertEqual(m.rule({**base, "diff": 0.08})["verdict"], "fails")
+        self.assertEqual(m.rule({**base, "diff_p2_5": 0.04})["verdict"], "fails")
+        self.assertEqual(m.rule({**base, "online": 0.55})["verdict"], "fails")
+        self.assertEqual(m.rule({**base, "pinned": False})["verdict"], "invalid")
+
     def test_runner_verdicts(self):
         with tempfile.TemporaryDirectory() as d:
             for name, body, want, rc in (
