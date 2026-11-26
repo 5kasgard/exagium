@@ -1,6 +1,6 @@
 // node fabric/act/test_act.mjs — no network: GitHub calls are stubbed.
 import assert from "node:assert/strict";
-import worker, { pathOk, stamp, TOOLS, authorized, cronTargets } from "./worker.js";
+import worker, { pathOk, stamp, TOOLS, authorized, cronTargets, inputProblem } from "./worker.js";
 
 for (const p of ["README.md", "audit/notes/x.md", "worker/generate.py"]) assert.ok(pathOk(p), p);
 for (const p of [".github/workflows/x.yml", "agent/models.json", "fabric/act/worker.js", "../x", "/etc/x", "a//b", ".env", "x/secrets.json", "k.pem",
@@ -57,3 +57,14 @@ const crons = JSON.parse(realToml.match(/crons = (\[.*\])/)[1]);
 const jobs = JSON.parse(realToml.match(/CRON_JOBS = '(.*)'/)[1]);
 assert.deepEqual([...crons].sort(), Object.keys(jobs).sort(), "every trigger has jobs and every job has a trigger");
 console.log("cron: ok");
+
+// input rules: sandbox-eval only with mode=check; other workflows unaffected; unreadable rules refuse
+const ir = { INPUT_RULES: JSON.stringify({ "sandbox-eval.yml": { mode: ["check"] } }) };
+assert.equal(inputProblem(ir, "sandbox-eval.yml", { mode: "check" }), null);
+assert.match(inputProblem(ir, "sandbox-eval.yml", { mode: "kill" }), /must be one of check/);
+assert.match(inputProblem(ir, "sandbox-eval.yml", {}), /must be one of/);
+assert.equal(inputProblem(ir, "box-deploy.yml", {}), null);
+assert.match(inputProblem({ INPUT_RULES: "{" }, "x.yml", {}), /refusing/);
+const tomlRules = JSON.parse(realToml.match(/INPUT_RULES = '(.*)'/)[1]);
+assert.deepEqual(tomlRules["sandbox-eval.yml"].mode, ["check"]);
+console.log("input rules: ok");

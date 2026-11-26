@@ -8,7 +8,7 @@
 
 export const AGENTS = ["lead", "free", "research", "coder"];
 export const RUN = ["schedules.yml", "sandbox-eval.yml", "dash-snapshot.yml", "models-rank.yml", "keys-probe.yml",
-  "box-sizes.yml", "workbench-manage.yml"];
+  "box-sizes.yml", "box-deploy.yml", "cfbox-deploy.yml", "workbench-manage.yml"];
 const WATCH = ["worker", "schedules", "sandbox-eval", "tests", "notify", "dash-snapshot", "review", "propose"];
 const NAMES = { lead: "Lead", free: "Scout", research: "Researcher", coder: "Coder" };
 
