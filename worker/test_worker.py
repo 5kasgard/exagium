@@ -1580,6 +1580,76 @@ class LanesTest(unittest.TestCase):
         self.assertEqual(lanes.lanes(1.0, 10), 4)
 
 
+class ChooseModel(unittest.TestCase):
+    """K76: choose the judgement model from qualifying runs (cost, then latency)."""
+
+    def test_qualifying_free_beats_nonqualifying_cheaper(self):
+        import tier
+        # Free model qualifies (controls 0.8, agree 0.7), cheaper model doesn't qualify
+        records = {
+            "free-model": [
+                {"controls_right": 8, "controls_total": 10, "agree": 7, "total": 10, "cost_usd": 0.0, "latency_s": 5.0},
+                {"controls_right": 8, "controls_total": 10, "agree": 7, "total": 10, "cost_usd": 0.0, "latency_s": 5.0},
+            ],
+            "cheap-model": [
+                {"controls_right": 5, "controls_total": 10, "agree": 7, "total": 10, "cost_usd": 0.01, "latency_s": 2.0},
+                {"controls_right": 5, "controls_total": 10, "agree": 7, "total": 10, "cost_usd": 0.01, "latency_s": 2.0},
+            ],
+        }
+        self.assertEqual(tier.choose(records), "free-model")
+
+    def test_among_qualifiers_lower_cost_wins(self):
+        import tier
+        records = {
+            "model-a": [
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.05, "latency_s": 3.0},
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.05, "latency_s": 3.0},
+            ],
+            "model-b": [
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.02, "latency_s": 4.0},
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.02, "latency_s": 4.0},
+            ],
+        }
+        self.assertEqual(tier.choose(records), "model-b")
+
+    def test_equal_cost_goes_to_lower_latency(self):
+        import tier
+        records = {
+            "model-a": [
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.03, "latency_s": 2.0},
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.03, "latency_s": 2.0},
+            ],
+            "model-b": [
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.03, "latency_s": 5.0},
+                {"controls_right": 9, "controls_total": 10, "agree": 8, "total": 10, "cost_usd": 0.03, "latency_s": 5.0},
+            ],
+        }
+        self.assertEqual(tier.choose(records), "model-a")
+
+    def test_no_qualifiers_returns_none(self):
+        import tier
+        records = {
+            "model-a": [
+                {"controls_right": 5, "controls_total": 10, "agree": 5, "total": 10, "cost_usd": 0.01, "latency_s": 2.0},
+                {"controls_right": 5, "controls_total": 10, "agree": 5, "total": 10, "cost_usd": 0.01, "latency_s": 2.0},
+            ],
+            "model-b": [
+                {"controls_right": 6, "controls_total": 10, "agree": 6, "total": 10, "cost_usd": 0.02, "latency_s": 3.0},
+                {"controls_right": 6, "controls_total": 10, "agree": 6, "total": 10, "cost_usd": 0.02, "latency_s": 3.0},
+            ],
+        }
+        self.assertIsNone(tier.choose(records))
+
+    def test_insufficient_runs_does_not_qualify(self):
+        import tier
+        records = {
+            "model-a": [
+                {"controls_right": 9, "controls_total": 10, "agree": 9, "total": 10, "cost_usd": 0.01, "latency_s": 2.0},
+            ],
+        }
+        self.assertIsNone(tier.choose(records))
+
+
 class Exhaust(unittest.TestCase):
     """K53: a 429 reply becomes a pool reset time."""
     def test_reset_time(self):

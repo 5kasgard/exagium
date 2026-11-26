@@ -11,7 +11,7 @@ the model chooses: "redo" with a narrower question and new queries (both script-
 "escalate" (no free source can answer it), recorded since 2026-11-25 as a null result, as is a second "no claims" after a redo (owner: nothing goes to the owner that data can settle). The move goes through queue_ops.move, so transitions.py and render.py check it.
 Nothing the model writes is executed; its question and queries are data the research job searches with.
 """
-import json, os, re, subprocess, sys, zipfile, io
+import json, os, re, subprocess, sys, zipfile, io, statistics
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -24,6 +24,34 @@ MODEL = "claude-haiku-5-5"   # $0.10/$0.50 per M tokens up to 100k-token prompts
 MAX_ITEMS = 3
 MAX_PRS = 12   # 2026-11-21: 15 PRs arrived in 18 minutes and the tier took 3 per run (its controls run once per run)
 REPO = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
+
+
+def qualifies_pair(runs):
+    """Return True if the model's runs meet the quality threshold: at least 2 runs, controls accuracy >= 0.8, and agreement >= 0.7."""
+    if len(runs) < 2:
+        return False
+    controls_right = sum(r.get("controls_right", 0) for r in runs)
+    controls_total = sum(r.get("controls_total", 1) for r in runs)
+    agree = sum(r.get("agree", 0) for r in runs)
+    total = sum(r.get("total", 1) for r in runs)
+    if controls_total == 0 or total == 0:
+        return False
+    return (controls_right / controls_total >= 0.8) and (agree / total >= 0.7)
+
+
+def choose(records):
+    """records maps model id -> list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s}.
+    Keep only models where qualifies_pair holds. Return the model id with the lowest mean cost_usd, ties broken by
+    lowest mean latency_s, or None if no model qualifies."""
+    qualified = {}
+    for model_id, runs in records.items():
+        if qualifies_pair(runs):
+            costs = [r.get("cost_usd", 0) for r in runs]
+            latencies = [r.get("latency_s", 0) for r in runs]
+            qualified[model_id] = (statistics.mean(costs), statistics.mean(latencies))
+    if not qualified:
+        return None
+    return min(qualified.items(), key=lambda kv: (kv[1][0], kv[1][1]))[0]
 
 PROMPT = """You review a research job that found no usable claims. Decide what happens next.
 
