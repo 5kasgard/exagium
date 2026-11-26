@@ -25481,6 +25481,40 @@
    "claimed_by": "worker-45907424407",
    "claimed_at": "2026-11-26T22:51:57Z",
    "lease_until": "2026-11-27T00:51:57Z"
+  },
+  {
+   "id": "K90",
+   "title": "Runner contract: a labelled-feedback (prequential) mode so online families can be candidates on the drift task (P3, after K89 held)",
+   "kind": "build",
+   "status": "open",
+   "origin": "follow-up",
+   "split_from": "P3",
+   "filed_at": "2026-11-26T22:52:58Z",
+   "touches": [
+    "runner/CONTRACT.md",
+    "runner/run.py",
+    "tasks/drift/card.json"
+   ],
+   "next": "K89 held of record (experiment.yml run 45907417078): on the drift task's test block, a prequential online logistic model scored 0.915, the static model 0.449 and majority 0.529. For online families to compete, the contract needs a mode in which infer sees each item's key after it answers. Design it in runner/CONTRACT.md first: the card flag, how keys reach infer (a second input stream, read after each output record), and how the jail keeps the key from being read early. Then cut it into worker-sized code items. Hypothesis to test before building: a reference online candidate under the new mode reproduces K89's 0.915 within 1 SE (0.011 at n=2000).",
+   "refs": [
+    "queue P3",
+    "queue K89 (experiments/drift_online.py, run 45907417078)",
+    "runner/CONTRACT.md"
+   ],
+   "severity": "minor",
+   "needs": "subscription usage",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B1",
+   "runs": [
+    {
+     "at": "2026-11-26T22:52:58Z",
+     "by": "claude-shift-2026-11-26b",
+     "outcome": "filed",
+     "result": "filed from K89's holds verdict"
+    }
+   ]
   }
  ],
  "batches": [
