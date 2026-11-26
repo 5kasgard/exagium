@@ -285,16 +285,111 @@ export class Chat {
   }
 }
 
+// Start (or continue) a chat: shared by forge-act's /ask and the listener below.
+export async function startJob(env, job) {
+  if (!CONFIG.agents[job.agent] || !String(job.prompt || "").trim()) return { error: "bad job" };
+  if (job.chat && !/^[a-z0-9]{8,40}$/.test(job.chat)) return { error: "bad chat" };
+  const chat = job.chat || crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+  const r = await env.CHAT.get(env.CHAT.idFromName(chat)).fetch("https://chat/", { method: "POST",
+    body: JSON.stringify({ agent: job.agent, prompt: String(job.prompt).slice(0, 4000), chat }) });
+  return { chat, ...(await r.json()) };
+}
+
+// ---------- the listener: ordinary Discord messages (owner, 2026-11-27) ----------
+// Which owner message goes where (nothing else is read or answered):
+//   a reply to an agent card that carries "chat <id>"  -> continue that chat with that agent
+//   "Scout, ..." / "Lead: ..." (an agent's name first)  -> a new chat with that agent
+//   a direct message to the bot                         -> a new chat with the main agent
+const NAME_TO_KEY = Object.fromEntries(Object.entries(CONFIG.agents).map(([k, a]) => [a.name.toLowerCase(), k]));
+export function route(msg, ownerId, mainAgent = CONFIG.main || "lead") {
+  if (!msg || !ownerId || msg.author?.id !== ownerId || msg.author?.bot || msg.webhook_id) return null;
+  const text = String(msg.content || "").trim();
+  if (!text) return null;
+  const ref = msg.referenced_message;
+  if (ref) {
+    const key = NAME_TO_KEY[String(ref.author?.username || "").toLowerCase()];
+    const chat = String(ref.embeds?.[0]?.footer?.text || "").match(/chat ([a-z0-9]{8,40})/)?.[1];
+    if (key && chat) return { agent: key, chat, prompt: text };
+  }
+  const named = text.match(/^([A-Za-z]+)\s*[,:]\s*([\s\S]+)$/);
+  if (named && NAME_TO_KEY[named[1].toLowerCase()]) return { agent: NAME_TO_KEY[named[1].toLowerCase()], prompt: named[2].trim() };
+  if (!msg.guild_id) return { agent: mainAgent, prompt: text };
+  return null;
+}
+
+const INTENTS = (1 << 9) | (1 << 12) | (1 << 15);   // guild messages, direct messages, message content
+const GATEWAY = "https://gateway.discord.gg/?v=10&encoding=json";
+
+export class Gateway {
+  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.ws = null; this.seq = null; this.acked = true; this.timer = null; }
+
+  async fetch() { await this.ensure(); return Response.json({ connected: !!this.ws }); }
+  async alarm() { await this.ensure(); }
+
+  async ensure() {
+    // checked every minute: reconnect if the socket is gone or stopped acknowledging heartbeats
+    await this.ctx.storage.setAlarm(Date.now() + 60000);
+    if (!this.env.DISCORD_BOT_TOKEN || !this.env.DISCORD_OWNER_ID) return;
+    // a refusal that retrying cannot fix (bad token, intents not enabled): wait 30 min before trying again
+    const fatal = await this.ctx.storage.get("fatal");
+    if (fatal && Date.now() - fatal.at < 30 * 60000) return;
+    if (this.ws && this.acked !== false) return;
+    try { this.ws?.close(); } catch {}
+    this.ws = null;
+    const st = (await this.ctx.storage.get("session")) || {};
+    const r = await fetch(st.resume || GATEWAY, { headers: { Upgrade: "websocket" } });
+    const ws = r.webSocket;
+    if (!ws) { console.log(JSON.stringify({ gateway: "no socket", status: r.status })); return; }
+    ws.accept();
+    this.ws = ws; this.acked = true;
+    ws.addEventListener("message", (e) => this.onMessage(JSON.parse(e.data), st).catch((x) => console.log(JSON.stringify({ gateway: "error", e: String(x).slice(0, 200) }))));
+    ws.addEventListener("close", (e) => { console.log(JSON.stringify({ gateway: "closed", code: e.code })); if (this.ws === ws) this.ws = null; clearInterval(this.timer);
+      if ([4004, 4010, 4011, 4012, 4013, 4014].includes(e.code)) this.ctx.storage.put("fatal", { code: e.code, at: Date.now() }); });
+  }
+
+  send(op, d) { try { this.ws?.send(JSON.stringify({ op, d })); } catch {} }
+
+  async onMessage(p, st) {
+    if (p.s) this.seq = p.s;
+    if (p.op === 10) {                       // hello: start heartbeats, then resume or identify
+      clearInterval(this.timer);
+      this.timer = setInterval(() => { if (this.acked === false) { try { this.ws?.close(4000); } catch {} this.ws = null; return; }
+        this.acked = false; this.send(1, this.seq); }, p.d.heartbeat_interval);
+      if (st.session && st.seq) this.send(6, { token: this.env.DISCORD_BOT_TOKEN, session_id: st.session, seq: st.seq });
+      else this.send(2, { token: this.env.DISCORD_BOT_TOKEN, intents: INTENTS, properties: { os: "cloudflare", browser: "forge", device: "forge" } });
+    } else if (p.op === 11) this.acked = true;
+    else if (p.op === 1) this.send(1, this.seq);
+    else if (p.op === 7) { try { this.ws?.close(4000); } catch {} this.ws = null; }                 // reconnect asked
+    else if (p.op === 9) { await this.ctx.storage.delete("session"); try { this.ws?.close(4000); } catch {} this.ws = null; }
+    else if (p.op === 0) {
+      if (p.t === "READY") {
+        await this.ctx.storage.put("session", { session: p.d.session_id, resume: (p.d.resume_gateway_url || "").replace(/^wss:/, "https:") + "/?v=10&encoding=json", seq: p.s });
+        console.log(JSON.stringify({ gateway: "ready" }));
+      }
+      if (p.s) { const cur = (await this.ctx.storage.get("session")) || {}; if (cur.session) await this.ctx.storage.put("session", { ...cur, seq: p.s }); }
+      if (p.t === "MESSAGE_CREATE") {
+        const job = route(p.d, this.env.DISCORD_OWNER_ID);
+        if (!job) return;
+        const res = await startJob(this.env, job);
+        console.log(JSON.stringify({ gateway: "message", agent: job.agent, cont: !!job.chat, ok: !res.error }));
+        // a small reaction tells the owner it was picked up (ignored if the bot lacks the permission)
+        await fetch(`https://discord.com/api/v10/channels/${p.d.channel_id}/messages/${p.d.id}/reactions/${encodeURIComponent(res.error ? "⚠️" : "👀")}/@me`,
+          { method: "PUT", headers: { authorization: `Bot ${this.env.DISCORD_BOT_TOKEN}` } }).catch(() => {});
+      }
+    }
+  }
+}
+
 export default {
-  // Only forge-act reaches this (service binding; no route). Body: {agent, prompt, chat?}
+  // Only forge-act reaches fetch (service binding; no route). Body: {agent, prompt, chat?}
   async fetch(request, env) {
     if (request.method !== "POST") return new Response("not found", { status: 404 });
     let job; try { job = await request.json(); } catch { return new Response("bad json", { status: 400 }); }
-    if (!CONFIG.agents[job.agent] || !String(job.prompt || "").trim()) return new Response("bad job", { status: 400 });
-    if (job.chat && !/^[a-z0-9]{8,40}$/.test(job.chat)) return new Response("bad chat", { status: 400 });
-    const chat = job.chat || crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-    const r = await env.CHAT.get(env.CHAT.idFromName(chat)).fetch("https://chat/", { method: "POST",
-      body: JSON.stringify({ agent: job.agent, prompt: String(job.prompt).slice(0, 4000), chat }) });
-    return Response.json({ chat, ...(await r.json()) });
+    const res = await startJob(env, job);
+    return res.error ? new Response(res.error, { status: 400 }) : Response.json(res);
+  },
+  // keeps the listener connected: wakes the Gateway object, whose own alarm then checks it every minute
+  async scheduled(event, env) {
+    await env.GATEWAY.get(env.GATEWAY.idFromName("discord")).fetch("https://gateway/");
   },
 };

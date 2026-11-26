@@ -4,6 +4,8 @@
 #   CEREBRAS_API_KEY, OPENCODE_API_KEY, GROQ_API_KEY   free model endpoints (fabric/agent/agents.json)
 #   ACT_TOKEN <- FORGE_ACT_TOKEN, BOX_TOKEN <- FORGE_BOX_TOKEN   the act and box connectors
 #   DISCORD_WEBHOOK_URL   the owner's channel, where the live card is written
+#   DISCORD_BOT_TOKEN, DISCORD_OWNER_ID <- DISCORD_USER_ID   the listener (ordinary messages; needs the bot's
+#                         Message Content Intent turned on in the Discord Developer Portal)
 name: agent-deploy
 on:
   workflow_dispatch:
@@ -43,9 +45,11 @@ jobs:
           ACT_TOKEN: ${{ secrets.FORGE_ACT_TOKEN }}
           BOX_TOKEN: ${{ secrets.FORGE_BOX_TOKEN }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_OWNER_ID: ${{ secrets.DISCORD_USER_ID }}
         run: |
           fail=0
-          for n in CEREBRAS_API_KEY OPENCODE_API_KEY GROQ_API_KEY ACT_TOKEN BOX_TOKEN DISCORD_WEBHOOK_URL; do
+          for n in CEREBRAS_API_KEY OPENCODE_API_KEY GROQ_API_KEY ACT_TOKEN BOX_TOKEN DISCORD_WEBHOOK_URL DISCORD_BOT_TOKEN DISCORD_OWNER_ID; do
             v="${!n}"
             if [ -z "$v" ]; then echo "$n: not set"; continue; fi
             printf '%s' "$v" | npx --no-install wrangler secret put "$n" --config ../agent/wrangler.toml > /dev/null 2>&1 && echo "$n: set" || { echo "$n: FAILED"; fail=1; }
