@@ -24913,7 +24913,7 @@
    "id": "K88",
    "title": "Wire the drift generator into tasks/build.py as task \"drift\" with a pinned card (P3: next step after K87)",
    "kind": "build",
-   "status": "parked",
+   "status": "done",
    "origin": "follow-up",
    "split_from": "P3",
    "severity": "minor",
@@ -25048,6 +25048,14 @@
      "outcome": "resplit",
      "from": "escalated",
      "to": "parked"
+    },
+    {
+     "at": "2026-11-26T22:46:02Z",
+     "worker": "claude-shift-2026-11-26b",
+     "result": "done by the Claude tier: PR #244, squash-merged as fbea8750f. tasks/build.py now has build_drift (seed 2026, n 8000, stream-order splits 4000/2000/2000), and tasks/drift/card.json has the digests pinned. Two builds gave the same digests, and tasks/test_drift.py passes 3 tests. The free tier failed because its prepare step refused the item (code_job.new_ok cannot create a file in a new folder, tasks/drift/), not because the item was too big. A resplit would have hit the same refusal.",
+     "outcome": "decide_done",
+     "from": "parked",
+     "to": "done"
     }
    ],
    "work_types": {
