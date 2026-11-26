@@ -26,22 +26,24 @@ export const COMMANDS = [
         choices: RUN.filter((w) => w !== "workbench-manage.yml").map((w) => ({ name: w.replace(".yml", ""), value: w })) }] },
   { name: "status", description: "Latest result of the main Forge jobs", default_member_permissions: "32" },
   { name: "prs", description: "Open pull requests", default_member_permissions: "32" },
+  { name: "activity", description: "Who did what recently (the Forge's activity log)", default_member_permissions: "32",
+    options: [{ type: 3, name: "who", description: "an agent name or id (optional)", required: false }] },
+  { name: "agents", description: "Agent instances now active (name, class, model, where)", default_member_permissions: "32" },
   // message menu (long-press a message > Apps): continue that agent's chat instead of starting a new one
   { type: 3, name: "Reply to agent", default_member_permissions: "32" },
 ];
 const BY_NAME = Object.fromEntries(Object.entries(NAMES).map(([k, v]) => [v, k]));
-const TOPIC = /topic ([A-Za-z0-9_-]{1,80})/, CHAT = /chat ([a-z0-9]{8,40})/;
+const TOPIC = /topic ([A-Za-z0-9_-]{1,80})/, CHAT = /(?:^| · )chat ([0-9a-f]{16})$/;
 
 // The agent and the chat to continue come from the card itself: the persona name it was posted as and the
 // "topic …" in its footer (fabric/discord/render.py). Nothing is stored.
 export function replyTarget(i) {
   const m = i.data?.resolved?.messages?.[i.data?.target_id];
-  const agent = BY_NAME[m?.author?.username];
   const foot = m?.embeds?.[0]?.footer?.text || "";
   const chat = foot.match(CHAT)?.[1], topic = foot.match(TOPIC)?.[1];
-  if (!agent) return null;
-  if (chat) return { agent, kind: "c", id: chat };          // a forge-agent card: continue that conversation
-  if (topic) return { agent, kind: "t", id: topic };        // a LobeHub card: continue that topic
+  if (chat && m?.webhook_id) return { agent: "any", kind: "c", id: chat };   // a forge-agent card: the chat knows its agent
+  const agent = BY_NAME[m?.author?.username];
+  if (agent && topic) return { agent, kind: "t", id: topic };               // a LobeHub card: continue that topic
   return null;
 }
 
@@ -67,10 +69,10 @@ export async function command(i, env, gh, repo) {
   if (!env.DISCORD_OWNER_ID || who !== env.DISCORD_OWNER_ID) return say("Not allowed.");
   const name = i.data?.name;
   if (name === "continue-forge") {
-    const { agent, chat, text } = i.data;
-    if (!AGENTS.includes(agent) || !/^[a-z0-9]{8,40}$/.test(chat || "") || !text || !env.AGENT) return say("Could not read the reply.");
-    await env.AGENT.fetch("https://agent/", { method: "POST", body: JSON.stringify({ agent, prompt: text, chat }) });
-    return say(`Sent to **${NAMES[agent]}** in the same chat.`);
+    const { chat, text } = i.data;
+    if (!/^[a-z0-9]{8,40}$/.test(chat || "") || !text || !env.AGENT) return say("Could not read the reply.");
+    const r = await env.AGENT.fetch("https://agent/", { method: "POST", body: JSON.stringify({ prompt: text, chat }) });
+    return say(r.ok ? "Sent, in the same chat." : `forge-agent refused: HTTP ${r.status}`);
   }
   if (name === "ask") {
     const agent = opt(i, "agent"), prompt = String(opt(i, "prompt") || "").trim();
@@ -106,6 +108,16 @@ export async function command(i, env, gh, repo) {
       return `${icon(r)} **${n}** ${r.status === "completed" ? r.conclusion : r.status} · ${r.updated_at.slice(5, 16).replace("T", " ")}Z`; });
     return say(lines.length ? lines.join("\n") : "No recent runs found.");
   }
+  if (name === "activity" || name === "agents") {
+    if (!env.DB) return say("The record is not connected.");
+    const rec = await import("../record/record.js");
+    if (name === "agents") {
+      const a = await rec.agents(env.DB, {});
+      return say(a.length ? a.slice(0, 25).map((x) => `**${x.name}** · ${x.class} · ${x.model || "?"} · ${x.interface}${x.verified ? "" : " (claimed)"} · last ${String(x.last_at || "").slice(5, 16).replace("T", " ")}Z`).join("\n") : "No agents registered yet.");
+    }
+    const ev = await rec.activity(env.DB, { agent: opt(i, "who") || undefined, limit: 20 });
+    return say(ev.length ? ev.map((e) => `\`${e.at.slice(5, 16).replace("T", " ")}\` **${e.name || e.actor || "?"}**${e.verified ? "" : " (claimed)"} ${e.action}${e.target ? ` ${e.target}` : ""}${e.summary ? ` — ${String(e.summary).replace(/[@\n]/g, " ").slice(0, 80)}` : ""}`).join("\n") : "Nothing recorded yet.");
+  }
   if (name === "prs") {
     const j = await gh(env, `/repos/${repo}/pulls?state=open&per_page=15`);
     const lines = (j || []).map((p) => `#${p.number} ${String(p.title).replace(/[\r\n@]/g, " ").slice(0, 90)} · ${p.user?.login || "?"} <${p.html_url}>`);
@@ -128,13 +140,13 @@ export async function handle(request, env, gh, repo, ctx, post = fetch) {
   if (i.type === 2 && i.data?.type === 3) {                       // "Reply to agent": answer with a form at once
     const t = replyTarget(i);
     if (!owner || !t) return Response.json({ type: 4, data: { ...reply(owner ? "That message is not an agent reply with a topic." : "Not allowed."), flags: 64 } });
-    return Response.json({ type: 9, data: { custom_id: `reply:${t.agent}:${t.kind}:${t.id}`, title: `Reply to ${NAMES[t.agent]}`,
+    return Response.json({ type: 9, data: { custom_id: `reply:${t.agent}:${t.kind}:${t.id}`, title: t.agent === "any" ? "Reply" : `Reply to ${NAMES[t.agent]}`,
       components: [{ type: 1, components: [{ type: 4, custom_id: "text", label: "Your reply", style: 2, required: true, max_length: 1500 }] }] } });
   }
   if (i.type === 5) {                                              // the form was sent: continue that topic
     const [, agent, kind, id] = String(i.data?.custom_id || "").match(/^reply:([a-z]+):([ct]):([A-Za-z0-9_-]{1,80})$/) || [];
     const text = i.data?.components?.[0]?.components?.[0]?.value?.trim();
-    if (!owner || !AGENTS.includes(agent) || !text) return Response.json({ type: 4, data: { ...reply(owner ? "Could not read the reply." : "Not allowed."), flags: 64 } });
+    if (!owner || !(AGENTS.includes(agent) || (agent === "any" && kind === "c")) || !text) return Response.json({ type: 4, data: { ...reply(owner ? "Could not read the reply." : "Not allowed."), flags: 64 } });
     i = { ...i, type: 2, data: kind === "c" ? { name: "continue-forge", agent, chat: id, text } : { name: "continue", agent, topic: id, text } };
   } else if (i.type !== 2) return Response.json({ type: 4, data: { ...reply("Not supported yet."), flags: 64 } });
   const work = (async () => {

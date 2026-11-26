@@ -27,7 +27,7 @@ jobs:
         working-directory: fabric/worker
         run: npm ci --no-fund --no-audit
       - name: tests
-        run: node fabric/agent/test_agent.mjs
+        run: node fabric/agent/test_agent.mjs && node fabric/record/test_record.mjs
       - name: deploy
         working-directory: fabric/worker
         env:

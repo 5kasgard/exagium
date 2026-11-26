@@ -73,9 +73,11 @@ assert.match(r.j.data.content, /being written/); assert.deepEqual(agentCalls.pop
 r = await send(cmd("ask", [{ name: "agent", value: "coder" }, { name: "prompt", value: "fix it" }, { name: "via", value: "lobehub" }]));
 assert.match(r.j.data.content, /Asked \*\*Coder/); assert.equal(agentCalls.length, 0);
 assert.equal(calls.pop().body.inputs.mode, "run");
-const fcard = { author: { username: "Coder" }, embeds: [{ footer: { text: "big-pickle · 9 s · done · chat c0ffee1234567890" } }] };
-r = await send(menu(OWNER, fcard)); assert.equal(r.j.data.custom_id, "reply:coder:c:c0ffee1234567890");
-r = await send(form(OWNER, "reply:coder:c:c0ffee1234567890", "now add a test"));
+const fcard = { webhook_id: "w", author: { username: "Stradivari · Coder" }, embeds: [{ footer: { text: "big-pickle · 9 s · done · chat c0ffee1234567890" } }] };
+r = await send(menu(OWNER, fcard)); assert.equal(r.j.data.custom_id, "reply:any:c:c0ffee1234567890");
+r = await send(form(OWNER, "reply:any:c:c0ffee1234567890", "now add a test"));
 assert.match(r.j.data.content, /same chat/);
-assert.deepEqual(agentCalls.pop(), { agent: "coder", prompt: "now add a test", chat: "c0ffee1234567890" });
+assert.deepEqual(agentCalls.pop(), { prompt: "now add a test", chat: "c0ffee1234567890" });
+r = await send(form(OWNER, "reply:any:t:tpc_X", "x")); assert.match(r.j.data.content, /Could not read/);
+r = await send(cmd("activity")); assert.match(r.j.data.content, /not connected/);
 console.log("test_discord: ok");

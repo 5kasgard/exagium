@@ -19,7 +19,7 @@ assert.equal(await authorized(req("Bearer short", {}), { ...env, ACT_TOKEN: "sho
 assert.equal((await worker.fetch(req("Bearer nope", { jsonrpc: "2.0", id: 1, method: "tools/list" }), env)).status, 401);
 assert.equal((await worker.fetch(req("Bearer " + TOK, Array(5).fill({ jsonrpc: "2.0", id: 1, method: "ping" })), env)).status, 400);
 const list = await (await worker.fetch(req("Bearer " + TOK, { jsonrpc: "2.0", id: 1, method: "tools/list" }), env)).json();
-assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["comment", "create_issue", "open_pr", "run_workflow"]);
+assert.deepEqual(list.result.tools.map((t) => t.name).sort(), ["activity", "agents", "comment", "create_issue", "open_pr", "run_workflow"]);
 assert.ok(!list.result.tools.some((t) => /merge/.test(t.name)));
 
 const calls = [], bodies = [];
