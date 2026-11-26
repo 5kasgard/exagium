@@ -1,3 +1,129 @@
+note: Q25 (B1) and Q67 (B3) both touch tasks/sat
+note: Q25 (B1) and Q70 (B3) both touch tasks
+note: Q25 (B1) and P34 (-) both touch tasks
+note: Q28 (B4) and Q63 (B3) both touch record/experiments/anchors/RESULTS.md, record/experiments/anchors/VERIFY-anchors.md
+note: Q28 (B4) and Q80 (B3) both touch record/experiments/anchors/RESULTS.md, record/experiments/anchors/VERIFY-anchors.md
+note: Q36 (B5) and Q65 (B3) both touch loop/README.md
+note: Q36 (B5) and Q69 (B3) both touch loop/README.md
+note: Q36 (B5) and Q71 (B3) both touch loop/README.md
+note: Q36 (B5) and Q78 (B3) both touch loop/README.md
+note: Q36 (B5) and Q81 (B3) both touch loop/README.md
+note: Q44 (B5) and Q65 (B3) both touch loop/candidates
+note: Q44 (B5) and Q69 (B3) both touch loop/candidates
+note: Q44 (B5) and Q71 (B3) both touch loop/candidates
+note: Q44 (B5) and Q78 (B3) both touch loop/candidates
+note: Q44 (B5) and Q81 (B3) both touch loop/candidates
+note: Q54 (B1) and Q67 (B3) both touch tasks/sat
+note: Q54 (B1) and Q70 (B3) both touch runner/candidates, tasks
+note: Q54 (B1) and Q71 (B3) both touch runner/candidates
+note: Q54 (B1) and Q75 (B3) both touch runner/candidates
+note: Q54 (B1) and Q76 (B3) both touch runner/candidates
+note: Q54 (B1) and Q81 (B3) both touch runner/candidates
+note: Q54 (B1) and P34 (-) both touch runner/candidates, tasks
+note: P3 (B1) and Q67 (B3) both touch tasks/sat
+note: P3 (B1) and Q70 (B3) both touch runner/candidates, tasks
+note: P3 (B1) and Q71 (B3) both touch runner/candidates
+note: P3 (B1) and Q75 (B3) both touch runner/candidates
+note: P3 (B1) and Q76 (B3) both touch runner/candidates
+note: P3 (B1) and Q81 (B3) both touch runner/candidates
+note: P3 (B1) and P34 (-) both touch runner/candidates, tasks
+note: P10 (B8) and Q66 (B3) both touch .github/workflows/whole-audit.yml
+note: P10 (B8) and Q67 (B3) both touch audit/periodic
+note: P7b (B7) and P26a (B3) both touch worker/research_job.py
+note: P7b (B7) and P26g (B3) both touch worker/research_job.py
+note: P7b (B7) and Q66 (B3) both touch .github/workflows/worker.yml
+note: P7b (B7) and Q67 (B3) both touch worker/research_job.py
+note: P7b (B7) and P33 (-) both touch .github/workflows/worker.yml
+note: P7b (B7) and P38 (-) both touch .github/workflows/worker.yml
+note: P7b (B7) and Q85 (-) both touch worker/research_job.py
+note: P7c (B7) and P26a (B3) both touch worker/research_job.py
+note: P7c (B7) and P26g (B3) both touch worker/research_job.py
+note: P7c (B7) and Q66 (B3) both touch .github/workflows/worker.yml
+note: P7c (B7) and Q67 (B3) both touch worker/research_job.py
+note: P7c (B7) and P33 (-) both touch .github/workflows/worker.yml
+note: P7c (B7) and P38 (-) both touch .github/workflows/worker.yml
+note: P7c (B7) and Q85 (-) both touch worker/research_job.py
+note: P7d (B7) and P26a (B3) both touch worker/research_job.py
+note: P7d (B7) and P26g (B3) both touch worker/research_job.py
+note: P7d (B7) and Q67 (B3) both touch worker/research_job.py
+note: P7d (B7) and Q85 (-) both touch worker/research_job.py
+note: P14 (B10) and Q65 (B3) both touch loop/results/machines-*
+note: P14 (B10) and Q66 (B3) both touch .github/workflows/machines.yml
+note: P14 (B10) and Q69 (B3) both touch loop/results/machines-*
+note: P14 (B10) and Q71 (B3) both touch loop/results/machines-*
+note: P14 (B10) and Q78 (B3) both touch loop/results/machines-*
+note: P14 (B10) and Q81 (B3) both touch loop/results/machines-*
+note: P15 (B10) and Q65 (B3) both touch loop/results/hardware-*
+note: P15 (B10) and Q69 (B3) both touch loop/results/hardware-*
+note: P15 (B10) and Q71 (B3) both touch loop/results/hardware-*
+note: P15 (B10) and Q78 (B3) both touch loop/results/hardware-*
+note: P15 (B10) and Q81 (B3) both touch loop/results/hardware-*
+note: P18 (B1) and Q70 (B3) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P18 (B1) and Q71 (B3) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P18 (B1) and Q75 (B3) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P18 (B1) and Q76 (B3) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P18 (B1) and Q81 (B3) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P18 (B1) and P34 (-) both touch runner/jail_tests, runner/results/jail-assurance-*
+note: P20 (B3) and P33 (-) both touch router/engines.py
+note: P20a (B3) and P33 (-) both touch router/engines.py
+note: P20c (B3) and P33 (-) both touch router/engines.py, worker/ledger.py
+note: P20c (B3) and P38 (-) both touch worker/generate.py, worker/queue_ops.py, worker/split.py
+note: P20c (B3) and Q85 (-) both touch worker/research_job.py, worker/test_worker.py
+note: P20d (B3) and P33 (-) both touch worker/ledger.py
+note: P20d (B3) and P38 (-) both touch worker/generate.py, worker/queue_ops.py, worker/split.py
+note: P20d (B3) and Q85 (-) both touch worker/research_job.py, worker/test_worker.py
+note: P20e (B3) and P33 (-) both touch .github/workflows/worker.yml, router/engines.py, worker/ledger.py
+note: P20e (B3) and P38 (-) both touch .github/workflows/worker.yml
+note: P21 (B9) and P35 (-) both touch audit/2026-11-17/web
+note: P23 (B1) and Q70 (B3) both touch runner/CONTRACT.md, runner/run.py
+note: P23 (B1) and Q71 (B3) both touch runner/CONTRACT.md, runner/run.py
+note: P23 (B1) and Q75 (B3) both touch runner/CONTRACT.md, runner/run.py
+note: P23 (B1) and Q76 (B3) both touch runner/CONTRACT.md, runner/run.py
+note: P23 (B1) and Q79 (B3) both touch runner/run.py
+note: P23 (B1) and Q81 (B3) both touch runner/CONTRACT.md, runner/run.py
+note: P23 (B1) and P34 (-) both touch runner/CONTRACT.md, runner/run.py
+note: P5c (B1) and Q70 (B3) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and Q71 (B3) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and Q75 (B3) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and Q76 (B3) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and Q81 (B3) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and P34 (-) both touch runner/candidates/label-emblin, runner/results
+note: P5c (B1) and K86 (B3) both touch runner/results/packet-pilot
+note: P7f (B7) and P26a (B3) both touch worker/research_job.py
+note: P7f (B7) and P26g (B3) both touch worker/research_job.py
+note: P7f (B7) and Q67 (B3) both touch worker/research_job.py
+note: P7f (B7) and Q85 (-) both touch worker/research_job.py
+note: P29 (B3) and P34 (-) both touch runner/proposals
+note: Q62 (B3) and P34 (-) both touch runner/jail.py
+note: P26a (B3) and Q85 (-) both touch worker/research_job.py
+note: P26c (B3) and P33 (-) both touch router/slots.py
+note: P26d (B3) and Q84 (-) both touch facts/register.json
+note: P26g (B3) and Q85 (-) both touch worker/research_job.py
+note: Q66 (B3) and P33 (-) both touch .github/workflows/worker.yml
+note: Q66 (B3) and Q84 (-) both touch .github/workflows/keys-probe.yml, .github/workflows/router.yml
+note: Q66 (B3) and P38 (-) both touch .github/workflows/worker.yml
+note: Q67 (B3) and P33 (-) both touch router/engines.py
+note: Q67 (B3) and P34 (-) both touch tasks/sat
+note: Q67 (B3) and Q84 (-) both touch facts/register.json
+note: Q67 (B3) and P38 (-) both touch worker/generate.py
+note: Q67 (B3) and Q85 (-) both touch worker/research_job.py
+note: Q70 (B3) and P34 (-) both touch runner, tasks
+note: Q70 (B3) and K88 (B1) both touch tasks/build.py, tasks/drift/card.json, tasks/test_drift.py
+note: Q71 (B3) and P34 (-) both touch runner
+note: Q75 (B3) and P34 (-) both touch runner
+note: Q76 (B3) and P34 (-) both touch runner
+note: Q79 (B3) and P34 (-) both touch runner/run.py
+note: Q81 (B3) and P34 (-) both touch runner
+note: P33 (-) and P38 (-) both touch .github/workflows/worker.yml
+note: P34 (-) and P5e (B3) both touch runner/proposals/confirm, runner/proposals/judge.py, runner/proposals/stage.py
+note: P34 (-) and P5d (B3) both touch runner/proposals/packet.py, runner/proposals/prompt.md
+note: P34 (-) and K85 (B3) both touch runner/proposals/propose.py, runner/proposals/test_proposals.py
+note: P34 (-) and K86 (B3) both touch runner/results/packet-pilot
+note: P34 (-) and K88 (B1) both touch tasks/build.py, tasks/drift/card.json, tasks/test_drift.py
+note: P36 (-) and P39 (-) both touch audit/notes/2026-11-25/forge-os.md
+note: P39 (-) and P40 (-) both touch audit/fabric/capabilities-2026-11-25.md, audit/fabric/providers-models-2026-11-25.json
+note: Q85 (-) and K75 (B3) both touch worker/test_worker.py
+note: Q85 (-) and K76 (B3) both touch worker/test_worker.py
 # exagium: one queue after the whole-project audit (2026-11-17)
 
 Built from six skill-group audits (A security, B tests/bugs/state, C structure, D claims, E agents/free compute, F ML/binaries), a separate verification pass (S2: 15 of 16 high-impact items confirmed by reproduction, 1 partly right), and the 2026-11-13 audit and handoffs. Severity is after S2 corrections. Source of truth: queue.json; render with render.py. Every open item declares what it writes ('touches': files, paths, branches; reads don't count); render.py refuses an open item without it and lists items in different batches that touch the same thing, so overlaps show up as items are added.
@@ -148,7 +274,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (60)
+## Can run now (63)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -185,6 +311,9 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q54 | B1 |  | none | high | test | Hypothesis (owner, 2026-11-18): the cheapest artifact is the one whose structure is the process the hardware already runs (fewer translation layers between model and native primitives = lower cost at equal accuracy) | Fold into the transfer test / mixed suite (forge-next-item-2026-11-18 steps 1-2) rather than a separate build: add native-primitive families next to the float ones (lookup tables and constraint propagation first, as the cheapest to port; then Tsetlin, cellular automata, event-driven). Fix before running: supported if their cost lead at matched accuracy holds on at least 2 non-digit tasks; weakened if it holds only on digits/perception or vanishes once accuracy is matched. Offload: once the free proposer exists, give it this as a hypothesis to generate candidates for; Claude only checks. Evidence so far, digits only: LGN 0.45x instructions, 1.9-3.3x cheaper per image at large N, -0.7 pt dev accuracy; staging page faults were ~1/3 of mlp16's time. Update 2026-11-18 (P1, transfer/results/2026-11-18/): for the gate network, the digits-only lead did not carry over: on text and UCI Adult it used 2.1x and 1.3x mlp16's instructions and was less accurate, so on the first two non-digit tasks this family weakens the hypothesis (sizes grew with the class count: 50 output gates per class). Lookup-table and constraint-propagation families are still untested; add them in P3. P3 step 1 (2026-11-19, runner/results/2026-11-19-p3-step1/): WiSARD (lookup tables) not matched on any task (-3.1, -25.5, -7.0 paired SE vs the better of linear/mlp16) and more instructions per item on all three: rule 3 verdict WEAKENED. With the logic-gate network (transfer step 1), no family of this kind supports the hypothesis so far. Remaining untested: constraint propagation, Tsetlin, cellular automata, event-driven; narrow or drop if the next one also fails. | project doc claude/forge-hypothesis-process-is-computation.md; loop/results/scale-2026-11-18/; explore/ on this branch; RabbitHole README (constraint propagation, native-C candidate) |
 | Q84 |  |  | major | high | fix | Probe and route the 13 repository secrets no workflow uses, and drop the 6 secret names workflows reference that do not exist | Owner added OPENCODE_API_KEY 2026-11-25 (no credits): probe merged (PR #144); keys-probe run 45506695777: 200, key valid. Its $0 free models (e.g. deepseek-v4.1-flash-free, zero retention) work only from the OpenCode client, which the opencode GitHub action is: candidate for P36's owner-gated issue agent. RESULT run 45389762503 (2026-11-24 12:03Z, artifact keys-probe): 200 OK for ARTIFICIALANALYSIS (limit 100, 99 left), DEEPINFRA, FIREWORKS, HUGGINGFACE (1000 per 300 s window), OPENALEX (10,000 credits a day, metered: $0.001 a request against $1 a day), OPENML, E2B (list), UPSTASH (list), BENCHLM (1,000 reads a month, 30 a minute). Not OK: SCALEWAY 403 (key accepted, permission missing: Scaleway's docs require the GenerativeApisModelAccess permission set for the key), CORE 301 (the probe refuses redirects by design: fix the URL, then re-probe), VAST 401 (key rejected: check the key or its auth form), VULTR 401 (Vultr keys are IP-restricted by default; GitHub runner IPs vary, so the key's access control must allow them, or Vultr stays out of CI). Next: step 2, a role per working key by data, one item each. Step 1 built: PR #123 (keys-probe.yml + router/keys_probe.py; separate reviewer's changes applied). After the owner merges: dispatch once; read the summary (one row per key). Upstash needs an UPSTASH_EMAIL secret; BenchLM has no documented endpoint yet. Then step 2 (a role per key by data) and step 3 (facts register). Audit 2026-11-24 (Claude chat, by grep of .github/workflows and *.py at main 70fa790): unused secrets ARTIFICIALANALYSIS_API_KEY, BENCHLM_API_KEY, CORE_API_KEY, DEEPINFRA_API_KEY, E2B_API_KEY, FIREWORKS_API_KEY, HUGGINGFACE_API_KEY, OPENALEX_API_KEY, OPENML_API_KEY, SCALEWAY_API_KEY, UPSTASH_API_KEY, VAST_API_KEY, VULTR_API_KEY (SEMANTIC_SCHOLAR_API_KEY is wired by PR #120). Referenced but absent: COHERE_API_KEY, CROWLLM_API_KEY, CROWLLM_BASE_URL, INFERBASE_API_KEY, MISTRAL_API_KEY, SAMBANOVA_API_KEY (router.yml probe). Step 1: a dispatch-only keys-probe workflow (merged by the owner; contents: read; one step per key, the key only in that step's env) making one documented, read-only, no-cost call per key (list models / account / quota), recording status code and any published allowance headers, never the key or the body. Each endpoint and its free allowance cited from the provider's docs first (AGENTS.md: limits cite sources). Step 2: a role per key by data (hypotheses, unverified): inference pools DEEPINFRA, FIREWORKS, SCALEWAY, HUGGINGFACE (router engines, after P33); research sources OPENALEX (api_key param), CORE (open-access full text, P7f); evidence about models ARTIFICIALANALYSIS, BENCHLM (worker cards P20a; weigh published results before paying to test); task data OPENML (new task domains, P3); sandboxes E2B (jailed code runs, compare with the bubblewrap jail); store UPSTASH (P11 candidate); compute VAST, VULTR (paid: only with a cost case against free runners). Step 3: register each in facts/register.json so a changed allowance escalates. | audit/notes/2026-11-24/HANDOFF-chat-2026-11-24.md |
 | Q85 |  |  | major | high | fix | Research claim decider keeps 7 of 48 quote-verified claims and has no known-answer controls | Data (Claude shift 2026-11-25, evidence/2026-11-25-claim-decider-funnel.txt: result artifacts of the last 24 research runs since 2026-11-24): the script quote check kept 48 claims; worker/research_job.py decide_claims (pplx-decider, keep at p >= 0.5) kept 7. 9 of the 18 'no claims' runs had quote-verified claims that only the decider dropped (R65 6 of 6, R69 6 of 6). p: 7 at >= 0.5, 8 in 0.3-0.5, 33 below 0.3. The relevance filter had the same shape and was fixed by known-answer controls plus a labelled replay (REL_KEEP 0.3, router/review/relevance-control/); decide_claims has no controls at all, against the rule that a model judges only with known-answer controls. Hypothesis: the decider's instruction ('directly answers the QUESTION, not merely the same field') is miscalibrated, not the claims. Cheapest test, rule fixed before the run: freeze the 48 claims with their questions; label each keep/drop blind (a separate model or agent, no p shown, with 6 planted known answers: 3 exact supported on-question claims, 3 off-question or over-claimed); replay decide_claims and the same request with two controls added at thresholds 0.5, 0.4, 0.3. Adopt the lowest threshold whose precision against the labels is >= 0.85 and whose controls hold on every request; else keep 0.5 and record why. Then add the two controls to decide_claims (the request is not used if they fail, like relevance()), with a test. After the change, re-open the research items sent to the owner only because no claim survived: R4, R22, R28, R29, R33, R37, R46, R47, R53, R55, R57, R61, R64, R65, R69, R70. | queue P7; worker/research_job.py:408-431; audit/2026-11-17/evidence/2026-11-25-claim-decider-funnel.txt |
+| R83 |  |  | minor | high | test | Research card: which AI agent workspaces could be the owner's one home screen (discovery, not a fixed list) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
+| R84 |  |  | minor | high | test | Research card: why single users abandon AI chat and agent workspaces (inversion pass on the candidates) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
+| R85 |  |  | minor | high | test | Research card: chat-app control planes for agents (Discord, Telegram, Slack bots driving tools and models) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
 | P17 | B9 |  | none | medium | doc | Living capability map: the 12 abilities, where each stands, with evidence links, for the auditor to check progress against | Owner, 2026-11-19: add to the queue only, no work yet. Abilities: 1 task intake and checkers, 2 candidates across families, 3 cost measurement, 4 verify and record, 5 world evidence, 6 knowledge store, 7 composition, 8 distillation and reverse-engineering, 9 work and resource placement, 10 self-governance, 11 tool-making, 12 hardware as search dimension; plus the outward interface and consuming external outputs. Each line: status, evidence link, owning queue items. Mirror in the project as claude/forge-capability-map.md. Owner 2026-11-19 (adds to what exists; does not change how anything works): the map also shows flow: lineage between parts, waiting time and connectors used (audit/periodic/connectors.json: 5 of 11 on 2026-11-19). Whole-system review, 2026-11-19 (owner asked to look past current work; adds, does not change how anything works): the map shows, per ability, findings with evidence against infrastructure built for it, so starved science is visible. | chat 2026-11-19 (ten-ability map plus abilities 11 and 12); project doc claude/forge-next-item-2026-11-18.md |
 | P26a | B3 |  | minor | medium | test | Port RabbitHole's per-source survival ledger (tether.py SourceLedger) for research source credibility (P7e) | RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/tether.py SourceLedger keeps per-source survival counts across contacts; trust is read off the record. Forge P7e wants per-source credibility from track record. Test, rule fixed before running: from worker-runs research runs, score each source domain by kept/offered claims (the ledger's rule) on runs before a cut date; predict kept claims after it. Adopt if it beats source kind alone (paper/forum/Q&A) by 0.05 AUC; else record as not carried. Checked by a separate agent 2026-11-21: SourceLedger (tether.py:209-268) keys on the proposer of a grounding test, not a website or paper; it needs a new key (source domain) before it fits. The gap is real: research_job.py pick() ranks by citations within a kind; UNTRUSTED is fixed by kind. | queue P26; https://github.com/5kasgard/Rabbithole/pull/1 |
 | P26b | B3 |  | minor | medium | test | Port RabbitHole's drift monitor (drift.py DriftMonitor) for per-model drift probes (P20f) | RabbitHole (5kasgard/Rabbithole, source in PR #1 product-upload.zip) rabbithole/drift.py (53 lines): a baseline per numeric feature and a shift report. Forge P20f wants silent model changes detected. Test, rule fixed before running: on ledger/calls.jsonl, baseline each (pool, model)'s ok-rate and latency on days 1-2, report days 3+; adopt if it flags NIM's retirement of gpt-oss-120b (HTTP 410, known) and no more than 1 false flag on models with no known change. | queue P26; https://github.com/5kasgard/Rabbithole/pull/1 |

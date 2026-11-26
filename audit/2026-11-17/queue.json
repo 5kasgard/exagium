@@ -24888,6 +24888,93 @@
     "tasks/test_drift.py"
    ],
    "next": "In tasks/build.py add build_drift(out): X, y, W = drift.generate(seed=2026, n=8000, dim=16, segments=4) (import tasks/drift.py the way build.py imports its other helpers); split in stream order, never shuffled: train = rows 0..3999 (blocks 0-1), dev = rows 4000..5999 (block 2), test = rows 6000..7999 (block 3); encode with the existing label_splits-style records (input = the 16 X bytes of a row, key = one byte y) and save(out, 'drift', splits). Add 'drift' to --only's default list and call build_drift when it is selected. Add tasks/drift/card.json modelled on tasks/optdigits/card.json: task 'drift', kind 'stream', input 16 bytes (quantized N(0,1) features), output one byte 0..1, classes 2, checker 'label', metric 'accuracy', baselines ['majority', 'label-linear'], floor 'majority', sources ['tasks/drift.py seed 2026'], items {train 4000, dev 2000, test 2000}, and 'data' = the sha256 digests that python3 tasks/build.py OUT --only drift prints into OUT/drift/manifest.json (run it twice; both runs must give the same digests). Add a test to tasks/test_drift.py that runs build_drift into a temp dir and checks the item counts and that the manifest digests equal the card's 'data'. Run python3 -m unittest tasks/test_drift.py. The split choice (train on the first half, score on later drifted blocks) is what the later online-vs-static experiment needs; that experiment and its decision rule are a separate item."
+  },
+  {
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new",
+   "blocked_by": [],
+   "touches": [
+    "research/cards/R83.md"
+   ],
+   "refs": [
+    "owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md"
+   ],
+   "id": "R83",
+   "title": "Research card: which AI agent workspaces could be the owner's one home screen (discovery, not a fixed list)",
+   "next": "Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks.",
+   "research": {
+    "question": "Which self-hosted or hosted AI chat and agent workspaces in 2026 combine most of: a phone app or installable web app with push notifications, MCP tool use, many model providers including free ones, scheduled and background tasks, parallel or team agents, code sandboxes, and deep customisation by an agent?",
+    "queries": [
+     "self-hosted AI agent workspace MCP mobile app",
+     "open source ChatGPT alternative MCP scheduled tasks",
+     "LLM chat UI push notifications background agents",
+     "multi-agent workspace self-hosted open source 2026",
+     "Open WebUI LibreChat LobeHub alternatives"
+    ]
+   }
+  },
+  {
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new",
+   "blocked_by": [],
+   "touches": [
+    "research/cards/R84.md"
+   ],
+   "refs": [
+    "owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md"
+   ],
+   "id": "R84",
+   "title": "Research card: why single users abandon AI chat and agent workspaces (inversion pass on the candidates)",
+   "next": "Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks.",
+   "research": {
+    "question": "What failure modes, limits and complaints do single users report for self-hosted AI chat and agent workspaces such as Open WebUI, LibreChat, LobeHub, AnythingLLM, Dify and OpenHands when used for personal automation, especially on phones, with background work, and with MCP tools?",
+    "queries": [
+     "Open WebUI problems mobile PWA",
+     "LibreChat MCP agents issues",
+     "LobeHub mobile experience complaints",
+     "AnythingLLM agent limitations",
+     "why I stopped using Open WebUI"
+    ]
+   }
+  },
+  {
+   "kind": "test",
+   "severity": "minor",
+   "status": "open",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "origin": "new",
+   "blocked_by": [],
+   "touches": [
+    "research/cards/R85.md"
+   ],
+   "refs": [
+    "owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md"
+   ],
+   "id": "R85",
+   "title": "Research card: chat-app control planes for agents (Discord, Telegram, Slack bots driving tools and models)",
+   "next": "Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks.",
+   "research": {
+    "question": "Which open-source projects run an LLM agent behind a Discord or Telegram bot with MCP or tool access, background tasks and notifications, and what do their users report about reliability, cost and day-to-day use compared with a dedicated chat UI?",
+    "queries": [
+     "Discord bot LLM agent MCP open source",
+     "Telegram bot AI agent tools background tasks",
+     "chatops LLM agent Discord Cloudflare Workers",
+     "self-hosted personal AI assistant Telegram MCP",
+     "Discord AI agent bot GitHub automation"
+    ]
+   }
   }
  ],
  "batches": [
