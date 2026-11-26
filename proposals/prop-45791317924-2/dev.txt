@@ -1,0 +1,16 @@
+FAILED: prop-45791317924-2 on text: train.py exited 1:
+Trying D=4
+Traceback (most recent call last):
+  File "/w/train.py", line 149, in <module>
+    main()
+  File "/w/train.py", line 126, in main
+    params, b, acc = train_model(X_train, y_train, X_val, y_val, D, EPOCHS_TUNE)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 97, in train_model
+    loss, grad_params, grad_b = loss_and_grad(X_batch, y_batch, params, b)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 75, in loss_and_grad
+    grad_params[j][0] += L2 * params[j][0]
+    ~~~~~~~~~~~~~~^^^
+TypeError: 'tuple' object does not support item assignment
+
