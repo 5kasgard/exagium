@@ -1,5 +1,5 @@
-# DISCORD_OWNER_ID (the only Discord user whose commands run) is a Worker secret set once through the Cloudflare API,
-# not a repo secret, so it is not in this file or the repo. Unset: every command answers "Not allowed".
+# DISCORD_OWNER_ID (the only Discord user whose commands run) comes from the repo secret DISCORD_USER_ID, so it is not
+# in this file or the repo. Unset: every command answers "Not allowed".
 # Deploys forge-act (fabric/act/worker.js), the write half of the Forge connector, to Cloudflare Workers (owner
 # 2026-11-25). Manual, main only. Two owner-made secrets go into the Worker, one step each:
 #   FORGE_ACT_TOKEN         a random string of 32+ characters (shorter refuses everything); the same value goes in
@@ -61,6 +61,15 @@ jobs:
         run: |
           [ -n "$V" ] || { echo "DISCORD_PUBLIC_KEY not set: /discord refuses everything"; exit 0; }
           printf '%s' "$V" | npx --no-install wrangler secret put DISCORD_PUBLIC_KEY --config ../act/wrangler.toml > /dev/null 2>&1 && echo "DISCORD_PUBLIC_KEY: set"
+      - name: secret DISCORD_OWNER_ID
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.DISCORD_USER_ID }}
+        run: |
+          [ -n "$V" ] || { echo "DISCORD_USER_ID not set: every Discord command answers 'Not allowed'"; exit 0; }
+          printf '%s' "$V" | npx --no-install wrangler secret put DISCORD_OWNER_ID --config ../act/wrangler.toml > /dev/null 2>&1 && echo "DISCORD_OWNER_ID: set"
       - name: Discord slash commands and endpoint (fabric/act/discord.js)
         env:
           APP: ${{ secrets.DISCORD_APP_ID }}
