@@ -20900,7 +20900,7 @@
    "id": "K71",
    "title": "Run experiment packet_pilot (P5d)",
    "kind": "test",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "split_from": "P5d",
    "generated_at": "2026-11-24T22:12:33Z",
@@ -20951,6 +20951,14 @@
      "outcome": "invalid",
      "from": "scheduled",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-26T08:47:09Z",
+     "worker": "claude-shift-2026-11-26",
+     "result": "Cause of 'invalid: no pilot result' (run 45708023768): K71 was blocked only by K70 (the rule), not by anything that produces pilot data; K69 (the producer arm) was parked after PR #152 was rejected. Rule unchanged. K71 now blocked by K86 (pilot producer), which follows K84 (repair helper, worker lane) and K85 (propose --arm).",
+     "outcome": "redo",
+     "from": "escalated",
+     "to": "open"
     }
    ]
   },
