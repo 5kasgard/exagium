@@ -1,0 +1,13 @@
+{
+ "name": "drift_online",
+ "plan": "Data: tasks/build.py build_drift (seed 2026, 8000 rows, 16 features, the rule changes every 2000 rows; train = blocks 0-1, dev = block 2, test = block 3), checked against tasks/drift/card.json's pinned digests. Static: logistic regression trained on train only (full-batch gradient descent, 300 steps, step 0.5, no penalty), then frozen. Online: the same model, then run through dev and test in stream order: predict each row, then take one SGD step (step 0.05) on its label (prequential). Score: accuracy on the 2000 test rows. Majority: the most common train label, scored on test. Rule, fixed before the run: holds if online minus static is at least 0.10, the 2.5th percentile of 2000 paired bootstrap resamples of that difference (seed 0) is above 0.05, and online beats majority by at least 0.10. Otherwise it fails. Invalid if the built data does not match the card. Margin: 0.10 is chosen to mean an advantage big enough to rank families, not just one outside noise. One proportion over 2000 items has a standard error of at most 0.011. If it holds, the drift task stays in P3's suite as the stateful task, and the runner contract needs a labelled-feedback mode. If it fails, the task's drift is too weak or too strong to tell the families apart, and its parameters are changed under a new rule. Forgetting is reported but not judged: block-0 accuracy of each model after the stream.",
+ "file": "experiments/drift_online.py",
+ "file_commit": "9830ae70197c002a43a9796d085f15964a6238c0 2026-11-27T08:49:16+10:00",
+ "content_sha256": "063900dbf05d20097fc89adac03308afd4f485af024a2b22e8cd0facee603147",
+ "started": "2026-11-26T22:51:51Z",
+ "verdict": {
+  "verdict": "holds",
+  "why": "online 0.915 vs static 0.449 (diff 0.466, p2.5 0.441), majority 0.529"
+ },
+ "finished": "2026-11-26T22:51:56Z"
+}
