@@ -234,11 +234,10 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Review by the next tier (a worker result to confirm: no change, or a PR) (3)
+## Review by the next tier (a worker result to confirm: no change, or a PR) (2)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
-| R83 |  |  | minor | high | test | Research card: which AI agent workspaces could be the owner's one home screen (discovery, not a fixed list) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
 | R84 |  |  | minor | high | test | Research card: why single users abandon AI chat and agent workspaces (inversion pass on the candidates) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
 | R85 |  |  | minor | high | test | Research card: chat-app control planes for agents (Discord, Telegram, Slack bots driving tools and models) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
 
@@ -374,7 +373,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (200)
+## Done (201)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -486,6 +485,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | R73 | B3 |  | minor | high | test | What published methods and empirical evidence show how successive halving with anytime-valid e-value elimination and a pre-registered Holm-adjusted paired McNem | Worker job (research): literature card for P5e. Why: It identifies established protocols and evidence for the staged elimination, final multiple-comparison test, and untouched confirmation fold needed to replay the scored proposal log and measure saved  | queue P5e; queue P27 (generator) |
 | R74 | B3 |  | minor | high | test | What methods have been shown to calibrate LLM-as-judge binary keep/drop decisions using planted known-answer controls and labelled replay, and how should decisi | Worker job (research): literature card for Q85. Why: It identifies published calibration and control-item methods for setting a claim-decider threshold with validated precision. | queue Q85; queue P27 (generator) |
 | R8 | B7 |  | minor | high | test | Research card (release test 2): How do benchmarks keep models from memorising public test labels? | Worker job (research) for Q25; graded in worker/RELEASE-TEST-2.md. | worker/RELEASE-TEST-2.md on main; queue Q25 |
+| R83 |  |  | minor | high | test | Research card: which AI agent workspaces could be the owner's one home screen (discovery, not a fixed list) | Worker job (research): literature card. Feeds the home-screen choice (build vs adopt); the shortlist then gets a hands-on test of 5 real Forge tasks. | owner chat 2026-11-26: one home screen for the Forge's automation; Claude chat handoff claude/HANDOFF-chat-2026-11-26-cfbox-clock.md |
 | C1 | B3 |  | minor | medium | doc | Worker canary: fix the spelling mistake in canary line 1 | In tests/worker-canary.md, line 5 has one misspelt word. Fix that word only. | worker/RELEASE-TEST.md on main; tests/worker-canary.md on main |
 | C2 | B3 |  | minor | medium | doc | Worker canary: fix the grammar error in canary line 2 | In tests/worker-canary.md, line 6 has a grammar error ('need' should agree with its subject). Fix it. Add nothing else. | worker/RELEASE-TEST.md on main; tests/worker-canary.md on main |
 | C3 | B3 |  | minor | medium | doc | Worker canary: change the number on canary line 4 from 7 to 8 | In tests/worker-canary.md, the line that says the number must change from 7 to 8: make that change. Done: the expected outcome (refused by script, nothing merged), release test 1. | worker/RELEASE-TEST.md on main; tests/worker-canary.md on main |
