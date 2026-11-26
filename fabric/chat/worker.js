@@ -5,6 +5,15 @@
 // Keys are Worker secrets, set by .github/workflows/chat-deploy.yml from the repo's secrets; the browser never sees them.
 import PAGE from "./page.html";
 import DASH from "./dash.html";   // the Forge dashboard (fabric/dash): owner-only like the chat
+import CONSOLE from "./console.html";   // the owner's home page: every part of the system, its health, links (2026-11-26)
+// Live health probes for the console: unauthenticated, so each part's healthy answer is its refusal or its page.
+const PROBES = {
+  "Forge connector (read)": ["https://connector.exagium.xyz/mcp", "POST", [200]],
+  "Forge act (write)": ["https://act.exagium.xyz/mcp", "POST", [401]],
+  "Forge box (sandboxes)": ["https://box.exagium.xyz/mcp", "POST", [401]],
+  "Workbench (LobeHub)": ["https://workbench.exagium.xyz/signin", "GET", [200]],
+  "Dashboard data": ["https://raw.githubusercontent.com/5kasgard/exagium/fabric-data/dash.json", "GET", [200]],
+};
 const DASH_DATA = "https://raw.githubusercontent.com/5kasgard/exagium/fabric-data/dash.json";
 
 const CONNECTOR = "https://connector.exagium.xyz/mcp";
@@ -119,6 +128,19 @@ export default {
       return new Response(PAGE, { headers: { "content-type": "text/html; charset=utf-8" } });
     if (url.pathname === "/dash" && request.method === "GET")
       return new Response(DASH, { headers: { "content-type": "text/html; charset=utf-8" } });
+    if (url.pathname === "/console" && request.method === "GET")
+      return new Response(CONSOLE, { headers: { "content-type": "text/html; charset=utf-8" } });
+    if (url.pathname === "/api/health") {
+      const out = await Promise.all(Object.entries(PROBES).map(async ([name, [u, method, ok]]) => {
+        const t = Date.now();
+        try {
+          const r = await fetch(u, { method, redirect: "manual", headers: { "content-type": "application/json" },
+            body: method === "POST" ? '{"jsonrpc":"2.0","id":1,"method":"ping"}' : undefined, signal: AbortSignal.timeout(8000) });
+          return { name, http: r.status, ms: Date.now() - t, ok: ok.includes(r.status) };
+        } catch (e) { return { name, http: 0, ms: Date.now() - t, ok: false, error: String(e.message || e).slice(0, 80) }; }
+      }));
+      return Response.json({ at: new Date().toISOString(), parts: out }, { headers: { "cache-control": "no-store" } });
+    }
     if (url.pathname === "/api/dash") {
       const r = await fetch(DASH_DATA, { cf: { cacheTtl: 120 } });
       return new Response(r.ok ? r.body : JSON.stringify({ error: `dash.json: HTTP ${r.status}` }),

@@ -153,6 +153,11 @@ def regate(wt, decide_fn, calls, room=MAX_PER_DAY):
     return move_all(wt, [i["id"] for i in pend], outcomes, ps) if outcomes else []
 
 
+def run_touches(name):
+    """What an experiment run item writes: the record job saves its result on router-runs (experiments/README.md)."""
+    return f"router-runs:experiments/{name}/"
+
+
 def move_all(wt, ids, outcomes, ps):
     moved = []
     for k, rid in enumerate(ids):
@@ -163,6 +168,8 @@ def move_all(wt, ids, outcomes, ps):
             if i["status"] != "proposed":
                 break
             i["status"] = T.next_status(i["status"], outcomes[k])
+            if i.get("experiment") and not i.get("touches"):   # run items born with touches [] (K71): render.py refused opening
+                i["touches"] = [run_touches(i["experiment"]["name"])]   # them, and every split run crashed (2026-11-25 idle logs)
             i.setdefault("runs", []).append({"at": Q.iso(Q.now()), "worker": "generator-gate", "outcome": outcomes[k],
                                              "result": f"decision model p={ps[k + 2]:.3f}; controls {ps[0]:.3f}/{ps[1]:.3f}"})
             Q.save(wt, q)

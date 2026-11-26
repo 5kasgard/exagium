@@ -16,6 +16,15 @@
 - **A new or changed workflow path runs once with no cost before it runs for real** (a dry run, a fixture, a probe).
   On 2026-11-19 a one-character shell bug lost the proposer's first scoring run.
 
+## Nothing goes to the owner that data can settle (owner, 2026-11-25)
+The owner decides only what no agent can or may: credentials, repository settings, spend beyond the free pools,
+deleting branches or records, merging changes to the system's own guards (workflows, agent instructions, gates), and
+items the owner said to hold (`worker/transitions.py` OWNER_ONLY; `queue_ops.move` refuses any other escalation).
+Everything else is decided by data: when a result leaves a direction open, state the competing hypotheses, write the
+cheapest test that separates them and its decision rule into the item before running it, run it on free compute, and
+act on the outcome. A question the literature does not answer is a recorded null result. Measured before this rule:
+16 of the 20 items waiting on the owner were research questions with no surviving claims (queue.json, 2026-11-25).
+
 ## Context is scarce: process in code, return what the decision needs
 Run API calls, tool results and data through a script and return only the summary a decision needs; never paste raw
 JSON, logs or whole files into a model's context. The same holds for the free models: give them queried rows from a

@@ -1,0 +1,13 @@
+name = "forge-box"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+# Same rules as the other Forge Workers: no workers.dev (the subdomain carries the owner's name), custom domain only.
+# Secrets (BOX_TOKEN, E2B_API_KEY) are put by .github/workflows/box-deploy.yml.
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "box.exagium.xyz", custom_domain = true }]
+
+[vars]
+MAX_BOXES = "3"
+IDLE_MIN = "10"

@@ -3,6 +3,8 @@ with LOBEHUB_CLI_API_KEY). Owner 2026-11-25: "add automation so you can work on 
 
   python3 -I fabric/workbench/manage.py status                   # what is there: providers, models, connectors, agents
   python3 -I fabric/workbench/manage.py apply CONFIG_JSON        # make connectors and agents match the config
+  python3 -I fabric/workbench/manage.py run AGENT_KEY PROMPT     # run a forge-managed agent once (headless, free tools)
+  python3 -I fabric/workbench/manage.py due SCHEDULES_JSON OUT   # run every schedule entry due this UTC hour; status to OUT
   python3 -I fabric/workbench/manage.py errors [DAYS]            # recent failed replies: when, provider/model, error type and
                                                                  # the provider's message (redacted); never message content
 
@@ -97,7 +99,8 @@ def apply(path):
             extra["plugins"] = [{"identifier": x, "mode": "auto"} for x in cfg.get("builtin_plugins", []) + a["plugins"]]
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             json.dump(extra, f)
-        flags = ["-t", a["title"], "-d", a.get("description", ""), "-p", a["provider"], "-m", a["model"], "-s", a["system_role"]]
+        role = (cfg.get("preamble", "") + "\n\n" + a["system_role"]).strip()   # every agent knows what it can use
+        flags = ["-t", a["title"], "-d", a.get("description", ""), "-p", a["provider"], "-m", a["model"], "-s", role]
         if found:
             lh("agent", "edit", found[0]["id"], *flags, "--config-file", f.name, "--json", "id")
             print(f"agent {a['title']}: updated ({a['provider']}/{a['model']})")
@@ -132,9 +135,51 @@ def errors(days):
             print(f"         {x}")
 
 
+def agent_id(key):
+    found = rows(lh("agent", "list", "--tag", f"forge:{key}", "--json"))
+    if not found:
+        sys.exit(f"no agent tagged forge:{key}")
+    return found[0]["id"]
+
+
+def run(key, prompt, timeout=600):
+    """One headless run. Returns (exit code, seconds). The reply stays in LobeHub (a topic the owner can open);
+    the public log gets only the status, because agent output may quote private material."""
+    import time
+    t = time.time()
+    r = subprocess.run([LH, "agent", "run", "-a", agent_id(key), "-p", prompt, "--timeout", str(timeout)],
+                       capture_output=True, text=True, timeout=timeout + 60)
+    return r.returncode, round(time.time() - t)
+
+
+def due(path, out):
+    """Schedule entries: {"key", "agent", "prompt", "hours_utc": [..], "days": ["mon",..] (optional), "enabled"}.
+    Due when this UTC hour is listed (and today is listed, if days are given)."""
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    day = now.strftime("%a").lower()
+    state = json.load(open(out)) if os.path.exists(out) else {}
+    for e in json.load(open(path)).get("schedules", []):
+        if not e.get("enabled", True) or now.hour not in e.get("hours_utc", []) or (e.get("days") and day not in e["days"]):
+            continue
+        if state.get(e["key"], {}).get("last_hour") == now.strftime("%Y-%m-%dT%H"):
+            continue   # already ran this hour (a re-run of the job)
+        code, secs = run(e["agent"], e["prompt"], e.get("timeout_s", 600))
+        state[e["key"]] = {"last_hour": now.strftime("%Y-%m-%dT%H"), "at": now.isoformat()[:19] + "Z", "agent": e["agent"],
+                           "exit": code, "seconds": secs, "meaning": {0: "done", 1: "failed", 2: "waiting for approval", 3: "unconfirmed"}.get(code, "?")}
+        print(f"schedule {e['key']}: {state[e['key']]['meaning']} in {secs} s ({e['agent']})")
+    json.dump(state, open(out, "w"), indent=1)
+
+
 if __name__ == "__main__":
     if sys.argv[1:2] == ["status"]:
         status()
+    elif sys.argv[1:2] == ["run"]:
+        code, secs = run(sys.argv[2], sys.argv[3])
+        print(f"run {sys.argv[2]}: exit {code} in {secs} s (0 done, 1 failed, 2 waiting for approval, 3 unconfirmed)")
+        sys.exit(code)
+    elif sys.argv[1:2] == ["due"]:
+        due(sys.argv[2], sys.argv[3])
     elif sys.argv[1:2] == ["errors"]:
         errors(float(sys.argv[2]) if len(sys.argv) > 2 else 2)
     elif sys.argv[1:2] == ["apply"]:

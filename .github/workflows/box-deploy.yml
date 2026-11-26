@@ -1,0 +1,57 @@
+# Deploys forge-box (fabric/box/worker.js): persistent E2B sandboxes as MCP tools, opened by name from any chat or
+# worker (#191; owner 2026-11-26). Manual, main only. Secrets go into the Worker one step each:
+#   E2B_API_KEY       the E2B key already in the repo
+#   FORGE_BOX_TOKEN   its own bearer token (32+ characters), not shared with forge-act (security review 2026-11-26)
+# The Worker has no GitHub token: a box can run code, but it cannot touch the repo.
+name: box-deploy
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: install (pinned e2b SDK and wrangler, lockfile)
+        working-directory: fabric/box
+        run: npm ci --ignore-scripts --no-fund --no-audit   # no install scripts before the secret steps (review)
+      - name: tests
+        run: node fabric/box/test_box.mjs
+      - name: deploy
+        working-directory: fabric/box
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler deploy > "$RUNNER_TEMP/deploy.txt" 2>&1 || { grep -iE "error|fail" "$RUNNER_TEMP/deploy.txt" | grep -v -iE "workers\.dev|https?://" | tail -n 20; exit 1; }
+      - name: secret E2B_API_KEY
+        working-directory: fabric/box
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.E2B_API_KEY }}
+        run: |
+          printf '%s' "$V" | npx --no-install wrangler secret put E2B_API_KEY > /dev/null 2>&1 && echo "E2B_API_KEY: set"
+      - name: secret BOX_TOKEN
+        working-directory: fabric/box
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          V: ${{ secrets.FORGE_BOX_TOKEN }}
+        run: |
+          [ -n "$V" ] || { echo "FORGE_BOX_TOKEN not set: every call will be refused (401)"; exit 0; }
+          printf '%s' "$V" | npx --no-install wrangler secret put BOX_TOKEN > /dev/null 2>&1 && echo "BOX_TOKEN: set"
+      - name: smoke test (refuses without the token, lists tools with it)
+        env: {T: "${{ secrets.FORGE_BOX_TOKEN }}"}
+        run: |
+          url=https://box.exagium.xyz/mcp; body='{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+          sleep 20
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -d "$body")
+          echo "without token: HTTP $code" | tee -a "$GITHUB_STEP_SUMMARY"
+          code2=$(curl -s -o "$RUNNER_TEMP/s.json" -w '%{http_code}' -X POST "$url" -H 'content-type: application/json' -H "authorization: Bearer $T" -d "$body")
+          echo "with token: HTTP $code2" | tee -a "$GITHUB_STEP_SUMMARY"
+          [ "$code" = 401 ] && [ "$code2" = 200 ] && grep -q '"box_exec"' "$RUNNER_TEMP/s.json"

@@ -1,0 +1,20 @@
+{
+  // forge-cfbox: measures Cloudflare Containers (the platform under @cloudflare/sandbox 1.x) against the sandbox
+  // criteria in audit/fabric/sandbox-decision-2026-11-25.md, the same protocol E2B gets (fabric/sandbox/e2b_eval.py).
+  // Deployed by .github/workflows/cfbox-deploy.yml. Secret BOX_TOKEN is put by that workflow.
+  "name": "forge-cfbox",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Same rules as the other Forge Workers: no workers.dev (the subdomain carries the owner's name), custom domain only.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "cfbox.exagium.xyz", "custom_domain": true }],
+  "durable_objects": { "bindings": [{ "name": "BOX", "class_name": "EvalBox" }] },
+  "containers": [
+    { "class_name": "EvalBox", "scheduling_policy": "durable_object",
+      "images": { "sandbox": { "dockerfile": "./Dockerfile" } } }
+  ],
+  "exports": { "EvalBox": { "type": "durable-object", "storage": "sqlite" } },
+  "observability": { "enabled": true }
+}

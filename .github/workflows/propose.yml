@@ -223,7 +223,12 @@ jobs:
           elif [ "$have" -lt "$FIRST_N" ] || [ "$verdict" = KEEP ]; then
             n=3; [ "$have" -lt "$FIRST_N" ] && n=$(( FIRST_N - have < 3 ? FIRST_N - have : 3 ))
             start=$(( (START + N) % 3 ))
-            GH_TOKEN="${{ github.token }}" gh workflow run propose.yml -R "${{ github.repository }}" --ref main -f n="$n" -f start="$start"
+            # 2026-11-25: one HTTP 500 from the dispatch API (run 45646733762) ended a KEEP chain for 7 hours; retry before giving up
+            ok=0; for try in 1 2 3; do
+              GH_TOKEN="${{ github.token }}" gh workflow run propose.yml -R "${{ github.repository }}" --ref main -f n="$n" -f start="$start" && { ok=1; break; }
+              echo "dispatch attempt $try failed; retrying"; sleep $((20 * try))
+            done
+            [ "$ok" = 1 ] || { echo "::error::next batch not started after 3 dispatch attempts"; exit 1; }
             echo "next batch started: $n proposals from task $start ($have so far; first-$FIRST_N verdict: ${verdict:-pending})"
           else
             echo "$have proposals; first-$FIRST_N verdict $verdict: not chaining (the plan's switch rule)"

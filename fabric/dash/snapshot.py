@@ -63,7 +63,24 @@ def queue_part(q, now):
         "open_items": [{"id": i["id"], "title": i.get("title", "")[:120], "kind": i.get("kind"), "value": i.get("value"),
                         "jobs": i.get("work_types") or []} for i in openi][:60],
         "waiting_on_owner": [{"id": i["id"], "title": i.get("title", "")[:120]} for i in items if i["status"] == "waiting on the owner"],
+        "backlog": backlog_part(q),
     }
+
+
+def backlog_part(q):
+    """Every unfinished item's lane (worker/backlog.py): who moves it next, how long it has waited, and the orphans and
+    stale items first, so no pile grows unseen (owner 2026-11-25)."""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "worker"))
+        import backlog
+        text, L, orphans, stale = backlog.report(q)
+    except Exception as e:   # the dashboard still shows the rest
+        return {"error": f"{type(e).__name__}: {e}"[:200]}
+    counts = Counter(v["lane"] for v in L.values())
+    flag = lambda ids: [{"id": k, **{x: L[k][x] for x in ("lane", "why", "age_days", "title")}} for k in ids]
+    return {"lanes": dict(counts), "orphans": flag(orphans), "stale": flag(stale), "flow_7d": backlog.flow(q),
+            "claude_lane": flag(sorted((k for k, v in L.items() if v["lane"] == "claude"),
+                                       key=lambda k: ({"high": 0, "medium": 1}.get(L[k]["value"], 2), -(L[k]["age_days"] or 99))))}
 
 
 def api(path, token):

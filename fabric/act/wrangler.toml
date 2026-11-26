@@ -7,5 +7,13 @@ workers_dev = false
 preview_urls = false
 routes = [{ pattern = "act.exagium.xyz", custom_domain = true }]
 
+# The Forge's clock (2026-11-26). GitHub's own cron is unreliable here: in the 6-7 h after they were added,
+# schedules.yml (hourly) ran 0 times, sandbox-eval.yml (3-hourly) 0 times, dash-snapshot.yml (hourly) 2 times
+# (Actions run lists, 2026-11-26T03:30Z; AGENTS.md records the same in 2026-11-19). Cloudflare cron triggers start
+# the workflows instead (Workers Paid). Each cron string maps to workflows in CRON_JOBS below.
+[triggers]
+crons = ["5 * * * *", "41 * * * *", "17 */3 * * *", "13 19 * * *"]
+
 [vars]
 ALLOW_WORKFLOWS = "workbench-logs.yml,workbench-manage.yml,dash-snapshot.yml"
+CRON_JOBS = '{"5 * * * *": ["schedules.yml"], "41 * * * *": ["dash-snapshot.yml"], "17 */3 * * *": ["sandbox-eval.yml"], "13 19 * * *": ["models-rank.yml"]}'

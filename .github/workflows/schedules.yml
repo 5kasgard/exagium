@@ -1,0 +1,40 @@
+# Scheduled agent runs (owner 2026-11-26: "a scheduler to automate when it's needed, like in this chat"). Hourly:
+# runs every entry of fabric/workbench/config/schedules.json due this UTC hour on its workbench agent, through
+# LobeHub's CLI. Replies stay in LobeHub as topics; only status (done/failed, seconds) goes to fabric-data.
+name: schedules
+on:
+  # started at "5 * * * *" by forge-act's Cloudflare cron (fabric/act/wrangler.toml), not GitHub's cron, which ran it
+  # rarely or never (2026-11-26); also by hand
+  workflow_dispatch:
+permissions:
+  contents: write    # schedules.json status on the fabric-data branch only
+concurrency: {group: fabric-data, cancel-in-progress: false}
+jobs:
+  due:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 22
+      - name: run what is due
+        env:
+          LOBEHUB_CLI_API_KEY: ${{ secrets.LOBEHUB_CLI_API_KEY }}
+        run: |
+          if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
+          npm i -g --no-fund --no-audit @lobehub/cli@0.0.234 > /dev/null   # zizmor: ignore[adhoc-packages] version pinned
+          lh login --server https://workbench.exagium.xyz > /dev/null 2>&1 || { echo "login failed"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/data/schedules"
+          if git fetch -q --depth 1 origin fabric-data 2>/dev/null; then git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- . ; fi
+          python3 -I fabric/workbench/manage.py due fabric/workbench/config/schedules.json "$RUNNER_TEMP/data/schedules/status.json" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: publish status to fabric-data
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git init -q && git checkout -q -b fabric-data && git add -A
+          git -c user.name=forge-dash -c user.email=forge-dash@users.noreply.github.com commit -q -m "schedules (run $GITHUB_RUN_ID)" || exit 0
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fabric-data

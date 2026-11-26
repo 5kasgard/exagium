@@ -258,7 +258,7 @@ def held(wt, worker, item_id):
     return 0 if i and i.get("claimed_by") == worker and live_claim(i, now()) else 1
 
 
-TIER_OUTCOMES = {"confirm", "redo", "escalate", "defer", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
+TIER_OUTCOMES = {"confirm", "redo", "escalate", "defer", "hold", "solved", "accept", "reject", "decide_done", "decide_open", "park", "decide_blocked",
                  "decide_scheduled", "decide_owner", "dispatch", "verdict", "invalid", "resplit"}
 EXPERIMENT_FAILED = "lost"   # only the experiment record job moves scheduled -> open with it (move(..., allow_failed=True))
 
@@ -268,6 +268,9 @@ def move(wt, actor, item_id, outcome, reason, allow_failed=False):
     Chat edits used to set status by hand, past transitions.py (Q60 open point)."""
     if outcome not in TIER_OUTCOMES and not (allow_failed and outcome == EXPERIMENT_FAILED):
         raise SystemExit(f"not a tier or owner outcome: {outcome!r} (worker outcomes go through release)")
+    if outcome == "escalate" and not T.owner_only(reason):   # owner 2026-11-25: only owner-only categories reach the owner
+        raise SystemExit(f"escalate refused: the reason must start with 'owner-only: <{'|'.join(T.OWNER_ONLY)}>'; "
+                         "decide everything else by data (redo, resplit, solved with a recorded null result, hold for the Claude tier)")
     for _ in range(TRIES):
         sync(wt)
         q = load(wt)
