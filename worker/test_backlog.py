@@ -2,6 +2,7 @@ import os, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import backlog as B  # noqa: E402
 import transitions as T  # noqa: E402
+import graph_truth as G  # noqa: E402
 
 
 def item(i, status, **k):
@@ -41,6 +42,13 @@ class Lanes(unittest.TestCase):
         self.assertTrue(L["A"]["stale"])            # 11 days in the claude lane, limit 7
         self.assertFalse(L["B"]["stale"])           # undated: counted apart in the report, not called fresh or stale
         self.assertIsNone(L["B"]["age_days"])
+
+    def test_truth_q1(self):
+        """K83: truth set Q1 is computed from the queue, not hard-coded."""
+        q = {"items": [item("K1", "open", blocked_by=["P21"]),
+                       item("K2", "open", blocked_by=["P21"]),
+                       item("K3", "open", blocked_by=[])]}
+        self.assertEqual(G.truth_q1(q), ["K1", "K2"])
 
 
 class RunItems(unittest.TestCase):
