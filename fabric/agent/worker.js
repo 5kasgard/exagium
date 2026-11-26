@@ -187,8 +187,18 @@ export class Chat {
       } catch (e) { s.tools.push({ name: `${server} unreachable`, ok: false }); }
     }
     const system = `${CONFIG.preamble}\n\n${agent.role}\nYour model: ${agent.model}. When a tool asks for "actor", pass "${agent.model} via forge-agent".`;
+    const call = (extra) => fetch(prov.url, { method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${env[prov.key]}` },
+          body: JSON.stringify({ model: agent.model, stream: true, stream_options: { include_usage: true },
+            messages: [{ role: "system", content: system }, ...trimHistory(history), ...(extra || [])],
+            tools: extra ? undefined : (tools.length ? tools : undefined) }),
+          signal: AbortSignal.timeout(Math.max(5000, Math.min(180000, deadline - Date.now() + 60000))) });
+    const log = (o) => console.log(JSON.stringify({ chat: job.chat, agent: job.agent, ...o }));   // no content, only shape
+    let steps = 0;
     try {
       for (let step = 0; step < MAX_STEPS; step++) {
+        steps = step + 1;
+        const tStep = Date.now();
         const r = await fetch(prov.url, { method: "POST",
           headers: { "content-type": "application/json", authorization: `Bearer ${env[prov.key]}` },
           body: JSON.stringify({ model: agent.model, stream: true, stream_options: { include_usage: true },
@@ -211,6 +221,7 @@ export class Chat {
         if (buf) foldSSE(st, buf);
         s.text = base + st.text; s.tokens += st.tokens;
         const calls = st.calls.filter((c) => c && c.name);
+        log({ step, ms: Date.now() - tStep, text: st.text.length, calls: calls.map((c) => c.name), tokens: st.tokens });
         const args = calls.map((c) => safeArgs(c.args));
         history.push(calls.length
           ? { role: "assistant", content: st.text || "", tool_calls: calls.map((c, k) => ({ id: c.id, type: "function", function: { name: c.name, arguments: JSON.stringify(args[k] || {}) } })) }
@@ -239,9 +250,33 @@ export class Chat {
         }
         if (Date.now() > deadline) { s.text += "\n\n⏱️ Stopped at the 10-minute limit for one run. Reply to continue."; break; }
       }
+      // out of steps, or ended on tool calls with nothing said: one last turn without tools (2026-11-27: replies
+      // came back as "(no text reply)" after 80-180 s of tool calls)
+      const last = history[history.length - 1];
+      if (!s.error && (last?.role === "tool" || !s.text.trim())) {
+        const r = await call([{ role: "user", content: "Stop using tools now. Answer the owner's last message from what you already have, in a few lines, and say what you could not finish." }]);
+        if (r.ok && r.body) {
+          const st = { text: "", calls: [], tokens: 0 }, base = s.text;
+          const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+          let buf = "";
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buf += value; const lines = buf.split("\n"); buf = lines.pop();
+            for (const l of lines) foldSSE(st, l);
+            s.text = base + st.text; await show(false);
+          }
+          if (buf) foldSSE(st, buf);
+          s.text = base + st.text; s.tokens += st.tokens;
+          if (st.text) history.push({ role: "assistant", content: st.text });
+          log({ step: "final", text: st.text.length, tokens: st.tokens });
+        } else log({ step: "final", http: r.status });
+      }
     } catch (e) {
       s.error = redact(String(e.message || e)); s.text += `\n\n⚠️ ${s.error.slice(0, 300)}`;
+      log({ error: s.error.slice(0, 200) });
     }
+    log({ done: true, steps, seconds: Math.round((Date.now() - t0) / 1000), tools: s.tools.length, text: s.text.length });
     s.done = true;
     await show(true);
     // an unanswered tool call (cut off mid-step) would make every later turn fail: drop a dangling tail
