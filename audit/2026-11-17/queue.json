@@ -25401,6 +25401,41 @@
      "result": "filed with its experiment committed first (PR #246)"
     }
    ]
+  },
+  {
+   "id": "K90",
+   "title": "Write packet-pilot records from propose.py after scoring",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "K86",
+   "generated_at": "2026-11-26T22:51:23Z",
+   "code": {
+    "files": [
+     "runner/proposals/propose.py"
+    ],
+    "test": "runner/proposals/test_proposals.py",
+    "context": [
+     "experiments/packet_pilot.py",
+     "runner/proposals/judge.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "runner/proposals/propose.py",
+    "runner/proposals/test_proposals.py"
+   ],
+   "next": "In propose.py, after each proposal is scored, write one record to runner/results/packet-pilot/<run_id>.json with keys arm (the --arm value), valid (bool), calls (int), and correct (int count of dev items right, 0 when invalid). First read experiments/packet_pilot.py run(results_dir) to match the exact file layout it reads (one object per file or a list) and the directory it scans, and write in that shape. Add a test in TestProposeArm that patches engines.compat_call, runs propose.py with --arm baseline and --arm packet on a fixture packet, and checks that the record file exists with the four keys, that an invalid proposal gives correct=0, and that packet_pilot.run reads the file without error.",
+   "refs": [
+    "queue K86",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
