@@ -4,7 +4,7 @@
 - worker, propose, tier, review, dash-snapshot, schedules: green. tests.yml on main green (last 3 runs); its 5 failures in 40 runs were on worker PR branches (K79, K83), not main.
 - **Worker idle on its last 7 runs (08:00-08:40Z)**, with no crash: the idle job ran cleanly (generator accepted 0, splitter "nothing passed the script check", classify "nothing judged", idle re-poll started the next worker). Cause: **no item was in the worker lane** (lanes before this shift: parked 94, claude 54, blocked 19, owner-only 7, review 5, worker 0). Fixed at the cause by making claude-lane work worker-sized (K84, K87 below): `queue_ops.py ready` now lists K84 and K87.
 - Clock (#218) holds: schedules.yml dispatched hourly at :05 from 04:05 to 08:05Z, dash-snapshot.yml hourly at :41, sandbox-eval.yml at 03:23 and 06:17Z (Actions runs, event workflow_dispatch). README Progress row added (eaaac83).
-- backlog.py after the shift: orphans 0, stale 0, undated 0. Flow: last 7 days 217 created, 136 finished (queue.json, backlog.py at close; before the shift: 214 / 132).
+- backlog.py after the shift: lanes parked 94, claude 54, blocked 22, owner-only 7, worker 2, splitter 1; orphans 0, stale 0, undated 0. Flow: last 7 days 218 created, 135 finished (queue.json, backlog.py at close; before the shift: 214 / 132).
 
 ## Review lane drained (5 items)
 - K80 confirm -> done: PR #209 reviewed and merged (f136b0f). Runner/proposals tests 20/20 on main+PR. Note: staged_select already returned scored_items; the wrapper is thin.
