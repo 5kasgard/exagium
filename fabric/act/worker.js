@@ -42,6 +42,17 @@ const need = (a, ...k) => {
 };
 const ACTOR = { actor: { type: "string", description: "Who is asking: your model name, e.g. 'claude-sonnet-4.5 in LobeHub'." } };
 
+// Per-workflow limits on inputs (INPUT_RULES in wrangler.toml): {"wf.yml": {"input": ["allowed", ...]}}.
+// A listed input must be given and be one of the values (sandbox-eval: only "check", never create or kill).
+export function inputProblem(env, workflow, inputs) {
+  let rules = {};
+  try { rules = JSON.parse(env.INPUT_RULES || "{}"); } catch { return "INPUT_RULES unreadable: refusing"; }
+  for (const [k, vals] of Object.entries(rules[workflow] || {})) {
+    if (!vals.includes(String(inputs[k] ?? ""))) return `${workflow}: input ${k} must be one of ${vals.join(", ")}`;
+  }
+  return null;
+}
+
 export const TOOLS = {
   create_issue: {
     description: "Open an issue in the Forge repo (a task, finding or question for the owner and workers).",
@@ -91,6 +102,8 @@ export const TOOLS = {
     run: async (a, env) => { need(a, "workflow", "actor");
       const allowed = String(env.ALLOW_WORKFLOWS || "").split(",").map((s) => s.trim()).filter(Boolean);
       if (!allowed.includes(a.workflow)) throw new Error(`not allowed: ${a.workflow}; allowed: ${allowed.join(", ") || "none"}`);
+      const bad = inputProblem(env, a.workflow, a.inputs || {});
+      if (bad) throw new Error(bad);
       await gh(env, `/repos/${REPO}/actions/workflows/${a.workflow}/dispatches`, "POST", { ref: "main", inputs: a.inputs || {} });
       return { started: a.workflow, note: `runs at https://github.com/${REPO}/actions/workflows/${a.workflow}` }; },
   },
