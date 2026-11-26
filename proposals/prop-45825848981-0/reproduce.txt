@@ -1,0 +1,14 @@
+FAILED: prop-45825848981-0 on adult: train.py exited 1:
+/w/train.py:57: RuntimeWarning: overflow encountered in scalar multiply
+  v[base + val * K:base + (val + 1) * K] = rng.normal(0, 0.01, K).astype(np.float32)
+Traceback (most recent call last):
+  File "/w/train.py", line 168, in <module>
+    main()
+  File "/w/train.py", line 146, in main
+    w0, w, v = train_fm(X[:split], y[:split], d, K, lr, l2, batch, EPOCHS, rng, observed)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 57, in train_fm
+    v[base + val * K:base + (val + 1) * K] = rng.normal(0, 0.01, K).astype(np.float32)
+    ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: could not broadcast input array from shape (8,) into shape (0,)
+
