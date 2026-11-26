@@ -350,7 +350,8 @@ const GATEWAY = "https://gateway.discord.gg/?v=10&encoding=json";
 export class Gateway {
   // The socket's heartbeat runs from the Durable Object's alarm, not a timer: timers set during a request did not
   // keep firing (2026-11-27: the socket went quiet a minute after "ready" while the object still thought it was up).
-  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.ws = null; this.seq = null; this.hb = 40000; this.lastAck = 0; }
+  constructor(ctx, env) { this.ctx = ctx; this.env = env; this.ws = null; this.seq = null; this.hb = 40000; this.lastAck = 0;
+    this.stats = { events: 0, messages: 0, routed: 0, last: null, since: Date.now() }; }
 
   async fetch() { await this.ensure(); return Response.json({ connected: !!this.ws, lastAck: this.lastAck }); }
   async alarm() { await this.ensure(); }
@@ -358,6 +359,8 @@ export class Gateway {
   async ensure() {
     await this.ctx.storage.setAlarm(Date.now() + Math.min(this.hb, 40000));
     if (!this.env.DISCORD_BOT_TOKEN || !this.env.DISCORD_OWNER_ID) return;
+    // logs from socket handlers are not kept (they run outside any request), so the alarm reports what they saw
+    console.log(JSON.stringify({ gateway: "tick", socket: !!this.ws, sinceAck: this.lastAck ? Date.now() - this.lastAck : null, seq: this.seq, ...this.stats }));
     const fatal = await this.ctx.storage.get("fatal");
     if (fatal && Date.now() - fatal.at < 30 * 60000) return;
     // alive means an acknowledgement or event within 2.5 heartbeats; otherwise drop it and connect again
@@ -380,7 +383,7 @@ export class Gateway {
   send(op, d) { try { this.ws?.send(JSON.stringify({ op, d })); } catch {} }
 
   async onMessage(p, st) {
-    this.lastAck = Date.now();
+    this.lastAck = Date.now(); this.stats.events++;
     if (p.s) this.seq = p.s;
     if (p.op === 10) {                       // hello: resume or identify; heartbeats then run from the alarm
       this.hb = p.d.heartbeat_interval || 40000;
@@ -392,6 +395,7 @@ export class Gateway {
     else if (p.op === 7) { try { this.ws?.close(4000); } catch {} this.ws = null; }
     else if (p.op === 9) { await this.ctx.storage.delete("session"); try { this.ws?.close(4000); } catch {} this.ws = null; }
     else if (p.op === 0) {
+      if (p.t === "READY" || p.t === "RESUMED") this.stats.last = { ...this.stats.last, [p.t.toLowerCase()]: new Date().toISOString().slice(11, 19) };
       if (p.t === "READY") {
         await this.ctx.storage.put("session", { session: p.d.session_id, resume: (p.d.resume_gateway_url || "").replace(/^wss:/, "https:") + "/?v=10&encoding=json", seq: p.s });
         console.log(JSON.stringify({ gateway: "ready" }));
@@ -401,6 +405,10 @@ export class Gateway {
       if (p.t === "MESSAGE_CREATE") {
         const d = p.d;
         const job = route(d, this.env.DISCORD_OWNER_ID);
+        this.stats.messages++; if (job) this.stats.routed++;
+        this.stats.last = { owner: d.author?.id === this.env.DISCORD_OWNER_ID, dm: !d.guild_id, reply: !!d.referenced_message,
+          card: !!d.referenced_message?.webhook_id, footer: /chat [0-9a-f]{16}$/.test(d.referenced_message?.embeds?.[0]?.footer?.text || ""),
+          text: !!d.content, routed: !!job };
         // shape only, never content: why a message was or was not picked up
         console.log(JSON.stringify({ gateway: "message", owner: d.author?.id === this.env.DISCORD_OWNER_ID, bot: !!d.author?.bot,
           dm: !d.guild_id, reply: !!d.referenced_message, card: !!d.referenced_message?.webhook_id, text: !!d.content, routed: !!job }));
