@@ -22595,7 +22595,7 @@
    "id": "K76",
    "title": "Choose the judgement model from qualifying runs (cost, then latency)",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P31",
    "generated_at": "2026-11-25T21:50:13Z",
@@ -22706,6 +22706,14 @@
      "outcome": "defer",
      "from": "review",
      "to": "review"
+    },
+    {
+     "at": "2026-11-26T08:43:44Z",
+     "worker": "claude-shift-2026-11-26",
+     "result": "PR #214 not merged: it defines its own qualifies_pair with thresholds 0.8 controls and 0.7 agreement that cite no source and contradict K75's pre-registered P31 rule (5/5 controls, >=27/30 agree, two runs). Redo after K75 lands: choose() must call K75's qualifies_pair and define no rule of its own. Also guard path (worker/tier.py): goes to the owner as guard-merge once correct.",
+     "outcome": "redo",
+     "from": "review",
+     "to": "open"
     }
    ],
    "work_types": {
