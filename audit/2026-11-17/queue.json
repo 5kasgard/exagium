@@ -23029,7 +23029,7 @@
    "id": "K81",
    "title": "Load the scored proposal log into aligned per-item correctness vectors",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P5e",
    "generated_at": "2026-11-25T21:50:13Z",
@@ -23050,7 +23050,7 @@
     "runner/proposals/replay_log.py",
     "runner/proposals/test_proposals.py"
    ],
-   "next": "Create runner/proposals/replay_log.py (under 80 lines) with load(log_dir) returning {candidate_name: [0 or 1 per item]} for the scored proposals, all candidates aligned on the same item ids and items scored by every candidate only. Read the record format from the two context files; do not call any model. Add a test in test_proposals.py that writes two or three small JSON records into a temp dir and checks the aligned output, including that an item missing for one candidate is dropped for all.",
+   "next": "Create runner/proposals/replay_log.py (under 80 lines) with load(log_dir) returning {candidate_name: [0 or 1 per item]} for the scored proposals, all candidates aligned on the same item ids and items scored by every candidate only. Read the record format from the two context files; do not call any model. Add a test in test_proposals.py that writes two or three small JSON records into a temp dir and checks the aligned output, including that an item missing for one candidate is dropped for all. PREVIOUS ATTEMPT REJECTED: 91 changed lines (over 80); files a person merges, or not the item's own: runner/proposals/replay_log.py, runner/proposals/test_proposals.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P5e",
     "worker/split.py"
@@ -23090,6 +23090,12 @@
      "outcome": "pr",
      "from": "in progress",
      "to": "review"
+    },
+    {
+     "at": "2026-11-26T00:55:35Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #210 not merged: 91 changed lines (over 80); files a person merges, or not the item's own: runner/proposals/replay_log.py, runner/proposals/test_proposals.py; model verdict: reject; model: The loader guesses at several record shapes and key names, silently coerces missing scores to 0, never filters for scored p"
     }
    ],
    "work_types": {
