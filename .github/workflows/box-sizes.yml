@@ -1,0 +1,41 @@
+# Builds the sized E2B templates for the box connector (forge-box: 4 GiB, forge-box-big: 8 GiB; 1-8 CPUs chosen per
+# sandbox) and measures what each size gives (fabric/sandbox/e2b_sizes.py). Manual. A build refused by the plan is
+# recorded, not retried. Result: sandbox/e2b-sizes.json on fabric-data. Cost: five sandboxes for about a minute each.
+name: box-sizes
+on:
+  workflow_dispatch:
+permissions:
+  contents: write    # the result file on fabric-data only
+concurrency:
+  group: fabric-data
+  cancel-in-progress: false
+jobs:
+  sizes:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: build and measure
+        env:
+          E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+        run: |
+          if [ -f worker/PAUSE ]; then echo "worker/PAUSE is set: paused"; exit 0; fi
+          rc=0; git ls-remote --exit-code --heads origin fabric-data > /dev/null 2>&1 || rc=$?
+          mkdir -p "$RUNNER_TEMP/data"
+          if [ "$rc" = 0 ]; then git fetch -q --depth 1 origin fabric-data && git --work-tree="$RUNNER_TEMP/data" checkout FETCH_HEAD -- .
+          elif [ "$rc" != 2 ]; then echo "cannot read fabric-data (rc $rc)"; exit 1; fi
+          python3 -m venv "$RUNNER_TEMP/v" && "$RUNNER_TEMP/v/bin/pip" install -q e2b==2.64.0   # max_cpu_count needs >= 2.64
+          set -o pipefail
+          "$RUNNER_TEMP/v/bin/python" -I fabric/sandbox/e2b_sizes.py "$RUNNER_TEMP/data/sandbox/e2b-sizes.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "changed=1" >> "$GITHUB_ENV"
+      - name: publish to fabric-data
+        if: always() && env.changed == '1'
+        env: {GH_TOKEN: "${{ github.token }}"}
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git init -q && git checkout -q -b fabric-data && git add -A
+          git -c user.name=forge-dash -c user.email=forge-dash@users.noreply.github.com commit -q -m "box sizes (run $GITHUB_RUN_ID)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:fabric-data
