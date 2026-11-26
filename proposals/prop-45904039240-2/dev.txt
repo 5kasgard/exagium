@@ -1,0 +1,12 @@
+FAILED: prop-45904039240-2 on text: train.py exited 1:
+Trying E=4, H=32
+Traceback (most recent call last):
+  File "/w/train.py", line 162, in <module>
+    main()
+  File "/w/train.py", line 134, in main
+    emb, W1, b1, W2, b2 = train_on_split(X_train, y_train, X_val, y_val, d, C, E, H, epochs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 97, in train_on_split
+    grad_emb[j, xb[:, j]] += gh[:, j*E:(j+1)*E]
+ValueError: operands could not be broadcast together with shapes (64,4) (64,0) (64,4) 
+
