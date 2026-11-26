@@ -152,28 +152,43 @@ def run(key, prompt, timeout=600):
     t_lookup = time.time()
     probe = os.environ.get("FORGE_STREAM_PROBE") == "1"
     args = [LH, "agent", "run", "-a", aid, "-p", prompt, "--timeout", str(timeout)] + (["--json"] if probe else [])
-    r = subprocess.run(args, capture_output=True, text=True, timeout=timeout + 60)
-    print(f"timing: agent lookup {t_lookup - t:.1f} s, agent run {time.time() - t_lookup:.1f} s")
-    if probe:   # learn the event stream's shape for live replies: event types and field names only, never content
+    if probe:   # learn the live stream: when output arrives and its shape (types and field names only, never content)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        stamps, buf = [], []
+        for line in p.stdout:
+            stamps.append(time.time() - t_lookup); buf.append(line)
+        p.wait()
+        text = "".join(buf)
+        evs = []
+        try:
+            v = json.loads(text); evs = v if isinstance(v, list) else [v]
+        except ValueError:
+            dec, i = json.JSONDecoder(), 0
+            while i < len(text):
+                while i < len(text) and text[i] in " \r\n\t,[]": i += 1
+                if i >= len(text): break
+                try:
+                    v, i = dec.raw_decode(text, i); evs.append(v)
+                except ValueError:
+                    break
         from collections import Counter
-        kinds, keys, first = Counter(), Counter(), []
-        for line in (r.stdout or "").splitlines():
-            try:
-                ev = json.loads(line)
-            except ValueError:
-                kinds["(not json)"] += 1; continue
+        kinds, keys = Counter(), Counter()
+        for ev in evs:
             k = str(ev.get("type") or ev.get("event") or "?") if isinstance(ev, dict) else type(ev).__name__
             kinds[k] += 1
             if isinstance(ev, dict):
                 keys.update(f"{k}.{f}" for f in ev)
-                if isinstance(ev.get("data"), dict):
-                    keys.update(f"{k}.data.{f}" for f in ev["data"])
-            if len(first) < 12 and (not first or first[-1] != k):
-                first.append(k)
-        print("stream event types:", dict(kinds.most_common(20)))
-        print("stream first order:", first)
-        print("stream fields:", sorted(keys)[:80])
-        return r.returncode, round(time.time() - t)
+                for f, sub in ev.items():
+                    if isinstance(sub, dict):
+                        keys.update(f"{k}.{f}.{g}" for g in sub)
+        q = lambda x: round(stamps[min(len(stamps) - 1, int(len(stamps) * x))], 1) if stamps else None
+        print(f"timing: agent run {time.time() - t_lookup:.1f} s; output lines {len(stamps)}, first at {q(0)} s, "
+              f"25% {q(.25)} s, 50% {q(.5)} s, last {q(.999)} s")
+        print("stream events:", len(evs), dict(kinds.most_common(25)))
+        print("stream fields:", sorted(keys)[:100])
+        return p.returncode, round(time.time() - t)
+    r = subprocess.run(args, capture_output=True, text=True, timeout=timeout + 60)
+    print(f"timing: agent lookup {t_lookup - t:.1f} s, agent run {time.time() - t_lookup:.1f} s")
     if os.environ.get("DISCORD_WEBHOOK_URL"):
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "discord"))
         import post
