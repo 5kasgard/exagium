@@ -22613,7 +22613,7 @@
     "worker/tier.py",
     "worker/test_worker.py"
    ],
-   "next": "Add choose(records) to worker/tier.py. records maps model id to a list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s} (cost per run, latency per run). Keep only models where qualifies_pair (from the previous sub-item) holds. Return the model id with the lowest mean cost_usd, ties broken by lowest mean latency_s, or None if no model qualifies. Add class ChooseModel to worker/test_worker.py: a qualifying free model beats a non-qualifying cheaper one; among qualifiers, the lower cost wins; equal cost goes to the lower latency; no qualifiers returns None. Run python3 -m unittest worker/test_worker.py and expect these to pass. PREVIOUS ATTEMPT REJECTED: no accepted edit. Do the whole item, with a test.",
+   "next": "Once K75 (qualifies, qualifies_pair: 5/5 controls, >=27/30 agree, both of two runs) is on main: add choose(records) to worker/tier.py. records maps model id to a list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s}. Keep only models where K75's qualifies_pair(runs) holds; do NOT define qualifies_pair or any threshold here. Return the model id with the lowest mean cost_usd, ties broken by lowest mean latency_s, or None. Add class ChooseModel to worker/test_worker.py: none qualifies -> None; cheaper qualifying model wins; equal cost -> lower latency wins; a cheaper non-qualifying model loses. Previous PR #214 closed (Claude tier 2026-11-26): its own thresholds 0.8/0.7 contradicted the P31 rule.",
    "refs": [
     "queue P31",
     "worker/split.py"
@@ -22622,7 +22622,9 @@
    "needs": "free",
    "cost": 0,
    "value": "high",
-   "blocked_by": [],
+   "blocked_by": [
+    "K75"
+   ],
    "batch": "B3",
    "runs": [
     {
