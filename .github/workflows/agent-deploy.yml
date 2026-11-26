@@ -1,0 +1,53 @@
+# Deploys forge-agent (fabric/agent/worker.js), the Forge's own server-side agent loop behind Discord (owner,
+# 2026-11-27). Manual, main only. No route: only forge-act reaches it, by service binding. Deploy this before
+# act-deploy the first time (act's binding points here). Secrets, each from the repo secret of the same purpose:
+#   CEREBRAS_API_KEY, OPENCODE_API_KEY, GROQ_API_KEY   free model endpoints (fabric/agent/agents.json)
+#   ACT_TOKEN <- FORGE_ACT_TOKEN, BOX_TOKEN <- FORGE_BOX_TOKEN   the act and box connectors
+#   DISCORD_WEBHOOK_URL   the owner's channel, where the live card is written
+name: agent-deploy
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 22
+      - name: install wrangler (pinned, shared with the connector)
+        working-directory: fabric/worker
+        run: npm ci --no-fund --no-audit
+      - name: tests
+        run: node fabric/agent/test_agent.mjs
+      - name: deploy
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler deploy --config ../agent/wrangler.toml > "$RUNNER_TEMP/deploy.txt" 2>&1 || { grep -iE -A4 "error|fail" "$RUNNER_TEMP/deploy.txt" | sed -E 's#https?://[^ ]*#<url>#g' | tail -n 30; exit 1; }
+      - name: secrets
+        working-directory: fabric/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ACT_TOKEN: ${{ secrets.FORGE_ACT_TOKEN }}
+          BOX_TOKEN: ${{ secrets.FORGE_BOX_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          fail=0
+          for n in CEREBRAS_API_KEY OPENCODE_API_KEY GROQ_API_KEY ACT_TOKEN BOX_TOKEN DISCORD_WEBHOOK_URL; do
+            v="${!n}"
+            if [ -z "$v" ]; then echo "$n: not set"; continue; fi
+            printf '%s' "$v" | npx --no-install wrangler secret put "$n" --config ../agent/wrangler.toml > /dev/null 2>&1 && echo "$n: set" || { echo "$n: FAILED"; fail=1; }
+          done
+          exit $fail

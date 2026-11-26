@@ -1,0 +1,21 @@
+# forge-agent (fabric/agent/worker.js): the Forge's own agent loop. No route and no workers.dev: only forge-act
+# reaches it, through a service binding. Deployed by .github/workflows/agent-deploy.yml.
+name = "forge-agent"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = false
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "CHAT"
+class_name = "Chat"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Chat"]
+
+[limits]
+cpu_ms = 60000   # parsing a long streamed reply; waiting on models and tools is not CPU time
+
+[observability]
+enabled = true

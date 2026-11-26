@@ -11,6 +11,11 @@ routes = [{ pattern = "act.exagium.xyz", custom_domain = true }]
 # schedules.yml (hourly) ran 0 times, sandbox-eval.yml (3-hourly) 0 times, dash-snapshot.yml (hourly) 2 times
 # (Actions run lists, 2026-11-26T03:30Z; AGENTS.md records the same in 2026-11-19). Cloudflare cron triggers start
 # the workflows instead (Workers Paid). Each cron string maps to workflows in CRON_JOBS below.
+# The Forge's own agent loop (fabric/agent): Discord /ask and "Reply to agent" reach it only through this binding.
+[[services]]
+binding = "AGENT"
+service = "forge-agent"
+
 [triggers]
 crons = ["5 * * * *", "41 * * * *", "17 */3 * * *", "13 19 * * *"]
 

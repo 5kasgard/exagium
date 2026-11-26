@@ -18,7 +18,9 @@ export const COMMANDS = [
   { name: "ask", description: "Ask a Forge agent; the reply arrives in this server as that agent",
     default_member_permissions: "32", options: [
       { type: 3, name: "agent", description: "Who", required: true, choices: AGENTS.map((a) => ({ name: NAMES[a], value: a })) },
-      { type: 3, name: "prompt", description: "What to do", required: true, max_length: 1500 }] },
+      { type: 3, name: "prompt", description: "What to do", required: true, max_length: 1500 },
+      { type: 3, name: "via", description: "Where it runs (default: forge, the fast server-side loop)", required: false,
+        choices: [{ name: "forge (fast, live)", value: "forge" }, { name: "lobehub (full workbench)", value: "lobehub" }] }] },
   { name: "run", description: "Start a Forge job now", default_member_permissions: "32", options: [
       { type: 3, name: "job", description: "Which job", required: true,
         choices: RUN.filter((w) => w !== "workbench-manage.yml").map((w) => ({ name: w.replace(".yml", ""), value: w })) }] },
@@ -28,15 +30,19 @@ export const COMMANDS = [
   { type: 3, name: "Reply to agent", default_member_permissions: "32" },
 ];
 const BY_NAME = Object.fromEntries(Object.entries(NAMES).map(([k, v]) => [v, k]));
-const TOPIC = /topic ([A-Za-z0-9_-]{1,80})/;
+const TOPIC = /topic ([A-Za-z0-9_-]{1,80})/, CHAT = /chat ([a-z0-9]{8,40})/;
 
 // The agent and the chat to continue come from the card itself: the persona name it was posted as and the
 // "topic …" in its footer (fabric/discord/render.py). Nothing is stored.
 export function replyTarget(i) {
   const m = i.data?.resolved?.messages?.[i.data?.target_id];
   const agent = BY_NAME[m?.author?.username];
-  const topic = (m?.embeds?.[0]?.footer?.text || "").match(TOPIC)?.[1];
-  return agent && topic ? { agent, topic } : null;
+  const foot = m?.embeds?.[0]?.footer?.text || "";
+  const chat = foot.match(CHAT)?.[1], topic = foot.match(TOPIC)?.[1];
+  if (!agent) return null;
+  if (chat) return { agent, kind: "c", id: chat };          // a forge-agent card: continue that conversation
+  if (topic) return { agent, kind: "t", id: topic };        // a LobeHub card: continue that topic
+  return null;
 }
 
 const hex = (h) => new Uint8Array((h.match(/../g) || []).map((x) => parseInt(x, 16)));
@@ -60,9 +66,20 @@ export async function command(i, env, gh, repo) {
   const who = i.member?.user?.id || i.user?.id;
   if (!env.DISCORD_OWNER_ID || who !== env.DISCORD_OWNER_ID) return say("Not allowed.");
   const name = i.data?.name;
+  if (name === "continue-forge") {
+    const { agent, chat, text } = i.data;
+    if (!AGENTS.includes(agent) || !/^[a-z0-9]{8,40}$/.test(chat || "") || !text || !env.AGENT) return say("Could not read the reply.");
+    await env.AGENT.fetch("https://agent/", { method: "POST", body: JSON.stringify({ agent, prompt: text, chat }) });
+    return say(`Sent to **${NAMES[agent]}** in the same chat.`);
+  }
   if (name === "ask") {
     const agent = opt(i, "agent"), prompt = String(opt(i, "prompt") || "").trim();
     if (!AGENTS.includes(agent) || !prompt || prompt.length > 1500) return say("Need an agent and a prompt of at most 1,500 characters.");
+    if ((opt(i, "via") || "forge") === "forge" && env.AGENT) {
+      const r = await env.AGENT.fetch("https://agent/", { method: "POST", body: JSON.stringify({ agent, prompt }) });
+      if (!r.ok) return say(`forge-agent refused: HTTP ${r.status}`);
+      return say(`Asked **${NAMES[agent]}**. The reply is being written in the channel now.`);
+    }
     await gh(env, `/repos/${repo}/actions/workflows/workbench-manage.yml/dispatches`, "POST",
       { ref: "main", inputs: { mode: "run", agent, prompt } });
     return say(`Asked **${NAMES[agent]}**. The reply will be posted here as ${NAMES[agent]} (usually 1-3 min). Runs: <${RUNS}/workflows/workbench-manage.yml>`);
@@ -111,14 +128,14 @@ export async function handle(request, env, gh, repo, ctx, post = fetch) {
   if (i.type === 2 && i.data?.type === 3) {                       // "Reply to agent": answer with a form at once
     const t = replyTarget(i);
     if (!owner || !t) return Response.json({ type: 4, data: { ...reply(owner ? "That message is not an agent reply with a topic." : "Not allowed."), flags: 64 } });
-    return Response.json({ type: 9, data: { custom_id: `reply:${t.agent}:${t.topic}`, title: `Reply to ${NAMES[t.agent]}`,
+    return Response.json({ type: 9, data: { custom_id: `reply:${t.agent}:${t.kind}:${t.id}`, title: `Reply to ${NAMES[t.agent]}`,
       components: [{ type: 1, components: [{ type: 4, custom_id: "text", label: "Your reply", style: 2, required: true, max_length: 1500 }] }] } });
   }
   if (i.type === 5) {                                              // the form was sent: continue that topic
-    const [, agent, topic] = String(i.data?.custom_id || "").match(/^reply:([a-z]+):([A-Za-z0-9_-]{1,80})$/) || [];
+    const [, agent, kind, id] = String(i.data?.custom_id || "").match(/^reply:([a-z]+):([ct]):([A-Za-z0-9_-]{1,80})$/) || [];
     const text = i.data?.components?.[0]?.components?.[0]?.value?.trim();
     if (!owner || !AGENTS.includes(agent) || !text) return Response.json({ type: 4, data: { ...reply(owner ? "Could not read the reply." : "Not allowed."), flags: 64 } });
-    i = { ...i, type: 2, data: { name: "continue", agent, topic, text } };
+    i = { ...i, type: 2, data: kind === "c" ? { name: "continue-forge", agent, chat: id, text } : { name: "continue", agent, topic: id, text } };
   } else if (i.type !== 2) return Response.json({ type: 4, data: { ...reply("Not supported yet."), flags: 64 } });
   const work = (async () => {
     let text;
