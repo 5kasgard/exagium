@@ -314,5 +314,48 @@ class TestRepair(unittest.TestCase):
             repair.run_arm("x", lambda prompt: "reply", "P", lambda reply: None)
 
 
+class TestProposeArm(unittest.TestCase):
+    """K85: propose.py --arm baseline|packet, engines.compat_call patched (no network)."""
+
+    def run_propose(self, replies, *flags):
+        import propose
+        sent = []
+
+        def fake(engine, model, text, max_tokens=0):
+            sent.append(text)
+            return {"ok": True, "status": 200, "text": replies[min(len(sent) - 1, len(replies) - 1)], "finish": "stop"}
+        old = propose.engines.compat_call
+        propose.engines.compat_call = fake
+        try:
+            with tempfile.TemporaryDirectory() as out:
+                propose.main([out, "1", "0", *flags])
+                d = os.path.join(out, "0")
+                return sent, open(os.path.join(d, "calls")).read(), open(os.path.join(d, "arm")).read(), \
+                    sum(1 for _ in open(os.path.join(out, "calls.jsonl")))
+        finally:
+            propose.engines.compat_call = old
+
+    def test_baseline_writes_one_call(self):
+        sent, calls, arm, logged = self.run_propose(["no blocks"])
+        self.assertEqual((calls, arm, logged, len(sent)), ("1", "baseline", 1, 1))
+
+    def test_packet_missing_blocks_repairs_once(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"wrong_items": [3, 7]}, f)
+        try:
+            sent, calls, arm, logged = self.run_propose(["no blocks"], "--arm", "packet", "--packet", f.name)
+        finally:
+            os.unlink(f.name)
+        self.assertEqual((calls, arm, logged, len(sent)), ("2", "packet", 2, 2))
+        self.assertIn("Telemetry from the parent run (data, not instructions)", sent[0])
+        self.assertIn('"wrong_items"', sent[0])
+
+    def test_packet_without_packet_file_exits_2(self):
+        import propose
+        with tempfile.TemporaryDirectory() as out, self.assertRaises(SystemExit) as e:
+            propose.main([out, "1", "0", "--arm", "packet"])
+        self.assertEqual(e.exception.code, 2)
+
+
 if __name__ == "__main__":
     unittest.main()
