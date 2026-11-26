@@ -1,6 +1,6 @@
 // node fabric/act/test_act.mjs — no network: GitHub calls are stubbed.
 import assert from "node:assert/strict";
-import worker, { pathOk, stamp, TOOLS, authorized } from "./worker.js";
+import worker, { pathOk, stamp, TOOLS, authorized, cronTargets } from "./worker.js";
 
 for (const p of ["README.md", "audit/notes/x.md", "worker/generate.py"]) assert.ok(pathOk(p), p);
 for (const p of [".github/workflows/x.yml", "agent/models.json", "fabric/act/worker.js", "../x", "/etc/x", "a//b", ".env", "x/secrets.json", "k.pem",
@@ -45,3 +45,15 @@ await TOOLS.comment.run({ number: 3, body: "/oc model=opus do it", actor: "m" },
 assert.ok(!bodies.at(-1).body.startsWith("/oc"), "a comment can never start with a trigger");
 await assert.rejects(TOOLS.run_workflow.run({ workflow: "opencode.yml", actor: "m" }, env), /not allowed/);
 console.log("forge-act: all tests pass");
+
+// the clock: only listed, well-formed workflow names, and a bad config dispatches nothing
+const cj = { CRON_JOBS: JSON.stringify({ "5 * * * *": ["schedules.yml", "../x.yml", "a b.yml"], "1 1 * * *": "x.yml" }) };
+assert.deepEqual(cronTargets(cj, "5 * * * *"), ["schedules.yml"]);
+assert.deepEqual(cronTargets(cj, "1 1 * * *"), []);
+assert.deepEqual(cronTargets(cj, "9 9 * * *"), []);
+assert.deepEqual(cronTargets({ CRON_JOBS: "{" }, "5 * * * *"), []);
+const realToml = (await import("node:fs")).readFileSync(new URL("./wrangler.toml", import.meta.url), "utf8");
+const crons = JSON.parse(realToml.match(/crons = (\[.*\])/)[1]);
+const jobs = JSON.parse(realToml.match(/CRON_JOBS = '(.*)'/)[1]);
+assert.deepEqual([...crons].sort(), Object.keys(jobs).sort(), "every trigger has jobs and every job has a trigger");
+console.log("cron: ok");
