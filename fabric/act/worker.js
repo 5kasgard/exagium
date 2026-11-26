@@ -1,3 +1,4 @@
+import { handle as discordHandle } from "./discord.js";
 // Forge act: the write half of the Forge connector (owner 2026-11-25: "as powerful as this chat"). A remote MCP
 // server (Streamable HTTP, JSON responses) that lets a chat the owner uses do things in the repo, never on its own
 // authority: it opens issues, comments, opens PRs from workbench/* branches and starts allow-listed workflows.
@@ -151,8 +152,9 @@ export default {
       }
     }
   },
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/discord" && request.method === "POST") return discordHandle(request, env, gh, REPO, ctx);
     if (url.pathname !== "/mcp") return new Response("Forge act: MCP endpoint at /mcp (bearer token required).\n");
     if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
     if (!(await authorized(request, env))) return new Response("unauthorized", { status: 401 });
