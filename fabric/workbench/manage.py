@@ -143,12 +143,19 @@ def agent_id(key):
 
 
 def run(key, prompt, timeout=600):
-    """One headless run. Returns (exit code, seconds). The reply stays in LobeHub (a topic the owner can open);
-    the public log gets only the status, because agent output may quote private material."""
+    """One headless run. Returns (exit code, seconds). The reply stays in LobeHub (a topic the owner can open) and,
+    when DISCORD_WEBHOOK_URL is set, is also posted to the owner's private Discord as the agent's persona
+    (fabric/discord/post.py). The public log gets only the status, because agent output may quote private material."""
     import time
     t = time.time()
     r = subprocess.run([LH, "agent", "run", "-a", agent_id(key), "-p", prompt, "--timeout", str(timeout)],
                        capture_output=True, text=True, timeout=timeout + 60)
+    if os.environ.get("DISCORD_WEBHOOK_URL"):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "discord"))
+        import post
+        head = {0: "", 1: "(the run failed)\n", 2: "(waiting for your approval in LobeHub)\n", 3: "(still running)\n"}
+        codes = post.post("agent", key, head.get(r.returncode, "") + (r.stdout or ""))
+        print("discord:", codes)
     return r.returncode, round(time.time() - t)
 
 
