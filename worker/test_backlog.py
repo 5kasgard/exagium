@@ -2,11 +2,23 @@ import os, sys, unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import backlog as B  # noqa: E402
 import transitions as T  # noqa: E402
+import graph_truth as G  # noqa: E402
 
 
 def item(i, status, **k):
     return dict({"id": i, "title": i, "status": status, "kind": "test", "needs": "free", "touches": ["x"],
                  "filed_at": "2026-11-20T00:00:00Z"}, **k)
+
+
+class TruthQ1(unittest.TestCase):
+    def test_truth_q1_finds_items_depending_on_p21(self):
+        """truth_q1 returns sorted IDs of items whose blocked_by contains P21."""
+        q = {"items": [
+            item("K1", "open", blocked_by=["P21"]),
+            item("K2", "open", blocked_by=["P21", "P22"]),
+            item("K3", "open", blocked_by=["P22"]),
+        ]}
+        self.assertEqual(G.truth_q1(q), ["K1", "K2"])
 
 
 class Lanes(unittest.TestCase):
