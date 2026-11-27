@@ -1,0 +1,11 @@
+FAILED: prop-45955976764-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 169, in <module>
+    main()
+  File "/w/train.py", line 157, in main
+    params = train_model(X_tr, y_tr, d, C, E, H)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 98, in train_model
+    g_emb[j] += g_flat[:, j*E:(j+1)*E].T @ np.eye(256, dtype=np.float32)[xb[:, j]]
+ValueError: operands could not be broadcast together with shapes (256,4) (4,256) (256,4) 
+
