@@ -1,0 +1,13 @@
+FAILED: prop-45979097845-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 113, in <module>
+    main()
+  File "/w/train.py", line 75, in main
+    for h in ngram_hashes(ctx):
+  File "/w/train.py", line 39, in ngram_hashes
+    yield fnv1a_32(context[i:i + L]) & (F - 1)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 29, in fnv1a_32
+    h ^= b
+OverflowError: Python integer 2166136261 out of bounds for uint8
+
