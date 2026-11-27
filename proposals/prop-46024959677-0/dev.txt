@@ -1,0 +1,12 @@
+FAILED: prop-46024959677-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 164, in <module>
+    main()
+  File "/w/train.py", line 137, in main
+    W, V, bias = train_fm(Z_tr, y_tr, k, np.random.default_rng(SEED), n_epochs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 97, in train_fm
+    gV[:, f, :] = z.T @ gZV - (z * z).T @ (g * V[:, f, :]) + L2 * V[:, f, :]
+                                           ~~^~~~~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (64,2) (108,2) 
+
