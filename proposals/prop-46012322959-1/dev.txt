@@ -1,0 +1,15 @@
+FAILED: prop-46012322959-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 161, in <module>
+    main()
+  File "/w/train.py", line 138, in main
+    Wc, bc, Wf, bf = train_split(X_train, y_train, K, tune_epochs, np.random.default_rng(SEED))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 105, in train_split
+    dWc, dbc, dWf, dbf = backward(xb, h, gap, dlogits, Wc, Wf, L2)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 74, in backward
+    dh[h == 0] = 0
+    ~~^^^^^^^^
+IndexError: boolean index did not match indexed array along axis 1; size of axis is 1 but size of corresponding boolean axis is 8
+
