@@ -1,0 +1,18 @@
+FAILED: /home/runner/work/exagium/exagium/runner/candidates/prop-46083365595-1/infer.c does not compile in the jail:
+/w/infer.c: In function 'main':
+/w/infer.c:85:32: warning: implicit declaration of function 'sqrtf' [-Wimplicit-function-declaration]
+   85 |             float inv = 1.0f / sqrtf(norm);
+      |                                ^~~~~
+/w/infer.c:9:1: note: include '<math.h>' or provide a declaration of 'sqrtf'
+    8 | #include <zlib.h>
+  +++ |+#include <math.h>
+    9 | 
+/w/infer.c:85:32: warning: incompatible implicit declaration of built-in function 'sqrtf' [-Wbuiltin-declaration-mismatch]
+   85 |             float inv = 1.0f / sqrtf(norm);
+      |                                ^~~~~
+/w/infer.c:85:32: note: include '<math.h>' or provide a declaration of 'sqrtf'
+/usr/bin/ld: /tmp/ccThxVft.o: in function `main':
+infer.c:(.text.startup+0x2b5): undefined reference to `crc32'
+/usr/bin/ld: infer.c:(.text.startup+0x373): undefined reference to `crc32'
+collect2: error: ld returned 1 exit status
+
