@@ -151,7 +151,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (62)
+## Can run now (61)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -212,7 +212,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q79 | B3 |  | minor | medium | fix | Same cwd, HOME and visible files in the counted and the timed runs | From HANDOFF-item4-loop inbox, never filed: differences between the valgrind-counted run and the native timed run are cheap tells a candidate could use to behave differently when counted. The runner now checks that the outputs match (GLM F052); removing the tells is the other half. | owner 2026-11-21: every item ever mentioned |
 | Q80 | B3 |  | minor | medium | decision | Run the record monitor from an account outside the owner's control, on a schedule | The analysis report's recommendation 6 and the trust model's own named gap: record.py monitor (the only check that catches a rewritten and re-anchored history) is a command, not a service, and anything the owner controls can be stopped by the owner. Needs the owner: which outside account or service runs it (Q63 first gives the monitor a test and a workflow). | owner 2026-11-21: every item ever mentioned |
 | Q81 | B3 |  | minor | medium | test | Writer-level standard errors on optdigits (items from one writer are not independent) | From HANDOFF-item4-loop inbox, never filed: optdigits items come from writers, and per-item SEs treat them as independent, which overstates precision. Test, rule fixed before running: recompute the plan-2 and P5 comparisons with writer-clustered SEs where writer ids exist; report which verdicts change. | owner 2026-11-21: every item ever mentioned |
-| R91 | B3 |  | minor | medium | test | What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-b | Worker job (research): literature card for Q65. Why: It directly informs the proposed fix of refusing self re-pinning in the timed child and measuring the seccomp filter's setup cost. | queue Q65; queue P27 (generator) |
 | R95 | B3 |  | minor | medium | test | What methods reliably calibrate host-specific nanoseconds per instruction using a fixed reference workload, and how should an absolute acceptance band be valida | Worker job (research): literature card for Q71. Why: It identifies published calibration and validation practices needed to set a host-specific absolute time-per-instruction band that admits honest baselines while excluding controls. | queue Q71; queue P27 (generator) |
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
@@ -248,10 +247,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | K76 | B3 |  | minor | high | fix | Choose the judgement model from qualifying runs (cost, then latency) | Once K75 (qualifies, qualifies_pair: 5/5 controls, >=27/30 agree, both of two runs) is on main: add choose(records) to worker/tier.py. records maps model id to a list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s}. Keep only models where K75's qualifies_pair(runs) holds; do NOT define qualifies_pair or any threshold here. Return the model id with the lowest mean cost_usd, ties broken by lowest mean latency_s, or None. Add class ChooseModel to worker/test_worker.py: none qualifies -> None; cheaper qualifying model wins; equal cost -> lower latency wins; a cheaper non-qualifying model loses. Previous PR #214 closed (Claude tier 2026-11-26): its own thresholds 0.8/0.7 contradicted the P31 rule. | queue P31; worker/split.py |
 
-## Escalated (a check failed; the next tier takes it) (1)
+## Escalated (a check failed; the next tier takes it) (2)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
+| R91 | B3 |  | minor | medium | test | What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-b | Worker job (research): literature card for Q65. Why: It directly informs the proposed fix of refusing self re-pinning in the timed child and measuring the seccomp filter's setup cost. | queue Q65; queue P27 (generator) |
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
 
 ## Needs the owner (3)
