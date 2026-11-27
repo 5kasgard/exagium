@@ -22628,7 +22628,7 @@
    "id": "K76",
    "title": "Choose the judgement model from qualifying runs (cost, then latency)",
    "kind": "fix",
-   "status": "review",
+   "status": "waiting on the owner",
    "origin": "generated",
    "split_from": "P31",
    "generated_at": "2026-11-25T21:50:13Z",
@@ -22772,6 +22772,14 @@
      "outcome": "pr",
      "from": "in progress",
      "to": "review"
+    },
+    {
+     "at": "2026-11-27T10:59:42Z",
+     "worker": "tier-claude-haiku-5-5",
+     "result": "owner-only: guard-merge: tier (claude-haiku-5-5): PR #257 not merged: files a person merges, or not the item's own: worker/test_worker.py, worker/tier.py; model: The diff adds only choose() to worker/tier.py, which filters with the existing qualifies_pair, picks the lowest mean cost then mean latency, and returns None when nothing qualifies, and adds ChooseModel tests covering each case in the item, with no network, secrets, deletion, subprocess, eval, or threshold changes.",
+     "outcome": "escalate",
+     "from": "review",
+     "to": "waiting on the owner"
     }
    ],
    "work_types": {
