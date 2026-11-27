@@ -1,0 +1,9 @@
+FAILED: prop-45970719232-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 136, in <module>
+    main()
+  File "/w/train.py", line 92, in main
+    grad_W1 = h.T @ grad_h + L2 * W1   # h is (B, E) before ReLU? Wait: h = sum_emb @ W1 + b1, so sum_emb is (B, E)
+              ~~~~~~~~~~~~~^~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (128,128) (32,128) 
+
