@@ -1,0 +1,51 @@
+{  "title": "exagium: one queue after the whole-project audit (2026-11-17)",
+  "intro": "Built from six skill-group audits (A security, B tests/bugs/state, C structure, D claims, E agents/free compute, F ML/binaries), a separate verification pass (S2: 15 of 16 high-impact items confirmed by reproduction, 1 partly right), and the 2026-11-13 audit and handoffs. Severity is after S2 corrections. Source of truth: queue.json; render with render.py. Every open item declares what it writes ('touches': files, paths, branches; reads don't count); render.py refuses an open item without it and lists items in different batches that touch the same thing, so overlaps show up as items are added.",
+  "items": [
+    {
+      "id": "Q01",
+      "title": "bench2/3/5 grade steps run host git in the agent workspace: a planted filter runs on the runner (bench3/5 dormant: empty plans; bench2 dispatch-only, no hardening)",
+      "kind": "fix",
+      "severity": "major",
+      "status": "parked",
+      "needs": "subscription usage",
+      "cost": 0,
+      "value": "high",
+      "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: build the diff without the agent's .git, or run git inside the no-network container (A reproduced C1; S2 judged exposure). No effect today: every bench is dispatch-only and complete.",
+      "refs": ["A-security C1","S2 (orchestrator reproduction)","main:.github/workflows/bench3.yml:159-161, bench5.yml:174-176","A C1 bench2.yml:79,83","S4 finding 2"],
+      "blocked_by": [],
+      "baseline": {"at": "2026-11-24T22:45:23Z","status": "parked","why": "status written without a structured event (before the 2026-11-20 render check, or born in this state); the run log is folded from here (P37b)"},
+      "job_type": null
+    },
+    {
+      "id": "Q02",
+      "title": "Grader trusts the first @@RESULTS@@ line from a process that imports agent code: a print forges passes",
+      "kind": "fix",
+      "severity": "major",
+      "status": "parked",
+      "needs": "subscription usage",
+      "cost": 0,
+      "value": "high",
+      "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Fix before the next bench: either a per-run nonce result file or a separate test process (A M1 gives both; S2 reproduced the forged line).",
+      "refs": ["A-security M1","S2 A-M1 confirmed","main:router/bench/grade.py:14-38"],
+      "blocked_by": [],
+      "baseline": {"at": "2026-11-24T22:45:23Z","status": "parked","why": "status written without a structured event (before the 2026-11-20 render check, or born in this state); the run log is folded from here (P37b)"},
+      "job_type": null
+    },
+    {
+      "id": "Q03",
+      "title": "bench3/5 give the real API key to the agent container; seal allows all Cloudflare ranges and DNS anywhere (dormant)",
+      "kind": "fix",
+      "severity": "major",
+      "status": "parked",
+      "needs": "subscription usage",
+      "cost": 0,
+      "value": "high",
+      "next": "Parked 2026-11-18 (owner: an ideal construction order where each step feeds the next). no bench is planned; fix before any new bench run (decided: bench-4 design, key only in the host meter). Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). Decided: every future bench uses bench-4's design, where only the host-side meter holds the key (A: bench-4 clean for C1/M2).",
+      "refs": ["A-security M2","S2 A-M2 confirmed","bench3.yml:119-126","bench5.yml:131-133","router/bench3/run_agent.py:63,66"],
+      "blocked_by": [],
+      "baseline": {"at": "2026-11-24T22:45:23Z","status": "parked","why": "status written without a structured event (before the 2026-11-20 render check, or born in this state); the run log is folded from here (P37b)"},
+      "job_type": null
+    }
+    // ... remaining items unchanged, each now with a "job_type": null field
+  ]
+}
