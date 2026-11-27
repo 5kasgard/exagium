@@ -26573,7 +26573,7 @@
    "id": "K92",
    "title": "P32 step 3: optional JSON-schema request in the compatible-API call",
    "kind": "fix",
-   "status": "review",
+   "status": "open",
    "origin": "generated",
    "split_from": "P32",
    "generated_at": "2026-11-27T22:29:40Z",
@@ -26591,7 +26591,7 @@
     "router/engines.py",
     "router/test_router.py"
    ],
-   "next": "Add a keyword argument json_schema=None to compat_call(name, model, prompt, max_tokens). When it is given, the request body sent through the existing _post path gets response_format={\"type\": \"json_schema\", \"json_schema\": {\"name\": \"reply\", \"schema\": json_schema, \"strict\": True}}; when it is None the body must be identical to today's. Add a test in router/test_router.py that stubs _post, captures the body, and checks that (a) with a schema the body contains the response_format block with that schema, and (b) without one the body has no response_format key and matches the previous output exactly. This is the only change; the 20-call rerun of the failed prompts (rule: 0 parse failures) is a later sub-item, once this lands.",
+   "next": "Add a keyword argument json_schema=None to compat_call(name, model, prompt, max_tokens). When it is given, the request body sent through the existing _post path gets response_format={\"type\": \"json_schema\", \"json_schema\": {\"name\": \"reply\", \"schema\": json_schema, \"strict\": True}}; when it is None the body must be identical to today's. Add a test in router/test_router.py that stubs _post, captures the body, and checks that (a) with a schema the body contains the response_format block with that schema, and (b) without one the body has no response_format key and matches the previous output exactly. This is the only change; the 20-call rerun of the failed prompts (rule: 0 parse failures) is a later sub-item, once this lands. PREVIOUS ATTEMPT REJECTED: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject. Do the whole item, with a test, under 80 changed lines.",
    "refs": [
     "queue P32",
     "worker/split.py"
@@ -26631,6 +26631,12 @@
      "outcome": "pr",
      "from": "in progress",
      "to": "review"
+    },
+    {
+     "at": "2026-11-27T22:32:50Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier: one retry with the rejection reason in the next step: tier (claude-haiku-5-5): PR #260 not merged: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model verdict: reject; model: The item asks for a json_schema kwarg on compat_call and a test, but the diff also changes the shared _post helper (new return_headers parameter and a different send path), whic"
     }
    ],
    "work_types": {
