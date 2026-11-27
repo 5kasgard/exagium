@@ -1,0 +1,15 @@
+FAILED: prop-46062033989-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 184, in <module>
+    main()
+  File "/w/train.py", line 162, in main
+    params = train_model(train_X, train_y, E, H, C, epochs, rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 89, in train_model
+    logits, flat, h = forward(emb, W1, b1, W2, b2, xi)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 55, in forward
+    embs = emb[X_idx]  # (batch, 16, E)
+           ~~~^^^^^^^
+IndexError: index 101 is out of bounds for axis 0 with size 16
+
