@@ -1,0 +1,15 @@
+FAILED: prop-45913430697-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 191, in <module>
+    main()
+  File "/w/train.py", line 162, in main
+    emb, W1, b1, W2, b2 = train_split(emb, W1, b1, W2, b2, X_train, y_train, rng, EPOCHS_TUNE, BATCH, L2)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 125, in train_split
+    emb_grad, W1_grad, b1_grad = backward(cat, h, probs, W2, emb, W1, b1, None, None, batch_idx, batch_y,
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 75, in backward
+    W2_grad[:] = h.T @ probs
+    ~~~~~~~^^^
+TypeError: 'NoneType' object does not support item assignment
+
