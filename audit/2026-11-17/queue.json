@@ -25981,18 +25981,17 @@
    "id": "R91",
    "title": "What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-b",
    "kind": "test",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "generated_from": "Q65",
    "generated_at": "2026-11-27T00:23:51Z",
    "research": {
-    "question": "What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-based denial of sched_setaffinity and cgroup/cpuset enforcement?",
+    "question": "What overhead does installing a seccomp-BPF filter add to system call latency in measured Linux benchmarks?",
     "queries": [
-     "seccomp block sched_setaffinity",
-     "seccomp filter setup overhead",
-     "CPU affinity sandbox escape",
-     "cgroup cpuset prevent sched_setaffinity",
-     "timed child process orphan cleanup"
+     "seccomp-bpf overhead system call benchmark",
+     "seccomp filter performance measurement Linux",
+     "seccomp BPF installation cost latency",
+     "cgroup cpuset restrict sched_setaffinity"
     ]
    },
    "touches": [
@@ -26038,13 +26037,31 @@
      "outcome": "no_claims",
      "from": "in progress",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-27T07:56:40Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: The sources are mostly off-topic (syscall-filter generation papers, a Signal news story, and an AppArmor binding paper) and the question bundles several sub-claims, so a narrower question on measured seccomp overhead, which published work can plausibly answer, is needed before judging the dropped cl"
     }
    ],
    "work_types": {
     "literature": 0.997
    },
    "work_types_key": "862b3b815cd4193c",
-   "work_types_at": "2026-11-27T00:24:05Z"
+   "work_types_at": "2026-11-27T00:24:05Z",
+   "research_history": [
+    {
+     "question": "What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-based denial of sched_setaffinity and cgroup/cpuset enforcement?",
+     "queries": [
+      "seccomp block sched_setaffinity",
+      "seccomp filter setup overhead",
+      "CPU affinity sandbox escape",
+      "cgroup cpuset prevent sched_setaffinity",
+      "timed child process orphan cleanup"
+     ]
+    }
+   ]
   },
   {
    "id": "R92",
