@@ -1,0 +1,15 @@
+FAILED: prop-45919401265-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 126, in <module>
+    main()
+  File "/w/train.py", line 108, in main
+    emb, W, b = train_loop(X_tr, y_tr, emb, W, b, MAX_EPOCHS_TUNE, lr, rng)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 80, in train_loop
+    gemb, gW, gb = loss_grad(logits, yb, flat, W, emb, L2)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 54, in loss_grad
+    gemb_reshaped = gflat.reshape(n, emb.shape[1], emb.shape[2])
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: cannot reshape array of size 3584 into shape (64,256,4)
+
