@@ -35,6 +35,21 @@ def qualifies_pair(runs):
     return isinstance(runs, (list, tuple)) and len(runs) == 2 and all(qualifies(r) for r in runs)
 
 
+def choose(records):
+    """K76: the best model that passed K75's pair rule, by mean cost then mean latency."""
+    best = None
+    for model, runs in records.items():
+        if not qualifies_pair(runs):
+            continue
+        n = len(runs)
+        cost = sum(float(r["cost_usd"]) for r in runs) / n
+        latency = sum(float(r["latency_s"]) for r in runs) / n
+        key = (cost, latency)
+        if best is None or key < best[0]:
+            best = (key, model)
+    return best[1] if best else None
+
+
 MAX_ITEMS = 3
 MAX_PRS = 12   # 2026-11-21: 15 PRs arrived in 18 minutes and the tier took 3 per run (its controls run once per run)
 REPO = os.environ.get("GITHUB_REPOSITORY", "5kasgard/exagium")
