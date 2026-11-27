@@ -1,0 +1,9 @@
+FAILED: prop-45926806599-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 120, in <module>
+    main()
+  File "/w/train.py", line 56, in main
+    lin = b + np.sum(W[:, xb.T, np.arange(d)], axis=1).T  # W[:, xb.T, :] -> (C, d, bs) sum over d -> (C, bs) -> (bs, C)
+                     ~^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (14,64) (14,) 
+
