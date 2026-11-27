@@ -298,6 +298,26 @@ class PaidAllowance(unittest.TestCase):
                 mock.patch.object(engines, "_PAID_USED", {}), mock.patch.dict(os.environ, {"OPENROUTER_API_KEY": "k", "ROUTER_PAID_CALLS": ""}):
             self.assertEqual(engines.call("openrouter", "x/y:free", "hi")["text"], "ok")
 
+class CompatCallJSONSchema(unittest.TestCase):
+    def test_json_schema_in_body_only_when_given(self):
+        from router import engines
+        captured = []
+        def fake_post(url, body, headers, return_headers=False):
+            captured.append(body)
+            reply = {"choices": [{"message": {"content": "ok"}}]}
+            return (200, reply, {}) if return_headers else (200, reply)
+        with mock.patch.object(engines, "_post", fake_post), \
+             mock.patch.dict(os.environ, {"NVIDIA_API_KEY": "k", "ROUTER_USAGE_LOG": ""}):
+            engines.compat_call("nvidia", "m", "hi", max_tokens=7)
+            body_no = captured[-1]
+            schema = {"type": "object", "properties": {"x": {"type": "string"}}}
+            engines.compat_call("nvidia", "m", "hi", max_tokens=7, json_schema=schema)
+            body_yes = captured[-1]
+        self.assertNotIn("response_format", body_no)
+        self.assertEqual(body_no, {"model": "m", "max_tokens": 7, "messages": [{"role": "user", "content": "hi"}]})
+        self.assertEqual(body_yes["response_format"], {"type": "json_schema", "json_schema": {"name": "reply", "schema": schema, "strict": True}})
+        self.assertEqual({k: v for k, v in body_yes.items() if k != "response_format"}, body_no)
+
 class SlotsCalibration(unittest.TestCase):
     def test_override_returns_exactly_that_filler(self):
         from router.slots import chain

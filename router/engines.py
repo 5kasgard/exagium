@@ -17,10 +17,10 @@ def _ua(req):
     return req
 
 
-def _post(url, body, headers):
+def _post(url, body, headers, return_headers=False):
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json", **headers})
-    return _send(req)
+    return _send_h(req) if return_headers else _send(req)
 
 
 def _get(url, headers):
@@ -141,15 +141,15 @@ def compat_models(name):
     return st, sorted(m.get("id", "") for m in j.get("data", []) if isinstance(m, dict)), h
 
 
-def compat_call(name, model, prompt, max_tokens=64):
+def compat_call(name, model, prompt, max_tokens=64, json_schema=None):
     paid_guard(name, len(prompt), max_tokens)
     t0 = time.time()
     base, key = compat_base(name), os.environ[OPENAI_COMPAT[name][1]]
-    req = urllib.request.Request(base + "/chat/completions", method="POST",
-                                 data=json.dumps({"model": model, "max_tokens": max_tokens,
-                                                  "messages": [{"role": "user", "content": prompt}]}).encode(),
-                                 headers={"Content-Type": "application/json", "Authorization": "Bearer " + key})
-    st, j, h = _send_h(req)
+    body = {"model": model, "max_tokens": max_tokens,
+            "messages": [{"role": "user", "content": prompt}]}
+    if json_schema is not None:
+        body["response_format"] = {"type": "json_schema", "json_schema": {"name": "reply", "schema": json_schema, "strict": True}}
+    st, j, h = _post(base + "/chat/completions", body, {"Authorization": "Bearer " + key}, return_headers=True)
     text = (j.get("choices") or [{}])[0].get("message", {}).get("content") if st == 200 else None
     finish = (j.get("choices") or [{}])[0].get("finish_reason") if st == 200 else None   # "length" = cut off (P5, 2026-11-19)
     return log_usage({"t": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0)), "engine": name, "model": model,
