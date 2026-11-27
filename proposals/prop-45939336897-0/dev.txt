@@ -1,0 +1,17 @@
+FAILED: /home/runner/work/exagium/exagium/runner/candidates/prop-45939336897-0/infer.c does not compile in the jail:
+/w/infer.c: In function 'main':
+/w/infer.c:56:28: warning: implicit declaration of function 'alloca'; did you mean 'calloc'? [-Wimplicit-function-declaration]
+   56 |         float *S = (float*)alloca(r * sizeof(float));
+      |                            ^~~~~~
+      |                            calloc
+/w/infer.c:56:20: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+   56 |         float *S = (float*)alloca(r * sizeof(float));
+      |                    ^
+/w/infer.c:57:21: warning: cast to pointer from integer of different size [-Wint-to-pointer-cast]
+   57 |         float *S2 = (float*)alloca(r * sizeof(float));
+      |                     ^
+/usr/bin/ld: /tmp/ccgPFPzW.o: in function `main':
+infer.c:(.text.startup+0x20d): undefined reference to `alloca'
+/usr/bin/ld: infer.c:(.text.startup+0x21e): undefined reference to `alloca'
+collect2: error: ld returned 1 exit status
+
