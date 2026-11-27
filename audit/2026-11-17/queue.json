@@ -26568,6 +26568,40 @@
    },
    "work_types_key": "dc7a733e2ac4c14c",
    "work_types_at": "2026-11-27T01:13:05Z"
+  },
+  {
+   "id": "K92",
+   "title": "P32 step 3: optional JSON-schema request in the compatible-API call",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P32",
+   "generated_at": "2026-11-27T22:29:40Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [
+     "worker/research_job.py"
+    ],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "Add a keyword argument json_schema=None to compat_call(name, model, prompt, max_tokens). When it is given, the request body sent through the existing _post path gets response_format={\"type\": \"json_schema\", \"json_schema\": {\"name\": \"reply\", \"schema\": json_schema, \"strict\": True}}; when it is None the body must be identical to today's. Add a test in router/test_router.py that stubs _post, captures the body, and checks that (a) with a schema the body contains the response_format block with that schema, and (b) without one the body has no response_format key and matches the previous output exactly. This is the only change; the 20-call rerun of the failed prompts (rule: 0 parse failures) is a later sub-item, once this lands.",
+   "refs": [
+    "queue P32",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
