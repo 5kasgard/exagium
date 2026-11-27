@@ -1,0 +1,11 @@
+FAILED: prop-46064821826-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 266, in <module>
+    main()
+  File "/w/train.py", line 246, in main
+    model.train_step(X_ord_tr[idx], X_cat_tr[idx], y_tr[idx], cfg["lr"])
+  File "/w/train.py", line 120, in train_step
+    g_v[off] = np.mean(grad_logit[:, None] * val[:, None] * (self.v_sum(val) - self.v[off] * val[:, None]), axis=0)
+                                                             ^^^^^^^^^^
+AttributeError: 'FMModel' object has no attribute 'v_sum'
+
