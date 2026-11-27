@@ -246,12 +246,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | K76 | B3 |  | minor | high | fix | Choose the judgement model from qualifying runs (cost, then latency) | Once K75 (qualifies, qualifies_pair: 5/5 controls, >=27/30 agree, both of two runs) is on main: add choose(records) to worker/tier.py. records maps model id to a list of run dicts {controls_right, controls_total, agree, total, cost_usd, latency_s}. Keep only models where K75's qualifies_pair(runs) holds; do NOT define qualifies_pair or any threshold here. Return the model id with the lowest mean cost_usd, ties broken by lowest mean latency_s, or None. Add class ChooseModel to worker/test_worker.py: none qualifies -> None; cheaper qualifying model wins; equal cost -> lower latency wins; a cheaper non-qualifying model loses. Previous PR #214 closed (Claude tier 2026-11-26): its own thresholds 0.8/0.7 contradicted the P31 rule. | queue P31; worker/split.py |
 
-## Escalated (a check failed; the next tier takes it) (2)
+## Escalated (a check failed; the next tier takes it) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
-| R95 | B3 |  | minor | medium | test | What methods reliably calibrate host-specific nanoseconds per instruction using a fixed reference workload, and how should an absolute acceptance band be valida | Worker job (research): literature card for Q71. Why: It identifies published calibration and validation practices needed to set a host-specific absolute time-per-instruction band that admits honest baselines while excluding controls. | queue Q71; queue P27 (generator) |
 
 ## Needs the owner (3)
 
@@ -379,7 +378,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (214)
+## Done (215)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -599,6 +598,7 @@ same artifact scores differently through the runner than through a direct run (t
 | R91 | B3 |  | minor | medium | test | What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-b | Worker job (research): literature card for Q65. Why: It directly informs the proposed fix of refusing self re-pinning in the timed child and measuring the seccomp filter's setup cost. | queue Q65; queue P27 (generator) |
 | R92 | B3 |  | minor | medium | test | What CI/CD patterns reliably detect and block workflows when registered or checksummed files have been modified, and how can teams ensure test suites are invoke | Worker job (research): literature card for Q66. Why: It informs the review of F070's amended-file workflow behavior and F014's uninvoked tests by identifying standard enforcement and test-invocation fixes. | queue Q66; queue P27 (generator) |
 | R94 | B3 |  | minor | medium | test | What methods exist for calibrating autonomous-agent security evaluations against a known-vulnerable baseline, such as a sandbox with SysV IPC exposed, so that a | Worker job (research): literature card for Q69. Why: It identifies published calibration and scoring practices for attack tasks with known holes, informing how to validate the old-filter SysV IPC control before running the current-code evaluation. | queue Q69; queue P27 (generator) |
+| R95 | B3 |  | minor | medium | test | What methods reliably calibrate host-specific nanoseconds per instruction using a fixed reference workload, and how should an absolute acceptance band be valida | Worker job (research): literature card for Q71. Why: It identifies published calibration and validation practices needed to set a host-specific absolute time-per-instruction band that admits honest baselines while excluding controls. | queue Q71; queue P27 (generator) |
 | R96 | B3 |  | minor | medium | test | What batch sizes and input scales make neural-network inference latency dominated by computation rather than per-call or startup overhead, and how should wall-c | Worker job (research): literature card for Q70. Why: It identifies a task and batch regime where native timing and operation counts can both serve as meaningful cross-checks instead of startup overhead dominating the time meter. | queue Q70; queue P27 (generator) |
 | Q08 |  |  | minor | low | fix | review.yml copies a dispatcher-chosen path onto a public branch | Done (main 05328a4): review.yml copies only a tracked regular file under router/review/ (no '..', no symlink); refusals checked by the pre-merge reviewer. | A-security m3; main:.github/workflows/review.yml:33-34 |
 | Q11 |  |  | minor | low | fix | Committed unused ELF loop/confine (20,712 B) | Done (main 05328a4): loop/confine deleted; loop.py builds its own copy. | A-security m6; C-structure F10; S2 confirmed |
