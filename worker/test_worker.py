@@ -1804,3 +1804,25 @@ class GenerateAttachLiterature(unittest.TestCase):
             self.assertEqual(l1["touches"], ["research/"])
             self.assertTrue(l1.get("research_tried"))
             self.assertNotIn("L1", [i["id"] for i in G.candidates({"items": list(by.values())})])   # not redrafted for 7 days
+
+
+class QualifiesRule(unittest.TestCase):
+    """K75: P31's qualification rule, as a pure function."""
+
+    def rec(self, controls_right=5, controls_total=5, agree=27, total=30):
+        return {"controls_right": controls_right, "controls_total": controls_total,
+                "agree": agree, "total": total}
+
+    def test_qualifies(self):
+        import tier
+        self.assertTrue(tier.qualifies(self.rec()))
+        self.assertFalse(tier.qualifies(self.rec(controls_right=4)))
+        self.assertFalse(tier.qualifies(self.rec(agree=26)))
+        self.assertFalse(tier.qualifies(self.rec(total=29)))
+
+    def test_pair_needs_two_qualifying_runs(self):
+        import tier
+        one = self.rec(agree=29)
+        two = self.rec(agree=29)
+        self.assertFalse(tier.qualifies_pair([one]))
+        self.assertTrue(tier.qualifies_pair([one, two]))
