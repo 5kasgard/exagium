@@ -1,0 +1,17 @@
+FAILED: prop-46076245344-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 147, in <module>
+    main()
+  File "/w/train.py", line 129, in main
+    W, bias = train_model(X_train, y_train, C, B, lr, l2, epochs, rng)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 54, in train_model
+    all_buckets = [compute_buckets(X[i], B) for i in range(n)]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 45, in compute_buckets
+    buckets.append(fnv1a_32(seq[i:i+2], B))
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 25, in fnv1a_32
+    h ^= b
+OverflowError: Python integer 2166136261 out of bounds for uint8
+
