@@ -1826,3 +1826,34 @@ class QualifiesRule(unittest.TestCase):
         two = self.rec(agree=29)
         self.assertFalse(tier.qualifies_pair([one]))
         self.assertTrue(tier.qualifies_pair([one, two]))
+
+
+class ChooseModel(unittest.TestCase):
+    """K76: choose the judgement model from qualifying runs (cost, then latency)."""
+
+    def rec(self, agree=29, cost=1.0, latency=1.0):
+        return {"controls_right": 5, "controls_total": 5, "agree": agree, "total": 30,
+                "cost_usd": cost, "latency_s": latency}
+
+    def test_none_qualifies(self):
+        import tier
+        bad = self.rec(agree=26)
+        self.assertIsNone(tier.choose({"a": [bad, bad]}))
+
+    def test_cheaper_qualifying_model_wins(self):
+        import tier
+        a = self.rec(cost=2.0, latency=0.1)
+        b = self.rec(cost=1.0, latency=5.0)
+        self.assertEqual(tier.choose({"a": [a, a], "b": [b, b]}), "b")
+
+    def test_equal_cost_lower_latency_wins(self):
+        import tier
+        a = self.rec(cost=1.0, latency=2.0)
+        b = self.rec(cost=1.0, latency=1.0)
+        self.assertEqual(tier.choose({"a": [a, a], "b": [b, b]}), "b")
+
+    def test_cheaper_non_qualifying_model_loses(self):
+        import tier
+        good = self.rec(cost=2.0)
+        cheap_bad = self.rec(agree=26, cost=1.0)
+        self.assertEqual(tier.choose({"good": [good, good], "bad": [cheap_bad, cheap_bad]}), "good")
