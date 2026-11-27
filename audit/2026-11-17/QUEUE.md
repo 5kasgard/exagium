@@ -151,7 +151,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (62)
+## Can run now (63)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -214,6 +214,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q80 | B3 |  | minor | medium | decision | Run the record monitor from an account outside the owner's control, on a schedule | The analysis report's recommendation 6 and the trust model's own named gap: record.py monitor (the only check that catches a rewritten and re-anchored history) is a command, not a service, and anything the owner controls can be stopped by the owner. Needs the owner: which outside account or service runs it (Q63 first gives the monitor a test and a workflow). | owner 2026-11-21: every item ever mentioned |
 | Q81 | B3 |  | minor | medium | test | Writer-level standard errors on optdigits (items from one writer are not independent) | From HANDOFF-item4-loop inbox, never filed: optdigits items come from writers, and per-item SEs treat them as independent, which overstates precision. Test, rule fixed before running: recompute the plan-2 and P5 comparisons with writer-clustered SEs where writer ids exist; report which verdicts change. | owner 2026-11-21: every item ever mentioned |
 | R91 | B3 |  | minor | medium | test | What published mechanisms and measured overheads exist for preventing a sandboxed or timed child process from changing its own CPU affinity, including seccomp-b | Worker job (research): literature card for Q65. Why: It directly informs the proposed fix of refusing self re-pinning in the timed child and measuring the seccomp filter's setup cost. | queue Q65; queue P27 (generator) |
+| R95 | B3 |  | minor | medium | test | What methods reliably calibrate host-specific nanoseconds per instruction using a fixed reference workload, and how should an absolute acceptance band be valida | Worker job (research): literature card for Q71. Why: It identifies published calibration and validation practices needed to set a host-specific absolute time-per-instruction band that admits honest baselines while excluding controls. | queue Q71; queue P27 (generator) |
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
 | Q62 | B3 |  | minor | low | fix | Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states) | CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths. | audit/reviews/gemini-20261120/ on main (e4867d3): F004 (reproduced; the gap is stated in runner/jail.py lines 10-12) |
@@ -242,12 +243,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (2)
+## Escalated (a check failed; the next tier takes it) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
-| R95 | B3 |  | minor | medium | test | What methods reliably calibrate host-specific nanoseconds per instruction using a fixed reference workload, and how should an absolute acceptance band be valida | Worker job (research): literature card for Q71. Why: It identifies published calibration and validation practices needed to set a host-specific absolute time-per-instruction band that admits honest baselines while excluding controls. | queue Q71; queue P27 (generator) |
 
 ## Needs the owner (3)
 
