@@ -317,7 +317,7 @@ class TestRepair(unittest.TestCase):
 class TestProposeArm(unittest.TestCase):
     """K85: propose.py --arm baseline|packet, engines.compat_call patched (no network)."""
 
-    def run_propose(self, replies, *flags):
+    def run_propose(self, replies, *flags, pilot_dir=None):
         import propose
         sent = []
 
@@ -325,7 +325,10 @@ class TestProposeArm(unittest.TestCase):
             sent.append(text)
             return {"ok": True, "status": 200, "text": replies[min(len(sent) - 1, len(replies) - 1)], "finish": "stop"}
         old = propose.engines.compat_call
+        old_pilot = propose.PILOT_DIR
         propose.engines.compat_call = fake
+        if pilot_dir:
+            propose.PILOT_DIR = pilot_dir
         try:
             with tempfile.TemporaryDirectory() as out:
                 propose.main([out, "1", "0", *flags])
@@ -334,6 +337,7 @@ class TestProposeArm(unittest.TestCase):
                     sum(1 for _ in open(os.path.join(out, "calls.jsonl")))
         finally:
             propose.engines.compat_call = old
+            propose.PILOT_DIR = old_pilot
 
     def test_baseline_writes_one_call(self):
         sent, calls, arm, logged = self.run_propose(["no blocks"])
@@ -355,6 +359,35 @@ class TestProposeArm(unittest.TestCase):
         with tempfile.TemporaryDirectory() as out, self.assertRaises(SystemExit) as e:
             propose.main([out, "1", "0", "--arm", "packet"])
         self.assertEqual(e.exception.code, 2)
+
+    def test_writes_packet_pilot_records(self):
+        import sys as _sys
+        _sys.path.insert(0, os.path.join(propose_root := os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)))), "experiments"))
+        import packet_pilot
+        with tempfile.TemporaryDirectory() as pilot:
+            self.run_propose(["no blocks"], pilot_dir=pilot)
+            names = os.listdir(pilot)
+            self.assertEqual(len(names), 1)
+            recs = json.load(open(os.path.join(pilot, names[0])))
+            self.assertIsInstance(recs, list)
+            self.assertEqual(set(recs[0]), {"arm", "valid", "calls", "correct"})
+            self.assertEqual((recs[0]["arm"], recs[0]["valid"], recs[0]["calls"], recs[0]["correct"]),
+                             ("baseline", False, 1, 0))
+            packet_pilot.run(pilot)   # reads without error
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump({"wrong_items": [3, 7]}, f)
+        try:
+            with tempfile.TemporaryDirectory() as pilot:
+                self.run_propose(["no blocks"], "--arm", "packet", "--packet", f.name, pilot_dir=pilot)
+                recs = json.load(open(os.path.join(pilot, os.listdir(pilot)[0])))
+                self.assertEqual(set(recs[0]), {"arm", "valid", "calls", "correct"})
+                self.assertEqual((recs[0]["arm"], recs[0]["valid"], recs[0]["calls"], recs[0]["correct"]),
+                                 ("packet", False, 2, 0))
+                packet_pilot.run(pilot)   # reads without error
+        finally:
+            os.unlink(f.name)
 
 
 if __name__ == "__main__":

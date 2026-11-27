@@ -112,6 +112,21 @@ def flag(rest, name):
     return rest[rest.index(name) + 1] if name in rest and rest.index(name) + 1 < len(rest) else None
 
 
+# K90: packet-pilot records; experiments/packet_pilot.py scans this directory for *.json files whose contents are a
+# list of records (arm, valid, calls, correct). One record per proposal, one list per file, one file per (run, k).
+PILOT_DIR = os.path.join(ROOT, "runner", "results", "packet-pilot")
+
+
+def write_pilot(out, k, arm, res):
+    valid = bool(res.get("valid"))
+    rec = {"arm": arm, "valid": valid, "calls": int(res.get("calls") or 0),
+           "correct": int(res.get("correct") or 0) if valid else 0}
+    run_id = f"{os.path.basename(os.path.normpath(out))}-{k}"
+    os.makedirs(PILOT_DIR, exist_ok=True)
+    with open(os.path.join(PILOT_DIR, run_id + ".json"), "w") as f:
+        json.dump([rec], f)
+
+
 def main(argv=None):
     a = sys.argv[1:] if argv is None else argv
     out, n, start, rest = a[0], int(a[1]), int(a[2]), a[3:]
@@ -157,6 +172,7 @@ def main(argv=None):
             f.write(res["reply"] or f"(no reply: status {r.get('status')}: {r.get('error')})")
         with open(os.path.join(d, "finish"), "w") as f:
             f.write(str(r.get("finish") or ""))
+        write_pilot(out, k, arm, res)
         print(f"proposal {k}: task {task}, call ok {r.get('ok')}, status {r.get('status')}, finish {r.get('finish')}")
 
 
