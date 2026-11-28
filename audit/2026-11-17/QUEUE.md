@@ -151,7 +151,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (61)
+## Can run now (60)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -215,7 +215,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
 | Q62 | B3 |  | minor | low | fix | Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states) | CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths. | audit/reviews/gemini-20261120/ on main (e4867d3): F004 (reproduced; the gap is stated in runner/jail.py lines 10-12) |
-| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Waiting on a blocker (19)
 
@@ -241,7 +240,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q25 | B1 |  | minor | high | test | No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks | Held-out tasks come with the mixed suite (P3). Ruled by data 2026-11-18: still holds for model routing only: no routing claim without a held-out task set (E E-04); not needed for Actions measurement jobs. (blocked by P3) | E E-04 |
 | Q09 | B4 |  | minor | medium | infra | Stale branches still hold privileged, push-triggered workflows | Ruled by data 2026-11-18 (owner: decisions follow the data; checked by a separate agent). With Q28 step 1: disable the privileged push-triggered workflows on stale branches first. (blocked by Q28) | A-security m4; C-structure F4 |
 
-## Escalated (a check failed; the next tier takes it) (6)
+## Escalated (a check failed; the next tier takes it) (7)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -251,6 +250,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
 | R97 | B3 |  | minor | medium | test | What independent instruction-counting methods (hardware PMU events such as perf stat -e instructions:u or QEMU user-mode TCG plugins) are available on Linux CI  | Worker job (research): literature card for Q72. Why: It identifies feasible independent instruction-counting methods for PMU-less runners and published agreement bounds against Cachegrind, directly informing the proposed cross-check and band. | queue Q72; queue P27 (generator) |
 | R99 | B3 |  | minor | medium | test | What BLAS and floating-point determinism settings are required to make neural-network training weights bitwise identical across x86-64 and ARM64 CPUs? | Worker job (research): literature card for Q75. Why: It establishes whether pinning OpenBLAS kernel type can suffice across architectures or whether ARM64-specific determinism controls are needed before running the fixed two-retrain comparison. | queue Q75; queue P27 (generator) |
+| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Needs the owner (3)
 
