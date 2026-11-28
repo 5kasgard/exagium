@@ -270,5 +270,20 @@ class ClusteredSE(unittest.TestCase):
             records.clustered_se([1.0, 2.0], ["a", None])
 
 
+class BandVerdict(unittest.TestCase):
+    """K95: pure ns/Ir calibration band and the enforce-or-report rule."""
+    def test_broad_honest_set_reports(self):
+        calib = records.calibrate(1.0, 1.0)
+        self.assertEqual(records.band_verdict([(20.0, 1), (46.0, 1)], (100.0, 1), calib), "report")
+
+    def test_tight_honest_with_control_outside_enforces(self):
+        calib = records.calibrate(100.0, 10.0)
+        self.assertEqual(records.band_verdict([(110.0, 10.0), (90.0, 10.0)], (100.0, 1.0), calib), "enforce")
+
+    def test_zero_ir_raises(self):
+        with self.assertRaises(ValueError):
+            records.calibrate(1.0, 0)
+
+
 if __name__ == "__main__":
     unittest.main()
