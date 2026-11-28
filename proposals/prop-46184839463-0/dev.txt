@@ -1,0 +1,18 @@
+FAILED: prop-46184839463-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 196, in <module>
+    main()
+  File "/w/train.py", line 172, in main
+    w, V, bias = train_fm(X_tr, y_tr, C, k, lr, l2, rng, epochs, BATCH)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 117, in train_fm
+    grads = loss_grad(xb, yb)
+            ^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 68, in loss_grad
+    logits = forward(idx_batch)
+             ^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 54, in forward
+    lin[:, c] += w[c, j, idx_batch[:, j]]
+    ~~~^^^^^^
+IndexError: too many indices for array: array is 1-dimensional, but 2 were indexed
+
