@@ -1,0 +1,2771 @@
+{
+ "generated_at": "2026-11-28T20:41:13Z",
+ "sources": {
+  "queue": "audit/2026-11-17/queue.json on pilot/lgn-20261115",
+  "github": "GitHub REST API (pulls, actions runs)",
+  "services": "unauthenticated probes"
+ },
+ "queue": {
+  "status_counts": {
+   "parked": 99,
+   "done": 224,
+   "open": 80,
+   "waiting on the owner": 2,
+   "escalated": 1,
+   "review": 2
+  },
+  "items": 408,
+  "workers_7d": {
+   "free worker": {
+    "claim": 125,
+    "guard_blocked": 25,
+    "no_claims": 94,
+    "merged": 42,
+    "failed": 68,
+    "pr": 62,
+    "lease_expired": 2
+   },
+   "tier (claude-haiku-5-5)": {
+    "escalate": 37,
+    "redo": 78,
+    "resplit": 33,
+    "defer": 10,
+    "confirm": 2,
+    "hold": 5,
+    "solved": 13
+   },
+   "Claude (chat/shift)": {
+    "decide_open": 21,
+    "solved": 10,
+    "decide_done": 39,
+    "park": 17,
+    "none": 10,
+    "redo": 35,
+    "confirm": 11,
+    "escalate": 3,
+    "review_applied": 7,
+    "rescoped": 1,
+    "progress": 2,
+    "claim": 1,
+    "pr": 1
+   },
+   "generator": {
+    "accept": 106,
+    "reject": 3
+   },
+   "PR sync": {
+    "park": 2,
+    "decide_done": 5
+   },
+   "unknown": {
+    "filed": 6
+   },
+   "experiment": {
+    "dispatch": 2,
+    "invalid": 1,
+    "verdict": 1
+   }
+  },
+  "daily_14d": [
+   {
+    "day": "2026-11-15",
+    "runs": 0,
+    "finished": 0,
+    "prs": 0,
+    "failed": 0,
+    "empty": 0,
+    "free_finished": 0,
+    "free_prs": 0
+   },
+   {
+    "day": "2026-11-16",
+    "runs": 0,
+    "finished": 0,
+    "prs": 0,
+    "failed": 0,
+    "empty": 0,
+    "free_finished": 0,
+    "free_prs": 0
+   },
+   {
+    "day": "2026-11-17",
+    "runs": 0,
+    "finished": 0,
+    "prs": 0,
+    "failed": 0,
+    "empty": 0,
+    "free_finished": 0,
+    "free_prs": 0
+   },
+   {
+    "day": "2026-11-18",
+    "runs": 16,
+    "finished": 0,
+    "prs": 0,
+    "failed": 0,
+    "empty": 0,
+    "free_finished": 0,
+    "free_prs": 0
+   },
+   {
+    "day": "2026-11-19",
+    "runs": 63,
+    "finished": 2,
+    "prs": 1,
+    "failed": 2,
+    "empty": 8,
+    "free_finished": 0,
+    "free_prs": 0
+   },
+   {
+    "day": "2026-11-20",
+    "runs": 205,
+    "finished": 9,
+    "prs": 34,
+    "failed": 49,
+    "empty": 10,
+    "free_finished": 8,
+    "free_prs": 34
+   },
+   {
+    "day": "2026-11-21",
+    "runs": 273,
+    "finished": 8,
+    "prs": 22,
+    "failed": 77,
+    "empty": 16,
+    "free_finished": 3,
+    "free_prs": 22
+   },
+   {
+    "day": "2026-11-22",
+    "runs": 133,
+    "finished": 7,
+    "prs": 15,
+    "failed": 28,
+    "empty": 18,
+    "free_finished": 7,
+    "free_prs": 15
+   },
+   {
+    "day": "2026-11-23",
+    "runs": 29,
+    "finished": 7,
+    "prs": 1,
+    "failed": 1,
+    "empty": 5,
+    "free_finished": 7,
+    "free_prs": 1
+   },
+   {
+    "day": "2026-11-24",
+    "runs": 215,
+    "finished": 22,
+    "prs": 19,
+    "failed": 20,
+    "empty": 22,
+    "free_finished": 8,
+    "free_prs": 18
+   },
+   {
+    "day": "2026-11-25",
+    "runs": 177,
+    "finished": 35,
+    "prs": 8,
+    "failed": 17,
+    "empty": 13,
+    "free_finished": 6,
+    "free_prs": 8
+   },
+   {
+    "day": "2026-11-26",
+    "runs": 145,
+    "finished": 14,
+    "prs": 10,
+    "failed": 14,
+    "empty": 9,
+    "free_finished": 7,
+    "free_prs": 10
+   },
+   {
+    "day": "2026-11-27",
+    "runs": 67,
+    "finished": 10,
+    "prs": 3,
+    "failed": 4,
+    "empty": 10,
+    "free_finished": 3,
+    "free_prs": 3
+   },
+   {
+    "day": "2026-11-28",
+    "runs": 54,
+    "finished": 8,
+    "prs": 2,
+    "failed": 0,
+    "empty": 10,
+    "free_finished": 3,
+    "free_prs": 2
+   }
+  ],
+  "recent_events": [
+   {
+    "at": "2026-11-28T07:18:48Z",
+    "item": "K95",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "hold",
+    "from": "review",
+    "to": "review",
+    "note": "tier (claude-haiku-5-5): PR #262 not merged: files a person merges, or not the item's own: runner/records.py, runner/test_runner.py; model: The diff adds only c"
+   },
+   {
+    "at": "2026-11-28T07:18:40Z",
+    "item": "R104",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "solved",
+    "from": "escalated",
+    "to": "done",
+    "note": "tier (claude-haiku-5-5, controls passed): null: null result: narrowed 1 time(s) and still no claim survived both checks; its next suggestion was: Do published f"
+   },
+   {
+    "at": "2026-11-28T07:18:33Z",
+    "item": "R103",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "solved",
+    "from": "escalated",
+    "to": "done",
+    "note": "tier (claude-haiku-5-5, controls passed): null: null result: narrowed 1 time(s) and still no claim survived both checks; its next suggestion was: Which variance"
+   },
+   {
+    "at": "2026-11-28T07:17:54Z",
+    "item": "K95",
+    "who": "free worker",
+    "outcome": "pr",
+    "from": "in progress",
+    "to": "review",
+    "note": "pr"
+   },
+   {
+    "at": "2026-11-28T07:09:52Z",
+    "item": "K95",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T07:09:25Z",
+    "item": "K95",
+    "who": "generator",
+    "outcome": "accept",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.834; controls 0.996/0.003"
+   },
+   {
+    "at": "2026-11-28T06:33:01Z",
+    "item": "R104",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T06:32:53Z",
+    "item": "R103",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T06:27:36Z",
+    "item": "R104",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T06:27:16Z",
+    "item": "R103",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T06:26:58Z",
+    "item": "R104",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "redo",
+    "from": null,
+    "to": null,
+    "note": "tier (claude-haiku-5-5, controls passed): redo: The first pass read no sources, and the arXiv and Hugging Face hits appear off-topic, so a narrower question abo"
+   },
+   {
+    "at": "2026-11-28T06:26:52Z",
+    "item": "R103",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "redo",
+    "from": null,
+    "to": null,
+    "note": "tier (claude-haiku-5-5, controls passed): redo: The sources cover general clustered-SE theory and CV variance estimation but not how writer dependence specifica"
+   },
+   {
+    "at": "2026-11-28T05:21:00Z",
+    "item": "K94",
+    "who": "generator",
+    "outcome": "reject",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.251; controls 0.995/0.003"
+   },
+   {
+    "at": "2026-11-28T03:19:52Z",
+    "item": "K93",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "hold",
+    "from": "review",
+    "to": "review",
+    "note": "tier (claude-haiku-5-5): PR #261 not merged: files a person merges, or not the item's own: router/engines.py, router/test_router.py; model: The diff adds only t"
+   },
+   {
+    "at": "2026-11-28T03:19:45Z",
+    "item": "R102",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "solved",
+    "from": "escalated",
+    "to": "done",
+    "note": "tier (claude-haiku-5-5, controls passed): null: null result: narrowed 1 time(s) and still no claim survived both checks; its next suggestion was: Do gVisor and "
+   },
+   {
+    "at": "2026-11-28T03:19:40Z",
+    "item": "R99",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "solved",
+    "from": "escalated",
+    "to": "done",
+    "note": "tier (claude-haiku-5-5, controls passed): null: null result: narrowed 1 time(s) and still no claim survived both checks; its next suggestion was: Does RepDL rep"
+   },
+   {
+    "at": "2026-11-28T03:19:35Z",
+    "item": "R97",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "solved",
+    "from": "escalated",
+    "to": "done",
+    "note": "tier (claude-haiku-5-5, controls passed): null: null result: narrowed 1 time(s) and still no claim survived both checks; its next suggestion was: Do QEMU user-m"
+   },
+   {
+    "at": "2026-11-28T01:54:36Z",
+    "item": "K93",
+    "who": "free worker",
+    "outcome": "pr",
+    "from": "in progress",
+    "to": "review",
+    "note": "pr"
+   },
+   {
+    "at": "2026-11-28T01:53:17Z",
+    "item": "K93",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T01:52:54Z",
+    "item": "K93",
+    "who": "generator",
+    "outcome": "accept",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.770; controls 0.996/0.003"
+   },
+   {
+    "at": "2026-11-28T01:47:16Z",
+    "item": "R99",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T01:47:10Z",
+    "item": "R102",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T01:46:35Z",
+    "item": "R97",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T01:43:43Z",
+    "item": "R102",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T01:43:36Z",
+    "item": "R99",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T01:43:17Z",
+    "item": "R97",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T01:43:02Z",
+    "item": "K92",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "resplit",
+    "from": "escalated",
+    "to": "parked",
+    "note": "tier: failed after its retry, parked for a smaller split; last: no accepted edit"
+   },
+   {
+    "at": "2026-11-28T01:42:58Z",
+    "item": "R102",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "redo",
+    "from": null,
+    "to": null,
+    "note": "tier (claude-haiku-5-5, controls passed): redo: The original question bundles several sub-questions, and the eight sources only partly address them: none docume"
+   },
+   {
+    "at": "2026-11-28T01:42:53Z",
+    "item": "R99",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "redo",
+    "from": null,
+    "to": null,
+    "note": "tier (claude-haiku-5-5, controls passed): redo: The current question bundles several sub-questions (specific BLAS settings, compiler flags, and cross-ISA behavi"
+   },
+   {
+    "at": "2026-11-28T01:42:48Z",
+    "item": "R97",
+    "who": "tier (claude-haiku-5-5)",
+    "outcome": "redo",
+    "from": null,
+    "to": null,
+    "note": "tier (claude-haiku-5-5, controls passed): redo: The five sources read are about QEMU tracing and coverage plugins, ARM counter access, and rr, none of which com"
+   },
+   {
+    "at": "2026-11-28T00:47:08Z",
+    "item": "R104",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T00:44:11Z",
+    "item": "R104",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T00:33:18Z",
+    "item": "R104",
+    "who": "generator",
+    "outcome": "accept",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.751; controls 0.985/0.003"
+   },
+   {
+    "at": "2026-11-28T00:32:44Z",
+    "item": "R103",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T00:32:33Z",
+    "item": "R102",
+    "who": "free worker",
+    "outcome": "no_claims",
+    "from": "in progress",
+    "to": "escalated",
+    "note": "no accepted edit"
+   },
+   {
+    "at": "2026-11-28T00:29:07Z",
+    "item": "R103",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T00:28:49Z",
+    "item": "R102",
+    "who": "free worker",
+    "outcome": "claim",
+    "from": "open",
+    "to": "in progress",
+    "note": "claimed"
+   },
+   {
+    "at": "2026-11-28T00:28:21Z",
+    "item": "R103",
+    "who": "generator",
+    "outcome": "accept",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.985; controls 0.994/0.002"
+   },
+   {
+    "at": "2026-11-28T00:28:20Z",
+    "item": "R102",
+    "who": "generator",
+    "outcome": "accept",
+    "from": null,
+    "to": null,
+    "note": "decision model p=0.992; controls 0.994/0.002"
+   },
+   {
+    "at": "2026-11-28T00:16:49Z",
+    "item": "R101",
+    "who": "free worker",
+    "outcome": "merged",
+    "from": "in progress",
+    "to": "done",
+    "note": "merged"
+   }
+  ],
+  "open_items": [
+   {
+    "id": "Q09",
+    "title": "Stale branches still hold privileged, push-triggered workflows",
+    "kind": "infra",
+    "value": "medium",
+    "jobs": {
+     "owner_action": 0.751,
+     "sandbox_or_workflow": 0.713
+    }
+   },
+   {
+    "id": "Q25",
+    "title": "No held-out task set: model, harness and pool all chosen on the same 3 record.py tasks",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "already_done": 0.479,
+     "held": 0.296
+    }
+   },
+   {
+    "id": "Q28",
+    "title": "Stale test branches (anchor-test, q2-main, q2-shadow, e2e-main) and drifting record test copies (record-q2 lacks 5 secur",
+    "kind": "decision",
+    "value": "medium",
+    "jobs": {
+     "owner_action": 0.873,
+     "doc_change": 0.563,
+     "experiment": 0.418,
+     "sandbox_or_workflow": 0.388
+    }
+   },
+   {
+    "id": "Q36",
+    "title": "Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-err",
+    "kind": "doc",
+    "value": "low",
+    "jobs": {
+     "doc_change": 0.756,
+     "review": 0.476
+    }
+   },
+   {
+    "id": "Q44",
+    "title": "mlp infer.c \"no overflow is possible\" holds only for training-bounded weights; docstrings say \"only elementwise ops\" but",
+    "kind": "doc",
+    "value": "low",
+    "jobs": {
+     "doc_change": 0.983
+    }
+   },
+   {
+    "id": "Q54",
+    "title": "Hypothesis (owner, 2026-11-18): the cheapest artifact is the one whose structure is the process the hardware already run",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "code_change": 0.219,
+     "experiment": 0.202
+    }
+   },
+   {
+    "id": "P3",
+    "title": "Mixed first suite, incl. verifier-scored tasks and PFNs",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.629,
+     "code_change": 0.553,
+     "build": 0.449
+    }
+   },
+   {
+    "id": "P6",
+    "title": "Compartments and connections from per-item data",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "build": 0.622,
+     "analysis": 0.56
+    }
+   },
+   {
+    "id": "P9",
+    "title": "Process manager: measure, watch and improve how the free workers work (no worker changes its own rules)",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.83,
+     "experiment": 0.522,
+     "analysis": 0.457,
+     "sandbox_or_workflow": 0.367,
+     "code_change": 0.34,
+     "review": 0.337
+    }
+   },
+   {
+    "id": "P10",
+    "title": "Whole-system auditor: an independent, periodic look at direction, debt and blind spots that can't be seen from inside a ",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "review": 0.366,
+     "analysis": 0.259,
+     "already_done": 0.24,
+     "sandbox_or_workflow": 0.239,
+     "experiment": 0.237
+    }
+   },
+   {
+    "id": "P7b",
+    "title": "YouTube comments as a research source (needs a YouTube Data API key)",
+    "kind": "build",
+    "value": "medium",
+    "jobs": {
+     "owner_action": 0.87,
+     "already_done": 0.44,
+     "build": 0.359,
+     "sandbox_or_workflow": 0.295,
+     "experiment": 0.256,
+     "literature": 0.21
+    }
+   },
+   {
+    "id": "P7c",
+    "title": "Headless-browser tier for research: load and scrape pages and forums with no API",
+    "kind": "build",
+    "value": "medium",
+    "jobs": {
+     "build": 0.888,
+     "sandbox_or_workflow": 0.617,
+     "code_change": 0.544,
+     "experiment": 0.259
+    }
+   },
+   {
+    "id": "P7d",
+    "title": "Are the research worker's evidence grades right? (measured > reported > expert > experience > opinion)",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.574,
+     "review": 0.477
+    }
+   },
+   {
+    "id": "P7e",
+    "title": "Source discovery and per-source credibility from track record (find niche communities and knowledge pools)",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "literature": 0.554,
+     "held": 0.339,
+     "build": 0.267
+    }
+   },
+   {
+    "id": "P11",
+    "title": "Knowledge store: one queryable schema for parts, tasks, runs, per-item outcomes, spec cards and sources",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.979
+    }
+   },
+   {
+    "id": "P12",
+    "title": "Composition: cascades first (cheap part answers, expensive part only when needed), then ensembles and per-input routing",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.98
+    }
+   },
+   {
+    "id": "P13",
+    "title": "Tool-making: a missing tool goes through the same pipeline as any candidate (spec card, checker from known answers, reco",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.963,
+     "build": 0.204
+    }
+   },
+   {
+    "id": "P14",
+    "title": "Three-machine test: does the cost ranking of existing optdigits candidates change across x86, arm64 and Apple M1 runners",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "held": 0.944,
+     "experiment": 0.579
+    }
+   },
+   {
+    "id": "P15",
+    "title": "Hardware as a search dimension: layout, precision, memory traffic and parallel shape as settings the search changes; cos",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.975
+    }
+   },
+   {
+    "id": "P17",
+    "title": "Living capability map: the 12 abilities, where each stands, with evidence links, for the auditor to check progress again",
+    "kind": "doc",
+    "value": "medium",
+    "jobs": {
+     "held": 0.974
+    }
+   },
+   {
+    "id": "P18",
+    "title": "Jail assurance: prove isolation holds, refused things stay refused, allowed things still work, and the search cannot gam",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "held": 0.982
+    }
+   },
+   {
+    "id": "P19",
+    "title": "Distillation: turn a trained model into plain code, and check it computes the same function at lower cost",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.962,
+     "build": 0.304
+    }
+   },
+   {
+    "id": "P20",
+    "title": "Worker-aware orchestration: the system knows what each worker (model x pool x harness x tools x budget) can do and what ",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.579,
+     "held": 0.214
+    }
+   },
+   {
+    "id": "P20a",
+    "title": "Worker cards: declared limits with sources, measured outcomes from the logs, intervals; pre-call size check",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.744,
+     "code_change": 0.67,
+     "analysis": 0.596,
+     "doc_change": 0.563,
+     "experiment": 0.533
+    }
+   },
+   {
+    "id": "P20b",
+    "title": "Task demand and item response theory over worker tasks (difficulty and worker ability fitted together)",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "analysis": 0.752,
+     "experiment": 0.501,
+     "code_change": 0.272,
+     "build": 0.272
+    }
+   },
+   {
+    "id": "P20c",
+    "title": "Routing by cards with cascades (cheap -> strong -> Claude -> owner) and a little exploration",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.806,
+     "code_change": 0.729,
+     "experiment": 0.619
+    }
+   },
+   {
+    "id": "P20d",
+    "title": "Shape work to fit the worker: split oversized tasks, retrieval instead of stuffed context, step handoffs, reasoning budg",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "held": 0.703,
+     "build": 0.415,
+     "experiment": 0.308
+    }
+   },
+   {
+    "id": "P20e",
+    "title": "Spread work across the whole free workforce: parallel lanes and routing each job to the equivalent pool with most room (",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.682,
+     "code_change": 0.372,
+     "already_done": 0.283
+    }
+   },
+   {
+    "id": "P20f",
+    "title": "Drift probes: small weekly canaries per worker detect silent model changes",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.806,
+     "build": 0.483,
+     "code_change": 0.241
+    }
+   },
+   {
+    "id": "P21",
+    "title": "Graphs on demand: any question about the system becomes a graph, drawn from the record (typed nodes and links; views are",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.886,
+     "code_change": 0.788,
+     "analysis": 0.29,
+     "owner_action": 0.204
+    }
+   },
+   {
+    "id": "P22",
+    "title": "Does ordering by information per unit of cost change the queue's order against 'how many items it unlocks'?",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.744,
+     "held": 0.679,
+     "analysis": 0.538,
+     "build": 0.217
+    }
+   },
+   {
+    "id": "P23",
+    "title": "Claims at volume: a test-set budget per data set, false-discovery control, and a forecast on every plan",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "build": 0.816,
+     "code_change": 0.645,
+     "review": 0.294,
+     "experiment": 0.278
+    }
+   },
+   {
+    "id": "P24",
+    "title": "One model of the system: do P6, P11, P20, P21, P22 and P23 share one engine (a typed, time-varying graph plus fitted abi",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "held": 0.26,
+     "build": 0.236
+    }
+   },
+   {
+    "id": "P5c",
+    "title": "Check the cheapest accurate adult proposal (prop-44642441286-0, embeddings + linear = an additive per-value lookup): as ",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "review": 0.578,
+     "experiment": 0.559,
+     "analysis": 0.495
+    }
+   },
+   {
+    "id": "P7f",
+    "title": "Research depth: the scan finds, a drill restructures full text into a queryable store, models query only what fits their",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "literature": 0.788,
+     "experiment": 0.703,
+     "build": 0.415,
+     "data": 0.292
+    }
+   },
+   {
+    "id": "P25",
+    "title": "Test Gnomon (5kasgard/gnomon) as the Forge's knowledge store instead of building P11 from scratch",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.984,
+     "analysis": 0.285
+    }
+   },
+   {
+    "id": "P26",
+    "title": "Parts audit of gnomon, rabbithole, polymechania, mycel and axiom against the Forge's queue: what is proven, what to carr",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "review": 0.932,
+     "analysis": 0.216
+    }
+   },
+   {
+    "id": "P28",
+    "title": "Held-out outside tasks for agent tests: external validation that our harness and agent results hold beyond T1-T3",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.835,
+     "data": 0.417
+    }
+   },
+   {
+    "id": "P29",
+    "title": "Evolve our own agent harness (Meta-Harness pattern) through P5's loop, judged only on P28's held-out tasks against froze",
+    "kind": "build",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.983,
+     "build": 0.269
+    }
+   },
+   {
+    "id": "Q61",
+    "title": "Seccomp filter is a denylist ending in allow: test an allowlist built from what candidates actually call",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.979,
+     "sandbox_or_workflow": 0.453
+    }
+   },
+   {
+    "id": "Q62",
+    "title": "Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states)",
+    "kind": "fix",
+    "value": "low",
+    "jobs": {
+     "code_change": 0.872,
+     "sandbox_or_workflow": 0.677,
+     "held": 0.4
+    }
+   },
+   {
+    "id": "P31",
+    "title": "The tier above the free workers runs on OpenRouter models chosen by known-answer tests; Claude only when that tier escal",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.973
+    }
+   },
+   {
+    "id": "P32",
+    "title": "Capability scan: model kinds and API features beyond chat that could remove a known bottleneck (embeddings, rerankers, s",
+    "kind": "test",
+    "value": "high",
+    "jobs": {
+     "experiment": 0.963
+    }
+   },
+   {
+    "id": "P26a",
+    "title": "Port RabbitHole's per-source survival ledger (tether.py SourceLedger) for research source credibility (P7e)",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.888,
+     "analysis": 0.539,
+     "code_change": 0.439,
+     "build": 0.27
+    }
+   },
+   {
+    "id": "P26b",
+    "title": "Port RabbitHole's drift monitor (drift.py DriftMonitor) for per-model drift probes (P20f)",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.842,
+     "code_change": 0.505,
+     "analysis": 0.249
+    }
+   },
+   {
+    "id": "P26c",
+    "title": "Port RabbitHole's calibration registry and heterogeneous router (calibration.py, routing.py) for routing by results (P20",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.759,
+     "build": 0.753,
+     "code_change": 0.701,
+     "analysis": 0.482
+    }
+   },
+   {
+    "id": "P26d",
+    "title": "Port RabbitHole's provenance graph with revocation (provenance.py) so a changed fact or refuted claim flags what rests o",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "code_change": 0.86,
+     "experiment": 0.701,
+     "build": 0.683
+    }
+   },
+   {
+    "id": "P26e",
+    "title": "Port RabbitHole's discriminating-test planner (experiment.py) to choose which experiment to run first",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "code_change": 0.847,
+     "experiment": 0.754,
+     "analysis": 0.473,
+     "build": 0.309
+    }
+   },
+   {
+    "id": "P26g",
+    "title": "Research claims count independent supporting sources (RabbitHole provenance.roots/independent; Gnomon independent_groups",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.944,
+     "code_change": 0.53,
+     "analysis": 0.411
+    }
+   },
+   {
+    "id": "Q63",
+    "title": "Trust layer fixes a person merges (GLM F073, F074, F075, F076, F086, F088, F089)",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "code_change": 0.915,
+     "experiment": 0.601,
+     "review": 0.4,
+     "sandbox_or_workflow": 0.283
+    }
+   },
+   {
+    "id": "Q64",
+    "title": "Counter: old records unreadable by the current schema, and untested jail modes (GLM F077, F084)",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "code_change": 0.851,
+     "experiment": 0.674,
+     "data": 0.321,
+     "sandbox_or_workflow": 0.216
+    }
+   },
+   {
+    "id": "Q65",
+    "title": "Loop and sandbox: CPU contention, orphaned timed runs, self re-pin, untested jail paths (GLM F091-F095)",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "sandbox_or_workflow": 0.731,
+     "code_change": 0.698,
+     "review": 0.392,
+     "experiment": 0.291
+    }
+   },
+   {
+    "id": "Q66",
+    "title": "Workflow findings a person merges (GLM F009, F013, F014, F070; F109 scheduler-workaround cost)",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "sandbox_or_workflow": 0.813,
+     "review": 0.322,
+     "code_change": 0.286
+    }
+   },
+   {
+    "id": "Q67",
+    "title": "Code fixes on paths the tier does not merge (GLM F020, F022, F026, F028, F031, F032, F038, F040, F041, F044, F050, F078,",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "sandbox_or_workflow": 0.648,
+     "code_change": 0.574,
+     "review": 0.382
+    }
+   },
+   {
+    "id": "Q69",
+    "title": "An outside attacker task against the jail, calibrated first on a known hole",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.651,
+     "build": 0.207,
+     "sandbox_or_workflow": 0.204
+    }
+   },
+   {
+    "id": "Q70",
+    "title": "A task big enough for native time to matter (or batched inference), so both meters inform",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "analysis": 0.403,
+     "experiment": 0.289
+    }
+   },
+   {
+    "id": "Q71",
+    "title": "An absolute time-per-instruction band from a reference workload, to replace the relative band that fails on honest basel",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.98
+    }
+   },
+   {
+    "id": "Q72",
+    "title": "perf instructions:u cross-check of cachegrind counts where a hardware counter exists",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.74,
+     "review": 0.387
+    }
+   },
+   {
+    "id": "Q74",
+    "title": "Axiom: the audit hash joins fields with | and no escaping, so moving text across fields keeps the hash (found 2026-11-04",
+    "kind": "fix",
+    "value": "medium",
+    "jobs": {
+     "owner_action": 0.742,
+     "held": 0.296,
+     "decision": 0.2
+    }
+   },
+   {
+    "id": "Q75",
+    "title": "Weights reproduce byte for byte on arm64 too (Q55's pin covers x86 only)",
+    "kind": "test",
+    "value": "medium",
+    "jobs": {
+     "experiment": 0.977
+    }
+   }
+  ],
+  "waiting_on_owner": [
+   {
+    "id": "Q29",
+    "title": "Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanc"
+   },
+   {
+    "id": "P16",
+    "title": "Consume external outputs: published results as baselines, open-weight models as parts or tasks, published methods as pat"
+   }
+  ],
+  "backlog": {
+   "lanes": {
+    "parked": 99,
+    "blocked": 19,
+    "claude": 57,
+    "owner-only": 6,
+    "review": 3
+   },
+   "orphans": [],
+   "stale": [
+    {
+     "id": "P3",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 8.0,
+     "title": "Mixed first suite, incl. verifier-scored tasks and PFNs"
+    },
+    {
+     "id": "P26a",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's per-source survival ledger (tether.py SourceLedger) for research source "
+    },
+    {
+     "id": "P26b",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's drift monitor (drift.py DriftMonitor) for per-model drift probes (P20f)"
+    },
+    {
+     "id": "P26c",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's calibration registry and heterogeneous router (calibration.py, routing.p"
+    },
+    {
+     "id": "P26d",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's provenance graph with revocation (provenance.py) so a changed fact or re"
+    },
+    {
+     "id": "P26e",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's discriminating-test planner (experiment.py) to choose which experiment t"
+    },
+    {
+     "id": "P26g",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Research claims count independent supporting sources (RabbitHole provenance.roots/independ"
+    },
+    {
+     "id": "Q63",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Trust layer fixes a person merges (GLM F073, F074, F075, F076, F086, F088, F089)"
+    },
+    {
+     "id": "Q64",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Counter: old records unreadable by the current schema, and untested jail modes (GLM F077, "
+    },
+    {
+     "id": "Q65",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Loop and sandbox: CPU contention, orphaned timed runs, self re-pin, untested jail paths (G"
+    },
+    {
+     "id": "Q66",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Workflow findings a person merges (GLM F009, F013, F014, F070; F109 scheduler-workaround c"
+    },
+    {
+     "id": "Q67",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Code fixes on paths the tier does not merge (GLM F020, F022, F026, F028, F031, F032, F038,"
+    },
+    {
+     "id": "Q69",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "An outside attacker task against the jail, calibrated first on a known hole"
+    },
+    {
+     "id": "Q70",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "A task big enough for native time to matter (or batched inference), so both meters inform"
+    },
+    {
+     "id": "Q71",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "An absolute time-per-instruction band from a reference workload, to replace the relative b"
+    },
+    {
+     "id": "Q72",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "perf instructions:u cross-check of cachegrind counts where a hardware counter exists"
+    },
+    {
+     "id": "Q74",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Axiom: the audit hash joins fields with | and no escaping, so moving text across fields ke"
+    },
+    {
+     "id": "Q75",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Weights reproduce byte for byte on arm64 too (Q55's pin covers x86 only)"
+    },
+    {
+     "id": "Q76",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Run one full test-split plan through the runner end to end (the gate has never fired)"
+    },
+    {
+     "id": "Q78",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "A jail for containers that refuse /proc mounts, or a stated CI-only path for those verifie"
+    },
+    {
+     "id": "Q79",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Same cwd, HOME and visible files in the counted and the timed runs"
+    },
+    {
+     "id": "Q80",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Run the record monitor from an account outside the owner's control, on a schedule"
+    },
+    {
+     "id": "Q81",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Writer-level standard errors on optdigits (items from one writer are not independent)"
+    }
+   ],
+   "flow_7d": {
+    "days": 7,
+    "created": 131,
+    "finished": 123
+   },
+   "claude_lane": [
+    {
+     "id": "P3",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 8.0,
+     "title": "Mixed first suite, incl. verifier-scored tasks and PFNs"
+    },
+    {
+     "id": "P33",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 4.4,
+     "title": "Key broker: keyed steps run only a frozen call layer and the ledger from a pinned main com"
+    },
+    {
+     "id": "P35",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 4.4,
+     "title": "Connection graph of the whole system: queue, findings register, files, runs and cards as n"
+    },
+    {
+     "id": "Q84",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 3.9,
+     "title": "Probe and route the 13 repository secrets no workflow uses, and drop the 6 secret names wo"
+    },
+    {
+     "id": "P5e",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 3.9,
+     "title": "Staged selection for proposals: successive halving over rotating dev sub-folds with e-valu"
+    },
+    {
+     "id": "P5d",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 3.9,
+     "title": "Close the proposer's loop: a telemetry packet in each prompt (parent's compile stderr, ins"
+    },
+    {
+     "id": "P39",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 3.8,
+     "title": "Shared state fabric: export the remaining claude.ai project docs (67 of 71) into the repo "
+    },
+    {
+     "id": "P40",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 3.7,
+     "title": "Capability register: everything the Forge's keys and accounts offer, and alternatives, aga"
+    },
+    {
+     "id": "P38",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 3.6,
+     "title": "Backlog does not reach free workers: in 24 h all 11 P/Q completions were Claude's; workers"
+    },
+    {
+     "id": "Q85",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 3.5,
+     "title": "Research claim decider keeps 7 of 48 quote-verified claims and has no known-answer control"
+    },
+    {
+     "id": "Q83",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 3.0,
+     "title": "bench.yml: the provider key can reach the public bench artifact (agent transcript uploaded"
+    },
+    {
+     "id": "Q54",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "Hypothesis (owner, 2026-11-18): the cheapest artifact is the one whose structure is the pr"
+    },
+    {
+     "id": "P9",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Process manager: measure, watch and improve how the free workers work (no worker changes i"
+    },
+    {
+     "id": "P10",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Whole-system auditor: an independent, periodic look at direction, debt and blind spots tha"
+    },
+    {
+     "id": "P7d",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Are the research worker's evidence grades right? (measured > reported > expert > experienc"
+    },
+    {
+     "id": "P20",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Worker-aware orchestration: the system knows what each worker (model x pool x harness x to"
+    },
+    {
+     "id": "P20a",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Worker cards: declared limits with sources, measured outcomes from the logs, intervals; pr"
+    },
+    {
+     "id": "P20e",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Spread work across the whole free workforce: parallel lanes and routing each job to the eq"
+    },
+    {
+     "id": "P21",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Graphs on demand: any question about the system becomes a graph, drawn from the record (ty"
+    },
+    {
+     "id": "P23",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Claims at volume: a test-set budget per data set, false-discovery control, and a forecast "
+    },
+    {
+     "id": "P24",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "One model of the system: do P6, P11, P20, P21, P22 and P23 share one engine (a typed, time"
+    },
+    {
+     "id": "P5c",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Check the cheapest accurate adult proposal (prop-44642441286-0, embeddings + linear = an a"
+    },
+    {
+     "id": "P7f",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Research depth: the scan finds, a drill restructures full text into a queryable store, mod"
+    },
+    {
+     "id": "P25",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Test Gnomon (5kasgard/gnomon) as the Forge's knowledge store instead of building P11 from "
+    },
+    {
+     "id": "P26",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "Parts audit of gnomon, rabbithole, polymechania, mycel and axiom against the Forge's queue"
+    },
+    {
+     "id": "P28",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Held-out outside tasks for agent tests: external validation that our harness and agent res"
+    },
+    {
+     "id": "P31",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "The tier above the free workers runs on OpenRouter models chosen by known-answer tests; Cl"
+    },
+    {
+     "id": "P32",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Capability scan: model kinds and API features beyond chat that could remove a known bottle"
+    },
+    {
+     "id": "K86",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.5,
+     "title": "Pilot producer: propose.yml arm input and runner/results/packet-pilot/<run>.json records ("
+    },
+    {
+     "id": "K91",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 1.9,
+     "title": "Runner contract: a labelled-feedback (prequential) mode so online families can be candidat"
+    },
+    {
+     "id": "P26a",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's per-source survival ledger (tether.py SourceLedger) for research source "
+    },
+    {
+     "id": "P26b",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's drift monitor (drift.py DriftMonitor) for per-model drift probes (P20f)"
+    },
+    {
+     "id": "P26c",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's calibration registry and heterogeneous router (calibration.py, routing.p"
+    },
+    {
+     "id": "P26d",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's provenance graph with revocation (provenance.py) so a changed fact or re"
+    },
+    {
+     "id": "P26e",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Port RabbitHole's discriminating-test planner (experiment.py) to choose which experiment t"
+    },
+    {
+     "id": "P26g",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Research claims count independent supporting sources (RabbitHole provenance.roots/independ"
+    },
+    {
+     "id": "Q63",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Trust layer fixes a person merges (GLM F073, F074, F075, F076, F086, F088, F089)"
+    },
+    {
+     "id": "Q64",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Counter: old records unreadable by the current schema, and untested jail modes (GLM F077, "
+    },
+    {
+     "id": "Q65",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Loop and sandbox: CPU contention, orphaned timed runs, self re-pin, untested jail paths (G"
+    },
+    {
+     "id": "Q66",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Workflow findings a person merges (GLM F009, F013, F014, F070; F109 scheduler-workaround c"
+    },
+    {
+     "id": "Q67",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Code fixes on paths the tier does not merge (GLM F020, F022, F026, F028, F031, F032, F038,"
+    },
+    {
+     "id": "Q69",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "An outside attacker task against the jail, calibrated first on a known hole"
+    },
+    {
+     "id": "Q70",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "A task big enough for native time to matter (or batched inference), so both meters inform"
+    },
+    {
+     "id": "Q71",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "An absolute time-per-instruction band from a reference workload, to replace the relative b"
+    },
+    {
+     "id": "Q72",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "perf instructions:u cross-check of cachegrind counts where a hardware counter exists"
+    },
+    {
+     "id": "Q74",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Axiom: the audit hash joins fields with | and no escaping, so moving text across fields ke"
+    },
+    {
+     "id": "Q75",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Weights reproduce byte for byte on arm64 too (Q55's pin covers x86 only)"
+    },
+    {
+     "id": "Q76",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Run one full test-split plan through the runner end to end (the gate has never fired)"
+    },
+    {
+     "id": "Q78",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "A jail for containers that refuse /proc mounts, or a stated CI-only path for those verifie"
+    },
+    {
+     "id": "Q79",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Same cwd, HOME and visible files in the counted and the timed runs"
+    },
+    {
+     "id": "Q80",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 7.9,
+     "title": "Run the record monitor from an account outside the owner's control, on a schedule"
+    },
+    {
+     "id": "Q81",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 7.9,
+     "title": "Writer-level standard errors on optdigits (items from one writer are not independent)"
+    },
+    {
+     "id": "Q28",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "Stale test branches (anchor-test, q2-main, q2-shadow, e2e-main) and drifting record test c"
+    },
+    {
+     "id": "Q61",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Seccomp filter is a denylist ending in allow: test an allowlist built from what candidates"
+    },
+    {
+     "id": "Q36",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock,"
+    },
+    {
+     "id": "Q44",
+     "lane": "claude",
+     "why": "no job type fits",
+     "age_days": 2.9,
+     "title": "mlp infer.c \"no overflow is possible\" holds only for training-bounded weights; docstrings "
+    },
+    {
+     "id": "Q62",
+     "lane": "claude",
+     "why": "split tried: not worker-sized",
+     "age_days": 2.9,
+     "title": "Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states)"
+    }
+   ]
+  }
+ },
+ "github": {
+  "open_prs": [
+   {
+    "n": 262,
+    "title": "worker: K95 (code): pr",
+    "by": "github-actions[bot]",
+    "at": "2026-11-28T07:17:48Z"
+   },
+   {
+    "n": 261,
+    "title": "worker: K93 (code): pr",
+    "by": "github-actions[bot]",
+    "at": "2026-11-28T01:54:30Z"
+   },
+   {
+    "n": 259,
+    "title": "investigation: inference economics, context amplification and provider usage",
+    "by": "5kasgard",
+    "at": "2026-11-27T22:19:06Z"
+   },
+   {
+    "n": 253,
+    "title": "forge-act: Improve job_type inference using work_types",
+    "by": "5kasgard",
+    "at": "2026-11-27T05:49:54Z"
+   },
+   {
+    "n": 157,
+    "title": "docs: consolidate architectural vision and mathematical research direction",
+    "by": "5kasgard",
+    "at": "2026-11-25T05:09:21Z"
+   }
+  ],
+  "merged_7d": 87,
+  "merged_7d_by": {
+   "5kasgard": 76,
+   "github-actions[bot]": 11
+  },
+  "workflows_24h": {
+   "dash-snapshot": {
+    "in_progress": 1,
+    "success": 6
+   },
+   "models-rank": {
+    "success": 1
+   },
+   "notify": {
+    "skipped": 9,
+    "success": 8
+   },
+   "propose": {
+    "in_progress": 1,
+    "success": 25
+   },
+   "sandbox-eval": {
+    "success": 2
+   },
+   "schedules": {
+    "success": 6
+   },
+   "tier": {
+    "success": 2
+   },
+   "wiring": {
+    "success": 2
+   },
+   "worker": {
+    "in_progress": 1,
+    "success": 36
+   }
+  },
+  "latest_failures": []
+ },
+ "services": {
+  "connector (read)": {
+   "http": 200,
+   "ms": 127,
+   "ok": true
+  },
+  "act (write, needs token)": {
+   "http": 401,
+   "ms": 120,
+   "ok": true
+  },
+  "workbench": {
+   "http": 200,
+   "ms": 1777,
+   "ok": true
+  },
+  "chat (owner login)": {
+   "http": 302,
+   "ms": 69,
+   "ok": true
+  }
+ },
+ "models": {
+  "generated_at": "2026-11-28T19:13:22Z",
+  "models_seen": 768,
+  "reached_by_our_keys": 199,
+  "fields_seen": [
+   "artificial_analysis_economics_index",
+   "artificial_analysis_engineering_index",
+   "artificial_analysis_finance_and_accounting_index",
+   "artificial_analysis_healthcare_and_medical_index",
+   "artificial_analysis_intelligence_index",
+   "artificial_analysis_legal_index",
+   "artificial_analysis_strategy_and_ops_index"
+  ],
+  "by_job": {
+   "overall intelligence": [
+    {
+     "name": "Claude Fable 5.2 (Max, Default Fallback)",
+     "score": 100,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "GPT-6.2 Astra (Max)",
+     "score": 99,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "Gemini 4 Neon (Xhigh)",
+     "score": 97,
+     "metrics": 1,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 6.0
+    },
+    {
+     "name": "Gemini 4 Carbon (High)",
+     "score": 96,
+     "metrics": 1,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Claude Opus 5.5 (Max, Default Fallback)",
+     "score": 94,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "GPT-6.2 Sol (Max)",
+     "score": 92,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6 Astra (Max)",
+     "score": 91,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "Claude Sonnet 5.5 (Max, Default Fallback)",
+     "score": 87,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6.1 Sol (Max)",
+     "score": 87,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Gemini 4 Hydrogen (Xhigh)",
+     "score": 85,
+     "metrics": 1,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 3.0
+    },
+    {
+     "name": "GPT-6.1 Terra (Max)",
+     "score": 81,
+     "metrics": 1,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    },
+    {
+     "name": "Gemini 4 Argon (High)",
+     "score": 80,
+     "metrics": 1,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Claude Fable 5.1 (Max, Default Fallback)",
+     "score": 77,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "Kimi K3.1 Pro",
+     "score": 74,
+     "metrics": 1,
+     "reach": "paid: huggingface, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.281
+    },
+    {
+     "name": "Claude Opus 5 (Max)",
+     "score": 72,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 10.0
+    },
+    {
+     "name": "GPT-6 Sol (Max)",
+     "score": 71,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Muse Wonder (Max)",
+     "score": 70,
+     "metrics": 1,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "Qwen4 Max",
+     "score": 68,
+     "metrics": 1,
+     "reach": "paid: fireworks-ai, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.138
+    },
+    {
+     "name": "Muse Spark 1.3 (Max)",
+     "score": 63,
+     "metrics": 1,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    },
+    {
+     "name": "Claude Haiku 5.5 (Max)",
+     "score": 62,
+     "metrics": 1,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 0.2
+    }
+   ],
+   "overall intelligence (free only)": [
+    {
+     "name": "ERNIE 5.5 Flash Preview",
+     "score": 54,
+     "metrics": 1,
+     "reach": "free: openrouter",
+     "free": true,
+     "tools": true,
+     "price": null
+    },
+    {
+     "name": "MiniMax-M3.1-Flash",
+     "score": 46,
+     "metrics": 1,
+     "reach": "free: nvidia; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.131
+    },
+    {
+     "name": "Step 5 Preview",
+     "score": 45,
+     "metrics": 1,
+     "reach": "free: nvidia; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 1.425
+    },
+    {
+     "name": "GLM-5.3-Flash (Max)",
+     "score": 42,
+     "metrics": 1,
+     "reach": "free: nvidia; paid: huggingface, opencode, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.047
+    },
+    {
+     "name": "Qwen3.8 27B (Xhigh)",
+     "score": 30,
+     "metrics": 1,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.368
+    },
+    {
+     "name": "Nemotron 3.5 Super VL",
+     "score": 20,
+     "metrics": 1,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.225
+    },
+    {
+     "name": "LFM3-1.7B",
+     "score": 8,
+     "metrics": 1,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.11
+    },
+    {
+     "name": "Nemotron 3.5 Lightning",
+     "score": 7,
+     "metrics": 1,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.088
+    },
+    {
+     "name": "Gemma 4 31B (Reasoning)",
+     "score": 5,
+     "metrics": 1,
+     "reach": "free: google, nvidia, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.166
+    },
+    {
+     "name": "Gemma 4 26B A4B (Reasoning)",
+     "score": 4,
+     "metrics": 1,
+     "reach": "free: google, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.107
+    },
+    {
+     "name": "gpt-oss-120b (High)",
+     "score": 3,
+     "metrics": 1,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.06
+    }
+   ],
+   "engineering and coding": [
+    {
+     "name": "Claude Fable 5.2 (Max, Default Fallback)",
+     "score": 100,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "GPT-6.2 Astra (Max)",
+     "score": 98,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "Gemini 4 Neon (Xhigh)",
+     "score": 97,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 6.0
+    },
+    {
+     "name": "Gemini 4 Carbon (High)",
+     "score": 96,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Claude Opus 5.5 (Max, Default Fallback)",
+     "score": 95,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "GPT-6 Astra (Max)",
+     "score": 91,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "GPT-6.2 Sol (Max)",
+     "score": 91,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Gemini 4 Hydrogen (Xhigh)",
+     "score": 87,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 3.0
+    },
+    {
+     "name": "GPT-6.1 Sol (Max)",
+     "score": 86,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Claude Sonnet 5.5 (Max, Default Fallback)",
+     "score": 85,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Gemini 4 Argon (High)",
+     "score": 81,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6.1 Terra (Max)",
+     "score": 79,
+     "metrics": 2,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    },
+    {
+     "name": "Claude Fable 5.1 (Max, Default Fallback)",
+     "score": 78,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "Kimi K3.1 Pro",
+     "score": 73,
+     "metrics": 2,
+     "reach": "paid: huggingface, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.281
+    },
+    {
+     "name": "Claude Opus 5 (Max)",
+     "score": 72,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 10.0
+    },
+    {
+     "name": "GPT-6 Sol (Max)",
+     "score": 69,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Qwen4 Max",
+     "score": 69,
+     "metrics": 2,
+     "reach": "paid: fireworks-ai, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.138
+    },
+    {
+     "name": "Muse Wonder (Max)",
+     "score": 69,
+     "metrics": 2,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "Muse Spark 1.3 (Max)",
+     "score": 63,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    },
+    {
+     "name": "Claude Haiku 5.5 (Max)",
+     "score": 62,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 0.2
+    }
+   ],
+   "engineering and coding (free only)": [
+    {
+     "name": "ERNIE 5.5 Flash Preview",
+     "score": 51,
+     "metrics": 2,
+     "reach": "free: openrouter",
+     "free": true,
+     "tools": true,
+     "price": null
+    },
+    {
+     "name": "Step 5 Preview",
+     "score": 48,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 1.425
+    },
+    {
+     "name": "MiniMax-M3.1-Flash",
+     "score": 45,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.131
+    },
+    {
+     "name": "GLM-5.3-Flash (Max)",
+     "score": 44,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: huggingface, opencode, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.047
+    },
+    {
+     "name": "Qwen3.8 27B (Xhigh)",
+     "score": 31,
+     "metrics": 2,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.368
+    },
+    {
+     "name": "Nemotron 3.5 Super VL",
+     "score": 22,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.225
+    },
+    {
+     "name": "Nemotron 3.5 Lightning",
+     "score": 8,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.088
+    },
+    {
+     "name": "LFM3-1.7B",
+     "score": 8,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.11
+    },
+    {
+     "name": "Gemma 4 31B (Reasoning)",
+     "score": 5,
+     "metrics": 2,
+     "reach": "free: google, nvidia, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.166
+    },
+    {
+     "name": "Gemma 4 26B A4B (Reasoning)",
+     "score": 3,
+     "metrics": 2,
+     "reach": "free: google, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.107
+    },
+    {
+     "name": "gpt-oss-120b (High)",
+     "score": 3,
+     "metrics": 2,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.06
+    }
+   ],
+   "strategy and operations": [
+    {
+     "name": "Claude Fable 5.2 (Max, Default Fallback)",
+     "score": 100,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "GPT-6.2 Astra (Max)",
+     "score": 99,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 16.0
+    },
+    {
+     "name": "Gemini 4 Neon (Xhigh)",
+     "score": 98,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 6.0
+    },
+    {
+     "name": "Claude Opus 5.5 (Max, Default Fallback)",
+     "score": 95,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "Gemini 4 Carbon (High)",
+     "score": 95,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6.2 Sol (Max)",
+     "score": 92,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6 Astra (Max)",
+     "score": 91,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "Claude Sonnet 5.5 (Max, Default Fallback)",
+     "score": 89,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "GPT-6.1 Sol (Max)",
+     "score": 86,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Gemini 4 Hydrogen (Xhigh)",
+     "score": 86,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 3.0
+    },
+    {
+     "name": "Claude Fable 5.1 (Max, Default Fallback)",
+     "score": 84,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 20.0
+    },
+    {
+     "name": "Gemini 4 Argon (High)",
+     "score": 82,
+     "metrics": 2,
+     "reach": "paid: google, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Kimi K3.1 Pro",
+     "score": 80,
+     "metrics": 2,
+     "reach": "paid: huggingface, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.281
+    },
+    {
+     "name": "Qwen4 Max",
+     "score": 75,
+     "metrics": 2,
+     "reach": "paid: fireworks-ai, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.138
+    },
+    {
+     "name": "GPT-6.1 Terra (Max)",
+     "score": 74,
+     "metrics": 2,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    },
+    {
+     "name": "Claude Opus 5 (Max)",
+     "score": 73,
+     "metrics": 2,
+     "reach": "paid: anthropic, opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 10.0
+    },
+    {
+     "name": "Muse Wonder (Max)",
+     "score": 73,
+     "metrics": 2,
+     "reach": "paid: openrouter",
+     "free": false,
+     "tools": true,
+     "price": 8.0
+    },
+    {
+     "name": "GPT-6 Sol (Max)",
+     "score": 71,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 4.0
+    },
+    {
+     "name": "Grok 4.7 (Xhigh)",
+     "score": 69,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter, xai",
+     "free": false,
+     "tools": true,
+     "price": 3.0
+    },
+    {
+     "name": "Muse Spark 1.3 (Max)",
+     "score": 65,
+     "metrics": 2,
+     "reach": "paid: opencode, openrouter",
+     "free": false,
+     "tools": true,
+     "price": 2.0
+    }
+   ],
+   "strategy and operations (free only)": [
+    {
+     "name": "ERNIE 5.5 Flash Preview",
+     "score": 60,
+     "metrics": 2,
+     "reach": "free: openrouter",
+     "free": true,
+     "tools": true,
+     "price": null
+    },
+    {
+     "name": "MiniMax-M3.1-Flash",
+     "score": 57,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.131
+    },
+    {
+     "name": "Step 5 Preview",
+     "score": 47,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 1.425
+    },
+    {
+     "name": "GLM-5.3-Flash (Max)",
+     "score": 47,
+     "metrics": 2,
+     "reach": "free: nvidia; paid: huggingface, opencode, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.047
+    },
+    {
+     "name": "Qwen3.8 27B (Xhigh)",
+     "score": 34,
+     "metrics": 2,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.368
+    },
+    {
+     "name": "Nemotron 3.5 Super VL",
+     "score": 21,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.225
+    },
+    {
+     "name": "LFM3-1.7B",
+     "score": 9,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.11
+    },
+    {
+     "name": "Nemotron 3.5 Lightning",
+     "score": 8,
+     "metrics": 2,
+     "reach": "free: openrouter; paid: openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.088
+    },
+    {
+     "name": "Gemma 4 31B (Reasoning)",
+     "score": 6,
+     "metrics": 2,
+     "reach": "free: google, nvidia, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.166
+    },
+    {
+     "name": "Gemma 4 26B A4B (Reasoning)",
+     "score": 4,
+     "metrics": 2,
+     "reach": "free: google, openrouter; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.107
+    },
+    {
+     "name": "gpt-oss-120b (High)",
+     "score": 4,
+     "metrics": 2,
+     "reach": "free: cerebras, groq; paid: huggingface, openrouter",
+     "free": true,
+     "tools": true,
+     "price": 0.06
+    }
+   ]
+  },
+  "note": "Data: Artificial Analysis (artificialanalysis.ai), free API tier; reach and price: models.dev catalog. Score = mean percentile over the job's metrics the model has. 'free' = cost 0 in the catalog or a rate-limited free-tier provider (groq, cerebras, nvidia). Price = catalog $/M tokens, blended 3:1. Tool-use metrics (tau2, Terminal-Bench, AutomationBench) are not in AA's free API tier, so 'tool use and agents' stays empty until we have AA Pro or measure tool calling ourselves."
+ }
+}
