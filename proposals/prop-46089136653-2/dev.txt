@@ -1,0 +1,15 @@
+FAILED: prop-46089136653-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 171, in <module>
+    main()
+  File "/w/train.py", line 139, in main
+    be, pe, W1, b1, W2, b2 = train_loop(X_train, y_train, be, pe, W1, b1, W2, b2,
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 100, in train_loop
+    logits, emb, h_relu = forward(Xb, byte_emb, pos_emb, W1, b1, W2, b2)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 43, in forward
+    emb[:, j*E:(j+1)*E] = byte_emb[X[:, j]] + pos_emb[j]
+    ~~~^^^^^^^^^^^^^^^^
+ValueError: could not broadcast input array from shape (128,16) into shape (128,32)
+
