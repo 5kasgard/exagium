@@ -1,0 +1,12 @@
+FAILED: prop-46180522597-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 191, in <module>
+    main()
+  File "/w/train.py", line 160, in main
+    params = train_one_config(X_train, y_train, d, C, cfg["K"], cfg["lr"], cfg["l2"], MAX_EPOCHS_GRID, cfg_rng)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 95, in train_one_config
+    lin_part = b_lin + np.sum(L[np.arange(d), xb.T].transpose(1, 0, 2), axis=1)
+                              ~^^^^^^^^^^^^^^^^^^^^
+IndexError: shape mismatch: indexing arrays could not be broadcast together with shapes (14,) (14,64) 
+
