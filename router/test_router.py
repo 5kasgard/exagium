@@ -398,5 +398,24 @@ class SlotsCalibration(unittest.TestCase):
         self.assertEqual(tries[1]["ok"], True)
 
 
+class SchemaResponseFormat(unittest.TestCase):
+    """ITEM K93: pure builder for an OpenAI-compatible JSON-schema response_format."""
+
+    def test_returns_exact_shape_for_object_schema(self):
+        schema = {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
+        got = engines.schema_response_format("answer_schema", schema)
+        self.assertEqual(got, {"type": "json_schema", "json_schema": {
+            "name": "answer_schema", "schema": schema, "strict": True}})
+
+    def test_bad_name_or_non_dict_schema_raises(self):
+        schema = {"type": "object"}
+        for name in ("", "Bad", "has space", "dash-name", None):
+            with self.assertRaises(ValueError):
+                engines.schema_response_format(name, schema)
+        for bad in (None, [], "not a dict"):
+            with self.assertRaises(ValueError):
+                engines.schema_response_format("ok", bad)
+
+
 if __name__ == "__main__":
     unittest.main()

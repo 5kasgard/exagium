@@ -5,6 +5,17 @@ Every call returns a record: engine, model, ok, status, latency_s, usage, text, 
 """
 import json, os, re, time, urllib.request, urllib.error
 
+
+def schema_response_format(name, schema):
+    """OpenAI-compatible JSON-schema response_format; validates before building it."""
+    if not isinstance(name, str) or not re.fullmatch(r"[a-z0-9_]+", name):
+        raise ValueError("name must be a non-empty [a-z0-9_] string")
+    if not isinstance(schema, dict):
+        raise ValueError("schema must be a dict")
+    return {"type": "json_schema",
+            "json_schema": {"name": name, "schema": schema, "strict": True}}
+
+
 TIMEOUT = 180
 # Groq sits behind Cloudflare, which refuses Python's default "Python-urllib/3.x" User-Agent with 403 "error
 # code: 1010" before any key is checked (reproduced 2026-11-18: same URL, named agent -> 401 without a key).
