@@ -1,0 +1,18 @@
+FAILED: prop-46141577477-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 149, in <module>
+    main()
+  File "/w/train.py", line 128, in main
+    acc, params = train_model(X_tr, y_tr, X_val, y_val, D, C, lr, 1e-4, 64, 20, 200000, 1)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 50, in train_model
+    tr_idx = compute_indices(X_tr, X_tr.shape[1], D)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 38, in compute_indices
+    inds.append(hash_ngram(p, [xi[p]], D))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 16, in hash_ngram
+    h = splitmix64(h ^ v)
+                   ~~^~~
+OverflowError: Python int too large to convert to C long
+
