@@ -151,7 +151,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (61)
+## Can run now (62)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -216,6 +216,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
 | Q62 | B3 |  | minor | low | fix | Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states) | CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths. | audit/reviews/gemini-20261120/ on main (e4867d3): F004 (reproduced; the gap is stated in runner/jail.py lines 10-12) |
+| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Waiting on a blocker (19)
 
@@ -247,12 +248,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 |---|---|---|---|---|---|---|---|---|
 | K93 | B3 |  | minor | high | fix | P32 step 3 prep: pure builder for a JSON-schema response_format (no call wiring) | In router/engines.py add a pure function schema_response_format(name, schema) that returns the OpenAI-compatible dict {"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}}, after checking that name is a non-empty [a-z0-9_] string and schema is a dict (raise ValueError otherwise). Do not change compat_call, so existing calls are unaffected. In router/test_router.py add a test that the returned dict has exactly that shape for a small object schema, and that a bad name or a non-dict schema raises ValueError. Leave the rerun of failed prompts for a later sub-item, since it needs the owner's API key. | queue P32; worker/split.py |
 
-## Escalated (a check failed; the next tier takes it) (2)
+## Escalated (a check failed; the next tier takes it) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
-| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Needs the owner (3)
 

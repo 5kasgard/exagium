@@ -27322,18 +27322,18 @@
    "id": "R104",
    "title": "What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c",
    "kind": "test",
-   "status": "escalated",
+   "status": "open",
    "origin": "generated",
    "generated_from": "Q62",
    "generated_at": "2026-11-28T00:33:17Z",
    "research": {
-    "question": "What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how can tests detect missing limits in a fail-closed way?",
+    "question": "Do published studies of sandboxed dynamic analysis report whether setrlimit-based limits such as RLIMIT_AS are preserved across Valgrind launches, and how they verify enforcement?",
     "queries": [
-     "valgrind inherit rlimits",
-     "valgrind RLIMIT_AS wrapper",
-     "bubblewrap rlimits valgrind",
-     "fail closed resource limit probe",
-     "sandbox fallback rlimit enforcement"
+     "Valgrind sandboxed dynamic analysis resource limits",
+     "setrlimit enforcement sandboxed program testing",
+     "RLIMIT_AS memory limit verification fuzzing",
+     "sandbox fallback resource limit verification",
+     "bubblewrap seccomp rlimit sandbox evaluation"
     ]
    },
    "touches": [
@@ -27379,13 +27379,31 @@
      "outcome": "no_claims",
      "from": "in progress",
      "to": "escalated"
+    },
+    {
+     "at": "2026-11-28T06:26:58Z",
+     "worker": "tier-claude-haiku-5-5",
+     "outcome": "redo",
+     "result": "tier (claude-haiku-5-5, controls passed): redo: The first pass read no sources, and the arXiv and Hugging Face hits appear off-topic, so a narrower question about published sandbox and dynamic-analysis work may find usable claims."
     }
    ],
    "work_types": {
     "literature": 0.998
    },
    "work_types_key": "f17380da13d03928",
-   "work_types_at": "2026-11-28T00:33:28Z"
+   "work_types_at": "2026-11-28T00:33:28Z",
+   "research_history": [
+    {
+     "question": "What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how can tests detect missing limits in a fail-closed way?",
+     "queries": [
+      "valgrind inherit rlimits",
+      "valgrind RLIMIT_AS wrapper",
+      "bubblewrap rlimits valgrind",
+      "fail closed resource limit probe",
+      "sandbox fallback rlimit enforcement"
+     ]
+    }
+   ]
   },
   {
    "id": "K93",
