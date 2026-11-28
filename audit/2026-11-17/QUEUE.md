@@ -248,12 +248,11 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | K93 | B3 |  | minor | high | fix | P32 step 3 prep: pure builder for a JSON-schema response_format (no call wiring) | In router/engines.py add a pure function schema_response_format(name, schema) that returns the OpenAI-compatible dict {"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}}, after checking that name is a non-empty [a-z0-9_] string and schema is a dict (raise ValueError otherwise). Do not change compat_call, so existing calls are unaffected. In router/test_router.py add a test that the returned dict has exactly that shape for a small object schema, and that a bad name or a non-dict schema raises ValueError. Leave the rerun of failed prompts for a later sub-item, since it needs the owner's API key. | queue P32; worker/split.py |
 | K95 | B3 |  | minor | medium | fix | Pure band calculation: ns per Ir calibration and the enforce-or-report rule | Add two functions to runner/records.py. calibrate(reference_ns, reference_ir) returns ns per Ir from one fixed reference workload measurement, and raises ValueError if Ir is not positive. band_verdict(honest, control, ns_per_ir) takes per-candidate (ns, Ir) pairs for honest candidates and the ctl-cnt pair, and returns 'enforce' only if every honest candidate's ns/Ir ratio lies inside a band of [lo, hi] derived from the calibration and the ctl-cnt ratio lies outside it, otherwise 'report'. Add a class in runner/test_runner.py showing that a set of honest candidates with ratios between 20x and 46x returns 'report', that a tight honest set with ctl-cnt outside returns 'enforce', and that a zero Ir raises ValueError. | queue Q71; worker/split.py |
 
-## Escalated (a check failed; the next tier takes it) (2)
+## Escalated (a check failed; the next tier takes it) (1)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
 | R93 | B3 |  | minor | medium | test | What established practices should maintainers use to validate automated code-review findings and proposed fixes before merging, especially for security guards,  | Worker job (research): literature card for Q67. Why: It helps prioritize and vet GLM findings and worker PRs using established review, reproducibility, and security-validation criteria. | queue Q67; queue P27 (generator) |
-| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Needs the owner (3)
 
@@ -383,7 +382,7 @@ is saved as received. Exit 0 if at least one engine answered. Proposed fix: Vali
 | Q50 |  |  | none | low | decision | Ledger cost-to-use: ~650 code lines + 3 workflows for 4 entries; pays off once benches are registered in it | Register the next bench plan in the ledger | C F15 |
 | Q53 |  |  | minor | low | decision | Small seams: counter has 5 of 13 flags for loop's jail; name collisions (two probe.py, review.py vs review/) | Revisit when the per-image meter work touches counter/loop | C F9, F13 |
 
-## Done (223)
+## Done (224)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -622,4 +621,5 @@ same artifact scores differently through the runner than through a direct run (t
 | Q46 |  |  | minor | low | test | rfc8785 oracle test skipped everywhere (package never installed) | Done (main 05328a4): rfc8785==0.1.4 installed by hash in tests.yml; a skipped record test fails the step (0 skipped live). | B |
 | Q47 |  |  | minor | low | fix | loop.yml:106 unguarded empty-glob line (same cause as the 11-05 failure) | Done (main 05328a4): candidate globs use nullglob and fail loudly when empty. | B |
 | Q48 | B4 |  | minor | low | fix | bench2.yml keeps the unfixed git-maintenance / chmod race | Done 2026-11-19: bench2.yml retired (workflow disabled in settings, reversible with gh workflow enable); bench.yml too. Both benches are complete. | B |
+| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
