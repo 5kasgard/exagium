@@ -151,7 +151,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | B6 Compartments and connections | P6 | - |  | Needs per-item data from B1's suite and B3's proposals. | Analysis code runs on CI; free models describe the clusters; Claude checks the claims. |
 | B7 Research worker | P7e | - |  | New research/ folder and one workflow; reads (not writes) router/engines.py to call free models, so it overlaps nothing. | API scripts and free models on CI; a script checks every quote; Claude only judges the final card. |
 
-## Can run now (60)
+## Can run now (61)
 
 | id | batch | unlocks | severity | value | kind | title | next | refs |
 |---|---|---|---|---|---|---|---|---|
@@ -215,6 +215,7 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | Q36 | B5 |  | minor | low | doc | Claims without committed evidence (ctest 0.862, some gate counts and times, 3.8 GHz clock, fresh-clone repeat, model-error fit) | Label each as unrecorded or commit the raw output Indicator baseline (audit/periodic, 2026-11-18) flags 3 README lines with a number and no evidence pointer, incl. the two 'Best result so far' rows. | D-claims missing-evidence list |
 | Q44 | B5 |  | minor | low | doc | mlp infer.c "no overflow is possible" holds only for training-bounded weights; docstrings say "only elementwise ops" but use .sum/np.round | Reword both comments (mlp: frozen dirs, so in the next plan; LGN: now) | F findings 4, 5 |
 | Q62 | B3 |  | minor | low | fix | Confine mode: valgrind for the counter runs without the rlimits (a gap jail.py states) | CI uses bubblewrap mode, where the rlimits apply; confine is the fallback. Fix when confine mode is next used for a real run: start valgrind under limits.c in confine mode too, and add a probe that fails closed without it, as Q10 did for the other paths. | audit/reviews/gemini-20261120/ on main (e4867d3): F004 (reproduced; the gap is stated in runner/jail.py lines 10-12) |
+| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Waiting on a blocker (19)
 
@@ -258,12 +259,6 @@ Built from six skill-group audits (A security, B tests/bugs/state, C structure, 
 | P16 | B9 |  | none | high | build | Consume external outputs: published results as baselines, open-weight models as parts or tasks, published methods as patterns, all behind our checkers and meters | OWNER-ONLY: owner-hold (owner, 2026-11-19: do not start until they say). Owner, 2026-11-19: add to the queue only; the owner is working out how to frame part of this request, so do not start until they say. Scope as discussed: closed systems (AlphaEvolve) enter as published results a candidate must beat on our checker; open weights (AlphaFold2, open models) as parts or task domains; open re-implementations of evolve loops as the proposer pattern. Do not rebuild what others do better; adapt their outputs. The sandbox stays a safety boundary for generated code: hardened, never subverted. (blocked by P11) | chat 2026-11-19 (ten-ability map plus abilities 11 and 12); project doc claude/forge-next-item-2026-11-18.md |
 | Q83 | B3 |  | major | high | fix | bench.yml: the provider key can reach the public bench artifact (agent transcript uploaded unscrubbed) (register Z1-F010, high; workflow file: a person changes it) | 2026-11-25 (owner: decide by data): the fix is known (bench-4's meter pattern, or upload a scrubbed summary only); the Claude tier writes the PR. Only its merge is the owner's (owner-only: guard-merge: a workflow file). Workflow edits cannot land through the bot token (403). Copy bench-4's pattern: meter the key outside the agent container and delete the meter file before upload, or stop uploading events.jsonl/stderr.txt from bench, bench3 and bench5 (upload a scrubbed summary instead). bench.yml is disabled today, so this is latent until any bench is re-enabled: fix before re-enabling. | audit/findings/register.jsonl Z1-F010 |
 | Q29 | B4 |  | minor | medium | decision | Storage branches hold 94% of unique bytes (63 MB gzipped cachegrind) and are cited as evidence but unprotected and unanchored | OWNER-ONLY: repo-settings (2026-11-25): the bot token gets 403 on branch protection; only this click is the owner's. Write test done 2026-11-19: PUT branches/{main,router-runs,ci-runs}/protection returns 403 'write access to this API path is not permitted through this proxy', so the session can't set it. Owner: Settings > Branches (or Rules), for main, router-runs and ci-runs, block force pushes and deletions; no required reviews or checks (writers push directly; none force-pushes: checked by grep 2026-11-19). | C F14; S2 partly right (93.7%) |
-
-## Proposed by the generator (a gate with known-answer controls decides; P27) (1)
-
-| id | batch | unlocks | severity | value | kind | title | next | refs |
-|---|---|---|---|---|---|---|---|---|
-| R104 | B3 |  | minor | low | test | What mechanisms ensure that RLIMIT_* resource limits are inherited and enforced by Valgrind-instrumented processes launched in sandbox fallback modes, and how c | Worker job (research): literature card for Q62. Why: It identifies established ways to apply and verify rlimits around Valgrind so confine mode can be fixed and probed fail-closed. | queue Q62; queue P27 (generator) |
 
 ## Parked (97)
 
