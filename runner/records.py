@@ -60,3 +60,29 @@ def clustered_se(values, writers):
     sumsq = sum((sum(v - mean for v in vs)) ** 2 for vs in clusters.values())
     var = (G / (G - 1)) * ((n - 1) / (n - 1)) * sumsq / n ** 2
     return var ** 0.5
+
+
+def calibrate(reference_ns, reference_ir):
+    """ns per counted instruction on one fixed reference workload."""
+    if reference_ir <= 0:
+        raise ValueError("reference Ir must be positive")
+    return reference_ns / reference_ir
+
+
+def band_verdict(honest, control, ns_per_ir):
+    """'enforce' only when every honest ns/Ir ratio is inside a tight band around the calibration and ctl-cnt is outside."""
+    if ns_per_ir <= 0:
+        raise ValueError("calibration ns per Ir must be positive")
+    lo, hi = ns_per_ir / 2.0, ns_per_ir * 2.0
+
+    def ratio(pair):
+        ns, ir = pair
+        if ir <= 0:
+            raise ValueError("Ir must be positive")
+        return ns / ir
+
+    if not honest:
+        return "report"
+    if not all(lo <= ratio(p) <= hi for p in honest):
+        return "report"
+    return "report" if lo <= ratio(control) <= hi else "enforce"
