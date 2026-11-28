@@ -1,0 +1,12 @@
+FAILED: prop-46151973814-0 on adult: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 209, in <module>
+    main()
+  File "/w/train.py", line 142, in main
+    grads = loss_grad(Z_batch, y_batch)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 116, in loss_grad
+    A = np.einsum('nfc,ni->ifc', probs * ZV, Z)  # (D, K, C) wait: probs (n,C), ZV (n,K,C) -> probs_nc * ZV_nfc = (n,K,C)
+                                 ~~~~~~^~~~
+ValueError: operands could not be broadcast together with shapes (256,2) (256,8,2) 
+
