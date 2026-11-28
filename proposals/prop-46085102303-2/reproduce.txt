@@ -1,0 +1,15 @@
+FAILED: prop-46085102303-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 128, in <module>
+    main()
+  File "/w/train.py", line 52, in main
+    feats.append(hash_unigram(p, xi[p]))
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 32, in hash_unigram
+    return mix32(key) & (HASH_SIZE - 1)
+           ^^^^^^^^^^
+  File "/w/train.py", line 25, in mix32
+    x = (x ^ (x >> 16)) * 0x45d9f3b
+        ~~~~~~~~~~~~~~~~^~~~~~~~~~~
+OverflowError: Python integer 73244475 out of bounds for uint8
+
