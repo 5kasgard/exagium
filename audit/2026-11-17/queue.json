@@ -27344,6 +27344,38 @@
    },
    "work_types_key": "f17380da13d03928",
    "work_types_at": "2026-11-28T00:33:28Z"
+  },
+  {
+   "id": "K93",
+   "title": "P32 step 3 prep: pure builder for a JSON-schema response_format (no call wiring)",
+   "kind": "fix",
+   "status": "proposed",
+   "origin": "generated",
+   "split_from": "P32",
+   "generated_at": "2026-11-28T01:52:53Z",
+   "code": {
+    "files": [
+     "router/engines.py"
+    ],
+    "test": "router/test_router.py",
+    "context": [],
+    "new": []
+   },
+   "touches": [
+    "router/engines.py",
+    "router/test_router.py"
+   ],
+   "next": "In router/engines.py add a pure function schema_response_format(name, schema) that returns the OpenAI-compatible dict {\"type\": \"json_schema\", \"json_schema\": {\"name\": name, \"schema\": schema, \"strict\": True}}, after checking that name is a non-empty [a-z0-9_] string and schema is a dict (raise ValueError otherwise). Do not change compat_call, so existing calls are unaffected. In router/test_router.py add a test that the returned dict has exactly that shape for a small object schema, and that a bad name or a non-dict schema raises ValueError. Leave the rerun of failed prompts for a later sub-item, since it needs the owner's API key.",
+   "refs": [
+    "queue P32",
+    "worker/split.py"
+   ],
+   "severity": "minor",
+   "needs": "free",
+   "cost": 0,
+   "value": "high",
+   "blocked_by": [],
+   "batch": "B3"
   }
  ],
  "batches": [
