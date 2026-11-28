@@ -1,0 +1,18 @@
+FAILED: prop-46085893568-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 124, in <module>
+    main()
+  File "/w/train.py", line 107, in main
+    W = train_model(X_train, y_train, B, C, lr, rng, epochs=EPOCHS)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 58, in train_model
+    buckets = extract_buckets(xb[i], B, NGRAM_MAX)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 39, in extract_buckets
+    buckets.append(hash_ngram(x[i:i + n], n, B))
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 30, in hash_ngram
+    h = (h * 33 + b) & 0xFFFFFFFF
+         ~~~~~~~^~~
+OverflowError: Python integer 177606 out of bounds for uint8
+
