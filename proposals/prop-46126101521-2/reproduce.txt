@@ -1,0 +1,14 @@
+FAILED: prop-46126101521-2 on text: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 164, in <module>
+    main()
+  File "/w/train.py", line 140, in main
+    train_buckets = compute_buckets(train_X, B)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 39, in compute_buckets
+    buckets[:, col] = np.array([fnv1a([i, b]) % B for b in X[:, i]], dtype=np.int32)
+                                ^^^^^^^^^^^^^
+  File "/w/train.py", line 25, in fnv1a
+    h ^= b
+OverflowError: Python integer 84696351 out of bounds for uint8
+
