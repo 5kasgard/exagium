@@ -1,0 +1,12 @@
+FAILED: prop-46090092350-1 on optdigits: train.py exited 1:
+Traceback (most recent call last):
+  File "/w/train.py", line 228, in <module>
+    main()
+  File "/w/train.py", line 145, in main
+    params, val_acc = train_model(Z_train, y_train, Z_tune, y_tune, C, k, lr, l2, rng)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/w/train.py", line 73, in train_model
+    grad_W_lin = Z.T @ g + l2 * W_lin  # (d, C) -> transpose later
+                 ~~~~~~~~^~~~~~~~~~~~
+ValueError: operands could not be broadcast together with shapes (64,10) (10,64) 
+
